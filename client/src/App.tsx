@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Sidebar from "@/components/sidebar";
+import TopBar from "@/components/top-bar";
 import Dashboard from "@/pages/dashboard";
 import Patients from "@/pages/patients";
 import PatientProfile from "@/pages/patient-profile";
@@ -20,17 +21,22 @@ function AuthenticatedApp() {
     <div className="flex h-screen bg-slate-50">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/patients" component={Patients} />
-          <Route path="/patients/:id" component={PatientProfile} />
-          <Route path="/visits" component={Visits} />
-          <Route path="/lab-results" component={LabResults} />
-          <Route path="/pharmacy" component={Pharmacy} />
-          <Route path="/referrals" component={Referrals} />
-          <Route component={NotFound} />
-        </Switch>
+        <TopBar />
+        <main className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto p-8">
+            <Switch>
+              <Route path="/" component={Dashboard} />
+              <Route path="/dashboard" component={Dashboard} />
+              <Route path="/patients" component={Patients} />
+              <Route path="/patients/:id" component={PatientProfile} />
+              <Route path="/visits" component={Visits} />
+              <Route path="/lab-results" component={LabResults} />
+              <Route path="/pharmacy" component={Pharmacy} />
+              <Route path="/referrals" component={Referrals} />
+              <Route component={NotFound} />
+            </Switch>
+          </div>
+        </main>
       </div>
     </div>
   );
