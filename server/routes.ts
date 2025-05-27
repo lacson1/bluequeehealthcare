@@ -21,19 +21,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      const searchTerm = q.toLowerCase();
-      const medicines = await storage.getMedicines();
-      
-      // Filter medicines by name, description, or common conditions
-      const filteredMedicines = medicines
-        .filter(medicine => 
-          medicine.name.toLowerCase().includes(searchTerm) ||
-          (medicine.description && medicine.description.toLowerCase().includes(searchTerm)) ||
-          (medicine.commonConditions && medicine.commonConditions.toLowerCase().includes(searchTerm))
+      // Query the comprehensive medications database
+      const searchTerm = `%${q.toLowerCase()}%`;
+      const result = await db.select()
+        .from(medications)
+        .where(
+          or(
+            ilike(medications.name, searchTerm),
+            ilike(medications.genericName, searchTerm),
+            ilike(medications.brandName, searchTerm),
+            ilike(medications.category, searchTerm),
+            ilike(medications.activeIngredient, searchTerm)
+          )
         )
-        .slice(0, 10); // Limit to 10 results for performance
+        .limit(10)
+        .orderBy(medications.name);
 
-      res.json(filteredMedicines);
+      res.json(result.map(med => ({
+        id: med.id,
+        name: med.name,
+        genericName: med.genericName,
+        brandName: med.brandName,
+        category: med.category,
+        dosageForm: med.dosageForm,
+        strength: med.strength,
+        dosageAdult: med.dosageAdult,
+        dosageChild: med.dosageChild,
+        frequency: med.frequency,
+        indications: med.indications,
+        contraindications: med.contraindications,
+        sideEffects: med.sideEffects,
+        routeOfAdministration: med.routeOfAdministration,
+        costPerUnit: med.costPerUnit
+      })));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch medicine suggestions" });
     }

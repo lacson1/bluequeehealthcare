@@ -227,6 +227,10 @@ export const labTestsRelations = relations(labTests, ({ many }) => ({
   labResults: many(labResults),
 }));
 
+export const medicationsRelations = relations(medications, ({ many }) => ({
+  prescriptions: many(prescriptions),
+}));
+
 export const commentsRelations = relations(comments, ({ one, many }) => ({
   patient: one(patients, {
     fields: [comments.patientId],
@@ -328,3 +332,11 @@ export const insertLabTestSchema = createInsertSchema(labTests).omit({
 
 export type LabTest = typeof labTests.$inferSelect;
 export type InsertLabTest = z.infer<typeof insertLabTestSchema>;
+
+export const insertMedicationSchema = createInsertSchema(medications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Medication = typeof medications.$inferSelect;
+export type InsertMedication = z.infer<typeof insertMedicationSchema>;
