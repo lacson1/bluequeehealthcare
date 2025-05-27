@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,9 +56,12 @@ export default function VisitRecordingModal({
     enabled: !patientId, // Only fetch if patientId is not provided
   });
 
-  const form = useForm<Omit<InsertVisit, "patientId">>({
-    resolver: zodResolver(insertVisitSchema.omit({ patientId: true })),
-    defaultValues: {
+  // Auto-save functionality - load from localStorage
+  const getDraftKey = () => `visitDraft_${selectedPatientId || patientId || 'new'}`;
+  
+  const loadDraft = () => {
+    const saved = localStorage.getItem(getDraftKey());
+    return saved ? JSON.parse(saved) : {
       bloodPressure: "",
       heartRate: undefined,
       temperature: "",
@@ -68,8 +71,20 @@ export default function VisitRecordingModal({
       treatment: "",
       followUpDate: "",
       visitType: "consultation",
-    },
+    };
+  };
+
+  const form = useForm<Omit<InsertVisit, "patientId">>({
+    resolver: zodResolver(insertVisitSchema.omit({ patientId: true })),
+    defaultValues: loadDraft(),
   });
+
+  // Auto-save form data on every change
+  const watchedValues = form.watch();
+  
+  useEffect(() => {
+    localStorage.setItem(getDraftKey(), JSON.stringify(watchedValues));
+  }, [watchedValues, selectedPatientId, patientId]);
 
   const recordVisitMutation = useMutation({
     mutationFn: async (data: InsertVisit) => {

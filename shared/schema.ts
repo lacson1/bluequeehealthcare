@@ -38,6 +38,7 @@ export const visits = pgTable("visits", {
   treatment: text("treatment"),
   followUpDate: date("follow_up_date"),
   visitType: text("visit_type").notNull().default("consultation"),
+  status: text("status").notNull().default("draft"), // 'draft' | 'final'
 });
 
 export const labResults = pgTable("lab_results", {
