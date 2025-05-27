@@ -30,6 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Sparkles, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import AllergyAutocomplete from "./allergy-autocomplete";
+import MedicalConditionAutocomplete from "./medical-condition-autocomplete";
 
 interface PatientRegistrationModalProps {
   open: boolean;
@@ -42,6 +46,10 @@ export default function PatientRegistrationModal({
 }: PatientRegistrationModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Smart autocomplete state
+  const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
 
   const form = useForm<InsertPatient>({
     resolver: zodResolver(insertPatientSchema),
@@ -82,6 +90,34 @@ export default function PatientRegistrationModal({
       });
     },
   });
+
+  const handleAllergySelect = (allergy: string) => {
+    if (!selectedAllergies.includes(allergy)) {
+      const newAllergies = [...selectedAllergies, allergy];
+      setSelectedAllergies(newAllergies);
+      form.setValue("allergies", newAllergies.join(", "));
+    }
+  };
+
+  const handleConditionSelect = (condition: string) => {
+    if (!selectedConditions.includes(condition)) {
+      const newConditions = [...selectedConditions, condition];
+      setSelectedConditions(newConditions);
+      form.setValue("medicalHistory", newConditions.join(", "));
+    }
+  };
+
+  const removeAllergy = (allergyToRemove: string) => {
+    const newAllergies = selectedAllergies.filter(a => a !== allergyToRemove);
+    setSelectedAllergies(newAllergies);
+    form.setValue("allergies", newAllergies.join(", "));
+  };
+
+  const removeCondition = (conditionToRemove: string) => {
+    const newConditions = selectedConditions.filter(c => c !== conditionToRemove);
+    setSelectedConditions(newConditions);
+    form.setValue("medicalHistory", newConditions.join(", "));
+  };
 
   const onSubmit = (data: InsertPatient) => {
     registerPatientMutation.mutate(data);

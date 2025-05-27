@@ -142,6 +142,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch lab test suggestions" });
     }
   });
+
+  app.get("/api/suggestions/allergies", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.json([]);
+      }
+
+      // Common allergies database for Nigerian clinics
+      const commonAllergies = [
+        { name: "Penicillin", category: "Antibiotics", severity: "High" },
+        { name: "Amoxicillin", category: "Antibiotics", severity: "High" },
+        { name: "Sulfa drugs", category: "Antibiotics", severity: "High" },
+        { name: "Aspirin", category: "Pain relievers", severity: "Medium" },
+        { name: "Ibuprofen", category: "Pain relievers", severity: "Medium" },
+        { name: "Paracetamol", category: "Pain relievers", severity: "Low" },
+        { name: "Peanuts", category: "Food", severity: "High" },
+        { name: "Tree nuts", category: "Food", severity: "High" },
+        { name: "Shellfish", category: "Food", severity: "High" },
+        { name: "Fish", category: "Food", severity: "Medium" },
+        { name: "Eggs", category: "Food", severity: "Medium" },
+        { name: "Milk/Dairy", category: "Food", severity: "Medium" },
+        { name: "Wheat/Gluten", category: "Food", severity: "Medium" },
+        { name: "Soy", category: "Food", severity: "Low" },
+        { name: "Latex", category: "Environmental", severity: "Medium" },
+        { name: "Dust mites", category: "Environmental", severity: "Low" },
+        { name: "Pollen", category: "Environmental", severity: "Low" },
+        { name: "Pet dander", category: "Environmental", severity: "Low" },
+        { name: "Insect stings", category: "Environmental", severity: "High" },
+        { name: "Contrast dye", category: "Medical", severity: "High" }
+      ];
+
+      const searchTerm = q.toLowerCase();
+      const filteredAllergies = commonAllergies
+        .filter(allergy => allergy.name.toLowerCase().includes(searchTerm) || 
+                          allergy.category.toLowerCase().includes(searchTerm))
+        .slice(0, 10);
+
+      res.json(filteredAllergies.map(allergy => ({
+        name: allergy.name,
+        category: allergy.category,
+        severity: allergy.severity
+      })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch allergy suggestions" });
+    }
+  });
+
+  app.get("/api/suggestions/medical-conditions", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.json([]);
+      }
+
+      // Common medical conditions in Nigerian clinics
+      const commonConditions = [
+        { name: "Hypertension", category: "Cardiovascular", chronic: true },
+        { name: "Diabetes mellitus", category: "Endocrine", chronic: true },
+        { name: "Asthma", category: "Respiratory", chronic: true },
+        { name: "Epilepsy", category: "Neurological", chronic: true },
+        { name: "Heart disease", category: "Cardiovascular", chronic: true },
+        { name: "Kidney disease", category: "Renal", chronic: true },
+        { name: "Liver disease", category: "Hepatic", chronic: true },
+        { name: "Stroke", category: "Neurological", chronic: true },
+        { name: "Arthritis", category: "Musculoskeletal", chronic: true },
+        { name: "Depression", category: "Mental Health", chronic: true },
+        { name: "Anxiety disorder", category: "Mental Health", chronic: true },
+        { name: "Migraine", category: "Neurological", chronic: true },
+        { name: "Peptic ulcer", category: "Gastrointestinal", chronic: false },
+        { name: "Gastritis", category: "Gastrointestinal", chronic: false },
+        { name: "Anemia", category: "Hematological", chronic: false },
+        { name: "Thyroid disorder", category: "Endocrine", chronic: true },
+        { name: "Tuberculosis", category: "Infectious", chronic: false },
+        { name: "HIV/AIDS", category: "Immunological", chronic: true },
+        { name: "Hepatitis B", category: "Infectious", chronic: true },
+        { name: "Sickle cell disease", category: "Hematological", chronic: true },
+        { name: "Glaucoma", category: "Ophthalmological", chronic: true },
+        { name: "Cataracts", category: "Ophthalmological", chronic: false }
+      ];
+
+      const searchTerm = q.toLowerCase();
+      const filteredConditions = commonConditions
+        .filter(condition => condition.name.toLowerCase().includes(searchTerm) || 
+                            condition.category.toLowerCase().includes(searchTerm))
+        .slice(0, 10);
+
+      res.json(filteredConditions.map(condition => ({
+        name: condition.name,
+        category: condition.category,
+        chronic: condition.chronic
+      })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch medical condition suggestions" });
+    }
+  });
   
   // Patients routes - Medical staff only
   app.post("/api/patients", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
