@@ -3,10 +3,11 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { authenticateToken, requireRole, requireAnyRole, hashPassword, comparePassword, generateToken, type AuthRequest } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Patients routes
-  app.post("/api/patients", async (req, res) => {
+  // Patients routes - Medical staff only
+  app.post("/api/patients", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const patientData = insertPatientSchema.parse(req.body);
       const patient = await storage.createPatient(patientData);
@@ -20,7 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/patients", async (req, res) => {
+  app.get("/api/patients", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const search = req.query.search as string | undefined;
       const patients = await storage.getPatients(search);
@@ -96,8 +97,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Medicines routes
-  app.post("/api/medicines", async (req, res) => {
+  // Medicines routes - Pharmacist and Admin only
+  app.post("/api/medicines", authenticateToken, requireAnyRole(['pharmacist', 'admin']), async (req: AuthRequest, res) => {
     try {
       const medicineData = insertMedicineSchema.parse(req.body);
       const medicine = await storage.createMedicine(medicineData);
@@ -231,12 +232,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User authentication routes
-  app.post("/api/users", async (req, res) => {
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || !(await comparePassword(password, user.password))) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const token = generateToken({ id: user.id, username: user.username, role: user.role });
+      
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // User management routes (Admin only)
+  app.post("/api/users", authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+      userData.password = await hashPassword(userData.password);
       const user = await storage.createUser(userData);
-      res.json(user);
+      res.json({ ...user, password: undefined }); // Don't return password
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid user data", errors: error.errors });
@@ -246,7 +273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:username", async (req, res) => {
+  app.get("/api/users/:username", authenticateToken, requireAnyRole(['admin', 'doctor']), async (req, res) => {
     try {
       const username = req.params.username;
       const user = await storage.getUserByUsername(username);
@@ -254,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).json({ message: "User not found" });
         return;
       }
-      res.json(user);
+      res.json({ ...user, password: undefined }); // Don't return password
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user" });
     }
