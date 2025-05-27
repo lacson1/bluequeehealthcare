@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, users } from "@shared/schema";
+import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, users, auditLogs } from "@shared/schema";
 import { z } from "zod";
 import { authenticateToken, requireRole, requireAnyRole, hashPassword, comparePassword, generateToken, type AuthRequest } from "./middleware/auth";
 import { initializeFirebase, sendNotificationToRole, sendUrgentNotification, NotificationTypes } from "./notifications";
@@ -615,6 +615,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "User deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Audit logs endpoint (Admin only)
+  app.get('/api/audit-logs', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
+    try {
+      const logs = await db.select().from(auditLogs).orderBy(auditLogs.timestamp);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch audit logs" });
     }
   });
 
