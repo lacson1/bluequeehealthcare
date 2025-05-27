@@ -1,11 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema } from "@shared/schema";
+import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, users } from "@shared/schema";
 import { z } from "zod";
 import { authenticateToken, requireRole, requireAnyRole, hashPassword, comparePassword, generateToken, type AuthRequest } from "./middleware/auth";
 import { initializeFirebase, sendNotificationToRole, sendUrgentNotification, NotificationTypes } from "./notifications";
 import { AuditLogger, AuditActions } from "./audit";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Firebase for push notifications
@@ -536,6 +538,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ...user, password: undefined }); // Don't return password
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Profile management routes
+  app.get("/api/users/:id/profile", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Users can only access their own profile unless they're admin
+      if (req.user?.id !== userId && req.user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create audit log
+      const auditLogger = new AuditLogger(req);
+      await auditLogger.logUserAction(AuditActions.USER_PROFILE_VIEWED, userId);
+      
+      res.json({ ...user, password: undefined }); // Don't return password
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch profile" });
+    }
+  });
+
+  app.patch("/api/users/:id/profile", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Users can only update their own profile unless they're admin
+      if (req.user?.id !== userId && req.user?.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { email, phone, photoUrl } = req.body;
+      
+      // Validate the update data
+      const updateData: Record<string, any> = { email, phone, photoUrl };
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+      
+      // Update the user profile
+      const [updatedUser] = await db.update(users)
+        .set(updateData)
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create audit log
+      const auditLogger = new AuditLogger(req);
+      await auditLogger.logUserAction(AuditActions.USER_PROFILE_UPDATED, userId, {
+        updatedFields: Object.keys(updateData)
+      });
+      
+      res.json({ ...updatedUser, password: undefined }); // Don't return password
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update profile" });
     }
   });
 

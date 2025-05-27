@@ -46,6 +46,8 @@ export const AuditActions = {
   USER_LOGOUT: "User Logout",
   USER_CREATED: "User Created",
   USER_UPDATED: "User Updated",
+  USER_PROFILE_VIEWED: "User Profile Viewed",
+  USER_PROFILE_UPDATED: "User Profile Updated",
   
   // Referral actions
   REFERRAL_CREATED: "Referral Created",
