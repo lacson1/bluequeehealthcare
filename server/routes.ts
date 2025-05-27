@@ -10,6 +10,85 @@ import { AuditLogger, AuditActions } from "./audit";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Firebase for push notifications
   initializeFirebase();
+
+  // Smart Suggestion Endpoints for Auto-complete
+  app.get("/api/suggestions/medicines", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.json([]);
+      }
+
+      const searchTerm = q.toLowerCase();
+      const medicines = await storage.getMedicines();
+      
+      // Filter medicines by name, category, or common conditions
+      const filteredMedicines = medicines
+        .filter(medicine => 
+          medicine.name.toLowerCase().includes(searchTerm) ||
+          (medicine.category && medicine.category.toLowerCase().includes(searchTerm)) ||
+          (medicine.commonConditions && medicine.commonConditions.toLowerCase().includes(searchTerm))
+        )
+        .slice(0, 10); // Limit to 10 results for performance
+
+      res.json(filteredMedicines);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch medicine suggestions" });
+    }
+  });
+
+  app.get("/api/suggestions/diagnoses", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.json([]);
+      }
+
+      // Common diagnoses for Southwest Nigeria clinics
+      const commonDiagnoses = [
+        "Malaria", "Typhoid Fever", "Hypertension", "Diabetes Mellitus",
+        "Upper Respiratory Tract Infection", "Gastroenteritis", "Pneumonia",
+        "Urinary Tract Infection", "Bronchitis", "Skin Infection",
+        "Peptic Ulcer Disease", "Migraine", "Arthritis", "Anemia", "Asthma",
+        "Tuberculosis", "Hepatitis", "Cholera", "Dengue Fever", "Meningitis"
+      ];
+
+      const searchTerm = q.toLowerCase();
+      const filteredDiagnoses = commonDiagnoses
+        .filter(diagnosis => diagnosis.toLowerCase().includes(searchTerm))
+        .slice(0, 10);
+
+      res.json(filteredDiagnoses.map(name => ({ name })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch diagnosis suggestions" });
+    }
+  });
+
+  app.get("/api/suggestions/symptoms", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.json([]);
+      }
+
+      // Common symptoms for quick input
+      const commonSymptoms = [
+        "Fever", "Headache", "Cough", "Abdominal pain", "Nausea and vomiting",
+        "Diarrhea", "Body aches", "Fatigue", "Shortness of breath", "Chest pain",
+        "Dizziness", "Loss of appetite", "Joint pain", "Skin rash", "Sore throat",
+        "Runny nose", "Muscle weakness", "Back pain", "Constipation", "Insomnia"
+      ];
+
+      const searchTerm = q.toLowerCase();
+      const filteredSymptoms = commonSymptoms
+        .filter(symptom => symptom.toLowerCase().includes(searchTerm))
+        .slice(0, 10);
+
+      res.json(filteredSymptoms.map(name => ({ name })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch symptom suggestions" });
+    }
+  });
   
   // Patients routes - Medical staff only
   app.post("/api/patients", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {

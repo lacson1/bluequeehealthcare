@@ -62,6 +62,12 @@ export const medicines = pgTable("medicines", {
   supplier: text("supplier"),
   cost: decimal("cost", { precision: 10, scale: 2 }),
   lowStockThreshold: integer("low_stock_threshold").notNull().default(10),
+  // Smart auto-fill fields for faster prescribing
+  defaultDosage: text("default_dosage"), // e.g., "500mg", "1 tablet"
+  defaultFrequency: text("default_frequency"), // e.g., "Twice daily", "Every 8 hours"
+  defaultDuration: text("default_duration"), // e.g., "7 days", "2 weeks"
+  defaultInstructions: text("default_instructions"), // e.g., "Take with food", "Before meals"
+  commonConditions: text("common_conditions"), // JSON array of conditions this treats
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
