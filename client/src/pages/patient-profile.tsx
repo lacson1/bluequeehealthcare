@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import VisitRecordingModal from "@/components/visit-recording-modal";
 import LabResultModal from "@/components/lab-result-modal";
 import PrescriptionModal from "@/components/prescription-modal";
+import PatientQRCard from "@/components/patient-qr-card";
 import { useRole } from "@/components/role-guard";
 import type { Patient, Visit, LabResult, Prescription } from "@shared/schema";
 
@@ -235,6 +236,11 @@ export default function PatientProfile() {
                 )}
               </CardContent>
             </Card>
+          </div>
+
+          {/* Emergency QR Code */}
+          <div className="lg:col-span-1">
+            <PatientQRCard patient={patient} />
           </div>
 
           {/* Visits and Lab Results */}
