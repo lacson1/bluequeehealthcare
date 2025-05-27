@@ -253,16 +253,175 @@ export default function PatientProfile() {
             />
           </div>
 
-          {/* Visits and Lab Results */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="visits" className="w-full">
-              <TabsList>
-                <TabsTrigger value="visits">Visit History</TabsTrigger>
-                <TabsTrigger value="consultations">Consultations</TabsTrigger>
+          {/* Main Patient Information Tabs */}
+          <div className="lg:col-span-3">
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="medical-records">Medical Records</TabsTrigger>
+                <TabsTrigger value="visits">Visits</TabsTrigger>
                 <TabsTrigger value="lab-orders">Lab Orders</TabsTrigger>
+                <TabsTrigger value="medications">Medications</TabsTrigger>
                 <TabsTrigger value="labs">Lab Results</TabsTrigger>
-                <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="overview">
+                <div className="grid gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Activity className="mr-2 h-5 w-5" />
+                        Quick Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <h4 className="font-medium text-blue-900 mb-2">Recent Visits</h4>
+                          <p className="text-2xl font-bold text-blue-700">{visits?.length || 0}</p>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <h4 className="font-medium text-green-900 mb-2">Active Prescriptions</h4>
+                          <p className="text-2xl font-bold text-green-700">{prescriptions?.length || 0}</p>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <h4 className="font-medium text-purple-900 mb-2">Pending Labs</h4>
+                          <p className="text-2xl font-bold text-purple-700">{labResults?.filter(lab => lab.status === 'pending').length || 0}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="medical-records">
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <FileText className="mr-2 h-5 w-5" />
+                        Medical Records Hub
+                      </CardTitle>
+                      <CardDescription>
+                        Comprehensive view of patient's medical history and specialist consultations
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="consultations" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4">
+                          <TabsTrigger value="consultations">Consultations</TabsTrigger>
+                          <TabsTrigger value="vaccinations">Vaccinations</TabsTrigger>
+                          <TabsTrigger value="allergies">Allergies</TabsTrigger>
+                          <TabsTrigger value="history">Medical History</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="consultations">
+                          <ConsultationHistory patientId={patient.id} />
+                        </TabsContent>
+
+                        <TabsContent value="vaccinations">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center justify-between">
+                                <span className="flex items-center">
+                                  <Heart className="mr-2 h-5 w-5" />
+                                  Vaccination History
+                                </span>
+                                {(user?.role === 'doctor' || user?.role === 'nurse' || user?.role === 'admin') && (
+                                  <Button size="sm">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Vaccination
+                                  </Button>
+                                )}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                <div className="text-center py-8 text-gray-500">
+                                  <Heart className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                                  <p>No vaccination records found</p>
+                                  <p className="text-sm">Add vaccination records to track immunization history</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
+
+                        <TabsContent value="allergies">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center justify-between">
+                                <span className="flex items-center">
+                                  <AlertCircle className="mr-2 h-5 w-5" />
+                                  Allergy History
+                                </span>
+                                {(user?.role === 'doctor' || user?.role === 'nurse' || user?.role === 'admin') && (
+                                  <Button size="sm">
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Allergies
+                                  </Button>
+                                )}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {patient.allergies ? (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                  <div className="flex items-start">
+                                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3" />
+                                    <div>
+                                      <h4 className="font-medium text-red-900 mb-2">Known Allergies</h4>
+                                      <p className="text-red-800">{patient.allergies}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                  <AlertCircle className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                                  <p>No known allergies recorded</p>
+                                  <p className="text-sm">Add allergy information to ensure safe treatment</p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
+
+                        <TabsContent value="history">
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="flex items-center justify-between">
+                                <span className="flex items-center">
+                                  <History className="mr-2 h-5 w-5" />
+                                  Past Medical History
+                                </span>
+                                {(user?.role === 'doctor' || user?.role === 'nurse' || user?.role === 'admin') && (
+                                  <Button size="sm">
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit History
+                                  </Button>
+                                )}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {patient.medicalHistory ? (
+                                <div className="bg-slate-50 border rounded-lg p-4">
+                                  <h4 className="font-medium text-slate-900 mb-2">Medical History</h4>
+                                  <p className="text-slate-700 whitespace-pre-wrap">{patient.medicalHistory}</p>
+                                </div>
+                              ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                  <History className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                                  <p>No medical history recorded</p>
+                                  <p className="text-sm">Add past medical history for comprehensive care</p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </TabsContent>
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
               
               <TabsContent value="lab-orders">
                 <div className="space-y-6">
@@ -281,8 +440,76 @@ export default function PatientProfile() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="consultations">
-                <ConsultationHistory patientId={patient.id} />
+              <TabsContent value="medications">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center">
+                        <Pill className="mr-2 h-5 w-5" />
+                        Prescriptions
+                      </span>
+                      {(user?.role === 'doctor' || user?.role === 'admin') && (
+                        <Button size="sm" onClick={() => setShowPrescriptionModal(true)}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Prescription
+                        </Button>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {prescriptionsLoading ? (
+                      <div className="space-y-4">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="h-4 bg-slate-200 rounded w-1/3 mb-2"></div>
+                            <div className="h-3 bg-slate-200 rounded w-1/2 mb-1"></div>
+                            <div className="h-3 bg-slate-200 rounded w-2/3"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : prescriptions && prescriptions.length > 0 ? (
+                      <div className="space-y-4">
+                        {prescriptions.map((prescription) => (
+                          <div key={prescription.id} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-medium text-slate-800">{prescription.medicationName}</h4>
+                                <p className="text-sm text-slate-600 mt-1">
+                                  <strong>Dosage:</strong> {prescription.dosage}
+                                </p>
+                                <p className="text-sm text-slate-600">
+                                  <strong>Frequency:</strong> {prescription.frequency}
+                                </p>
+                                <p className="text-sm text-slate-600">
+                                  <strong>Duration:</strong> {prescription.duration}
+                                </p>
+                                {prescription.instructions && (
+                                  <p className="text-sm text-slate-600 mt-2">
+                                    <strong>Instructions:</strong> {prescription.instructions}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <Badge variant={prescription.status === 'active' ? 'default' : 'secondary'}>
+                                  {prescription.status}
+                                </Badge>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {new Date(prescription.startDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Pill className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                        <p>No prescriptions found</p>
+                        <p className="text-sm">Add prescriptions to track patient medications</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="visits">
