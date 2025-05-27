@@ -4,11 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, Stethoscope, Pill, FlaskRound, Search, Bell, ArrowUp, TriangleAlert, Clock, UserPlus } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Users, Stethoscope, Pill, FlaskRound, Search, Bell, ArrowUp, TriangleAlert, Clock, UserPlus, UserCheck } from "lucide-react";
 import PatientRegistrationModal from "@/components/patient-registration-modal";
 import VisitRecordingModal from "@/components/visit-recording-modal";
 import LabResultModal from "@/components/lab-result-modal";
 import { Link } from "wouter";
+import { useRole } from "@/components/role-guard";
 import type { Patient, Medicine } from "@shared/schema";
 
 interface DashboardStats {
@@ -23,6 +25,7 @@ export default function Dashboard() {
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showLabModal, setShowLabModal] = useState(false);
+  const { user, isDoctor } = useRole();
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
@@ -35,6 +38,23 @@ export default function Dashboard() {
   const { data: lowStockMedicines, isLoading: medicinesLoading } = useQuery<Medicine[]>({
     queryKey: ["/api/medicines/low-stock"],
   });
+
+  // Doctor-specific data
+  const { data: doctorReferrals, isLoading: referralsLoading } = useQuery({
+    queryKey: ["/api/referrals", { toRole: "doctor" }],
+    enabled: isDoctor,
+  });
+
+  const { data: allPatients, isLoading: allPatientsLoading } = useQuery<Patient[]>({
+    queryKey: ["/api/patients"],
+    enabled: isDoctor,
+  });
+
+  // Filter patients based on search query for doctors
+  const filteredPatients = allPatients?.filter(patient => 
+    patient.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    patient.lastName.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   const getPatientInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -163,6 +183,125 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Doctor-Specific Dashboard */}
+        {user?.role === 'doctor' && (
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold text-slate-800 mb-4">Doctor Dashboard</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Patient Search & Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Users className="mr-2 h-5 w-5" />
+                    Patient Search & Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        placeholder="Search patients by name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    </div>
+                    
+                    {searchQuery && (
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {filteredPatients.slice(0, 5).map((patient) => (
+                          <Link
+                            key={patient.id}
+                            href={`/patients/${patient.id}`}
+                            className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                          >
+                            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                              <span className="text-white text-sm font-semibold">
+                                {getPatientInitials(patient.firstName, patient.lastName)}
+                              </span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-slate-800">
+                                {patient.firstName} {patient.lastName}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                Age: {getPatientAge(patient.dateOfBirth)} | ID: HC{patient.id.toString().padStart(6, "0")}
+                              </p>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <Button
+                      onClick={() => setShowVisitModal(true)}
+                      className="w-full"
+                    >
+                      <Stethoscope className="mr-2 h-4 w-4" />
+                      Record New Visit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Doctor Referrals */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <UserCheck className="mr-2 h-5 w-5" />
+                    Referrals Assigned to You
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {referralsLoading ? (
+                    <div className="space-y-3">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
+                          <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : doctorReferrals && doctorReferrals.length > 0 ? (
+                    <div className="space-y-3">
+                      {doctorReferrals.slice(0, 3).map((referral: any) => (
+                        <div key={referral.id} className="p-3 bg-blue-50 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-slate-800">
+                                Patient: {referral.patient?.firstName} {referral.patient?.lastName}
+                              </p>
+                              <p className="text-sm text-slate-600 mt-1">
+                                From: {referral.fromUser?.username}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                Reason: {referral.reason}
+                              </p>
+                            </div>
+                            <Badge variant={referral.status === 'pending' ? 'outline' : 'secondary'}>
+                              {referral.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                      <Button variant="outline" className="w-full" asChild>
+                        <Link href="/referrals">View All Referrals</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <UserCheck className="mx-auto h-8 w-8 text-slate-400" />
+                      <p className="mt-2 text-sm text-slate-500">No referrals assigned</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
