@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, date, timestamp, decimal, boolean, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, date, timestamp, decimal, boolean, varchar, json } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -168,6 +168,32 @@ export const medications = pgTable('medications', {
   createdAt: timestamp('created_at').defaultNow()
 });
 
+// Consultation Forms - Specialist-specific form templates
+export const consultationForms = pgTable('consultation_forms', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(), // e.g., "Cardiology Assessment"
+  description: text('description'),
+  specialistRole: varchar('specialist_role', { length: 50 }).notNull(), // doctor, nurse, physiotherapist
+  createdBy: integer('created_by').references(() => users.id).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  formStructure: json('form_structure').notNull(), // JSON structure defining fields
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+// Consultation Records - Filled forms linked to patients
+export const consultationRecords = pgTable('consultation_records', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id').references(() => patients.id).notNull(),
+  formId: integer('form_id').references(() => consultationForms.id).notNull(),
+  visitId: integer('visit_id').references(() => visits.id),
+  filledBy: integer('filled_by').references(() => users.id).notNull(),
+  formData: json('form_data').notNull(), // JSON data with filled responses
+  status: varchar('status', { length: 20 }).default('draft').notNull(), // draft, completed, reviewed
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
 export const comments = pgTable('comments', {
   id: serial('id').primaryKey(),
   patientId: integer('patient_id').references(() => patients.id).notNull(),
@@ -189,6 +215,7 @@ export const patientsRelations = relations(patients, ({ many }) => ({
   prescriptions: many(prescriptions),
   referrals: many(referrals),
   comments: many(comments),
+  consultationRecords: many(consultationRecords),
 }));
 
 export const visitsRelations = relations(visits, ({ one, many }) => ({
@@ -249,6 +276,34 @@ export const labTestsRelations = relations(labTests, ({ many }) => ({
 
 export const medicationsRelations = relations(medications, ({ many }) => ({
   prescriptions: many(prescriptions),
+}));
+
+// Consultation Forms Relations
+export const consultationFormsRelations = relations(consultationForms, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [consultationForms.createdBy],
+    references: [users.id],
+  }),
+  consultationRecords: many(consultationRecords),
+}));
+
+export const consultationRecordsRelations = relations(consultationRecords, ({ one }) => ({
+  patient: one(patients, {
+    fields: [consultationRecords.patientId],
+    references: [patients.id],
+  }),
+  form: one(consultationForms, {
+    fields: [consultationRecords.formId],
+    references: [consultationForms.id],
+  }),
+  visit: one(visits, {
+    fields: [consultationRecords.visitId],
+    references: [visits.id],
+  }),
+  filledBy: one(users, {
+    fields: [consultationRecords.filledBy],
+    references: [users.id],
+  }),
 }));
 
 export const commentsRelations = relations(comments, ({ one, many }) => ({
@@ -327,6 +382,24 @@ export type Prescription = typeof prescriptions.$inferSelect;
 export type InsertPrescription = z.infer<typeof insertPrescriptionSchema>;
 export type Referral = typeof referrals.$inferSelect;
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
+
+// Consultation Forms Types
+export const insertConsultationFormSchema = createInsertSchema(consultationForms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertConsultationRecordSchema = createInsertSchema(consultationRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ConsultationForm = typeof consultationForms.$inferSelect;
+export type InsertConsultationForm = z.infer<typeof insertConsultationFormSchema>;
+export type ConsultationRecord = typeof consultationRecords.$inferSelect;
+export type InsertConsultationRecord = z.infer<typeof insertConsultationRecordSchema>;
 
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
