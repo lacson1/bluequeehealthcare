@@ -12,11 +12,13 @@ import {
   Heart, Clock, FileText
 } from "lucide-react";
 import PatientRegistrationModal from "@/components/patient-registration-modal";
+import { useRole } from "@/components/role-guard";
 import type { Patient } from "@shared/schema";
 
 export default function Patients() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showPatientModal, setShowPatientModal] = useState(false);
+  const { user } = useRole();
 
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ["/api/patients"],
@@ -44,10 +46,13 @@ export default function Patients() {
           <h1 className="text-3xl font-bold text-slate-800">Patient Management</h1>
           <p className="text-slate-600 mt-1">Manage patient records and medical history</p>
         </div>
-        <Button onClick={() => setShowPatientModal(true)} className="bg-primary hover:bg-primary/90">
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add New Patient
-        </Button>
+        {/* Only admin, doctor, and nurse can add new patients */}
+        {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
+          <Button onClick={() => setShowPatientModal(true)} className="bg-primary hover:bg-primary/90">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add New Patient
+          </Button>
+        )}
       </div>
 
       {/* Search and Filters */}
@@ -186,24 +191,101 @@ export default function Patients() {
                     )}
                   </div>
 
-                  {/* Quick Actions */}
+                  {/* Role-Based Quick Actions */}
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-100">
-                    <Button variant="outline" size="sm" className="h-8 text-xs">
-                      <Stethoscope className="h-3 w-3 mr-1" />
-                      Visits
-                    </Button>
-                    <Button variant="outline" size="sm" className="h-8 text-xs">
-                      <FlaskRound className="h-3 w-3 mr-1" />
-                      Labs
-                    </Button>
-                    <Button variant="outline" size="sm" className="h-8 text-xs">
-                      <Pill className="h-3 w-3 mr-1" />
-                      Meds
-                    </Button>
-                    <Button variant="outline" size="sm" className="h-8 text-xs">
-                      <UserCheck className="h-3 w-3 mr-1" />
-                      Refer
-                    </Button>
+                    {/* Doctor-specific actions */}
+                    {user?.role === 'doctor' && (
+                      <>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Stethoscope className="h-3 w-3 mr-1" />
+                          New Visit
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Pill className="h-3 w-3 mr-1" />
+                          Prescribe
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <FlaskRound className="h-3 w-3 mr-1" />
+                          Labs
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <UserCheck className="h-3 w-3 mr-1" />
+                          Refer
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* Nurse-specific actions */}
+                    {user?.role === 'nurse' && (
+                      <>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Activity className="h-3 w-3 mr-1" />
+                          Vitals
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <FlaskRound className="h-3 w-3 mr-1" />
+                          Lab Result
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <UserCheck className="h-3 w-3 mr-1" />
+                          Refer
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Schedule
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* Pharmacist-specific actions */}
+                    {user?.role === 'pharmacist' && (
+                      <>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Pill className="h-3 w-3 mr-1" />
+                          Prescriptions
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Heart className="h-3 w-3 mr-1" />
+                          Allergies
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* Physiotherapist-specific actions */}
+                    {user?.role === 'physiotherapist' && (
+                      <>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Activity className="h-3 w-3 mr-1" />
+                          Assessment
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Sessions
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* Admin has access to all actions */}
+                    {user?.role === 'admin' && (
+                      <>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Stethoscope className="h-3 w-3 mr-1" />
+                          Visit
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <FlaskRound className="h-3 w-3 mr-1" />
+                          Labs
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <Pill className="h-3 w-3 mr-1" />
+                          Meds
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                          <UserCheck className="h-3 w-3 mr-1" />
+                          Refer
+                        </Button>
+                      </>
+                    )}
                   </div>
 
                   {/* View Details Button */}

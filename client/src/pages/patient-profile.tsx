@@ -28,11 +28,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import VisitRecordingModal from "@/components/visit-recording-modal";
 import LabResultModal from "@/components/lab-result-modal";
 import PrescriptionModal from "@/components/prescription-modal";
+import { useRole } from "@/components/role-guard";
 import type { Patient, Visit, LabResult, Prescription } from "@shared/schema";
 
 export default function PatientProfile() {
   const [, params] = useRoute("/patients/:id");
   const patientId = params?.id ? parseInt(params.id) : undefined;
+  const { user } = useRole();
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showLabModal, setShowLabModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
@@ -126,18 +128,53 @@ export default function PatientProfile() {
             </div>
           </div>
           <div className="flex space-x-2">
-            <Button onClick={() => setShowVisitModal(true)}>
-              <Stethoscope className="mr-2 h-4 w-4" />
-              Record Visit
-            </Button>
-            <Button variant="outline" onClick={() => setShowLabModal(true)}>
-              <FlaskRound className="mr-2 h-4 w-4" />
-              Add Lab Result
-            </Button>
-            <Button variant="outline" onClick={() => setShowPrescriptionModal(true)}>
-              <Pill className="mr-2 h-4 w-4" />
-              Add Prescription
-            </Button>
+            {/* Doctor-only actions */}
+            {user?.role === 'doctor' && (
+              <>
+                <Button onClick={() => setShowVisitModal(true)}>
+                  <Stethoscope className="mr-2 h-4 w-4" />
+                  Record Visit
+                </Button>
+                <Button variant="outline" onClick={() => setShowPrescriptionModal(true)}>
+                  <Pill className="mr-2 h-4 w-4" />
+                  Add Prescription
+                </Button>
+              </>
+            )}
+            
+            {/* Nurse and Doctor can add lab results */}
+            {(user?.role === 'nurse' || user?.role === 'doctor') && (
+              <Button variant="outline" onClick={() => setShowLabModal(true)}>
+                <FlaskRound className="mr-2 h-4 w-4" />
+                Add Lab Result
+              </Button>
+            )}
+            
+            {/* Admin has access to all actions */}
+            {user?.role === 'admin' && (
+              <>
+                <Button onClick={() => setShowVisitModal(true)}>
+                  <Stethoscope className="mr-2 h-4 w-4" />
+                  Record Visit
+                </Button>
+                <Button variant="outline" onClick={() => setShowLabModal(true)}>
+                  <FlaskRound className="mr-2 h-4 w-4" />
+                  Add Lab Result
+                </Button>
+                <Button variant="outline" onClick={() => setShowPrescriptionModal(true)}>
+                  <Pill className="mr-2 h-4 w-4" />
+                  Add Prescription
+                </Button>
+              </>
+            )}
+            
+            {/* Edit patient info - available to admin, doctor, nurse */}
+            {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
+              <Button variant="outline">
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Info
+              </Button>
+            )}
           </div>
         </div>
       </header>
