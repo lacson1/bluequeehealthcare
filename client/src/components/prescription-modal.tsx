@@ -326,6 +326,7 @@ export default function PrescriptionModal({
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value || ""}
                       rows={3}
                       placeholder="Take with food, avoid alcohol, etc..."
                     />

@@ -28,6 +28,7 @@ export default function PatientProfile() {
   const patientId = params?.id ? parseInt(params.id) : undefined;
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showLabModal, setShowLabModal] = useState(false);
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
 
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
     queryKey: ["/api/patients", patientId],
@@ -41,6 +42,11 @@ export default function PatientProfile() {
 
   const { data: labResults, isLoading: labsLoading } = useQuery<LabResult[]>({
     queryKey: ["/api/patients", patientId, "labs"],
+    enabled: !!patientId,
+  });
+
+  const { data: prescriptions, isLoading: prescriptionsLoading } = useQuery<Prescription[]>({
+    queryKey: ["/api/patients", patientId, "prescriptions"],
     enabled: !!patientId,
   });
 
@@ -121,6 +127,10 @@ export default function PatientProfile() {
               <FlaskRound className="mr-2 h-4 w-4" />
               Add Lab Result
             </Button>
+            <Button variant="outline" onClick={() => setShowPrescriptionModal(true)}>
+              <Pill className="mr-2 h-4 w-4" />
+              Add Prescription
+            </Button>
           </div>
         </div>
       </header>
@@ -189,6 +199,7 @@ export default function PatientProfile() {
               <TabsList>
                 <TabsTrigger value="visits">Visit History</TabsTrigger>
                 <TabsTrigger value="labs">Lab Results</TabsTrigger>
+                <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
               </TabsList>
               
               <TabsContent value="visits">
@@ -325,6 +336,91 @@ export default function PatientProfile() {
                   </CardContent>
                 </Card>
               </TabsContent>
+              
+              <TabsContent value="prescriptions">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center">
+                        <Pill className="mr-2 h-5 w-5" />
+                        Prescriptions
+                      </span>
+                      <Button size="sm" onClick={() => setShowPrescriptionModal(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Prescription
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {prescriptionsLoading ? (
+                      <div className="space-y-4">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="h-4 bg-slate-200 rounded w-1/4 mb-2"></div>
+                            <div className="h-3 bg-slate-200 rounded w-1/2 mb-1"></div>
+                            <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : prescriptions && prescriptions.length > 0 ? (
+                      <div className="space-y-4">
+                        {prescriptions.map((prescription) => (
+                          <div key={prescription.id} className="border border-slate-200 rounded-lg p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-medium text-slate-800">Medicine ID: {prescription.medicineId}</h4>
+                                <div className="grid grid-cols-2 gap-4 mt-2 text-sm text-slate-600">
+                                  <div>
+                                    <strong>Dosage:</strong> {prescription.dosage}
+                                  </div>
+                                  <div>
+                                    <strong>Frequency:</strong> {prescription.frequency}
+                                  </div>
+                                  <div>
+                                    <strong>Duration:</strong> {prescription.duration}
+                                  </div>
+                                  <div>
+                                    <strong>Prescribed by:</strong> {prescription.prescribedBy}
+                                  </div>
+                                </div>
+                                {prescription.instructions && (
+                                  <p className="text-sm text-slate-600 mt-2">
+                                    <strong>Instructions:</strong> {prescription.instructions}
+                                  </p>
+                                )}
+                                <div className="flex items-center space-x-4 mt-2 text-xs text-slate-400">
+                                  <span>Start: {new Date(prescription.startDate).toLocaleDateString()}</span>
+                                  {prescription.endDate && (
+                                    <span>End: {new Date(prescription.endDate).toLocaleDateString()}</span>
+                                  )}
+                                  <span>Created: {new Date(prescription.createdAt).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                              <div>
+                                <Badge className={
+                                  prescription.status === "active" 
+                                    ? "bg-green-100 text-green-800" 
+                                    : prescription.status === "completed"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-gray-100 text-gray-800"
+                                }>
+                                  {prescription.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Pill className="mx-auto h-12 w-12 text-slate-400" />
+                        <h3 className="mt-4 text-sm font-medium text-slate-900">No prescriptions</h3>
+                        <p className="mt-2 text-sm text-slate-500">Add the first prescription for this patient.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
         </div>
@@ -339,6 +435,11 @@ export default function PatientProfile() {
       <LabResultModal
         open={showLabModal}
         onOpenChange={setShowLabModal}
+        patientId={patientId}
+      />
+      <PrescriptionModal
+        open={showPrescriptionModal}
+        onOpenChange={setShowPrescriptionModal}
         patientId={patientId}
       />
     </>
