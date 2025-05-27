@@ -7,7 +7,10 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: varchar('username', { length: 50 }).notNull().unique(),
   password: varchar('password', { length: 255 }).notNull(),
-  role: varchar('role', { length: 20 }).notNull(), // e.g., admin, nurse
+  role: varchar('role', { length: 20 }).notNull(), // e.g., admin, nurse, doctor, pharmacist, physiotherapist
+  email: varchar('email', { length: 100 }),
+  phone: varchar('phone', { length: 20 }),
+  photoUrl: varchar('photo_url', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow()
 });
 
@@ -231,6 +234,14 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+// Profile update schema (excludes password and username for security)
+export const updateProfileSchema = createInsertSchema(users).omit({
+  id: true,
+  username: true,
+  password: true,
+  createdAt: true,
+});
+
 export const insertReferralSchema = createInsertSchema(referrals).omit({
   id: true,
   date: true,
@@ -239,6 +250,7 @@ export const insertReferralSchema = createInsertSchema(referrals).omit({
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type Patient = typeof patients.$inferSelect;
 export type InsertPatient = z.infer<typeof insertPatientSchema>;
 export type Visit = typeof visits.$inferSelect;
