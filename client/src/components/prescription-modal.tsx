@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPrescriptionSchema, type InsertPrescription, type Patient, type Medicine } from "@shared/schema";
+import { insertPrescriptionSchema, type InsertPrescription, type Patient, type Medicine, type Medication } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { MedicationAutocomplete } from "@/components/smart-autocomplete";
+import MedicationAutocomplete from "@/components/medication-autocomplete";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -65,7 +65,7 @@ export default function PrescriptionModal({
   const queryClient = useQueryClient();
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<number | undefined>(patientId);
-  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [selectedMedicine, setSelectedMedicine] = useState<Medication | null>(null);
 
   const { data: patients } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
@@ -119,27 +119,67 @@ export default function PrescriptionModal({
     },
   });
 
-  // Smart Auto-Fill Function - This automatically fills dosage and instructions!
-  const handleMedicationSelect = (medication: Medicine) => {
+  // Smart Auto-Fill Function using comprehensive medications database
+  const handleMedicationSelect = (medication: Medication) => {
     setSelectedMedicine(medication);
     
-    // Auto-fill form fields from pharmacy database defaults
-    if (medication.defaultDosage) {
-      form.setValue("dosage", medication.defaultDosage);
+    // Auto-fill dosage from comprehensive database
+    if (medication.dosageAdult) {
+      form.setValue("dosage", medication.dosageAdult);
     }
-    if (medication.defaultFrequency) {
-      form.setValue("frequency", medication.defaultFrequency);
+    
+    // Auto-fill frequency
+    if (medication.frequency) {
+      form.setValue("frequency", medication.frequency);
     }
-    if (medication.defaultDuration) {
-      form.setValue("duration", medication.defaultDuration);
+    
+    // Smart duration based on medication category
+    if (medication.category === "Antibiotic") {
+      form.setValue("duration", "7 days");
+    } else if (medication.category === "Antimalarial") {
+      form.setValue("duration", "3 days");
+    } else if (medication.category === "Analgesic" || medication.category === "NSAID") {
+      form.setValue("duration", "As needed");
+    } else if (medication.category === "Antihypertensive" || medication.category === "ACE Inhibitor") {
+      form.setValue("duration", "Ongoing as directed");
+    } else if (medication.category === "Antidiabetic") {
+      form.setValue("duration", "Ongoing as directed");
+    } else {
+      form.setValue("duration", "As prescribed");
     }
-    if (medication.defaultInstructions) {
-      form.setValue("instructions", medication.defaultInstructions);
+    
+    // Smart instructions based on medication properties
+    let instructions = "";
+    if (medication.routeOfAdministration === "Oral") {
+      if (medication.dosageForm === "Tablet" || medication.dosageForm === "Capsule") {
+        instructions = "Take with water";
+        
+        // Special instructions for specific medications
+        if (medication.name?.toLowerCase().includes("amoxicillin")) {
+          instructions += ". Take with food to reduce stomach upset.";
+        } else if (medication.name?.toLowerCase().includes("iron")) {
+          instructions += " on empty stomach for better absorption.";
+        } else if (medication.name?.toLowerCase().includes("metformin")) {
+          instructions += " with meals to reduce GI side effects.";
+        } else {
+          instructions += ". Take as directed.";
+        }
+      } else if (medication.dosageForm === "Syrup") {
+        instructions = "Measure dose carefully with provided measuring device.";
+      }
+    } else if (medication.routeOfAdministration === "Inhalation") {
+      instructions = "Shake well before use. Inhale as directed by healthcare provider.";
+    } else if (medication.routeOfAdministration === "Intravenous" || medication.routeOfAdministration === "IV/IM") {
+      instructions = "Administer by qualified healthcare professional only.";
+    }
+    
+    if (instructions) {
+      form.setValue("instructions", instructions);
     }
 
     toast({
-      title: "Smart Auto-Fill Applied!",
-      description: `Prescription details auto-filled from ${medication.name} database defaults.`,
+      title: "Smart Auto-Fill Complete ✨",
+      description: `Dosage and instructions automatically filled for ${medication.name}`,
     });
   };
 
@@ -258,8 +298,41 @@ export default function PrescriptionModal({
                 className="w-full"
               />
               <p className="text-xs text-slate-500 mt-1">
-                ✨ Select a medication to automatically fill dosage, frequency, and instructions from pharmacy database.
+                ✨ Select a medication to automatically fill dosage, frequency, and instructions from comprehensive database.
               </p>
+              
+              {/* Auto-fill Preview */}
+              {selectedMedicine && (
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                  <div className="flex items-center mb-2">
+                    <Sparkles className="h-4 w-4 text-blue-600 mr-2" />
+                    <span className="font-medium text-blue-800">Auto-filled information for {selectedMedicine.name}:</span>
+                  </div>
+                  <div className="space-y-1 text-blue-700">
+                    {selectedMedicine.dosageAdult && (
+                      <div><strong>Dosage:</strong> {selectedMedicine.dosageAdult}</div>
+                    )}
+                    {selectedMedicine.frequency && (
+                      <div><strong>Frequency:</strong> {selectedMedicine.frequency}</div>
+                    )}
+                    {selectedMedicine.category && (
+                      <div><strong>Duration:</strong> {
+                        selectedMedicine.category === "Antibiotic" ? "7 days" :
+                        selectedMedicine.category === "Antimalarial" ? "3 days" :
+                        selectedMedicine.category === "Analgesic" || selectedMedicine.category === "NSAID" ? "As needed" :
+                        selectedMedicine.category === "Antihypertensive" || selectedMedicine.category === "ACE Inhibitor" ? "Ongoing as directed" :
+                        selectedMedicine.category === "Antidiabetic" ? "Ongoing as directed" : "As prescribed"
+                      }</div>
+                    )}
+                    {selectedMedicine.routeOfAdministration && (
+                      <div><strong>Route:</strong> {selectedMedicine.routeOfAdministration}</div>
+                    )}
+                    {selectedMedicine.contraindications && (
+                      <div className="text-red-600"><strong>⚠️ Contraindications:</strong> {selectedMedicine.contraindications}</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </FormItem>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
