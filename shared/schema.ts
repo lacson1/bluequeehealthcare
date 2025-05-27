@@ -122,6 +122,32 @@ export const labTests = pgTable('lab_tests', {
   createdAt: timestamp('created_at').defaultNow()
 });
 
+export const medications = pgTable('medications', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 150 }).notNull(),
+  genericName: varchar('generic_name', { length: 150 }),
+  brandName: varchar('brand_name', { length: 150 }),
+  category: varchar('category', { length: 50 }), // e.g., "Antibiotic", "Analgesic"
+  dosageForm: varchar('dosage_form', { length: 50 }), // e.g., "Tablet", "Syrup", "Injection"
+  strength: varchar('strength', { length: 50 }), // e.g., "500mg", "250mg/5ml"
+  manufacturer: varchar('manufacturer', { length: 100 }),
+  activeIngredient: varchar('active_ingredient', { length: 200 }),
+  indications: text('indications'), // What it's used for
+  contraindications: text('contraindications'), // When not to use
+  sideEffects: text('side_effects'),
+  dosageAdult: varchar('dosage_adult', { length: 100 }),
+  dosageChild: varchar('dosage_child', { length: 100 }),
+  frequency: varchar('frequency', { length: 50 }), // e.g., "twice daily", "every 8 hours"
+  routeOfAdministration: varchar('route_of_administration', { length: 50 }), // oral, IV, IM, etc.
+  storageConditions: varchar('storage_conditions', { length: 100 }),
+  shelfLife: varchar('shelf_life', { length: 50 }),
+  costPerUnit: decimal('cost_per_unit', { precision: 10, scale: 2 }),
+  isControlled: boolean('is_controlled').default(false), // For controlled substances
+  prescriptionRequired: boolean('prescription_required').default(true),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
 export const comments = pgTable('comments', {
   id: serial('id').primaryKey(),
   patientId: integer('patient_id').references(() => patients.id).notNull(),
