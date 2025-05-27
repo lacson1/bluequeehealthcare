@@ -273,6 +273,9 @@ export default function PrescriptionModal({
                     <FormControl>
                       <Input 
                         placeholder="Enter dosage amount (e.g., 500mg, 2 tablets, 5ml)" 
+                        className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 
+                                 border-slate-300 hover:border-slate-400
+                                 data-[invalid]:border-red-500 data-[invalid]:focus:ring-red-500"
                         {...field} 
                       />
                     </FormControl>
@@ -294,6 +297,9 @@ export default function PrescriptionModal({
                     <FormControl>
                       <Input 
                         placeholder="How often to take (e.g., Twice daily, Every 8 hours, Once at bedtime)" 
+                        className="focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 
+                                 border-slate-300 hover:border-slate-400
+                                 data-[invalid]:border-red-500 data-[invalid]:focus:ring-red-500"
                         {...field} 
                       />
                     </FormControl>
@@ -315,6 +321,9 @@ export default function PrescriptionModal({
                     <FormControl>
                       <Input 
                         placeholder="Total treatment period (e.g., 7 days, 2 weeks, 1 month)" 
+                        className="focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 
+                                 border-slate-300 hover:border-slate-400
+                                 data-[invalid]:border-red-500 data-[invalid]:focus:ring-red-500"
                         {...field} 
                       />
                     </FormControl>
@@ -373,26 +382,39 @@ export default function PrescriptionModal({
               )}
             />
 
-            {/* Auto-Fill Preview */}
+            {/* Auto-Fill Preview with Animation */}
             {selectedMedicine && (selectedMedicine.defaultDosage || selectedMedicine.defaultInstructions) && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4 
+                            animate-in slide-in-from-top-2 duration-300 ease-out">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="h-4 w-4 text-blue-600" />
+                  <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
                   <span className="font-medium text-blue-800">Smart Auto-Fill Applied</span>
+                  <div className="ml-auto">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-ping"></div>
+                  </div>
                 </div>
                 <div className="text-sm text-blue-700">
-                  Form fields have been automatically populated with pharmacy database defaults for {selectedMedicine.name}. 
+                  Form fields have been automatically populated with pharmacy database defaults for{" "}
+                  <span className="font-semibold">{selectedMedicine.name}</span>. 
                   You can modify any values as needed.
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {selectedMedicine.defaultDosage && (
-                    <Badge variant="outline" className="text-blue-700 border-blue-300">
+                    <Badge variant="outline" className="text-blue-700 border-blue-300 bg-white/50 
+                                                      animate-in fade-in duration-500 delay-100">
                       Dosage: {selectedMedicine.defaultDosage}
                     </Badge>
                   )}
                   {selectedMedicine.defaultFrequency && (
-                    <Badge variant="outline" className="text-blue-700 border-blue-300">
+                    <Badge variant="outline" className="text-blue-700 border-blue-300 bg-white/50
+                                                      animate-in fade-in duration-500 delay-200">
                       Frequency: {selectedMedicine.defaultFrequency}
+                    </Badge>
+                  )}
+                  {selectedMedicine.defaultDuration && (
+                    <Badge variant="outline" className="text-blue-700 border-blue-300 bg-white/50
+                                                      animate-in fade-in duration-500 delay-300">
+                      Duration: {selectedMedicine.defaultDuration}
                     </Badge>
                   )}
                 </div>
