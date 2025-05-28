@@ -71,17 +71,17 @@ export default function Patients() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="patients" className="mt-6">
-          <div className="space-y-6">
+        <TabsContent value="patients" className="mt-4 md:mt-6">
+          <div className="space-y-4 md:space-y-6">
 
       {/* Search and Filters */}
       <Card className="shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex flex-col space-y-4 md:flex-row md:gap-4 md:space-y-0">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Search patients by name, phone, or ID..."
+                placeholder="Search patients by name, phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-11"
