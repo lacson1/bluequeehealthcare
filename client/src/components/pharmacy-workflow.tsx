@@ -403,7 +403,7 @@ export function PharmacyWorkflow({ medicines }: PharmacyWorkflowProps) {
                 </Form>
               </DialogContent>
             </Dialog>
-
+          
           {/* Pending Prescriptions */}
           <Card>
             <CardHeader>
