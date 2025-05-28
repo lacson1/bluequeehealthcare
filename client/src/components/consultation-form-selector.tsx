@@ -303,125 +303,7 @@ export default function ConsultationFormSelector({
 
   return (
     <div className="space-y-6">
-      {/* Consultation History - Continuous Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Consultation History
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {historyLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-              Loading consultation history...
-            </div>
-          ) : consultationHistory.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">
-              No consultations recorded yet for this patient.
-            </p>
-          ) : (
-            <div className="max-h-96 overflow-y-auto pr-2">
-              <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-purple-500"></div>
-                
-                <div className="space-y-6">
-                  {consultationHistory.map((consultation: any, index: number) => (
-                    <div key={consultation.id} className="relative flex items-start">
-                      {/* Timeline dot */}
-                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
-                        <FileText className="w-5 h-5 text-white" />
-                      </div>
-                      
-                      {/* Consultation content */}
-                      <div className="ml-4 flex-1">
-                        <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="font-semibold text-lg text-gray-900">
-                                {forms.find(f => f.id === consultation.formId)?.name || 'Unknown Form'}
-                              </h4>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                  #{consultation.id}
-                                </Badge>
-                                <Badge variant="secondary">
-                                  {new Date(consultation.consultationDate).toLocaleDateString()}
-                                </Badge>
-                              </div>
-                            </div>
-                            
-                            {/* Consultation details */}
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-4 text-sm">
-                                <span className="text-gray-600">
-                                  <strong>Date:</strong> {new Date(consultation.consultationDate).toLocaleDateString('en-US', { 
-                                    weekday: 'long', 
-                                    year: 'numeric', 
-                                    month: 'long', 
-                                    day: 'numeric' 
-                                  })}
-                                </span>
-                                <span className="text-gray-600">
-                                  <strong>Time:</strong> {new Date(consultation.consultationDate).toLocaleTimeString('en-US', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                  })}
-                                </span>
-                              </div>
-                              
-                              <div className="text-sm text-gray-600">
-                                <strong>Form Type:</strong> {forms.find(f => f.id === consultation.formId)?.specialistRole || 'General'}
-                              </div>
-                              
-                              {/* Form data preview */}
-                              {consultation.formData && Object.keys(consultation.formData).length > 0 && (
-                                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                  <p className="text-sm font-medium text-gray-700 mb-2">Key Information:</p>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                                    {Object.entries(consultation.formData).slice(0, 4).map(([key, value]: [string, any]) => (
-                                      <div key={key} className="flex">
-                                        <span className="font-medium text-gray-600 mr-2">{key}:</span>
-                                        <span className="text-gray-800 truncate">
-                                          {Array.isArray(value) ? value.join(', ') : String(value).substring(0, 50)}
-                                          {String(value).length > 50 && '...'}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                  {Object.keys(consultation.formData).length > 4 && (
-                                    <p className="text-xs text-gray-500 mt-2">
-                                      +{Object.keys(consultation.formData).length - 4} more fields recorded
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* End of timeline indicator */}
-                <div className="relative flex items-center mt-6">
-                  <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
-                    <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                  </div>
-                  <div className="ml-4 text-sm text-gray-500">
-                    Start of consultation history
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Form Selection */}
+      {/* Form Selection - Create New Consultation */}
       {!selectedFormId && (
         <Card>
           <CardHeader>
@@ -525,6 +407,124 @@ export default function ConsultationFormSelector({
           </CardContent>
         </Card>
       )}
+
+      {/* Consultation History - Continuous Timeline */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Consultation History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+              Loading consultation history...
+            </div>
+          ) : (consultationHistory as any[]).length === 0 ? (
+            <p className="text-gray-500 text-center py-4">
+              No consultations recorded yet for this patient.
+            </p>
+          ) : (
+            <div className="max-h-96 overflow-y-auto pr-2">
+              <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-purple-500"></div>
+                
+                <div className="space-y-6">
+                  {(consultationHistory as any[]).map((consultation: any, index: number) => (
+                    <div key={consultation.id} className="relative flex items-start">
+                      {/* Timeline dot */}
+                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                        <FileText className="w-5 h-5 text-white" />
+                      </div>
+                      
+                      {/* Consultation content */}
+                      <div className="ml-4 flex-1">
+                        <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-semibold text-lg text-gray-900">
+                                {forms.find(f => f.id === consultation.formId)?.name || 'Unknown Form'}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  #{consultation.id}
+                                </Badge>
+                                <Badge variant="secondary">
+                                  {new Date(consultation.consultationDate).toLocaleDateString()}
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            {/* Consultation details */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-4 text-sm">
+                                <span className="text-gray-600">
+                                  <strong>Date:</strong> {new Date(consultation.consultationDate).toLocaleDateString('en-US', { 
+                                    weekday: 'long', 
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric' 
+                                  })}
+                                </span>
+                                <span className="text-gray-600">
+                                  <strong>Time:</strong> {new Date(consultation.consultationDate).toLocaleTimeString('en-US', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  })}
+                                </span>
+                              </div>
+                              
+                              <div className="text-sm text-gray-600">
+                                <strong>Form Type:</strong> {forms.find(f => f.id === consultation.formId)?.specialistRole || 'General'}
+                              </div>
+                              
+                              {/* Form data preview */}
+                              {consultation.formData && Object.keys(consultation.formData).length > 0 && (
+                                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                  <p className="text-sm font-medium text-gray-700 mb-2">Key Information:</p>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                    {Object.entries(consultation.formData).slice(0, 4).map(([key, value]: [string, any]) => (
+                                      <div key={key} className="flex">
+                                        <span className="font-medium text-gray-600 mr-2">{key}:</span>
+                                        <span className="text-gray-800 truncate">
+                                          {Array.isArray(value) ? value.join(', ') : String(value).substring(0, 50)}
+                                          {String(value).length > 50 && '...'}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {Object.keys(consultation.formData).length > 4 && (
+                                    <p className="text-xs text-gray-500 mt-2">
+                                      +{Object.keys(consultation.formData).length - 4} more fields recorded
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* End of timeline indicator */}
+                <div className="relative flex items-center mt-6">
+                  <div className="flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                    <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                  </div>
+                  <div className="ml-4 text-sm text-gray-500">
+                    Start of consultation history
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
