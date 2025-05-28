@@ -87,13 +87,33 @@ export default function PatientPortal() {
 
   // Patient visits data
   const { data: visits = [] } = useQuery({
-    queryKey: ['/api/patients', patientSession?.id, 'visits'],
+    queryKey: ['/api/patient-portal/visits'],
+    queryFn: async () => {
+      const token = localStorage.getItem('patientToken');
+      const response = await fetch('/api/patient-portal/visits', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch visits');
+      return response.json();
+    },
     enabled: isAuthenticated && !!patientSession?.id
   });
 
   // Patient lab results
   const { data: labResults = [] } = useQuery({
-    queryKey: ['/api/patients', patientSession?.id, 'lab-orders'],
+    queryKey: ['/api/patient-portal/lab-results'],
+    queryFn: async () => {
+      const token = localStorage.getItem('patientToken');
+      const response = await fetch('/api/patient-portal/lab-results', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch lab results');
+      return response.json();
+    },
     enabled: isAuthenticated && !!patientSession?.id
   });
 
