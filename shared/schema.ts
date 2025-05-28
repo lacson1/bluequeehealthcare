@@ -113,6 +113,7 @@ export const prescriptions = pgTable("prescriptions", {
   status: text("status").notNull().default("active"),
   startDate: timestamp("start_date").defaultNow().notNull(),
   endDate: timestamp("end_date"),
+  organizationId: integer('organization_id').references(() => organizations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
