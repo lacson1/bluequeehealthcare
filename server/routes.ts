@@ -366,7 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Visit creation error:', error);
       console.error('Error stack:', error.stack);
       if (error instanceof z.ZodError) {
-        console.error('Zod validation errors:', error.errors);
+        console.error('Zod validation errors:', JSON.stringify(error.errors, null, 2));
         res.status(400).json({ message: "Invalid visit data", errors: error.errors });
       } else {
         console.error('Non-Zod error details:', {
