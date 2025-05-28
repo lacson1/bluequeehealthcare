@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator } from "lucide-react";
+import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator, HelpCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRole, RoleGuard } from "@/components/role-guard";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,11 @@ const getNavigationForRole = (role: string) => {
   return allNavigation.filter(item => item.roles.includes(role));
 };
 
-export default function Sidebar() {
+interface SidebarProps {
+  onStartTour?: () => void;
+}
+
+export default function Sidebar({ onStartTour }: SidebarProps = {}) {
   const [location] = useLocation();
   const { logout } = useAuth();
   const { user } = useRole();
@@ -153,6 +157,24 @@ export default function Sidebar() {
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+        
+        {/* Help & Tour Button */}
+        {onStartTour && (
+          <div className={`mt-2 ${isCollapsed ? 'flex justify-center' : ''}`}>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onStartTour}
+              className={`text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors ${
+                isCollapsed ? 'w-8 h-8 p-1' : 'w-full justify-start text-xs'
+              }`}
+              title="Take a tour of the system"
+            >
+              <HelpCircle className="w-4 h-4" />
+              {!isCollapsed && <span className="ml-2">Help & Tour</span>}
             </Button>
           </div>
         )}

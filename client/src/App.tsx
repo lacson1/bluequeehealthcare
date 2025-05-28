@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/hooks/use-onboarding";
+import OnboardingTour from "@/components/onboarding-tour";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
 import Dashboard from "@/pages/dashboard";
@@ -24,6 +26,15 @@ import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedApp() {
+  const { user } = useAuth();
+  const {
+    showTour,
+    isNewUser,
+    completeTour,
+    startTour,
+    skipTour
+  } = useOnboarding(user?.id || 0, user?.role || '');
+
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar />
@@ -52,6 +63,15 @@ function AuthenticatedApp() {
           </div>
         </main>
       </div>
+
+      {/* Onboarding Tour */}
+      <OnboardingTour
+        userRole={user?.role || ''}
+        userName={user?.username || 'Team Member'}
+        onComplete={completeTour}
+        isOpen={showTour}
+        onClose={skipTour}
+      />
     </div>
   );
 }
