@@ -26,12 +26,28 @@ export default function PatientProfile() {
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [showEditPatientModal, setShowEditPatientModal] = useState(false);
 
-  const { data: patientsData, isLoading: patientLoading } = useQuery({
-    queryKey: ["/api/patients"],
+  const { data: patient, isLoading: patientLoading } = useQuery({
+    queryKey: ["/api/patients", patientId],
+    queryFn: async () => {
+      if (!patientId) return null;
+      const response = await fetch(`/api/patients/${patientId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('clinic_token')}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        },
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch patient');
+      }
+      
+      return response.json();
+    },
     enabled: !!patientId,
   });
-
-  const patient = Array.isArray(patientsData) ? patientsData.find(p => p.id === parseInt(patientId || '0')) : null;
 
   const { data: visitsData } = useQuery({
     queryKey: ["/api/patients", patientId, "visits"],
@@ -222,9 +238,9 @@ export default function PatientProfile() {
         onOpenChange={setShowEditPatientModal}
         patient={patient}
         onPatientUpdated={() => {
-          // Force complete cache refresh
-          queryClient.removeQueries({ queryKey: ["/api/patients"] });
-          queryClient.refetchQueries({ queryKey: ["/api/patients"] });
+          // Force complete cache refresh for this specific patient
+          queryClient.removeQueries({ queryKey: ["/api/patients", patientId] });
+          queryClient.refetchQueries({ queryKey: ["/api/patients", patientId] });
         }}
       />
 
