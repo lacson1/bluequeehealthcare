@@ -398,7 +398,7 @@ export default function PatientProfile() {
                           <div key={prescription.id} className="border rounded-lg p-4">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className="font-medium text-slate-800">{prescription.medicationName}</h4>
+                                <h4 className="font-medium text-slate-800">Medicine ID: {prescription.medicineId}</h4>
                                 <p className="text-sm text-slate-600 mt-1">
                                   <strong>Dosage:</strong> {prescription.dosage}
                                 </p>
