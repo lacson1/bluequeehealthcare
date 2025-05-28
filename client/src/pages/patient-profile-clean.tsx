@@ -220,13 +220,13 @@ export default function PatientProfile() {
           <SmartAppointmentScheduler patientId={patient.id} />
         )}
         
-        {/* Patient Communication Hub Widget */}
-        {patient && (
+        {/* Patient Communication Hub Widget - Temporarily disabled due to error */}
+        {/* {patient && (
           <PatientCommunicationHub 
             patientId={patient.id} 
             patientName={`${patient.firstName} ${patient.lastName}`}
           />
-        )}
+        )} */}
         
         {/* Floating Action Menu */}
         <FloatingActionMenu
