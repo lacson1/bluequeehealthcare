@@ -425,7 +425,7 @@ export default function FormBuilder() {
               )}
 
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Form Fields ({fields.length})</h3>
+                <h3 className="text-lg font-semibold">Form Fields ({fields?.length || 0})</h3>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
