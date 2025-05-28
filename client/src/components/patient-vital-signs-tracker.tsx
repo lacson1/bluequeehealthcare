@@ -65,7 +65,8 @@ export default function PatientVitalSignsTracker({ patientId }: PatientVitalSign
   const addVitalsMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", `/api/patients/${patientId}/vitals`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/patients", patientId, "vitals"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/vitals`] });
+      queryClient.refetchQueries({ queryKey: [`/api/patients/${patientId}/vitals`] });
       setIsAddingVitals(false);
       setNewVitals({
         bloodPressureSystolic: '',

@@ -13,6 +13,9 @@ import VisitRecordingModal from "@/components/visit-recording-modal";
 import LabResultModal from "@/components/lab-result-modal";
 import PrescriptionModal from "@/components/prescription-modal";
 import { EditPatientModal } from "@/components/edit-patient-modal";
+import PatientVitalSignsTracker from "@/components/patient-vital-signs-tracker";
+import SmartAppointmentScheduler from "@/components/smart-appointment-scheduler";
+import PatientCommunicationHub from "@/components/patient-communication-hub";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function PatientProfile() {
@@ -199,13 +202,31 @@ export default function PatientProfile() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-6 space-y-6">
         <ModernPatientOverview
           patient={patient}
           visits={visits || []}
           recentLabs={labResults || []}
           activePrescriptions={prescriptions || []}
         />
+        
+        {/* Vital Signs Tracker Widget */}
+        {patient && (
+          <PatientVitalSignsTracker patientId={patient.id} />
+        )}
+        
+        {/* Smart Appointment Scheduler Widget */}
+        {patient && (
+          <SmartAppointmentScheduler patientId={patient.id} />
+        )}
+        
+        {/* Patient Communication Hub Widget */}
+        {patient && (
+          <PatientCommunicationHub 
+            patientId={patient.id} 
+            patientName={`${patient.firstName} ${patient.lastName}`}
+          />
+        )}
         
         {/* Floating Action Menu */}
         <FloatingActionMenu

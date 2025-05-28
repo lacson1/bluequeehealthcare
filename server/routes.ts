@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
 import { fileStorage } from "./storage-service";
-import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, insertLabTestSchema, insertConsultationFormSchema, insertConsultationRecordSchema, insertVaccinationSchema, insertAllergySchema, insertMedicalHistorySchema, users, auditLogs, labTests, medications, labOrders, labOrderItems, consultationForms, consultationRecords, organizations, visits, patients } from "@shared/schema";
+import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, insertLabTestSchema, insertConsultationFormSchema, insertConsultationRecordSchema, insertVaccinationSchema, insertAllergySchema, insertMedicalHistorySchema, users, auditLogs, labTests, medications, labOrders, labOrderItems, consultationForms, consultationRecords, organizations, visits, patients, vitalSigns } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, desc, or, ilike, gte, and, isNotNull, inArray } from "drizzle-orm";
