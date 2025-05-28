@@ -7,6 +7,7 @@ import { PatientAlertsPanel } from './patient-alerts-panel';
 import PatientVitalSignsTracker from './patient-vital-signs-tracker';
 import SmartAppointmentScheduler from './smart-appointment-scheduler';
 import PatientCommunicationHub from './patient-communication-hub';
+import ConsultationFormSelector from './consultation-form-selector';
 import { 
   User, 
   Calendar, 
@@ -19,7 +20,8 @@ import {
   FlaskRound,
   MessageSquare,
   CalendarDays,
-  Monitor
+  Monitor,
+  FileText
 } from 'lucide-react';
 
 interface Patient {
@@ -117,10 +119,14 @@ export function ModernPatientOverview({
 
       {/* Enhanced Tabbed Interface */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <User className="w-4 h-4" />
             Overview
+          </TabsTrigger>
+          <TabsTrigger value="consultation" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Consultation
           </TabsTrigger>
           <TabsTrigger value="vitals" className="flex items-center gap-2">
             <Monitor className="w-4 h-4" />
@@ -242,6 +248,11 @@ export function ModernPatientOverview({
                 <PatientTimeline events={timelineEvents} />
               </div>
             </div>
+          </TabsContent>
+
+          {/* Consultation Forms Tab */}
+          <TabsContent value="consultation" className="space-y-6">
+            <ConsultationFormSelector patientId={patient.id} />
           </TabsContent>
 
           {/* Vital Signs Tab */}
