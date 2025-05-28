@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, insertLabTestSchema, insertConsultationFormSchema, insertConsultationRecordSchema, insertVaccinationSchema, insertAllergySchema, insertMedicalHistorySchema, users, auditLogs, labTests, medications, labOrders, labOrderItems, consultationForms, consultationRecords, organizations, visits, patients } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, desc, or, ilike } from "drizzle-orm";
+import { eq, desc, or, ilike, gte, and, isNotNull, inArray } from "drizzle-orm";
 import { authenticateToken, requireRole, requireAnyRole, hashPassword, comparePassword, generateToken, type AuthRequest } from "./middleware/auth";
 import { initializeFirebase, sendNotificationToRole, sendUrgentNotification, NotificationTypes } from "./notifications";
 import { AuditLogger, AuditActions } from "./audit";
@@ -1050,31 +1050,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fromDate.setDate(fromDate.getDate() - timeRange);
 
       // Get total visits in time range
-      const visits = await db.select().from(visitsTable)
-        .where(gte(visitsTable.createdAt, fromDate));
+      const visitsData = await db.select().from(visits)
+        .where(gte(visits.createdAt, fromDate));
       
       // Calculate metrics
-      const totalVisits = visits.length;
+      const totalVisits = visitsData.length;
       
       // Calculate average visit duration (assuming 15-20 minutes average)
-      const avgVisitDuration = visits.length > 0 ? 
-        visits.reduce((acc, visit) => {
+      const avgVisitDuration = visitsData.length > 0 ? 
+        visitsData.reduce((acc, visit) => {
           // Estimate based on visit complexity
           const baseTime = 15;
           const complexityMultiplier = visit.diagnosis ? 1.2 : 1.0;
           return acc + (baseTime * complexityMultiplier);
-        }, 0) / visits.length : 0;
+        }, 0) / visitsData.length : 0;
 
       // Treatment success rate (visits with treatment vs total visits)
-      const visitsWithTreatment = visits.filter(v => v.treatment && v.treatment.trim() !== '');
+      const visitsWithTreatment = visitsData.filter(v => v.treatment && v.treatment.trim() !== '');
       const treatmentSuccess = totalVisits > 0 ? Math.round((visitsWithTreatment.length / totalVisits) * 100) : 0;
 
       // Follow-up compliance (visits with follow-up dates)
-      const visitsWithFollowUp = visits.filter(v => v.followUpDate);
+      const visitsWithFollowUp = visitsData.filter(v => v.followUpDate);
       const followUpCompliance = totalVisits > 0 ? Math.round((visitsWithFollowUp.length / totalVisits) * 100) : 0;
 
       // Diagnosis accuracy (visits with diagnosis)
-      const visitsWithDiagnosis = visits.filter(v => v.diagnosis && v.diagnosis.trim() !== '');
+      const visitsWithDiagnosis = visitsData.filter(v => v.diagnosis && v.diagnosis.trim() !== '');
       const diagnosisAccuracy = totalVisits > 0 ? Math.round((visitsWithDiagnosis.length / totalVisits) * 100) : 0;
 
       // Patient satisfaction (estimate based on follow-up compliance and treatment completion)
