@@ -122,7 +122,7 @@ export default function Referrals() {
               <TableBody>
                 {filteredReferrals.map((referral: any) => (
                   <TableRow key={referral.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium whitespace-nowrap">
                       {referral.patient?.firstName} {referral.patient?.lastName}
                     </TableCell>
                     <TableCell>
