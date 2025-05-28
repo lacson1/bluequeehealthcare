@@ -15,6 +15,8 @@ import { AuditLogger, AuditActions } from "./audit";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Firebase for push notifications
   initializeFirebase();
+  
+  console.log('🔧 Registering lab order item PATCH endpoint...');
 
   // Configure multer for file uploads
   const upload = multer({
