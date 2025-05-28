@@ -36,9 +36,9 @@ export default function Pharmacy() {
     defaultValues: {
       name: "",
       description: "",
-      quantity: 0,
-      unit: "tablets",
-      lowStockThreshold: 10,
+      quantity: undefined,
+      unit: "",
+      lowStockThreshold: undefined,
       supplier: "",
       expiryDate: "",
     },
@@ -221,9 +221,9 @@ export default function Pharmacy() {
                             <Input 
                               type="number" 
                               min="0" 
-                              placeholder="0"
+                              placeholder=""
                               {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              onChange={(e) => field.onChange(Number(e.target.value) || undefined)}
                             />
                           </FormControl>
                           <FormMessage />
