@@ -368,6 +368,15 @@ export const insertPatientSchema = createInsertSchema(patients).omit({
 export const insertVisitSchema = createInsertSchema(visits).omit({
   id: true,
   visitDate: true,
+}).extend({
+  bloodPressure: z.string().optional(),
+  heartRate: z.number().optional(),
+  temperature: z.string().optional(),
+  weight: z.string().optional(),
+  complaint: z.string().optional(),
+  diagnosis: z.string().optional(),
+  treatment: z.string().optional(),
+  followUpDate: z.string().optional(),
 });
 
 export const insertLabResultSchema = createInsertSchema(labResults).omit({
