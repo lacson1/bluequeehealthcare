@@ -635,7 +635,7 @@ export default function FormBuilder() {
                         <p className="text-sm text-gray-600">{form.description}</p>
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>{form.specialistRole}</span>
-                          <span>{form.formStructure.fields.length} fields</span>
+                          <span>{form.formStructure?.fields?.length || (form.formStructure?.sections?.reduce((total: number, section: any) => total + (section.fields?.length || 0), 0)) || 0} fields</span>
                         </div>
                         <Button
                           variant="outline"
