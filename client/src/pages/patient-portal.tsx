@@ -53,28 +53,29 @@ export default function PatientPortal() {
     setLoginError('');
 
     try {
-      // Simulate patient authentication
-      // In production, this would verify against your patient database
-      if (loginData.patientId && loginData.phone && loginData.dateOfBirth) {
-        // Mock patient data - replace with actual API call
-        const mockPatient: PatientSession = {
-          id: parseInt(loginData.patientId) || 6,
-          firstName: 'Abike',
-          lastName: 'Jare',
-          phone: loginData.phone,
-          email: 'abike.jare@email.com',
-          dateOfBirth: loginData.dateOfBirth,
-          gender: 'Female',
-          address: 'Lagos, Nigeria'
-        };
-        
-        setPatientSession(mockPatient);
-        setIsAuthenticated(true);
-      } else {
-        setLoginError('Please fill in all required fields');
+      const response = await fetch('/api/patient-auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loginData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        setLoginError(error.message || 'Invalid credentials. Please check your information.');
+        return;
       }
+
+      const { token, patient } = await response.json();
+      
+      // Store patient token for API requests
+      localStorage.setItem('patientToken', token);
+      
+      setPatientSession(patient);
+      setIsAuthenticated(true);
     } catch (error) {
-      setLoginError('Invalid credentials. Please check your information.');
+      setLoginError('Connection error. Please try again.');
     }
   };
 
@@ -171,6 +172,35 @@ export default function PatientPortal() {
             <div className="mt-6 text-center text-sm text-gray-600">
               <p>Need help? Contact your healthcare provider</p>
               <p className="mt-1">📞 +234 xxx xxx xxxx</p>
+              
+              {/* Demo Credentials Helper */}
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
+                <p className="font-medium text-blue-800 mb-2">Demo Login Credentials:</p>
+                <div className="space-y-2 text-xs">
+                  <div>
+                    <strong>Abike Jare:</strong> ID: 6, Phone: 0788985885, DOB: 1971-03-02
+                  </div>
+                  <div>
+                    <strong>Fatimah:</strong> ID: 5, Phone: 0790887656, DOB: 1987-06-02
+                  </div>
+                  <div>
+                    <strong>Ade Bola:</strong> ID: 3, Phone: 08999399393, DOB: 1980-04-03
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => setLoginData({
+                    patientId: '6',
+                    phone: '0788985885',
+                    dateOfBirth: '1971-03-02'
+                  })}
+                >
+                  Quick Fill Demo (Abike)
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
