@@ -403,7 +403,6 @@ export function PharmacyWorkflow({ medicines }: PharmacyWorkflowProps) {
                 </Form>
               </DialogContent>
             </Dialog>
-          </div>
 
           {/* Pending Prescriptions */}
           <Card>
@@ -681,9 +680,14 @@ export function PharmacyWorkflow({ medicines }: PharmacyWorkflowProps) {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
+          </TabsContent>
       </Tabs>
+      
+      {/* Medication Selection Guide */}
+      <MedicationSelectionGuide 
+        isOpen={showMedicationGuide} 
+        onClose={() => setShowMedicationGuide(false)} 
+      />
     </div>
   );
 }
