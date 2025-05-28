@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Globe, Moon, Sun, User, Settings } from "lucide-react";
+import { Bell, Globe, Moon, Sun, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,12 +11,44 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useRole } from "@/components/role-guard";
+import { Link, useLocation } from "wouter";
 import OfflineIndicator from "@/components/offline-indicator";
+
+const getNavigationForRole = (role: string) => {
+  const allNavigation = [
+    { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+    { name: "Patients", href: "/patients", icon: Users, roles: ["admin", "doctor", "nurse"] },
+    { name: "Visits", href: "/visits", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
+    { name: "Lab Results", href: "/lab-results", icon: FlaskRound, roles: ["admin", "doctor", "nurse"] },
+    { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["admin", "pharmacist"] },
+    { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+    { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+    { name: "Clinical Performance", href: "/clinical-performance", icon: TrendingUp, roles: ["admin", "doctor"] },
+    { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["admin", "doctor", "nurse"] },
+    { name: "User Management", href: "/user-management", icon: UserCog, roles: ["admin"] },
+    { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["admin"] },
+    { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["admin"] },
+    { name: "Profile", href: "/profile", icon: Settings, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+  ];
+  
+  return allNavigation.filter(item => item.roles.includes(role));
+};
 
 export default function TopBar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState("EN");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [location] = useLocation();
   const { user } = useRole();
+
+  const navigation = getNavigationForRole(user?.role || '');
+
+  const isActive = (href: string) => {
+    if (href === "/dashboard") {
+      return location === "/" || location === "/dashboard";
+    }
+    return location.startsWith(href);
+  };
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -28,14 +60,29 @@ export default function TopBar() {
   };
 
   return (
-    <div className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
-      {/* Search & Breadcrumbs */}
-      <div className="flex items-center space-x-4">
-        <h2 className="text-lg font-semibold text-slate-800">Dashboard</h2>
-      </div>
+    <>
+      <div className="h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between">
+        {/* Mobile Menu Button & Logo */}
+        <div className="flex items-center space-x-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center space-x-2 md:hidden">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <Heart className="text-white h-5 w-5" />
+            </div>
+            <span className="text-lg font-bold text-slate-800">HealthCore</span>
+          </div>
+          <h2 className="hidden md:block text-lg font-semibold text-slate-800">Dashboard</h2>
+        </div>
 
-      {/* Right Side Actions */}
-      <div className="flex items-center space-x-4">
+        {/* Right Side Actions */}
+        <div className="flex items-center space-x-2 md:space-x-4">
         {/* Language Toggle */}
         <Button
           variant="ghost"
@@ -88,7 +135,34 @@ export default function TopBar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
-    </div>
+
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-b border-slate-200 shadow-lg">
+          <div className="px-4 py-2 space-y-1">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center space-x-3 px-3 py-3 rounded-lg font-medium transition-all duration-200 ${
+                    isActive(item.href)
+                      ? "bg-primary/10 text-primary"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

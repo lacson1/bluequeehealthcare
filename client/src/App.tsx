@@ -37,11 +37,13 @@ function AuthenticatedApp() {
 
   return (
     <div className="flex h-screen bg-slate-50">
-      <Sidebar onStartTour={startTour} />
+      <div className="hidden md:block">
+        <Sidebar onStartTour={startTour} />
+      </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
         <main className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto p-8">
+          <div className="h-full overflow-y-auto p-4 md:p-8">
             <Switch>
               <Route path="/" component={Dashboard} />
               <Route path="/dashboard" component={Dashboard} />

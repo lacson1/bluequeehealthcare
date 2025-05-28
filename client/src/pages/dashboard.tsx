@@ -126,19 +126,19 @@ export default function Dashboard() {
   return (
     <>
       {/* Top Bar */}
-      <header className="bg-white shadow-sm border-b border-slate-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <header className="bg-white shadow-sm border-b border-slate-200 px-4 md:px-6 py-4">
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">Dashboard</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-800">Dashboard</h2>
             <p className="text-sm text-slate-500">Welcome back, monitor your clinic's performance</p>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col space-y-2 md:flex-row md:items-center md:space-y-0 md:space-x-4">
             {/* Search Bar */}
             <div className="relative">
               <Input
                 type="text"
                 placeholder="Search patients..."
-                className="w-80 pl-10"
+                className="w-full md:w-80 pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
