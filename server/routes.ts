@@ -582,7 +582,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Recent patients for dashboard
   app.get("/api/patients/recent", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const recentPatients = await db.select()
+      const recentPatients = await db.select({
+        id: patients.id,
+        firstName: patients.firstName,
+        lastName: patients.lastName,
+        phone: patients.phone,
+        email: patients.email,
+        dateOfBirth: patients.dateOfBirth,
+        gender: patients.gender,
+        address: patients.address,
+        createdAt: patients.createdAt
+      })
         .from(patients)
         .orderBy(desc(patients.createdAt))
         .limit(5);
@@ -592,7 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
       
-      res.json(recentPatients);
+      res.json(recentPatients || []);
     } catch (error) {
       console.error("Error fetching recent patients:", error);
       res.status(500).json({ message: "Failed to fetch recent patients" });
@@ -1299,6 +1309,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(form);
     } catch (error) {
       res.status(500).json({ message: "Failed to update consultation form" });
+    }
+  });
+
+  app.delete("/api/consultation-forms/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      const deletedForm = await db.delete(consultationForms)
+        .where(eq(consultationForms.id, id))
+        .returning();
+      
+      if (!deletedForm || deletedForm.length === 0) {
+        return res.status(404).json({ message: "Consultation form not found" });
+      }
+      
+      // Create audit log
+      const auditLogger = new AuditLogger(req);
+      await auditLogger.logSystemAction('consultation_form_deleted', {
+        formId: id,
+        formName: deletedForm[0].name
+      });
+      
+      res.json({ message: "Consultation form deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting consultation form:', error);
+      res.status(500).json({ message: "Failed to delete consultation form" });
     }
   });
 

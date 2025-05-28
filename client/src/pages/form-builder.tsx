@@ -153,10 +153,11 @@ export default function FormBuilder() {
     if (!formName.trim()) errors.push("Form name is required");
     if (!formDescription.trim()) errors.push("Form description is required");
     if (!specialistRole.trim()) errors.push("Specialist role is required");
-    if (fields.length === 0) errors.push("At least one field is required");
+    if (!fields || fields.length === 0) errors.push("At least one field is required");
     
     // Validate each field
-    fields.forEach((field, index) => {
+    if (fields && Array.isArray(fields)) {
+      fields.forEach((field, index) => {
       if (!field.label.trim()) errors.push(`Field ${index + 1}: Label is required`);
       if (field.type === 'select' && (!field.options || field.options.length === 0)) {
         errors.push(`Field ${index + 1}: Select fields must have options`);
@@ -164,7 +165,8 @@ export default function FormBuilder() {
       if (field.type === 'radio' && (!field.options || field.options.length < 2)) {
         errors.push(`Field ${index + 1}: Radio fields must have at least 2 options`);
       }
-    });
+      });
+    }
     
     return errors;
   };
@@ -275,9 +277,9 @@ export default function FormBuilder() {
     setSpecialistRole(form.specialistRole);
     
     // Handle both new format (fields array) and old format (sections)
-    if (form.formStructure.fields) {
+    if (form.formStructure?.fields && Array.isArray(form.formStructure.fields)) {
       setFields(form.formStructure.fields);
-    } else if (form.formStructure.sections) {
+    } else if (form.formStructure?.sections && Array.isArray(form.formStructure.sections)) {
       // Convert sections format to fields array
       const allFields = form.formStructure.sections.reduce((acc: FormField[], section: any) => {
         return acc.concat(section.fields || []);
@@ -487,7 +489,7 @@ export default function FormBuilder() {
               </div>
 
               <div className="space-y-4 min-h-[200px] border rounded-lg p-4">
-                {(fields?.length || 0) === 0 ? (
+                {(!fields || fields.length === 0) ? (
                   <div className="text-center text-gray-500 py-8">
                     <p>No fields added yet</p>
                     <Button
