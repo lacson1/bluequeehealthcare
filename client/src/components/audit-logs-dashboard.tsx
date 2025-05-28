@@ -43,10 +43,13 @@ export function AuditLogsDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState("today");
 
-  const { data: auditLogs = [], isLoading } = useQuery({
+  const { data: auditResponse, isLoading } = useQuery({
     queryKey: ["/api/audit-logs", filterAction, filterUser, dateRange],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
+
+  const auditLogs = auditResponse?.data || [];
+  const pagination = auditResponse?.pagination;
 
   const { data: auditStats } = useQuery({
     queryKey: ["/api/audit-logs/stats"],
