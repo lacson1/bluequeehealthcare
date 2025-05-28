@@ -21,11 +21,11 @@ export default function Patients() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const { user } = useRole();
 
-  const { data: patients = [], isLoading } = useQuery({
+  const { data: patients = [], isLoading } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
   });
 
-  const filteredPatients = patients.filter((patient: Patient) => {
+  const filteredPatients = (patients as Patient[]).filter((patient: Patient) => {
     const matchesSearch = `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.phone?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
