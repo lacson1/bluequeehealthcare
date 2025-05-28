@@ -56,8 +56,8 @@ interface NotificationTemplate {
   type: 'appointment' | 'lab_result' | 'treatment_plan' | 'general';
 }
 
-export function PatientCommunicationHub({ patientId }: { patientId: number }) {
-  const [selectedPatient, setSelectedPatient] = useState<number | null>(patientId);
+export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
+  const [selectedPatient, setSelectedPatient] = useState<number | null>(patientId || null);
   const [newMessage, setNewMessage] = useState('');
   const [messageType, setMessageType] = useState<string>('general');
   const [priority, setPriority] = useState<string>('normal');

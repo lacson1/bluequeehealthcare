@@ -32,7 +32,7 @@ export function MedicalToolsPage() {
         </TabsContent>
 
         <TabsContent value="communication" className="mt-6">
-          <PatientCommunicationHub patientId={0} />
+          <PatientCommunicationHub />
         </TabsContent>
       </Tabs>
     </div>
