@@ -448,7 +448,7 @@ export default function FormBuilder() {
               </div>
 
               <div className="space-y-4 min-h-[200px] border rounded-lg p-4">
-                {fields.length === 0 ? (
+                {(fields?.length || 0) === 0 ? (
                   <div className="text-center text-gray-500 py-8">
                     <p>No fields added yet</p>
                     <Button
