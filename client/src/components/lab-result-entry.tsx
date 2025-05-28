@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { TestTube, Save, User, Calendar, Loader2, Printer, Download, FileText, Eye } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { TestTube, Save, User, Calendar, Loader2, Printer, Download, FileText, Eye, MoreVertical } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -33,8 +34,13 @@ interface LabOrderItem {
   labTestId: number;
   result?: string;
   remarks?: string;
+  status?: string;
+  completedBy?: number;
   completedAt?: string;
   testName: string;
+  testCategory?: string;
+  referenceRange?: string;
+  units?: string;
 }
 
 export default function LabResultEntry({ className }: LabResultEntryProps) {
@@ -262,42 +268,51 @@ export default function LabResultEntry({ className }: LabResultEntryProps) {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePrintOrder(order);
-                        }}
-                        className="h-8"
-                      >
-                        <Printer className="h-3 w-3 mr-1" />
-                        Print
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExportOrder(order);
-                        }}
-                        className="h-8"
-                      >
-                        <Download className="h-3 w-3 mr-1" />
-                        Export
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedOrder(selectedOrder === order.id ? null : order.id);
-                        }}
-                        className="h-8"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        {selectedOrder === order.id ? 'Hide' : 'View'} Details
-                      </Button>
+                      <Badge variant="outline">
+                        {selectedOrder === order.id ? 'Selected' : 'Pending'}
+                      </Badge>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrder(selectedOrder === order.id ? null : order.id);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            {selectedOrder === order.id ? 'Hide Details' : 'View Details'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrintOrder(order);
+                            }}
+                          >
+                            <Printer className="h-4 w-4 mr-2" />
+                            Print Order
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExportOrder(order);
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export CSV
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </div>
@@ -352,23 +367,71 @@ export default function LabResultEntry({ className }: LabResultEntryProps) {
               </div>
             ) : (
               <div className="space-y-6">
-                {orderItems.map((item, index) => (
-                  <div key={item.id}>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-lg">{item.testName}</h4>
-                        {item.completedAt ? (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                            Completed
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
-                            Pending
-                          </Badge>
-                        )}
-                      </div>
+                {/* Test Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {orderItems.length}
+                    </div>
+                    <div className="text-sm text-blue-600 dark:text-blue-400">
+                      Total Tests
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {orderItems.filter(item => item.result).length}
+                    </div>
+                    <div className="text-sm text-green-600 dark:text-green-400">
+                      Completed
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                      {orderItems.filter(item => !item.result).length}
+                    </div>
+                    <div className="text-sm text-orange-600 dark:text-orange-400">
+                      Pending
+                    </div>
+                  </div>
+                </div>
 
-                      {item.completedAt ? (
+                {/* Test Details */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium flex items-center gap-2">
+                    <TestTube className="h-5 w-5" />
+                    Ordered Tests Details
+                  </h4>
+                  
+                  {orderItems.map((item, index) => (
+                    <Card key={item.id} className="border-l-4 border-l-blue-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-lg">{item.testName}</h5>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                              {item.testCategory && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {item.testCategory}
+                                </Badge>
+                              )}
+                              {item.units && (
+                                <span>Units: {item.units}</span>
+                              )}
+                            </div>
+                            {item.referenceRange && (
+                              <div className="mt-2 text-sm">
+                                <span className="font-medium">Reference Range: </span>
+                                <span className="text-muted-foreground">{item.referenceRange}</span>
+                              </div>
+                            )}
+                          </div>
+                          <Badge variant={item.result ? "default" : "outline"}>
+                            {item.result ? "Completed" : "Pending"}
+                          </Badge>
+                        </div>
+
+                        {/* Result Entry or Display */}
+                        {item.completedAt ? (
                         <div className="bg-muted/30 p-4 rounded-lg">
                           <p className="font-medium text-sm text-muted-foreground mb-2">Completed Result:</p>
                           <p className="font-mono text-blue-600 dark:text-blue-400 mb-2">{item.result}</p>
@@ -426,11 +489,10 @@ export default function LabResultEntry({ className }: LabResultEntryProps) {
                           </Button>
                         </div>
                       )}
-                    </div>
-                    {index < orderItems.length - 1 && <Separator className="my-6" />}
-                  </div>
-                ))}
-              </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
             )}
           </CardContent>
         </Card>
