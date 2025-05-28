@@ -140,7 +140,7 @@ export default function Patients() {
               </div>
               <div className="ml-3">
                 <p className="text-sm font-medium text-green-700">Active Cases</p>
-                <p className="text-2xl font-bold text-green-800">{Math.floor((patients?.length || 0) * 0.8)}</p>
+                <p className="text-2xl font-bold text-green-800">{patients?.length || 0}</p>
               </div>
             </div>
           </CardContent>
