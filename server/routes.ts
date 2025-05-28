@@ -358,12 +358,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Patient ID:', patientId);
       console.log('Raw request body:', JSON.stringify(req.body, null, 2));
       
-      // Clean up empty strings to undefined for optional fields
+      // Clean up empty strings to undefined for optional fields and fix field mapping
       const cleanedData = { ...req.body };
       if (cleanedData.heartRate === '') cleanedData.heartRate = undefined;
       if (cleanedData.temperature === '') cleanedData.temperature = undefined;
       if (cleanedData.weight === '') cleanedData.weight = undefined;
       if (cleanedData.followUpDate === '') cleanedData.followUpDate = undefined;
+      
+      // Fix field name mapping - frontend sends chiefComplaint, backend expects complaint
+      if (cleanedData.chiefComplaint !== undefined) {
+        cleanedData.complaint = cleanedData.chiefComplaint;
+        delete cleanedData.chiefComplaint;
+      }
+      
+      // Fix field name mapping - frontend sends treatmentPlan, backend expects treatment
+      if (cleanedData.treatmentPlan !== undefined) {
+        cleanedData.treatment = cleanedData.treatmentPlan;
+        delete cleanedData.treatmentPlan;
+      }
       
       console.log('Cleaned data:', JSON.stringify(cleanedData, null, 2));
       
