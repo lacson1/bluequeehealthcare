@@ -1295,5 +1295,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  // Organization Management endpoints
+  app.get('/api/organizations', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
+    try {
+      const organizationsList = await db
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          type: organizations.type,
+          logoUrl: organizations.logoUrl,
+          themeColor: organizations.themeColor,
+          address: organizations.address,
+          phone: organizations.phone,
+          email: organizations.email,
+          website: organizations.website,
+          isActive: organizations.isActive,
+          createdAt: organizations.createdAt,
+        })
+        .from(organizations)
+        .orderBy(organizations.createdAt);
+
+      res.json(organizationsList);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      res.status(500).json({ message: 'Failed to fetch organizations' });
+    }
+  });
+
+  app.post('/api/organizations', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
+    try {
+      const { name, type, logoUrl, themeColor, address, phone, email, website } = req.body;
+
+      const [organization] = await db
+        .insert(organizations)
+        .values({
+          name,
+          type: type || 'clinic',
+          logoUrl,
+          themeColor: themeColor || '#3B82F6',
+          address,
+          phone,
+          email,
+          website,
+          isActive: true,
+        })
+        .returning();
+
+      res.status(201).json(organization);
+    } catch (error) {
+      console.error('Error creating organization:', error);
+      res.status(500).json({ message: 'Failed to create organization' });
+    }
+  });
+
+  app.patch('/api/organizations/:id', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
+    try {
+      const organizationId = parseInt(req.params.id);
+      const updates = req.body;
+
+      const [organization] = await db
+        .update(organizations)
+        .set(updates)
+        .where(eq(organizations.id, organizationId))
+        .returning();
+
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+
+      res.json(organization);
+    } catch (error) {
+      console.error('Error updating organization:', error);
+      res.status(500).json({ message: 'Failed to update organization' });
+    }
+  });
+
+  app.patch('/api/organizations/:id/status', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
+    try {
+      const organizationId = parseInt(req.params.id);
+      const { isActive } = req.body;
+
+      const [organization] = await db
+        .update(organizations)
+        .set({ isActive })
+        .where(eq(organizations.id, organizationId))
+        .returning();
+
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+
+      res.json(organization);
+    } catch (error) {
+      console.error('Error updating organization status:', error);
+      res.status(500).json({ message: 'Failed to update organization status' });
+    }
+  });
+
   return httpServer;
 }
