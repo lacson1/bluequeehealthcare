@@ -330,7 +330,7 @@ export default function ConsultationFormSelector({
                           <div className="flex items-center gap-2 mt-2">
                             <Badge variant="outline">{form.specialistRole}</Badge>
                             <span className="text-xs text-gray-500">
-                              {form.formStructure.fields.length} fields
+                              {form.formStructure?.fields?.length || (form.formStructure?.sections?.reduce((total: number, section: any) => total + (section.fields?.length || 0), 0)) || 0} fields
                             </span>
                           </div>
                         </div>
