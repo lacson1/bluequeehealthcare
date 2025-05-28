@@ -35,7 +35,7 @@ const organizationSchema = z.object({
   themeColor: z.string().default("#3B82F6"),
   address: z.string().optional(),
   phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().email("Please enter a valid email address").min(1, "Email address is required"),
   website: z.string().optional()
 });
 
@@ -249,13 +249,16 @@ export default function OrganizationManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email">Email Address *</Label>
                   <Input
                     id="email"
                     type="email"
                     {...form.register("email")}
                     placeholder="info@clinic.com"
                   />
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-red-600">{form.formState.errors.email.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
