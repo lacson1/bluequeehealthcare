@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TestTube } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TestTube, Plus } from "lucide-react";
 import LabResultEntry from "@/components/lab-result-entry";
+import LabOrderForm from "@/components/lab-order-form";
 import { useRole } from "@/components/role-guard";
 
 export default function LabResults() {
@@ -24,7 +27,36 @@ export default function LabResults() {
 
       <main className="p-6">
         {user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse' ? (
-          <LabResultEntry />
+          <Tabs defaultValue="order" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="order" className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Order Lab Tests
+              </TabsTrigger>
+              <TabsTrigger value="results" className="flex items-center gap-2">
+                <TestTube className="w-4 h-4" />
+                Add Results
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="order" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="h-5 w-5" />
+                    Order Laboratory Tests
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LabOrderForm patientId={0} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="results" className="mt-6">
+              <LabResultEntry />
+            </TabsContent>
+          </Tabs>
         ) : (
           <Card>
             <CardHeader>
