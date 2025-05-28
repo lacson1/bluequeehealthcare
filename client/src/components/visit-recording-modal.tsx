@@ -13,8 +13,9 @@ const visitFormSchema = z.object({
   treatment: z.string().min(1, "Treatment plan is required"),
   visitType: z.string().default("consultation"),
   bloodPressure: z.string().optional(),
-  temperature: z.string().optional(),
-  weight: z.string().optional(),
+  heartRate: z.number().optional(),
+  temperature: z.number().optional(),
+  weight: z.number().optional(),
   height: z.string().optional(),
   followUpDate: z.string().optional(),
 });
@@ -74,7 +75,8 @@ export default function VisitRecordingModal({
   // Memoize the draft key to prevent unnecessary recalculations
   const draftKey = useMemo(() => `visitDraft_${selectedPatientId || patientId || 'new'}`, [selectedPatientId, patientId]);
   
-  const loadDraft = () => {
+  // Memoize loadDraft to prevent re-renders
+  const loadDraft = useMemo(() => {
     try {
       const saved = localStorage.getItem(draftKey);
       return saved ? JSON.parse(saved) : {
@@ -102,11 +104,11 @@ export default function VisitRecordingModal({
         visitType: "consultation",
       };
     }
-  };
+  }, [draftKey]);
 
   const form = useForm<Omit<InsertVisit, "patientId">>({
     resolver: zodResolver(visitFormSchema),
-    defaultValues: loadDraft(),
+    defaultValues: loadDraft,
   });
 
   // Debounced auto-save functionality
@@ -114,6 +116,10 @@ export default function VisitRecordingModal({
   
   useEffect(() => {
     if (!open) return; // Don't save when modal is closed
+    
+    // Only save if we have meaningful data
+    const hasData = watchedValues.complaint || watchedValues.diagnosis || watchedValues.treatment;
+    if (!hasData) return;
     
     const timeoutId = setTimeout(() => {
       try {
@@ -130,14 +136,13 @@ export default function VisitRecordingModal({
   useEffect(() => {
     if (open) {
       setSelectedPatientId(patientId);
-      const draft = loadDraft();
-      form.reset(draft);
+      form.reset(loadDraft);
     } else {
       // Clear form state when modal closes
       setSelectedPatientId(undefined);
       setPatientSearchOpen(false);
     }
-  }, [open, patientId, form, draftKey]);
+  }, [open, patientId, form, loadDraft]);
 
   const recordVisitMutation = useMutation({
     mutationFn: async (data: InsertVisit) => {
