@@ -16,10 +16,19 @@ import { apiRequest } from "@/lib/queryClient";
 interface FormField {
   id: string;
   label: string;
-  type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'select';
+  type: 'text' | 'textarea' | 'radio' | 'checkbox' | 'select' | 'number' | 'date' | 'time' | 'email' | 'phone';
   required: boolean;
   options?: string[];
   placeholder?: string;
+  validation?: {
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    min?: number;
+    max?: number;
+  };
+  section?: string;
+  medicalCategory?: 'symptoms' | 'vitals' | 'history' | 'examination' | 'diagnosis' | 'treatment' | 'followup';
 }
 
 interface ConsultationForm {
@@ -35,6 +44,43 @@ interface ConsultationForm {
   updatedAt: string;
 }
 
+// Medical field templates for quick form building
+const MEDICAL_TEMPLATES = {
+  symptoms: [
+    { label: "Chief Complaint", type: "textarea", required: true, placeholder: "Patient's main concern or reason for visit" },
+    { label: "Duration of Symptoms", type: "text", required: true, placeholder: "How long have symptoms been present?" },
+    { label: "Pain Scale (1-10)", type: "number", required: false, validation: { min: 1, max: 10 } },
+    { label: "Associated Symptoms", type: "checkbox", options: ["Fever", "Nausea", "Vomiting", "Headache", "Fatigue"] }
+  ],
+  vitals: [
+    { label: "Blood Pressure", type: "text", required: true, placeholder: "120/80 mmHg", validation: { pattern: "\\d+/\\d+" } },
+    { label: "Heart Rate", type: "number", required: true, placeholder: "bpm", validation: { min: 40, max: 200 } },
+    { label: "Temperature", type: "number", required: true, placeholder: "°C", validation: { min: 35, max: 42 } },
+    { label: "Weight", type: "number", required: false, placeholder: "kg", validation: { min: 1, max: 300 } }
+  ],
+  history: [
+    { label: "Medical History", type: "textarea", required: false, placeholder: "Previous medical conditions, surgeries, hospitalizations" },
+    { label: "Current Medications", type: "textarea", required: false, placeholder: "List all current medications and dosages" },
+    { label: "Allergies", type: "textarea", required: false, placeholder: "Drug allergies, food allergies, environmental allergies" },
+    { label: "Family History", type: "textarea", required: false, placeholder: "Relevant family medical history" }
+  ],
+  examination: [
+    { label: "General Appearance", type: "select", options: ["Well-appearing", "Ill-appearing", "Distressed", "Alert", "Lethargic"] },
+    { label: "Physical Examination Findings", type: "textarea", required: true, placeholder: "Detailed physical examination findings" },
+    { label: "System Review", type: "checkbox", options: ["Cardiovascular", "Respiratory", "Neurological", "Gastrointestinal", "Musculoskeletal"] }
+  ],
+  diagnosis: [
+    { label: "Primary Diagnosis", type: "text", required: true, placeholder: "Main diagnosis or working diagnosis" },
+    { label: "Secondary Diagnoses", type: "textarea", required: false, placeholder: "Additional diagnoses or differential diagnoses" },
+    { label: "ICD-10 Code", type: "text", required: false, placeholder: "ICD-10 diagnostic code" }
+  ],
+  treatment: [
+    { label: "Treatment Plan", type: "textarea", required: true, placeholder: "Detailed treatment plan and interventions" },
+    { label: "Prescribed Medications", type: "textarea", required: false, placeholder: "Medications prescribed with dosage and instructions" },
+    { label: "Follow-up Instructions", type: "textarea", required: true, placeholder: "When and how patient should follow up" }
+  ]
+};
+
 export default function FormBuilder() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -45,6 +91,8 @@ export default function FormBuilder() {
   const [fields, setFields] = useState<FormField[]>([]);
   const [editingForm, setEditingForm] = useState<ConsultationForm | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   // Fetch existing forms
   const { data: forms = [], isLoading } = useQuery<ConsultationForm[]>({
@@ -76,6 +124,47 @@ export default function FormBuilder() {
       });
     },
   });
+
+  // Form validation function
+  const validateForm = (): string[] => {
+    const errors: string[] = [];
+    
+    if (!formName.trim()) errors.push("Form name is required");
+    if (!formDescription.trim()) errors.push("Form description is required");
+    if (!specialistRole.trim()) errors.push("Specialist role is required");
+    if (fields.length === 0) errors.push("At least one field is required");
+    
+    // Validate each field
+    fields.forEach((field, index) => {
+      if (!field.label.trim()) errors.push(`Field ${index + 1}: Label is required`);
+      if (field.type === 'select' && (!field.options || field.options.length === 0)) {
+        errors.push(`Field ${index + 1}: Select fields must have options`);
+      }
+      if (field.type === 'radio' && (!field.options || field.options.length < 2)) {
+        errors.push(`Field ${index + 1}: Radio fields must have at least 2 options`);
+      }
+    });
+    
+    return errors;
+  };
+
+  // Add medical template fields
+  const addTemplateFields = (templateKey: string) => {
+    const template = MEDICAL_TEMPLATES[templateKey as keyof typeof MEDICAL_TEMPLATES];
+    if (template) {
+      const newFields = template.map((field, index) => ({
+        ...field,
+        id: `${templateKey}_${Date.now()}_${index}`,
+        medicalCategory: templateKey as FormField['medicalCategory']
+      })) as FormField[];
+      
+      setFields(prev => [...prev, ...newFields]);
+      toast({
+        title: "Template Added",
+        description: `Added ${template.length} ${templateKey} fields to your form.`,
+      });
+    }
+  };
 
   const addField = () => {
     const newField: FormField = {
@@ -135,10 +224,13 @@ export default function FormBuilder() {
   };
 
   const saveForm = () => {
-    if (!formName.trim() || !specialistRole.trim() || fields.length === 0) {
+    const validationErrors = validateForm();
+    setFormErrors(validationErrors);
+    
+    if (validationErrors.length > 0) {
       toast({
         title: "Validation Error",
-        description: "Please fill in form name, specialist role, and add at least one field.",
+        description: `Please fix ${validationErrors.length} validation error(s) before saving.`,
         variant: "destructive",
       });
       return;
@@ -300,8 +392,40 @@ export default function FormBuilder() {
                 />
               </div>
 
+              {/* Medical Template Section */}
+              <div className="border rounded-lg p-4 bg-blue-50">
+                <h3 className="text-sm font-semibold text-blue-900 mb-2">Quick Start: Medical Templates</h3>
+                <p className="text-xs text-blue-700 mb-3">Add pre-built medical field sets to speed up form creation</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {Object.entries(MEDICAL_TEMPLATES).map(([key, template]) => (
+                    <Button
+                      key={key}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addTemplateFields(key)}
+                      disabled={previewMode}
+                      className="text-xs h-8"
+                    >
+                      {key.charAt(0).toUpperCase() + key.slice(1)} ({template.length})
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Validation Errors */}
+              {formErrors.length > 0 && (
+                <div className="border border-red-200 rounded-lg p-3 bg-red-50">
+                  <h4 className="text-sm font-semibold text-red-900 mb-2">Please fix these issues:</h4>
+                  <ul className="text-xs text-red-700 space-y-1">
+                    {formErrors.map((error, index) => (
+                      <li key={index}>• {error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Form Fields</h3>
+                <h3 className="text-lg font-semibold">Form Fields ({fields.length})</h3>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -318,7 +442,7 @@ export default function FormBuilder() {
                     disabled={previewMode}
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    Add Field
+                    Add Custom Field
                   </Button>
                 </div>
               </div>
