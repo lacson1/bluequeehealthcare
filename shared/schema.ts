@@ -370,9 +370,9 @@ export const insertVisitSchema = createInsertSchema(visits).omit({
   visitDate: true,
 }).extend({
   bloodPressure: z.string().optional(),
-  heartRate: z.number().optional(),
-  temperature: z.string().optional(),
-  weight: z.string().optional(),
+  heartRate: z.coerce.number().optional(),
+  temperature: z.coerce.number().optional(),
+  weight: z.coerce.number().optional(),
   complaint: z.string().optional(),
   diagnosis: z.string().optional(),
   treatment: z.string().optional(),
