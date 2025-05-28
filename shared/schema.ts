@@ -369,14 +369,16 @@ export const insertVisitSchema = createInsertSchema(visits).omit({
   id: true,
   visitDate: true,
 }).extend({
-  bloodPressure: z.string().optional(),
-  heartRate: z.coerce.number().optional(),
-  temperature: z.coerce.number().optional(),
-  weight: z.coerce.number().optional(),
-  complaint: z.string().optional(),
-  diagnosis: z.string().optional(),
-  treatment: z.string().optional(),
-  followUpDate: z.string().optional(),
+  bloodPressure: z.string().optional().nullable(),
+  heartRate: z.coerce.number().optional().nullable(),
+  temperature: z.coerce.number().optional().nullable(),
+  weight: z.coerce.number().optional().nullable(),
+  complaint: z.string().optional().nullable(),
+  diagnosis: z.string().optional().nullable(),
+  treatment: z.string().optional().nullable(),
+  followUpDate: z.string().optional().nullable(),
+  visitType: z.string().default("consultation"),
+  status: z.string().default("final"),
 });
 
 export const insertLabResultSchema = createInsertSchema(labResults).omit({
