@@ -4,20 +4,76 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pill, Plus, Package, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useRole } from "@/components/role-guard";
-import type { Medicine } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertMedicineSchema, type Medicine, type InsertMedicine } from "@shared/schema";
+import { z } from "zod";
+
+// Form schema for adding medicine
+const addMedicineFormSchema = insertMedicineSchema.extend({
+  expiryDate: z.string().optional(),
+});
+
+type AddMedicineForm = z.infer<typeof addMedicineFormSchema>;
 
 export default function Pharmacy() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useRole();
   const [editingQuantity, setEditingQuantity] = useState<{ [key: number]: string }>({});
+  const [showAddDialog, setShowAddDialog] = useState(false);
+
+  const form = useForm<AddMedicineForm>({
+    resolver: zodResolver(addMedicineFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      quantity: 0,
+      unit: "tablets",
+      lowStockThreshold: 10,
+      supplier: "",
+      expiryDate: "",
+    },
+  });
 
   const { data: medicines, isLoading } = useQuery<Medicine[]>({
     queryKey: ["/api/medicines"],
+  });
+
+  const addMedicineMutation = useMutation({
+    mutationFn: async (data: AddMedicineForm) => {
+      const medicineData = {
+        ...data,
+        expiryDate: data.expiryDate ? new Date(data.expiryDate).toISOString() : null,
+      };
+      const response = await apiRequest("POST", "/api/medicines", medicineData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/medicines"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/medicines/low-stock"] });
+      toast({
+        title: "Success",
+        description: "Medicine added successfully!",
+      });
+      setShowAddDialog(false);
+      form.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add medicine",
+        variant: "destructive",
+      });
+    },
   });
 
   const updateQuantityMutation = useMutation({
@@ -79,10 +135,172 @@ export default function Pharmacy() {
             <h2 className="text-2xl font-bold text-slate-800">Pharmacy</h2>
             <p className="text-sm text-slate-500">Manage medicine inventory and stock levels</p>
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Medicine
-          </Button>
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Medicine
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add New Medicine</DialogTitle>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit((data) => addMedicineMutation.mutate(data))} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Medicine Name *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., Paracetamol 500mg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="unit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Unit *</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select unit" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="tablets">Tablets</SelectItem>
+                              <SelectItem value="capsules">Capsules</SelectItem>
+                              <SelectItem value="ml">Milliliters (ml)</SelectItem>
+                              <SelectItem value="mg">Milligrams (mg)</SelectItem>
+                              <SelectItem value="bottles">Bottles</SelectItem>
+                              <SelectItem value="boxes">Boxes</SelectItem>
+                              <SelectItem value="vials">Vials</SelectItem>
+                              <SelectItem value="tubes">Tubes</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Brief description of the medicine..."
+                            className="resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="quantity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Initial Quantity *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              placeholder="0"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="lowStockThreshold"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Low Stock Threshold *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              placeholder="10"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="supplier"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Supplier</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., ABC Pharmaceuticals" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="expiryDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Expiry Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setShowAddDialog(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={addMedicineMutation.isPending}
+                    >
+                      {addMedicineMutation.isPending ? "Adding..." : "Add Medicine"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
       </header>
 
@@ -258,7 +476,7 @@ export default function Pharmacy() {
                 <p className="mt-2 text-sm text-slate-500">
                   Start by adding medicines to your pharmacy inventory.
                 </p>
-                <Button className="mt-4">
+                <Button className="mt-4" onClick={() => setShowAddDialog(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add First Medicine
                 </Button>
