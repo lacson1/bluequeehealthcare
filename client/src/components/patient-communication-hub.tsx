@@ -257,7 +257,7 @@ export default function PatientCommunicationHub({
                         <div className="flex items-center gap-2 mb-1">
                           {getMessageIcon(message.messageType)}
                           <span className="text-xs font-medium">
-                            {message.messageType}
+                            {message.messageType?.toUpperCase() || 'MESSAGE'}
                           </span>
                           <Badge className={getStatusColor(message.status)} variant="outline">
                             {message.status}
