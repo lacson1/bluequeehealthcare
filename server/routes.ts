@@ -897,6 +897,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lab Orders endpoints
+  app.post('/api/patients/:id/lab-orders', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.id);
+      const { tests } = req.body;
+      
+      if (!tests || !Array.isArray(tests) || tests.length === 0) {
+        return res.status(400).json({ message: "Tests array is required" });
+      }
+      
+      // Create the lab order
+      const [labOrder] = await db.insert(labOrders)
+        .values({
+          patientId,
+          orderedBy: req.user!.id,
+          status: 'pending'
+        })
+        .returning();
+      
+      // Create lab order items for each test
+      const orderItems = tests.map((testId: number) => ({
+        labOrderId: labOrder.id,
+        labTestId: testId,
+        status: 'pending'
+      }));
+      
+      await db.insert(labOrderItems).values(orderItems);
+      
+      // Create audit log
+      const auditLogger = new AuditLogger(req);
+      await auditLogger.logPatientAction("Lab Order Created", patientId, {
+        labOrderId: labOrder.id,
+        testCount: tests.length,
+        testIds: tests
+      });
+      
+      res.status(201).json(labOrder);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create lab order" });
+    }
+  });
+
+  app.get('/api/lab-orders/pending', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const pendingOrders = await db.select({
+        id: labOrders.id,
+        patientId: labOrders.patientId,
+        orderedBy: labOrders.orderedBy,
+        createdAt: labOrders.createdAt,
+        status: labOrders.status,
+        patient: {
+          firstName: patients.firstName,
+          lastName: patients.lastName,
+          dateOfBirth: patients.dateOfBirth
+        }
+      })
+      .from(labOrders)
+      .leftJoin(patients, eq(labOrders.patientId, patients.id))
+      .where(eq(labOrders.status, 'pending'))
+      .orderBy(labOrders.createdAt);
+      
+      res.json(pendingOrders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch pending lab orders" });
+    }
+  });
+
+  app.get('/api/patients/:id/lab-orders', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.id);
+      
+      const orders = await db.select()
+        .from(labOrders)
+        .where(eq(labOrders.patientId, patientId))
+        .orderBy(labOrders.createdAt);
+      
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch lab orders" });
+    }
+  });
+
   app.get("/api/users/:username", authenticateToken, requireAnyRole(['admin', 'doctor']), async (req, res) => {
     try {
       const username = req.params.username;
