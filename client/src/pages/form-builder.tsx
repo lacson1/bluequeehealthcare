@@ -125,6 +125,27 @@ export default function FormBuilder() {
     },
   });
 
+  // Delete form mutation
+  const deleteFormMutation = useMutation({
+    mutationFn: async (formId: number) => {
+      return apiRequest('DELETE', `/api/consultation-forms/${formId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Form Deleted",
+        description: "Consultation form has been deleted successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/consultation-forms'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete consultation form.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Form validation function
   const validateForm = (): string[] => {
     const errors: string[] = [];
@@ -252,7 +273,19 @@ export default function FormBuilder() {
     setFormName(form.name);
     setFormDescription(form.description);
     setSpecialistRole(form.specialistRole);
-    setFields(form.formStructure.fields);
+    
+    // Handle both new format (fields array) and old format (sections)
+    if (form.formStructure.fields) {
+      setFields(form.formStructure.fields);
+    } else if (form.formStructure.sections) {
+      // Convert sections format to fields array
+      const allFields = form.formStructure.sections.reduce((acc: FormField[], section: any) => {
+        return acc.concat(section.fields || []);
+      }, []);
+      setFields(allFields);
+    } else {
+      setFields([]);
+    }
   };
 
   const resetForm = () => {
@@ -262,6 +295,12 @@ export default function FormBuilder() {
     setSpecialistRole("");
     setFields([]);
     setPreviewMode(false);
+  };
+
+  const deleteForm = (form: ConsultationForm) => {
+    if (window.confirm(`Are you sure you want to delete "${form.name}"? This action cannot be undone.`)) {
+      deleteFormMutation.mutate(form.id);
+    }
   };
 
   const renderFieldPreview = (field: FormField) => {
@@ -637,15 +676,25 @@ export default function FormBuilder() {
                           <span>{form.specialistRole}</span>
                           <span>{form.formStructure?.fields?.length || (form.formStructure?.sections?.reduce((total: number, section: any) => total + (section.fields?.length || 0), 0)) || 0} fields</span>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => loadForm(form)}
-                          className="w-full"
-                        >
-                          <Edit3 className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => loadForm(form)}
+                            className="flex-1"
+                          >
+                            <Edit3 className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteForm(form)}
+                            disabled={deleteFormMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   ))
