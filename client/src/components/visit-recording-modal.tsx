@@ -4,6 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVisitSchema, type InsertVisit, type Patient } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { z } from "zod";
+
+const visitFormSchema = insertVisitSchema.omit({ patientId: true });
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
