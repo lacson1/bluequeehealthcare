@@ -146,11 +146,8 @@ export default function VisitRecordingModal({
   }, [open, patientId, form, loadDraft]);
 
   const recordVisitMutation = useMutation({
-    mutationFn: async (data: InsertVisit) => {
-      const response = await apiRequest("POST", `/api/patients/${data.patientId}/visits`, { 
-        ...data, 
-        status: "final" 
-      });
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", `/api/patients/${data.patientId}/visits`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -202,20 +199,17 @@ export default function VisitRecordingModal({
       chiefComplaint: data.complaint,
       diagnosis: data.diagnosis,
       treatment: data.treatment,
-      visitType: data.visitType,
+      visitType: data.visitType || "consultation",
       visitDate: new Date().toISOString().split('T')[0],
       bloodPressure: data.bloodPressure?.trim() || null,
-      heartRate: data.heartRate ? parseInt(data.heartRate) : null,
-      temperature: data.temperature ? parseFloat(data.temperature) : null,
-      weight: data.weight ? parseFloat(data.weight) : null,
-      height: data.height?.trim() || null,
+      heartRate: data.heartRate?.trim() || null,
+      temperature: data.temperature?.trim() || null,
+      weight: data.weight?.trim() || null,
       followUpDate: data.followUpDate?.trim() || null,
+      status: "completed"
     };
 
-    recordVisitMutation.mutate({
-      ...cleanedData,
-      patientId: selectedPatientId,
-    });
+    recordVisitMutation.mutate(cleanedData);
   };
 
   const selectedPatient = patients?.find(p => p.id === selectedPatientId);
