@@ -517,12 +517,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Recent patients for dashboard
-  app.get("/api/patients/recent", async (req, res) => {
+  app.get("/api/patients/recent", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patients = await storage.getPatients();
       const recentPatients = patients.slice(0, 5);
       res.json(recentPatients);
     } catch (error) {
+      console.error("Error fetching recent patients:", error);
       res.status(500).json({ message: "Failed to fetch recent patients" });
     }
   });
@@ -1244,16 +1245,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fromDate.setDate(fromDate.getDate() - timeRange);
 
       // Get all staff members who are doctors or nurses
-      const staff = await db.select().from(usersTable)
-        .where(inArray(usersTable.role, ['doctor', 'nurse']));
+      const staff = await db.select().from(users)
+        .where(inArray(users.role, ['doctor', 'nurse']));
 
       // Get visits by each staff member
       const staffPerformance = await Promise.all(
         staff.map(async (member) => {
-          const memberVisits = await db.select().from(visitsTable)
+          const memberVisits = await db.select().from(visits)
             .where(and(
-              eq(visitsTable.doctorId, member.id),
-              gte(visitsTable.createdAt, fromDate)
+              eq(visits.doctorId, member.id),
+              gte(visits.createdAt, fromDate)
             ));
 
           const visits = memberVisits.length;
