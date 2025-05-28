@@ -1,16 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Users, Stethoscope, Pill, FlaskRound, Search, Bell, ArrowUp, TriangleAlert, Clock, UserPlus, UserCheck, UserCog, Settings, Activity } from "lucide-react";
 import PatientRegistrationModal from "@/components/patient-registration-modal";
 import VisitRecordingModal from "@/components/visit-recording-modal";
 import LabResultModal from "@/components/lab-result-modal";
 import { Link } from "wouter";
 import { useRole } from "@/components/role-guard";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Patient, Medicine } from "@shared/schema";
 
 interface DashboardStats {
@@ -25,7 +29,12 @@ export default function Dashboard() {
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showLabModal, setShowLabModal] = useState(false);
+  const [showReorderModal, setShowReorderModal] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState<any>(null);
+  const [reorderQuantity, setReorderQuantity] = useState("");
   const { user, isDoctor } = useRole();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
@@ -38,6 +47,11 @@ export default function Dashboard() {
   const { data: lowStockMedicines, isLoading: medicinesLoading } = useQuery<Medicine[]>({
     queryKey: ["/api/medicines/low-stock"],
   });
+
+  const handleReorderMedicine = (medicine: any) => {
+    setSelectedMedicine(medicine);
+    setShowReorderModal(true);
+  };
 
   // Doctor-specific data
   const { data: doctorReferrals, isLoading: referralsLoading } = useQuery({
@@ -686,7 +700,12 @@ export default function Dashboard() {
                             Only {medicine.quantity} {medicine.unit} left
                           </p>
                         </div>
-                        <Button size="sm" variant="ghost" className="text-primary">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-primary hover:bg-primary hover:text-white"
+                          onClick={() => handleReorderMedicine(medicine)}
+                        >
                           Reorder
                         </Button>
                       </div>
