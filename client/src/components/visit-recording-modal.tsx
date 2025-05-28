@@ -170,7 +170,9 @@ export default function VisitRecordingModal({
         description: "Visit recorded successfully!",
       });
       
-      handleDialogClose();
+      form.reset();
+      setSelectedPatientId(undefined);
+      onOpenChange(false);
     },
     onError: (error) => {
       console.error('Visit recording error:', error);
@@ -231,24 +233,20 @@ export default function VisitRecordingModal({
     }
   };
 
-  const handleDialogClose = () => {
-    // Reset form state
+  const handleClose = () => {
+    // Reset form state when dialog closes
     form.reset();
     setSelectedPatientId(undefined);
     setPatientSearchOpen(false);
     onOpenChange(false);
   };
 
-  const handleDialogChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      handleDialogClose();
-    } else {
-      onOpenChange(isOpen);
-    }
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleDialogChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        handleClose();
+      }
+    }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Record Patient Visit</DialogTitle>
@@ -501,7 +499,7 @@ export default function VisitRecordingModal({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleDialogClose}
+                  onClick={handleClose}
                 >
                   Cancel
                 </Button>
