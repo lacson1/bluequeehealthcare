@@ -3,6 +3,22 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Organizations (Multi-tenant support)
+export const organizations = pgTable('organizations', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  type: varchar('type', { length: 50 }).default('clinic'), // clinic, hospital, health_center
+  logoUrl: varchar('logo_url', { length: 255 }),
+  themeColor: varchar('theme_color', { length: 20 }).default('#3B82F6'),
+  address: varchar('address', { length: 255 }),
+  phone: varchar('phone', { length: 20 }),
+  email: varchar('email', { length: 100 }),
+  website: varchar('website', { length: 255 }),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: varchar('username', { length: 50 }).notNull().unique(),
@@ -11,6 +27,9 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 100 }),
   phone: varchar('phone', { length: 20 }),
   photoUrl: varchar('photo_url', { length: 255 }),
+  firstName: varchar('first_name', { length: 50 }),
+  lastName: varchar('last_name', { length: 50 }),
+  organizationId: integer('organization_id').references(() => organizations.id),
   createdAt: timestamp('created_at').defaultNow()
 });
 
@@ -25,12 +44,14 @@ export const patients = pgTable("patients", {
   address: text("address"),
   allergies: text("allergies"),
   medicalHistory: text("medical_history"),
+  organizationId: integer('organization_id').references(() => organizations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const visits = pgTable("visits", {
   id: serial("id").primaryKey(),
   patientId: integer("patient_id").notNull().references(() => patients.id),
+  doctorId: integer("doctor_id").references(() => users.id),
   visitDate: timestamp("visit_date").defaultNow().notNull(),
   bloodPressure: text("blood_pressure"),
   heartRate: integer("heart_rate"),
@@ -42,6 +63,8 @@ export const visits = pgTable("visits", {
   followUpDate: date("follow_up_date"),
   visitType: text("visit_type").notNull().default("consultation"),
   status: text("status").notNull().default("draft"), // 'draft' | 'final'
+  organizationId: integer('organization_id').references(() => organizations.id),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const labResults = pgTable("lab_results", {
@@ -53,6 +76,8 @@ export const labResults = pgTable("lab_results", {
   normalRange: text("normal_range"),
   status: text("status").notNull().default("pending"),
   notes: text("notes"),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const medicines = pgTable("medicines", {
@@ -71,6 +96,7 @@ export const medicines = pgTable("medicines", {
   defaultDuration: text("default_duration"), // e.g., "7 days", "2 weeks"
   defaultInstructions: text("default_instructions"), // e.g., "Take with food", "Before meals"
   commonConditions: text("common_conditions"), // JSON array of conditions this treats
+  organizationId: integer('organization_id').references(() => organizations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
