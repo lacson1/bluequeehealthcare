@@ -1025,6 +1025,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const itemId = parseInt(req.params.id);
       const { result, remarks } = req.body;
 
+      console.log(`🔬 Updating lab order item ${itemId} with result: ${result}`);
+
       if (!result || !result.trim()) {
         return res.status(400).json({ message: "Result is required" });
       }
@@ -1044,6 +1046,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Lab order item not found" });
       }
 
+      console.log(`✅ Lab order item ${itemId} updated successfully`);
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logLabResultAction("Lab Result Added", itemId, {
@@ -1054,7 +1058,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(updatedItem);
     } catch (error) {
-      console.error('Error updating lab order item:', error);
+      console.error('❌ Error updating lab order item:', error);
       res.status(500).json({ message: "Failed to update lab order item" });
     }
   });
