@@ -351,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Visits routes - Only doctors can create visits
-  app.post("/api/patients/:id/visits", authenticateToken, requireRole('doctor'), async (req: AuthRequest, res) => {
+  app.post("/api/patients/:id/visits", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       console.log('Creating visit for patient:', patientId);
