@@ -12,6 +12,7 @@ import { PatientSummaryPrintable } from "@/components/patient-summary-printable"
 import VisitRecordingModal from "@/components/visit-recording-modal";
 import LabResultModal from "@/components/lab-result-modal";
 import PrescriptionModal from "@/components/prescription-modal";
+import { EditPatientModal } from "@/components/edit-patient-modal";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function PatientProfile() {
@@ -22,6 +23,7 @@ export default function PatientProfile() {
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showLabModal, setShowLabModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false);
 
   const { data: patientData, isLoading: patientLoading } = useQuery({
     queryKey: ["/api/patients", patientId],
@@ -170,7 +172,7 @@ export default function PatientProfile() {
             
             {/* Edit patient info - available to admin, doctor, nurse */}
             {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setShowEditPatientModal(true)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Info
               </Button>
@@ -213,6 +215,15 @@ export default function PatientProfile() {
         open={showPrescriptionModal}
         onOpenChange={setShowPrescriptionModal}
         patientId={patientId}
+      />
+      <EditPatientModal
+        open={showEditPatientModal}
+        onOpenChange={setShowEditPatientModal}
+        patient={patient}
+        onPatientUpdated={() => {
+          // Refresh patient data after update
+          window.location.reload();
+        }}
       />
 
       {/* Hidden Printable Patient Summary */}

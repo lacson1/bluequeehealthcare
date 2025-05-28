@@ -374,6 +374,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update patient information
+  app.patch("/api/patients/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      // Remove any undefined fields
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined || updateData[key] === '') {
+          delete updateData[key];
+        }
+      });
+
+      const updatedPatient = await storage.updatePatient(id, updateData);
+      if (!updatedPatient) {
+        res.status(404).json({ message: "Patient not found" });
+        return;
+      }
+
+      // Log the update action
+      await req.auditLogger?.logPatientAction('UPDATE', id, { 
+        updatedFields: Object.keys(updateData) 
+      });
+
+      res.json(updatedPatient);
+    } catch (error) {
+      console.error('Error updating patient:', error);
+      res.status(500).json({ message: "Failed to update patient" });
+    }
+  });
+
   // Visits routes - Only doctors can create visits
   app.post("/api/patients/:id/visits", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
