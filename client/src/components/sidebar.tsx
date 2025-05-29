@@ -33,8 +33,18 @@ const getNavigationGroupsForRole = (role: string) => {
         { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["admin", "pharmacist"] },
         { name: "Physiotherapy", href: "/physiotherapy", icon: Heart, roles: ["admin", "physiotherapist"] },
         { name: "Exercise Leaflets", href: "/exercise-leaflets", icon: FileText, roles: ["admin", "doctor", "physiotherapist"] },
-        { name: "Wellness Center", href: "/wellness", icon: Heart, roles: ["admin", "doctor", "nurse", "physiotherapist"] },
-        { name: "Mental Health Support", href: "/mental-health", icon: Brain, roles: ["admin", "doctor", "nurse"] },
+        { 
+          name: "Wellness Center", 
+          href: "/wellness", 
+          icon: Heart, 
+          roles: ["admin", "doctor", "nurse", "physiotherapist"],
+          submenu: [
+            { name: "Wellness Dashboard", href: "/wellness", icon: Activity, roles: ["admin", "doctor", "nurse", "physiotherapist"] },
+            { name: "Mental Health Support", href: "/mental-health", icon: Brain, roles: ["admin", "doctor", "nurse"] },
+            { name: "Patient Wellness Plans", href: "/wellness/plans", icon: ClipboardList, roles: ["admin", "doctor", "nurse", "physiotherapist"] },
+            { name: "Wellness Analytics", href: "/wellness/analytics", icon: TrendingUp, roles: ["admin", "doctor", "nurse"] }
+          ]
+        },
         { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
       ]
     },
@@ -221,6 +231,57 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
                     <div className="ml-4 mt-1 space-y-1">
                       {group.items.map((item) => {
                         const Icon = item.icon;
+                        
+                        // Check if item has submenu
+                        if (item.submenu) {
+                          return (
+                            <Collapsible key={item.name} open={openGroups.has(item.name)}>
+                              <CollapsibleTrigger asChild>
+                                <button 
+                                  className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-all duration-200`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    toggleGroup(item.name);
+                                  }}
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <Icon className="w-4 h-4 flex-shrink-0" />
+                                    <span>{item.name}</span>
+                                  </div>
+                                  {openGroups.has(item.name) ? 
+                                    <ChevronDown className="w-4 h-4" /> : 
+                                    <ChevronRight className="w-4 h-4" />
+                                  }
+                                </button>
+                              </CollapsibleTrigger>
+                              
+                              <CollapsibleContent>
+                                <div className="ml-6 mt-1 space-y-1">
+                                  {item.submenu.map((subItem) => {
+                                    const SubIcon = subItem.icon;
+                                    return (
+                                      <Link
+                                        key={subItem.name}
+                                        href={subItem.href}
+                                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                          isActive(subItem.href)
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-slate-600 hover:bg-slate-100"
+                                        }`}
+                                        onClick={handleMobileLinkClick}
+                                      >
+                                        <SubIcon className="w-4 h-4 flex-shrink-0" />
+                                        <span>{subItem.name}</span>
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          );
+                        }
+                        
+                        // Regular item without submenu
                         return (
                           <Link
                             key={item.name}

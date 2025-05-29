@@ -47,30 +47,63 @@ export default function MentalHealthSupport({ patientId }: MentalHealthSupportPr
         {
           id: 'phq9_1',
           text: 'Little interest or pleasure in doing things',
+          description: 'Over the last 2 weeks, how often have you been bothered by little interest or pleasure in doing things?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         },
         {
           id: 'phq9_2',
           text: 'Feeling down, depressed, or hopeless',
+          description: 'Over the last 2 weeks, how often have you been bothered by feeling down, depressed, or hopeless?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         },
         {
           id: 'phq9_3',
           text: 'Trouble falling or staying asleep, or sleeping too much',
+          description: 'Over the last 2 weeks, how often have you been bothered by trouble falling or staying asleep, or sleeping too much?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         },
         {
           id: 'phq9_4',
           text: 'Feeling tired or having little energy',
+          description: 'Over the last 2 weeks, how often have you been bothered by feeling tired or having little energy?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         },
         {
           id: 'phq9_5',
           text: 'Poor appetite or overeating',
+          description: 'Over the last 2 weeks, how often have you been bothered by poor appetite or overeating?',
+          type: 'scale',
+          scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
+        },
+        {
+          id: 'phq9_6',
+          text: 'Feeling bad about yourself or that you are a failure',
+          description: 'Over the last 2 weeks, how often have you been bothered by feeling bad about yourself — or that you are a failure or have let yourself or your family down?',
+          type: 'scale',
+          scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
+        },
+        {
+          id: 'phq9_7',
+          text: 'Trouble concentrating on things',
+          description: 'Over the last 2 weeks, how often have you been bothered by trouble concentrating on things, such as reading the newspaper or watching television?',
+          type: 'scale',
+          scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
+        },
+        {
+          id: 'phq9_8',
+          text: 'Moving or speaking slowly, or being restless',
+          description: 'Over the last 2 weeks, how often have you been bothered by moving or speaking so slowly that other people could have noticed? Or the opposite — being so fidgety or restless that you have been moving around a lot more than usual?',
+          type: 'scale',
+          scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
+        },
+        {
+          id: 'phq9_9',
+          text: 'Thoughts that you would be better off dead, or of hurting yourself',
+          description: 'Over the last 2 weeks, how often have you been bothered by thoughts that you would be better off dead, or of hurting yourself in some way?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         }
@@ -86,24 +119,49 @@ export default function MentalHealthSupport({ patientId }: MentalHealthSupportPr
         {
           id: 'gad7_1',
           text: 'Feeling nervous, anxious, or on edge',
+          description: 'Over the last 2 weeks, how often have you been bothered by feeling nervous, anxious, or on edge?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         },
         {
           id: 'gad7_2',
           text: 'Not being able to stop or control worrying',
+          description: 'Over the last 2 weeks, how often have you been bothered by not being able to stop or control worrying?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         },
         {
           id: 'gad7_3',
           text: 'Worrying too much about different things',
+          description: 'Over the last 2 weeks, how often have you been bothered by worrying too much about different things?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         },
         {
           id: 'gad7_4',
           text: 'Trouble relaxing',
+          description: 'Over the last 2 weeks, how often have you been bothered by trouble relaxing?',
+          type: 'scale',
+          scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
+        },
+        {
+          id: 'gad7_5',
+          text: 'Being so restless that it is hard to sit still',
+          description: 'Over the last 2 weeks, how often have you been bothered by being so restless that it is hard to sit still?',
+          type: 'scale',
+          scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
+        },
+        {
+          id: 'gad7_6',
+          text: 'Becoming easily annoyed or irritable',
+          description: 'Over the last 2 weeks, how often have you been bothered by becoming easily annoyed or irritable?',
+          type: 'scale',
+          scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
+        },
+        {
+          id: 'gad7_7',
+          text: 'Feeling afraid, as if something awful might happen',
+          description: 'Over the last 2 weeks, how often have you been bothered by feeling afraid, as if something awful might happen?',
           type: 'scale',
           scale: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
         }
@@ -323,10 +381,14 @@ export default function MentalHealthSupport({ patientId }: MentalHealthSupportPr
       </div>
 
       <Tabs defaultValue="assessments" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-blue-50 to-purple-50">
+        <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-blue-50 to-purple-50">
           <TabsTrigger value="assessments" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Assessments
+          </TabsTrigger>
+          <TabsTrigger value="referrals" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Referrals
           </TabsTrigger>
           <TabsTrigger value="crisis" className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
