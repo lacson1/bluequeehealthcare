@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, TestTube, Plus, User, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, TestTube, Plus, User, ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -32,6 +33,8 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
   const [selectedTests, setSelectedTests] = useState<number[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<number | undefined>(patientId);
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['Hematology']);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -68,8 +71,20 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
     }
   });
 
-  // Group tests by category
-  const categorizedTests = labTests.reduce((acc, test) => {
+  // Filter tests based on search query and category
+  const filteredTests = labTests.filter(test => {
+    const matchesSearch = searchQuery === '' || 
+      test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      test.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || 
+      test.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  // Group filtered tests by category
+  const categorizedTests = filteredTests.reduce((acc, test) => {
     const category = test.category || 'Other';
     if (!acc[category]) {
       acc[category] = [];
@@ -77,6 +92,9 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
     acc[category].push(test);
     return acc;
   }, {} as Record<string, LabTest[]>);
+
+  // Get unique categories for filter dropdown
+  const categories = Array.from(new Set(labTests.map(test => test.category || 'Other')));
 
   const handleTestToggle = (testId: number) => {
     setSelectedTests(prev => 
@@ -166,6 +184,76 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
           </CardContent>
         </Card>
       )}
+
+      {/* Search and Filter Lab Tests */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Search Lab Tests
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search Input */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search tests by name or category..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1 h-8 w-8 p-0"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            
+            {/* Category Filter */}
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {getCategoryIcon(category)} {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Search Results Summary */}
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <span>
+              {filteredTests.length} test{filteredTests.length !== 1 ? 's' : ''} found
+              {searchQuery && ` for "${searchQuery}"`}
+              {selectedCategory !== 'all' && ` in ${selectedCategory}`}
+            </span>
+            {(searchQuery || selectedCategory !== 'all') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Lab Tests by Category */}
       <Card>
