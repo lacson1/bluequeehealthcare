@@ -49,8 +49,10 @@ export interface IStorage {
 
   // Visits
   getVisit(id: number): Promise<Visit | undefined>;
+  getVisitById(id: number): Promise<Visit | undefined>;
   getVisitsByPatient(patientId: number): Promise<Visit[]>;
   createVisit(visit: InsertVisit): Promise<Visit>;
+  updateVisit(id: number, data: Partial<InsertVisit>): Promise<Visit | undefined>;
   getTodaysVisits(): Promise<Visit[]>;
 
   // Lab Results

@@ -517,6 +517,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual visit
+  app.get("/api/patients/:patientId/visits/:visitId", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.patientId);
+      const visitId = parseInt(req.params.visitId);
+      const visit = await storage.getVisitById(visitId);
+      
+      if (!visit || visit.patientId !== patientId) {
+        return res.status(404).json({ message: "Visit not found" });
+      }
+      
+      res.json(visit);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch visit" });
+    }
+  });
+
+  // Update visit
+  app.patch("/api/patients/:patientId/visits/:visitId", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.patientId);
+      const visitId = parseInt(req.params.visitId);
+      
+      // Clean up empty strings to undefined for optional fields
+      const cleanedData = { ...req.body };
+      if (cleanedData.heartRate === '') cleanedData.heartRate = undefined;
+      if (cleanedData.temperature === '') cleanedData.temperature = undefined;
+      if (cleanedData.weight === '') cleanedData.weight = undefined;
+      if (cleanedData.followUpDate === '') cleanedData.followUpDate = undefined;
+      
+      // Remove any undefined fields
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === undefined || cleanedData[key] === '') {
+          delete cleanedData[key];
+        }
+      });
+
+      const updatedVisit = await storage.updateVisit(visitId, cleanedData);
+      if (!updatedVisit) {
+        return res.status(404).json({ message: "Visit not found" });
+      }
+
+      // Log the update action
+      await req.auditLogger?.logVisitAction('UPDATE', visitId, { 
+        updatedFields: Object.keys(cleanedData) 
+      });
+
+      res.json(updatedVisit);
+    } catch (error) {
+      console.error('Error updating visit:', error);
+      res.status(500).json({ message: "Failed to update visit" });
+    }
+  });
+
   // Lab results routes
   app.post("/api/patients/:id/labs", async (req, res) => {
     try {
