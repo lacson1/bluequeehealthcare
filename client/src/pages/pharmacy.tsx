@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pill, Plus, Package, AlertTriangle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Pill, Plus, Package, AlertTriangle, Search, Filter, X, SortAsc, SortDesc } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useRole } from "@/components/role-guard";
@@ -31,6 +32,15 @@ export default function Pharmacy() {
   const { user } = useRole();
   const [editingQuantity, setEditingQuantity] = useState<{ [key: number]: string }>({});
   const [showAddDialog, setShowAddDialog] = useState(false);
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [stockFilter, setStockFilter] = useState<string>("all");
+  const [unitFilter, setUnitFilter] = useState<string>("all");
+  const [supplierFilter, setSupplierFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [showFilters, setShowFilters] = useState(false);
 
   const form = useForm<AddMedicineForm>({
     resolver: zodResolver(addMedicineFormSchema),
@@ -125,6 +135,93 @@ export default function Pharmacy() {
       return <Badge className="bg-yellow-100 text-yellow-800">Low Stock</Badge>;
     }
     return <Badge className="bg-green-100 text-green-800">In Stock</Badge>;
+  };
+
+  // Get unique values for filters
+  const uniqueUnits = useMemo(() => {
+    if (!medicines) return [];
+    const units = medicines.map(m => m.unit);
+    return units.filter((unit, index) => units.indexOf(unit) === index).sort();
+  }, [medicines]);
+
+  const uniqueSuppliers = useMemo(() => {
+    if (!medicines) return [];
+    const suppliers = medicines.map(m => m.supplier).filter(Boolean) as string[];
+    return suppliers.filter((supplier, index) => suppliers.indexOf(supplier) === index).sort();
+  }, [medicines]);
+
+  // Advanced filtering and search logic
+  const filteredAndSortedMedicines = useMemo(() => {
+    if (!medicines) return [];
+
+    let filtered = medicines.filter(medicine => {
+      // Search term filter
+      const matchesSearch = searchTerm === "" || 
+        medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        medicine.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        medicine.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Stock status filter
+      const matchesStock = stockFilter === "all" || 
+        (stockFilter === "in-stock" && medicine.quantity > medicine.lowStockThreshold) ||
+        (stockFilter === "low-stock" && medicine.quantity <= medicine.lowStockThreshold && medicine.quantity > 0) ||
+        (stockFilter === "out-of-stock" && medicine.quantity === 0);
+
+      // Unit filter
+      const matchesUnit = unitFilter === "all" || medicine.unit === unitFilter;
+
+      // Supplier filter
+      const matchesSupplier = supplierFilter === "all" || medicine.supplier === supplierFilter;
+
+      return matchesSearch && matchesStock && matchesUnit && matchesSupplier;
+    });
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "quantity":
+          aValue = a.quantity;
+          bValue = b.quantity;
+          break;
+        case "unit":
+          aValue = a.unit.toLowerCase();
+          bValue = b.unit.toLowerCase();
+          break;
+        case "supplier":
+          aValue = (a.supplier || "").toLowerCase();
+          bValue = (b.supplier || "").toLowerCase();
+          break;
+        case "lowStockThreshold":
+          aValue = a.lowStockThreshold;
+          bValue = b.lowStockThreshold;
+          break;
+        default:
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [medicines, searchTerm, stockFilter, unitFilter, supplierFilter, sortBy, sortOrder]);
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setStockFilter("all");
+    setUnitFilter("all");
+    setSupplierFilter("all");
+    setSortBy("name");
+    setSortOrder("asc");
   };
 
   return (
@@ -361,9 +458,150 @@ export default function Pharmacy() {
 
       {/* Scrollable Main Content */}
       <main className="flex-1 overflow-y-auto p-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">Pharmacy Workflow</h3>
-          <p className="text-blue-700">Managing {(medicines || []).length} medicines in inventory</p>
+        {/* Advanced Search and Filters */}
+        <div className="bg-white border border-slate-200 rounded-lg p-4 mb-6">
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="flex items-center space-x-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Input
+                  placeholder="Search medicines by name, description, or supplier..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center space-x-2"
+              >
+                <Filter className="h-4 w-4" />
+                <span>Filters</span>
+                {(stockFilter !== "all" || unitFilter !== "all" || supplierFilter !== "all") && (
+                  <Badge variant="secondary" className="ml-2">
+                    {[stockFilter, unitFilter, supplierFilter].filter(f => f !== "all").length}
+                  </Badge>
+                )}
+              </Button>
+              {(searchTerm || stockFilter !== "all" || unitFilter !== "all" || supplierFilter !== "all") && (
+                <Button variant="ghost" onClick={clearAllFilters} className="flex items-center space-x-2">
+                  <X className="h-4 w-4" />
+                  <span>Clear</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Advanced Filters */}
+            {showFilters && (
+              <>
+                <Separator />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Stock Status Filter */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Stock Status</label>
+                    <Select value={stockFilter} onValueChange={setStockFilter}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Stock Levels</SelectItem>
+                        <SelectItem value="in-stock">In Stock</SelectItem>
+                        <SelectItem value="low-stock">Low Stock</SelectItem>
+                        <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Unit Filter */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Unit Type</label>
+                    <Select value={unitFilter} onValueChange={setUnitFilter}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Units</SelectItem>
+                        {uniqueUnits.map(unit => (
+                          <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Supplier Filter */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Supplier</label>
+                    <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Suppliers</SelectItem>
+                        {uniqueSuppliers.map(supplier => (
+                          <SelectItem key={supplier} value={supplier}>{supplier}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Sort Options */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Sort By</label>
+                    <div className="flex space-x-2">
+                      <Select value={sortBy} onValueChange={setSortBy}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="name">Name</SelectItem>
+                          <SelectItem value="quantity">Quantity</SelectItem>
+                          <SelectItem value="unit">Unit</SelectItem>
+                          <SelectItem value="supplier">Supplier</SelectItem>
+                          <SelectItem value="lowStockThreshold">Low Stock Threshold</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                        className="px-3"
+                      >
+                        {sortOrder === "asc" ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Results Summary */}
+            <div className="flex items-center justify-between text-sm text-slate-600">
+              <span>
+                Showing {filteredAndSortedMedicines.length} of {medicines?.length || 0} medicines
+                {searchTerm && (
+                  <span className="ml-2 font-medium">
+                    for "{searchTerm}"
+                  </span>
+                )}
+              </span>
+              <div className="flex items-center space-x-4">
+                <span className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                  <span>In Stock: {filteredAndSortedMedicines.filter(m => m.quantity > m.lowStockThreshold).length}</span>
+                </span>
+                <span className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-yellow-100 border border-yellow-300 rounded"></div>
+                  <span>Low Stock: {filteredAndSortedMedicines.filter(m => isLowStock(m) && m.quantity > 0).length}</span>
+                </span>
+                <span className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+                  <span>Out of Stock: {filteredAndSortedMedicines.filter(m => m.quantity === 0).length}</span>
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <Card>
