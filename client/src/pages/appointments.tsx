@@ -440,87 +440,182 @@ export default function AppointmentsPage() {
         </Card>
       )}
 
-      {/* Appointments List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Scheduled Appointments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {appointmentsLoading ? (
-            <div className="text-center py-8">Loading appointments...</div>
-          ) : filteredAppointments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No appointments found
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredAppointments.map((appointment: Appointment) => (
-                <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium">
-                          {appointment.patientName}
-                        </span>
+      {/* Appointments Display */}
+      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'list' | 'calendar')}>
+        <TabsList className="hidden">
+          <TabsTrigger value="list">List</TabsTrigger>
+          <TabsTrigger value="calendar">Calendar</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <List className="h-5 w-5" />
+                Appointments ({filteredAppointments.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {appointmentsLoading ? (
+                <div className="text-center py-8">Loading appointments...</div>
+              ) : filteredAppointments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No appointments found matching your filters
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredAppointments.map((appointment: Appointment) => (
+                    <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium">
+                              {appointment.patientName}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Stethoscope className="h-4 w-4 text-green-600" />
+                            <span>{appointment.doctorName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-orange-600" />
+                            <span>
+                              {appointment.appointmentDate && appointment.appointmentTime ? 
+                                `${format(new Date(appointment.appointmentDate), 'MMM dd, yyyy')} at ${appointment.appointmentTime}` : 
+                                'No date set'
+                              }
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="bg-blue-50">
+                            {appointment.type}
+                          </Badge>
+                          <Badge variant={getStatusVariant(appointment.status)}>
+                            {appointment.status}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-2">
+                          {appointment.status === 'scheduled' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 hover:bg-green-50"
+                                onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Complete
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 hover:bg-red-50"
+                                onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Cancel
+                              </Button>
+                            </>
+                          )}
+                          {appointment.status === 'completed' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateAppointmentStatus(appointment.id, 'scheduled')}
+                            >
+                              Reactivate
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Stethoscope className="h-4 w-4 text-green-600" />
-                        <span>Dr. {appointment.doctorName}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-orange-600" />
-                        <span>
-                          {appointment.appointmentDate && appointment.appointmentTime ? 
-                            `${format(new Date(appointment.appointmentDate), 'MMM dd, yyyy')} - ${appointment.appointmentTime}` : 
-                            'No date set'
-                          }
-                        </span>
-                      </div>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                        {appointment.type}
-                      </span>
-                      <span className={cn(
-                        "px-2 py-1 rounded text-sm",
-                        appointment.status === 'scheduled' && "bg-yellow-100 text-yellow-800",
-                        appointment.status === 'completed' && "bg-green-100 text-green-800",
-                        appointment.status === 'cancelled' && "bg-red-100 text-red-800"
-                      )}>
-                        {appointment.status}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      {appointment.status === 'scheduled' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
-                          >
-                            Mark Complete
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateAppointmentStatus(appointment.id, 'cancelled')}
-                          >
-                            Cancel
-                          </Button>
-                        </>
+                      {appointment.notes && (
+                        <div className="mt-3 text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                          <strong>Notes:</strong> {appointment.notes}
+                        </div>
                       )}
                     </div>
-                  </div>
-                  {appointment.notes && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      <strong>Notes:</strong> {appointment.notes}
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarView className="h-5 w-5" />
+                  Calendar View
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentWeek(new Date())}
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-7 gap-2 mb-4">
+                {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
+                  <div key={day} className="text-center font-semibold p-2 bg-gray-100 rounded">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-2">
+                {getWeekDates(currentWeek).map((date) => {
+                  const dateStr = format(date, 'yyyy-MM-dd');
+                  const dayAppointments = appointmentsByDate[dateStr] || [];
+                  return (
+                    <div key={dateStr} className="border rounded-lg p-2 min-h-[120px] bg-white">
+                      <div className="text-sm font-medium mb-2">
+                        {format(date, 'dd')}
+                      </div>
+                      <div className="space-y-1">
+                        {dayAppointments.map((appointment: Appointment) => (
+                          <div
+                            key={appointment.id}
+                            className={cn(
+                              "text-xs p-1 rounded cursor-pointer",
+                              appointment.status === 'scheduled' && "bg-blue-100 text-blue-800",
+                              appointment.status === 'completed' && "bg-green-100 text-green-800",
+                              appointment.status === 'cancelled' && "bg-red-100 text-red-800"
+                            )}
+                            title={`${appointment.patientName} with ${appointment.doctorName} at ${appointment.appointmentTime}`}
+                          >
+                            <div className="font-medium">{appointment.appointmentTime}</div>
+                            <div className="truncate">{appointment.patientName}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
