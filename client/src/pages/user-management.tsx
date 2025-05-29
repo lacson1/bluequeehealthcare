@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,18 +8,56 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { User, InsertUser } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { UserPlus, Edit, Trash2, Shield, UserCheck, UserX, Eye, Key, MessageSquare, Activity, Settings, Mail } from "lucide-react";
+import { UserPlus, Edit, Trash2, Shield, UserCheck, UserX, Eye, Key, MessageSquare, Activity, Settings, Mail, Search, Grid3X3, List, Upload, Camera, Stethoscope, Pill, Heart, Filter, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 const USER_ROLES = [
-  { value: "admin", label: "Administrator", color: "bg-red-100 text-red-800" },
-  { value: "doctor", label: "Doctor", color: "bg-blue-100 text-blue-800" },
-  { value: "nurse", label: "Nurse", color: "bg-green-100 text-green-800" },
-  { value: "pharmacist", label: "Pharmacist", color: "bg-purple-100 text-purple-800" },
-  { value: "physiotherapist", label: "Physiotherapist", color: "bg-orange-100 text-orange-800" }
+  { 
+    value: "admin", 
+    label: "Administrator", 
+    color: "bg-red-100 text-red-800", 
+    icon: Shield,
+    description: "Full system access and management",
+    specialty: "System Administration"
+  },
+  { 
+    value: "doctor", 
+    label: "Doctor", 
+    color: "bg-blue-100 text-blue-800", 
+    icon: Stethoscope,
+    description: "Patient diagnosis and treatment",
+    specialty: "General Medicine"
+  },
+  { 
+    value: "nurse", 
+    label: "Nurse", 
+    color: "bg-green-100 text-green-800", 
+    icon: Heart,
+    description: "Patient care and vital monitoring",
+    specialty: "Nursing Care"
+  },
+  { 
+    value: "pharmacist", 
+    label: "Pharmacist", 
+    color: "bg-purple-100 text-purple-800", 
+    icon: Pill,
+    description: "Medication management and dispensing",
+    specialty: "Pharmaceutical Care"
+  },
+  { 
+    value: "physiotherapist", 
+    label: "Physiotherapist", 
+    color: "bg-orange-100 text-orange-800", 
+    icon: Activity,
+    description: "Physical therapy and rehabilitation",
+    specialty: "Physical Therapy"
+  }
 ];
 
 export default function UserManagement() {
@@ -27,6 +65,10 @@ export default function UserManagement() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [filterSpecialty, setFilterSpecialty] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
