@@ -335,8 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/patients", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const search = req.query.search as string | undefined;
-      const organizationId = req.user!.organizationId!;
-      const patients = await storage.getPatients(search, organizationId);
+      const patients = await storage.getPatients(search);
       
       // Prevent caching to ensure fresh data
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -345,6 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(patients);
     } catch (error) {
+      console.error('Error fetching patients:', error);
       res.status(500).json({ message: "Failed to fetch patients" });
     }
   });
