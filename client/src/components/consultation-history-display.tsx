@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ConsultationDropdownMenu } from "./consultation-dropdown-menu";
 import { FileText, Clock, User, Activity, Pill, Calendar, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
@@ -144,6 +145,7 @@ export default function ConsultationHistoryDisplay({ patientId }: ConsultationHi
                               <Badge variant="secondary">
                                 {new Date(consultation.createdAt).toLocaleDateString()}
                               </Badge>
+                              <ConsultationDropdownMenu consultation={consultation} />
                             </div>
                           </div>
                           
