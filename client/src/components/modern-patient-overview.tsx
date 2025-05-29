@@ -239,25 +239,89 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     }
   };
 
-  const handlePrintPrescription = (prescription: any) => {
+  const handlePrintPrescription = async (prescription: any) => {
+    // Fetch organization details for the patient
+    let organizationInfo = '';
+    try {
+      if (patient.organizationId) {
+        const orgResponse = await fetch(`/api/organizations/${patient.organizationId}`);
+        if (orgResponse.ok) {
+          const organization = await orgResponse.json();
+          organizationInfo = `
+            <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px;">
+              <h1 style="margin: 0; color: #2563eb; font-size: 24px;">${organization.name}</h1>
+              <p style="margin: 5px 0; font-size: 14px; color: #666;">
+                ${organization.type.charAt(0).toUpperCase() + organization.type.slice(1)} Healthcare Facility
+              </p>
+              ${organization.address ? `<p style="margin: 0; font-size: 12px; color: #666;">${organization.address}</p>` : ''}
+              ${organization.phone ? `<p style="margin: 0; font-size: 12px; color: #666;">Tel: ${organization.phone}</p>` : ''}
+              ${organization.email ? `<p style="margin: 0; font-size: 12px; color: #666;">Email: ${organization.email}</p>` : ''}
+            </div>
+          `;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch organization details:', error);
+    }
+
     const printContent = `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Prescription</h2>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Prescription - ${patient.firstName} ${patient.lastName}</title>
+        <style>
+          body { font-family: 'Times New Roman', serif; margin: 0; padding: 20px; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .prescription-title { font-size: 20px; font-weight: bold; text-align: center; margin: 20px 0; }
+          .patient-info, .medication-details { margin: 15px 0; }
+          .patient-info p, .medication-details p { margin: 8px 0; }
+          .section-title { font-size: 16px; font-weight: bold; margin: 15px 0 10px 0; border-bottom: 1px solid #ccc; }
+          .signature-section { margin-top: 40px; }
+          .footer { margin-top: 30px; font-size: 10px; color: #666; text-align: center; }
+          hr { border: 1px solid #333; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        ${organizationInfo}
+        
+        <div class="prescription-title">PRESCRIPTION</div>
         <hr>
-        <p><strong>Patient:</strong> ${patient.firstName} ${patient.lastName}</p>
-        <p><strong>Patient ID:</strong> HC${patient.id?.toString().padStart(6, "0")}</p>
-        <p><strong>Date:</strong> ${new Date(prescription.startDate).toLocaleDateString()}</p>
+        
+        <div class="patient-info">
+          <div class="section-title">Patient Information</div>
+          <p><strong>Patient Name:</strong> ${patient.firstName} ${patient.lastName}</p>
+          <p><strong>Patient ID:</strong> HC${patient.id?.toString().padStart(6, "0")}</p>
+          <p><strong>Age:</strong> ${getPatientAge(patient.dateOfBirth)} years</p>
+          <p><strong>Gender:</strong> ${patient.gender}</p>
+          <p><strong>Phone:</strong> ${patient.phone}</p>
+          <p><strong>Date of Prescription:</strong> ${new Date(prescription.startDate).toLocaleDateString()}</p>
+        </div>
+        
         <hr>
-        <h3>Medication Details</h3>
-        <p><strong>Medication:</strong> ${prescription.medicationName}</p>
-        <p><strong>Dosage:</strong> ${prescription.dosage}</p>
-        <p><strong>Frequency:</strong> ${prescription.frequency}</p>
-        <p><strong>Duration:</strong> ${prescription.duration}</p>
-        <p><strong>Instructions:</strong> ${prescription.instructions || 'None'}</p>
-        <p><strong>Prescribed by:</strong> ${prescription.prescribedBy}</p>
+        
+        <div class="medication-details">
+          <div class="section-title">Medication Details</div>
+          <p><strong>Rx:</strong> ${prescription.medicationName}</p>
+          <p><strong>Dosage:</strong> ${prescription.dosage}</p>
+          <p><strong>Frequency:</strong> ${prescription.frequency}</p>
+          <p><strong>Duration:</strong> ${prescription.duration}</p>
+          ${prescription.instructions ? `<p><strong>Special Instructions:</strong> ${prescription.instructions}</p>` : ''}
+          <p><strong>Prescribed by:</strong> ${prescription.prescribedBy}</p>
+        </div>
+        
         <hr>
-        <p style="margin-top: 30px;"><strong>Doctor's Signature:</strong> _________________</p>
-      </div>
+        
+        <div class="signature-section">
+          <p><strong>Doctor's Signature:</strong> _________________</p>
+          <p style="margin-top: 20px;"><strong>Date:</strong> _________________</p>
+        </div>
+        
+        <div class="footer">
+          <p>This prescription is valid for dispensing medication as per the prescribed dosage and duration.</p>
+          <p>Generated on: ${new Date().toLocaleString()}</p>
+        </div>
+      </body>
+      </html>
     `;
     
     const printWindow = window.open('', '_blank');
@@ -269,7 +333,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     
     toast({
       title: "Printing Prescription",
-      description: `Prescription for ${prescription.medicationName} sent to printer`,
+      description: `Prescription for ${prescription.medicationName} sent to printer with organization details`,
     });
   };
   
