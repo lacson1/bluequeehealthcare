@@ -70,6 +70,10 @@ export function PatientDropdownMenu({
           <Edit className="mr-2 h-4 w-4" />
           Edit Patient Info
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={onRecordVisit}>
+          <Stethoscope className="mr-2 h-4 w-4" />
+          Record New Visit
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onAddPrescription}>
           <Pill className="mr-2 h-4 w-4" />
