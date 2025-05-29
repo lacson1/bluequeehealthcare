@@ -109,7 +109,9 @@ export function ModernPatientOverview({
   });
 
   // Use fetched prescriptions if available, otherwise use passed activePrescriptions
-  const displayPrescriptions = patientPrescriptions.length > 0 ? patientPrescriptions : activePrescriptions;
+  // Prevent empty state flickering by maintaining previous data during loading
+  const displayPrescriptions = patientPrescriptions.length > 0 ? patientPrescriptions : 
+    (prescriptionsLoading && activePrescriptions.length > 0) ? activePrescriptions : patientPrescriptions;
 
   // Toggle filter function
   const toggleFilter = (filterType: keyof typeof timelineFilters) => {
@@ -658,7 +660,21 @@ export function ModernPatientOverview({
                   
                   <div className="pt-2 border-t border-gray-200">
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Showing {filteredActivityTrail.length} events</span>
+                      <span>Showing {activityTrail.filter((event: any) => {
+                        switch (event.type) {
+                          case 'visit':
+                            return timelineFilters.visits;
+                          case 'lab':
+                          case 'lab_result':
+                            return timelineFilters.labResults;
+                          case 'consultation':
+                            return timelineFilters.consultations;
+                          case 'prescription':
+                            return timelineFilters.prescriptions;
+                          default:
+                            return true;
+                        }
+                      }).length} events</span>
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -680,7 +696,21 @@ export function ModernPatientOverview({
 
             {/* Timeline Content - Main Area */}
             <div className="lg:col-span-3">
-              <PatientTimeline events={filteredActivityTrail} />
+              <PatientTimeline events={activityTrail.filter((event: any) => {
+                switch (event.type) {
+                  case 'visit':
+                    return timelineFilters.visits;
+                  case 'lab':
+                  case 'lab_result':
+                    return timelineFilters.labResults;
+                  case 'consultation':
+                    return timelineFilters.consultations;
+                  case 'prescription':
+                    return timelineFilters.prescriptions;
+                  default:
+                    return true;
+                }
+              })} />
             </div>
           </div>
         </TabsContent>
