@@ -54,6 +54,7 @@ export default function PatientRegistrationModal({
   const form = useForm<InsertPatient>({
     resolver: zodResolver(insertPatientSchema),
     defaultValues: {
+      title: "",
       firstName: "",
       lastName: "",
       dateOfBirth: "",
@@ -138,7 +139,36 @@ export default function PatientRegistrationModal({
             {/* Personal Information */}
             <div>
               <h3 className="text-lg font-medium text-slate-800 mb-4">Personal Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Title" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Mr.">Mr.</SelectItem>
+                          <SelectItem value="Mrs.">Mrs.</SelectItem>
+                          <SelectItem value="Ms.">Ms.</SelectItem>
+                          <SelectItem value="Dr.">Dr.</SelectItem>
+                          <SelectItem value="Prof.">Prof.</SelectItem>
+                          <SelectItem value="Rev.">Rev.</SelectItem>
+                          <SelectItem value="Chief">Chief</SelectItem>
+                          <SelectItem value="Alhaji">Alhaji</SelectItem>
+                          <SelectItem value="Alhaja">Alhaja</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="firstName"
@@ -166,6 +196,9 @@ export default function PatientRegistrationModal({
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                 <FormField
                   control={form.control}

@@ -58,6 +58,7 @@ export const users = pgTable('users', {
 
 export const patients = pgTable("patients", {
   id: serial("id").primaryKey(),
+  title: varchar("title", { length: 10 }), // Mr., Mrs., Ms., Dr., Prof., etc.
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   dateOfBirth: date("date_of_birth").notNull(),

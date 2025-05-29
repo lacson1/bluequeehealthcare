@@ -584,6 +584,45 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label htmlFor="edit-title">Title</Label>
+                <Select value={formData.title} onValueChange={(value) => setFormData({ ...formData, title: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Title" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Dr.">Dr.</SelectItem>
+                    <SelectItem value="Mr.">Mr.</SelectItem>
+                    <SelectItem value="Mrs.">Mrs.</SelectItem>
+                    <SelectItem value="Ms.">Ms.</SelectItem>
+                    <SelectItem value="Prof.">Prof.</SelectItem>
+                    <SelectItem value="Rev.">Rev.</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-firstName">First Name</Label>
+                <Input
+                  id="edit-firstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  placeholder="First name"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-lastName">Last Name</Label>
+                <Input
+                  id="edit-lastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  placeholder="Last name"
+                />
+              </div>
+            </div>
             
             <div>
               <Label htmlFor="edit-organization">Organization</Label>
