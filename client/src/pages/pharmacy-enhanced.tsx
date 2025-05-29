@@ -40,6 +40,7 @@ export default function EnhancedPharmacyPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [editingQuantity, setEditingQuantity] = useState<Record<number, string>>({});
+  const [selectedCurrency, setSelectedCurrency] = useState<'NGN' | 'USD' | 'GBP'>('NGN');
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -199,12 +200,30 @@ export default function EnhancedPharmacyPage() {
     setSortOrder("asc");
   };
 
+  // Currency conversion rates (these would typically come from an API)
+  const currencyRates = {
+    NGN: 1,      // Base currency (Naira)
+    USD: 0.0012, // 1 NGN = 0.0012 USD
+    GBP: 0.001   // 1 NGN = 0.001 GBP
+  };
+
+  // Currency formatting function
+  const formatCurrency = (amount: number, currency: 'NGN' | 'USD' | 'GBP' = selectedCurrency) => {
+    const convertedAmount = amount * currencyRates[currency];
+    const symbols = { NGN: '₦', USD: '$', GBP: '£' };
+    
+    return `${symbols[currency]}${convertedAmount.toLocaleString('en-US', {
+      minimumFractionDigits: currency === 'NGN' ? 0 : 2,
+      maximumFractionDigits: currency === 'NGN' ? 0 : 2
+    })}`;
+  };
+
   // Calculate statistics
   const stats = useMemo(() => {
     const total = medicines.length;
     const lowStock = medicines.filter((m: Medicine) => m.quantity <= m.lowStockThreshold).length;
     const outOfStock = medicines.filter((m: Medicine) => m.quantity === 0).length;
-    const totalValue = medicines.reduce((sum: number, m: Medicine) => sum + (m.quantity * m.sellingPrice), 0);
+    const totalValue = medicines.reduce((sum: number, m: Medicine) => sum + (m.quantity * (parseFloat(m.cost || '0'))), 0);
 
     return { total, lowStock, outOfStock, totalValue };
   }, [medicines]);
@@ -217,6 +236,47 @@ export default function EnhancedPharmacyPage() {
           <div>
             <h2 className="text-2xl font-bold text-slate-800">Enhanced Pharmacy</h2>
             <p className="text-sm text-slate-500">Comprehensive pharmacy operations and patient care</p>
+          </div>
+          
+          {/* Controls */}
+          <div className="flex items-center gap-4">
+            {/* Currency Selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-600">Currency:</span>
+              <Select value={selectedCurrency} onValueChange={(value: 'NGN' | 'USD' | 'GBP') => setSelectedCurrency(value)}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NGN">₦ NGN</SelectItem>
+                  <SelectItem value="USD">$ USD</SelectItem>
+                  <SelectItem value="GBP">£ GBP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* View Toggle (only visible in inventory tab) */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-600">View:</span>
+              <div className="flex border rounded-lg">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="rounded-r-none"
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-l-none"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -288,7 +348,7 @@ export default function EnhancedPharmacyPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-slate-600">Total Value</p>
-                          <p className="text-2xl font-bold text-green-600">₦{stats.totalValue.toLocaleString()}</p>
+                          <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalValue)}</p>
                         </div>
                         <TrendingUp className="text-green-600 h-8 w-8" />
                       </div>
