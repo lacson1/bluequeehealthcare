@@ -22,8 +22,12 @@ import {
   FileText,
   Bell,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  UserCheck,
+  Mail,
+  Flag
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -211,11 +215,42 @@ export default function PatientChat({ patientId, patientName }: PatientChatProps
                 {/* Main Comment */}
                 <div className={`border rounded-lg p-3 ${getPriorityColor(comment.priority)}`}>
                   <div className="flex items-start space-x-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarFallback className="text-xs">
-                        {comment.user.username.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Avatar className="w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all">
+                          <AvatarFallback className="text-xs">
+                            {comment.user.username.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-48">
+                        <div className="px-2 py-1.5 text-sm font-medium text-slate-900">
+                          {comment.user.username}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="flex items-center">
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="flex items-center">
+                          <Reply className="mr-2 h-4 w-4" />
+                          Reply to Comment
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="flex items-center">
+                          <Mail className="mr-2 h-4 w-4" />
+                          Send Message
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="flex items-center">
+                          <UserCheck className="mr-2 h-4 w-4" />
+                          View Activity
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="flex items-center">
+                          <Flag className="mr-2 h-4 w-4" />
+                          Report Comment
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">

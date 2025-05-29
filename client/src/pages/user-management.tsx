@@ -11,7 +11,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { User, InsertUser } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { UserPlus, Edit, Trash2, Shield, UserCheck, UserX } from "lucide-react";
+import { UserPlus, Edit, Trash2, Shield, UserCheck, UserX, Eye, Key, MessageSquare, Activity, Settings, Mail } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 const USER_ROLES = [
   { value: "admin", label: "Administrator", color: "bg-red-100 text-red-800" },
@@ -353,9 +354,53 @@ export default function UserManagement() {
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start">
                     <div className="flex items-start space-x-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg">
-                        {user.username.charAt(0).toUpperCase()}
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all">
+                            {user.username.charAt(0).toUpperCase()}
+                          </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                          <div className="px-2 py-1.5 text-sm font-medium text-slate-900">
+                            {user.username}
+                          </div>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleEditClick(user)} className="flex items-center">
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditClick(user)} className="flex items-center">
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="flex items-center">
+                            <Key className="mr-2 h-4 w-4" />
+                            Reset Password
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="flex items-center">
+                            <Settings className="mr-2 h-4 w-4" />
+                            Change Permissions
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="flex items-center">
+                            <Activity className="mr-2 h-4 w-4" />
+                            View Activity Log
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="flex items-center">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Send Message
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="flex items-center">
+                            <Mail className="mr-2 h-4 w-4" />
+                            Send Email
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="flex items-center text-red-600">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete User
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
