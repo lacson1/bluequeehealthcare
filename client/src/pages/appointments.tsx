@@ -22,11 +22,12 @@ interface Patient {
   phoneNumber: string;
 }
 
-interface Doctor {
+interface HealthcareStaff {
   id: number;
   username: string;
   firstName?: string;
   lastName?: string;
+  role: string;
 }
 
 interface Appointment {
@@ -49,7 +50,7 @@ export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
-  const [selectedDoctor, setSelectedDoctor] = useState<number | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<number | null>(null);
   const [appointmentType, setAppointmentType] = useState('');
   const [duration, setDuration] = useState('30');
   const [notes, setNotes] = useState('');
@@ -72,9 +73,9 @@ export default function AppointmentsPage() {
     queryKey: ['/api/patients'],
   });
 
-  // Fetch doctors for selection  
-  const { data: doctors = [] } = useQuery({
-    queryKey: ['/api/users/doctors'],
+  // Fetch healthcare staff for selection  
+  const { data: healthcareStaff = [] } = useQuery({
+    queryKey: ['/api/users/healthcare-staff'],
   });
 
   // Create appointment mutation

@@ -1058,6 +1058,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all healthcare staff for appointment scheduling
+  app.get('/api/users/healthcare-staff', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const healthcareRoles = ['doctor', 'nurse', 'physiotherapist', 'pharmacist'];
+      const staff = await db.select({
+        id: users.id,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role
+      }).from(users).where(inArray(users.role, healthcareRoles));
+      
+      res.json(staff);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch healthcare staff" });
+    }
+  });
+
   // Lab Tests endpoints
   app.get('/api/lab-tests', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
