@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Users, Stethoscope, Pill, FlaskRound, Search, Bell, ArrowUp, TriangleAlert, Clock, UserPlus, UserCheck, UserCog, Settings, Activity } from "lucide-react";
+import { Users, Stethoscope, Pill, FlaskRound, Search, Bell, ArrowUp, TriangleAlert, Clock, UserPlus, UserCheck, UserCog, Settings, Activity, TrendingUp, CheckCircle, Calendar, TestTube, User, AlertTriangle } from "lucide-react";
 import PatientRegistrationModal from "@/components/patient-registration-modal";
 import VisitRecordingModal from "@/components/visit-recording-modal";
 import LabResultModal from "@/components/lab-result-modal";
@@ -83,7 +83,7 @@ export default function Dashboard() {
 
   const handleConfirmReorder = () => {
     if (!selectedMedicine || !reorderQuantity) return;
-    
+
     const newQuantity = parseInt(selectedMedicine.quantity) + parseInt(reorderQuantity);
     reorderMutation.mutate({
       medicineId: selectedMedicine.id,
@@ -152,83 +152,79 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-          <Card>
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs md:text-sm font-medium text-slate-600 uppercase tracking-wide truncate">Total Patients</p>
-                  <p className="text-xl md:text-3xl font-bold text-slate-800 mt-1 md:mt-2">
-                    {statsLoading ? "..." : stats?.totalPatients || 0}
-                  </p>
-                  <p className="text-xs md:text-sm text-secondary mt-1 hidden md:block">
-                    <ArrowUp className="inline w-3 h-3" /> +12% from last month
-                  </p>
-                </div>
-                <div className="w-8 h-8 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Users className="text-primary h-4 w-4 md:h-6 md:w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="stat-card stat-card-patients">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white/90">
+              Total Patients
+            </CardTitle>
+            <Users className="h-5 w-5 text-white/70" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-white">{stats?.totalPatients || 0}</div>
+            <p className="text-xs text-white/70 mt-1">
+              <span className="inline-flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                +20.1% from last month
+              </span>
+            </p>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs md:text-sm font-medium text-slate-600 uppercase tracking-wide truncate">Today's Visits</p>
-                  <p className="text-xl md:text-3xl font-bold text-slate-800 mt-1 md:mt-2">
-                    {statsLoading ? "..." : stats?.todayVisits || 0}
-                  </p>
-                  <p className="text-xs md:text-sm text-secondary mt-1 hidden md:block">
-                    <ArrowUp className="inline w-3 h-3" /> +5 from yesterday
-                  </p>
-                </div>
-                <div className="w-8 h-8 md:w-12 md:h-12 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Stethoscope className="text-secondary h-4 w-4 md:h-6 md:w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <Card className="stat-card stat-card-visits">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white/90">
+              Today's Visits
+            </CardTitle>
+            <Calendar className="h-5 w-5 text-white/70" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-white">{stats?.todayVisits || 0}</div>
+            <p className="text-xs text-white/70 mt-1">
+              <span className="inline-flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                +180.1% from last month
+              </span>
+            </p>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs md:text-sm font-medium text-slate-600 uppercase tracking-wide truncate">Low Stock Items</p>
-                  <p className="text-xl md:text-3xl font-bold text-red-600 mt-1 md:mt-2">
-                    {statsLoading ? "..." : stats?.lowStockItems || 0}
-                  </p>
-                  <p className="text-xs md:text-sm text-red-600 mt-1 hidden md:block">
-                    <TriangleAlert className="inline w-3 h-3" /> Requires attention
-                  </p>
-                </div>
-                <div className="w-8 h-8 md:w-12 md:h-12 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Pill className="text-red-600 h-4 w-4 md:h-6 md:w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <Card className="stat-card stat-card-pending">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white/90">
+              Pending Lab Results
+            </CardTitle>
+            <TestTube className="h-5 w-5 text-white/70" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-white">{stats?.pendingLabs || 0}</div>
+            <p className="text-xs text-white/70 mt-1">
+              <span className="inline-flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                +19% from last month
+              </span>
+            </p>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="p-3 md:p-6">
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs md:text-sm font-medium text-slate-600 uppercase tracking-wide truncate">Pending Labs</p>
-                  <p className="text-xl md:text-3xl font-bold text-amber-600 mt-1 md:mt-2">
-                    {statsLoading ? "..." : stats?.pendingLabs || 0}
-                  </p>
-                  <p className="text-xs md:text-sm text-slate-500 mt-1 hidden md:block">
-                    <Clock className="inline w-3 h-3 mr-1" /> Awaiting results
-                  </p>
-                </div>
-                <div className="w-8 h-8 md:w-12 md:h-12 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FlaskRound className="text-amber-600 h-4 w-4 md:h-6 md:w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="stat-card stat-card-revenue">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-white/90">
+              Low Stock Items
+            </CardTitle>
+            <AlertTriangle className="h-5 w-5 text-white/70" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-white">{stats?.lowStockItems || 0}</div>
+            <p className="text-xs text-white/70 mt-1">
+              <span className="inline-flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Requires attention
+              </span>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
         {/* Nurse-Specific Dashboard */}
         {user?.role === 'nurse' && (
@@ -253,7 +249,7 @@ export default function Dashboard() {
                       <UserPlus className="mr-2 h-4 w-4" />
                       Register New Patient
                     </Button>
-                    
+
                     <Button
                       onClick={() => setShowLabModal(true)}
                       className="w-full"
@@ -261,7 +257,7 @@ export default function Dashboard() {
                       <FlaskRound className="mr-2 h-4 w-4" />
                       Add Lab Result
                     </Button>
-                    
+
                     <div className="pt-4 border-t">
                       <p className="text-sm font-medium text-slate-600 mb-3">Quick Actions</p>
                       <Button variant="outline" className="w-full" asChild>
@@ -327,7 +323,7 @@ export default function Dashboard() {
                         <Link href="/pharmacy">View Details</Link>
                       </Button>
                     </div>
-                    
+
                     <Button className="w-full" asChild>
                       <Link href="/pharmacy">
                         <Pill className="mr-2 h-4 w-4" />
@@ -462,7 +458,7 @@ export default function Dashboard() {
                       />
                       <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     </div>
-                    
+
                     <Button variant="outline" className="w-full" asChild>
                       <Link href="/patients">View All Patients</Link>
                     </Button>
@@ -516,7 +512,7 @@ export default function Dashboard() {
                       />
                       <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     </div>
-                    
+
                     {searchQuery && (
                       <div className="max-h-60 overflow-y-auto space-y-2">
                         {filteredPatients.slice(0, 5).map((patient) => (
@@ -542,7 +538,7 @@ export default function Dashboard() {
                         ))}
                       </div>
                     )}
-                    
+
                     <Button
                       onClick={() => setShowVisitModal(true)}
                       className="w-full"
@@ -611,154 +607,99 @@ export default function Dashboard() {
         )}
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Patients */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Patients</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/patients">View All</Link>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {patientsLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse flex space-x-4">
-                      <div className="rounded-full bg-slate-200 h-12 w-12"></div>
-                      <div className="space-y-2 flex-1">
-                        <div className="h-4 bg-slate-200 rounded w-1/4"></div>
-                        <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-                      </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4 medical-card animate-fade-in">
+          <CardHeader className="medical-card-header">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <User className="h-5 w-5 text-blue-600" />
+              Recent Patients
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="medical-card-content">
+            <div className="space-y-4">
+              {recentPatients?.map((patient, index) => (
+                <div 
+                  key={patient.id} 
+                  className="flex items-center p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 border border-gray-200 dark:border-gray-700"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                      {patient.firstName?.[0]}{patient.lastName?.[0]}
                     </div>
-                  ))}
+                  </div>
+                  <div className="ml-4 flex-1 space-y-1">
+                    <p className="text-sm font-semibold leading-none text-gray-900 dark:text-gray-100">
+                      {patient.firstName} {patient.lastName}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {patient.email}
+                    </p>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {new Date(patient.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Registered
+                    </p>
+                  </div>
                 </div>
-              ) : recentPatients && recentPatients.length > 0 ? (
-                <div className="space-y-4">
-                  {recentPatients.map((patient) => (
-                    <Link
-                      key={patient.id}
-                      href={`/patients/${patient.id}`}
-                      className="flex items-center space-x-4 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-3 medical-card animate-fade-in">
+          <CardHeader className="medical-card-header">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              Low Stock Alert
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="medical-card-content">
+            <div className="space-y-3">
+              {lowStockMedicines?.slice(0, 5).map((medicine, index) => (
+                <div 
+                  key={medicine.id} 
+                  className="flex items-center justify-between p-3 rounded-lg border transition-all duration-200 hover:shadow-sm"
+                  style={{ 
+                    animationDelay: `${index * 100}ms`,
+                    borderColor: medicine.stockQuantity === 0 ? 'rgb(239 68 68)' : 'rgb(251 191 36)'
+                  }}
+                >
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {medicine.name}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      Stock: {medicine.quantity} {medicine.unit}
+                    </p>
+                  </div>
+                  <div className="ml-3">
+                    <Badge 
+                      variant={medicine.stockQuantity === 0 ? "destructive" : "secondary"}
+                      className={`${
+                        medicine.stockQuantity === 0 
+                          ? "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800" 
+                          : "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/20 dark:text-yellow-400 dark:border-yellow-800"
+                      } font-medium`}
                     >
-                      <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold">
-                          {getPatientInitials(patient.firstName, patient.lastName)}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-slate-800">
-                          {patient.firstName} {patient.lastName}
-                        </h4>
-                        <p className="text-sm text-slate-500">
-                          ID: HC{patient.id.toString().padStart(6, "0")} | Age: {getPatientAge(patient.dateOfBirth)}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          Registered: {new Date(patient.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant="secondary">Regular</Badge>
-                      </div>
-                    </Link>
-                  ))}
+                      {medicine.stockQuantity === 0 ? "Out of Stock" : "Low Stock"}
+                    </Badge>
+                  </div>
                 </div>
-              ) : (
+              ))}
+              {(!lowStockMedicines || lowStockMedicines.length === 0) && (
                 <div className="text-center py-8">
-                  <Users className="mx-auto h-12 w-12 text-slate-400" />
-                  <h3 className="mt-4 text-sm font-medium text-slate-900">No patients yet</h3>
-                  <p className="mt-2 text-sm text-slate-500">Get started by registering your first patient.</p>
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">All items are well stocked</p>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions & Alerts */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={() => setShowPatientModal(true)}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Add New Patient
-                </Button>
-                
-                <Button
-                  onClick={() => setShowVisitModal(true)}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <Stethoscope className="mr-2 h-4 w-4" />
-                  Record Visit
-                </Button>
-                
-                <Button
-                  onClick={() => setShowLabModal(true)}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <FlaskRound className="mr-2 h-4 w-4" />
-                  Add Lab Result
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Low Stock Alert */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <TriangleAlert className="text-red-500 mr-2 h-5 w-5" />
-                  Low Stock Alert
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {medicinesLoading ? (
-                  <div className="space-y-3">
-                    {[...Array(2)].map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : lowStockMedicines && lowStockMedicines.length > 0 ? (
-                  <div className="space-y-3">
-                    {lowStockMedicines.slice(0, 2).map((medicine) => (
-                      <div key={medicine.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                        <div>
-                          <h4 className="font-medium text-slate-800">{medicine.name}</h4>
-                          <p className="text-sm text-red-600">
-                            Only {medicine.quantity} {medicine.unit} left
-                          </p>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="text-primary hover:bg-primary hover:text-white"
-                          onClick={() => handleReorderMedicine(medicine)}
-                        >
-                          Reorder
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <Pill className="mx-auto h-8 w-8 text-slate-400" />
-                    <p className="mt-2 text-sm text-slate-500">All medicines are well stocked</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
       </main>
 
       {/* Modals */}
@@ -787,7 +728,7 @@ export default function Dashboard() {
               <p className="text-lg font-semibold text-slate-800">{selectedMedicine?.name}</p>
               <p className="text-sm text-slate-600">Current stock: {selectedMedicine?.quantity} {selectedMedicine?.unit}</p>
             </div>
-            
+
             <div>
               <Label htmlFor="reorder-quantity" className="text-sm font-medium">
                 Quantity to Add
