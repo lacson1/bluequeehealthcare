@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +11,17 @@ import {
 } from 'recharts';
 import { 
   TrendingUp, TrendingDown, Users, Brain, Heart, Activity,
-  AlertTriangle, Calendar, Filter, Download, RefreshCw
+  AlertTriangle, Calendar, Filter, Download, RefreshCw, Info, CheckCircle, Shield, Clock
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function WellnessAnalyticsPage() {
   const [timeRange, setTimeRange] = useState("30");
   const [selectedMetric, setSelectedMetric] = useState("all");
+  const [activeTab, setActiveTab] = useState("demographics");
+  const [isExporting, setIsExporting] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Fetch real data for analytics
   const { data: patients = [], isLoading: patientsLoading } = useQuery({
@@ -199,6 +204,88 @@ export default function WellnessAnalyticsPage() {
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
 
+  // Handler functions for interactive elements
+  const handleRefreshData = async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/visits"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/lab-results"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/prescriptions"] });
+      
+      toast({
+        title: "Data Refreshed",
+        description: "Analytics data has been updated with the latest information.",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Unable to refresh data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+      // Simulate export process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Create and download CSV
+      const csvData = [
+        ['Metric', 'Value'],
+        ['Total Patients', metrics?.totalPatients || 0],
+        ['Recent Visits', metrics?.recentVisits || 0],
+        ['Recent Lab Results', metrics?.recentLabResults || 0],
+        ['Recent Prescriptions', metrics?.recentPrescriptions || 0],
+        ['High Risk Patients', metrics?.riskLevels.high || 0],
+        ['Moderate Risk Patients', metrics?.riskLevels.moderate || 0],
+        ['Low Risk Patients', metrics?.riskLevels.low || 0],
+      ];
+      
+      const csvContent = csvData.map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `wellness_analytics_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      
+      toast({
+        title: "Export Complete",
+        description: "Analytics data has been exported successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Unable to export data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleTimeRangeChange = (value: string) => {
+    setTimeRange(value);
+    toast({
+      title: "Time Range Updated",
+      description: `Analytics view updated to show last ${value} days.`,
+    });
+  };
+
+  const handleMetricFilterChange = (value: string) => {
+    setSelectedMetric(value);
+    toast({
+      title: "Filter Applied",
+      description: `Showing ${value === 'all' ? 'all metrics' : value} data.`,
+    });
+  };
+
+  const handlePatientClick = (patientId: number) => {
+    window.location.href = `/patients/${patientId}`;
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -219,7 +306,7 @@ export default function WellnessAnalyticsPage() {
         </div>
         
         <div className="flex gap-3">
-          <Select value={timeRange} onValueChange={setTimeRange}>
+          <Select value={timeRange} onValueChange={handleTimeRangeChange}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -230,10 +317,35 @@ export default function WellnessAnalyticsPage() {
               <SelectItem value="365">Last year</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={selectedMetric} onValueChange={handleMetricFilterChange}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Metrics</SelectItem>
+              <SelectItem value="demographics">Demographics</SelectItem>
+              <SelectItem value="mental-health">Mental Health</SelectItem>
+              <SelectItem value="risk-assessment">Risk Assessment</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button 
+            variant="outline"
+            onClick={handleRefreshData}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
           
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={handleExportData}
+            disabled={isExporting}
+          >
             <Download className="w-4 h-4 mr-2" />
-            Export Report
+            {isExporting ? 'Exporting...' : 'Export Report'}
           </Button>
         </div>
       </div>
@@ -306,7 +418,7 @@ export default function WellnessAnalyticsPage() {
       </div>
 
       {/* Analytics Tabs */}
-      <Tabs defaultValue="demographics" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="demographics">Demographics</TabsTrigger>
           <TabsTrigger value="mental-health">Mental Health</TabsTrigger>
@@ -446,14 +558,22 @@ export default function WellnessAnalyticsPage() {
                   const age = new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear();
                   return age >= 60 || p.medicalHistory;
                 }).slice(0, 5).map((patient: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-3 bg-red-50 rounded-lg hover:bg-red-100 cursor-pointer transition-colors"
+                    onClick={() => handlePatientClick(patient.id)}
+                  >
                     <div>
                       <p className="font-medium text-red-800">{patient.firstName} {patient.lastName}</p>
                       <p className="text-sm text-red-600">
                         Age: {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()}
+                        {patient.medicalHistory && <span className="ml-2">• Medical History</span>}
                       </p>
                     </div>
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    <div className="flex items-center gap-2">
+                      <Badge variant="destructive" className="text-xs">High Risk</Badge>
+                      <AlertTriangle className="w-5 h-5 text-red-600" />
+                    </div>
                   </div>
                 )) || (
                   <p className="text-gray-500 text-center py-8">No high-risk patients identified</p>
