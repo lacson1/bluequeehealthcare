@@ -675,19 +675,84 @@ export function EnhancedVisitRecording({ patientId, onSave }: EnhancedVisitRecor
                 <div className="space-y-2">
                   <FormLabel>Medications</FormLabel>
                   <div className="flex gap-2">
-                    <FormField
-                      control={form.control}
-                      name="medications"
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <Input placeholder="Add medication..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="button" onClick={addMedication} size="sm">
+                    <div className="flex-1">
+                      <Popover open={isMedicationPopoverOpen} onOpenChange={setIsMedicationPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={isMedicationPopoverOpen}
+                            className="w-full justify-between"
+                          >
+                            {medicationSearchTerm || "Search and select medication..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Search medications..." 
+                              value={medicationSearchTerm}
+                              onValueChange={setMedicationSearchTerm}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No medications found.</CommandEmpty>
+                              <CommandGroup>
+                                {filteredMedications.map((medication: any) => (
+                                  <CommandItem
+                                    key={medication.id}
+                                    value={medication.name}
+                                    onSelect={(currentValue) => {
+                                      addMedication(currentValue);
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        medicationList.includes(medication.name) 
+                                          ? "opacity-100" 
+                                          : "opacity-0"
+                                      }`}
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{medication.name}</span>
+                                      {medication.genericName && (
+                                        <span className="text-sm text-muted-foreground">
+                                          Generic: {medication.genericName}
+                                        </span>
+                                      )}
+                                      {medication.description && (
+                                        <span className="text-xs text-muted-foreground truncate">
+                                          {medication.description}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormField
+                        control={form.control}
+                        name="medications"
+                        render={({ field }) => (
+                          <FormItem className="hidden">
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <Button 
+                      type="button" 
+                      onClick={() => addMedication(medicationSearchTerm)} 
+                      size="sm"
+                      disabled={!medicationSearchTerm.trim()}
+                    >
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
