@@ -14,10 +14,11 @@ import SmartAppointmentScheduler from './smart-appointment-scheduler';
 import { PatientCommunicationHub } from './patient-communication-hub';
 import ConsultationFormSelector from './consultation-form-selector';
 import { PatientDropdownMenu } from './patient-dropdown-menu';
+import { EditPatientModal } from './edit-patient-modal';
 import { useLocation } from "wouter";
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   User, 
   Calendar, 
@@ -99,7 +100,9 @@ export function ModernPatientOverview({
 }: ModernPatientOverviewProps) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isConsultationHistoryOpen, setIsConsultationHistoryOpen] = useState(false);
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false);
 
   // Fetch consultation records for this patient
   const { data: consultationRecords = [] } = useQuery({
@@ -681,7 +684,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
                 <div className="flex items-center space-x-4 mb-4">
                   <PatientDropdownMenu
                     patient={patient}
-                    onEditPatient={onEditPatient}
+                    onEditPatient={() => setShowEditPatientModal(true)}
                     onRecordVisit={onRecordVisit}
                     onAddPrescription={onAddPrescription}
                     onPrintRecord={onPrintRecord}
@@ -695,7 +698,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
                   <div className="flex-1">
                     <PatientDropdownMenu
                       patient={patient}
-                      onEditPatient={onEditPatient}
+                      onEditPatient={() => setShowEditPatientModal(true)}
                       onRecordVisit={onRecordVisit}
                       onAddPrescription={onAddPrescription}
                       onPrintRecord={onPrintRecord}
@@ -1210,6 +1213,18 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
             />
           </TabsContent>
         </Tabs>
+        
+        {/* Edit Patient Modal */}
+        <EditPatientModal
+          open={showEditPatientModal}
+          onOpenChange={setShowEditPatientModal}
+          patient={patient}
+          onPatientUpdated={() => {
+            // Refresh patient data after update
+            queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}`] });
+            queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+          }}
+        />
     </div>
   );
 }
