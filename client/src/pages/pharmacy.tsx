@@ -359,7 +359,10 @@ export default function Pharmacy() {
         </div>
 
         {/* Enhanced Pharmacy Workflow */}
-        <PharmacyWorkflow medicines={medicines || []} />
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-2">Pharmacy Workflow</h3>
+          <p className="text-blue-700">Managing {(medicines || []).length} medicines in inventory</p>
+        </div>
 
         {/* Medicine Inventory */}
         <Card>

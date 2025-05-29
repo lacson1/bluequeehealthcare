@@ -13,6 +13,7 @@ import { useRole } from "@/components/role-guard";
 
 export default function Patients() {
   const [showPatientModal, setShowPatientModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("patients");
   const { user } = useRole();
 
   return (
@@ -34,7 +35,7 @@ export default function Patients() {
         </div>
 
         {/* Enhanced Tabs */}
-        <Tabs defaultValue="patients" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="patients" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -54,19 +55,19 @@ export default function Patients() {
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto p-6">
-        <Tabs defaultValue="patients" className="w-full">
-          <TabsContent value="patients" className="mt-0">
+        <div className="w-full">
+          {activeTab === "patients" && (
             <EnhancedPatientManagementFixed user={user} />
-          </TabsContent>
+          )}
 
-          <TabsContent value="analytics" className="mt-0">
+          {activeTab === "analytics" && (
             <PatientAnalyticsDashboard />
-          </TabsContent>
+          )}
 
-          <TabsContent value="appointments" className="mt-0">
+          {activeTab === "appointments" && (
             <SmartAppointmentScheduler />
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
 
       {/* Patient Registration Modal */}
