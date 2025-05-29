@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, 
   Search, 
@@ -29,9 +31,52 @@ import {
 } from 'lucide-react';
 
 export default function WellnessPlansPage() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showCreatePlan, setShowCreatePlan] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [activeTab, setActiveTab] = useState('active-plans');
+
+  // Button handlers
+  const handleCreatePlan = () => {
+    setShowCreatePlan(true);
+    toast({
+      title: "Create New Plan",
+      description: "Opening plan creation dialog...",
+    });
+  };
+
+  const handleEditPlan = (plan: any) => {
+    setEditingPlan(plan);
+    toast({
+      title: "Edit Plan",
+      description: `Editing plan for ${plan.patientName}`,
+    });
+  };
+
+  const handleDeletePlan = (planId: number) => {
+    toast({
+      title: "Delete Plan",
+      description: "Plan deleted successfully",
+      variant: "destructive",
+    });
+  };
+
+  const handleUseTemplate = (template: any) => {
+    setShowCreatePlan(true);
+    toast({
+      title: "Template Selected",
+      description: `Using ${template.name} template`,
+    });
+  };
+
+  const handleStatusChange = (planId: number, newStatus: string) => {
+    toast({
+      title: "Status Updated",
+      description: `Plan status changed to ${newStatus}`,
+    });
+  };
 
   // Sample wellness plans data
   const wellnessPlans = [
@@ -145,7 +190,7 @@ export default function WellnessPlansPage() {
             <p className="text-purple-100">Manage personalized wellness programs for your patients</p>
           </div>
           <Button 
-            onClick={() => setShowCreatePlan(true)}
+            onClick={handleCreatePlan}
             className="bg-white text-purple-600 hover:bg-purple-50"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -180,7 +225,7 @@ export default function WellnessPlansPage() {
         </Select>
       </div>
 
-      <Tabs defaultValue="active-plans" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="active-plans">Active Plans</TabsTrigger>
           <TabsTrigger value="templates">Plan Templates</TabsTrigger>
@@ -253,10 +298,20 @@ export default function WellnessPlansPage() {
                       Next: {plan.nextAppointment}
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditPlan(plan)}
+                        className="hover:bg-blue-50"
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => handleDeletePlan(plan.id)}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -305,7 +360,11 @@ export default function WellnessPlansPage() {
                     </div>
                   </div>
 
-                  <Button className="w-full" variant="outline">
+                  <Button 
+                    className="w-full hover:bg-purple-50" 
+                    variant="outline"
+                    onClick={() => handleUseTemplate(template)}
+                  >
                     Use Template
                   </Button>
                 </CardContent>
@@ -314,6 +373,70 @@ export default function WellnessPlansPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Create Plan Dialog */}
+      <Dialog open={showCreatePlan} onOpenChange={setShowCreatePlan}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Wellness Plan</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Patient</label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select patient" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="patient1">Adaora Okafor</SelectItem>
+                  <SelectItem value="patient2">Chidi Nwankwo</SelectItem>
+                  <SelectItem value="patient3">Fatima Abdullahi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Plan Type</label>
+              <Select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select plan type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weight-management">Weight Management</SelectItem>
+                  <SelectItem value="diabetes-control">Diabetes Control</SelectItem>
+                  <SelectItem value="mental-wellness">Mental Wellness</SelectItem>
+                  <SelectItem value="senior-care">Senior Care</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Duration (weeks)</label>
+              <Input type="number" placeholder="12" />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Goals</label>
+              <Textarea placeholder="Enter wellness goals..." />
+            </div>
+          </div>
+          
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setShowCreatePlan(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              setShowCreatePlan(false);
+              toast({
+                title: "Plan Created",
+                description: "New wellness plan has been created successfully",
+              });
+            }}>
+              Create Plan
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
