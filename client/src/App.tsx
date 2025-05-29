@@ -35,6 +35,7 @@ import TelemedicinePage from "@/pages/telemedicine";
 import PhysiotherapyPage from "@/pages/physiotherapy";
 import ExerciseLeafletsPage from "@/pages/exercise-leaflets";
 import WellnessPage from "@/pages/wellness";
+import MentalHealthPage from "@/pages/mental-health";
 import ClinicalProtocols from "@/components/clinical-protocols";
 import ExportCompliance from "@/components/export-compliance";
 import Login from "@/pages/login";
