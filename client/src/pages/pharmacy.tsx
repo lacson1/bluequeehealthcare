@@ -18,6 +18,8 @@ import { useRole } from "@/components/role-guard";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMedicineSchema, type Medicine, type InsertMedicine } from "@shared/schema";
+import { PharmacyActivityLog } from "@/components/pharmacy-activity-log";
+import { EnhancedMedicationReview } from "@/components/enhanced-medication-review";
 
 import { z } from "zod";
 
@@ -379,15 +381,35 @@ export default function Pharmacy() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-slate-800">Pharmacy</h2>
-            <p className="text-sm text-slate-500">Manage medicine inventory and stock levels</p>
+            <p className="text-sm text-slate-500">Comprehensive pharmacy operations and patient care</p>
           </div>
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Medicine
-              </Button>
-            </DialogTrigger>
+        </div>
+      </header>
+
+      {/* Pharmacy Tabs */}
+      <div className="flex-1 overflow-hidden">
+        <Tabs defaultValue="inventory" className="h-full flex flex-col">
+          <div className="px-6 py-3 bg-gray-50 border-b">
+            <TabsList className="grid w-full grid-cols-3 max-w-md">
+              <TabsTrigger value="inventory">Inventory</TabsTrigger>
+              <TabsTrigger value="activities">Activities</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="inventory" className="flex-1 overflow-hidden m-0 p-0">
+            <div className="h-full flex flex-col">
+              <div className="px-6 py-4 bg-white border-b flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-slate-800">Medicine Inventory</h3>
+                </div>
+                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Medicine
+                    </Button>
+                  </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Add New Medicine</DialogTitle>
@@ -911,7 +933,22 @@ export default function Pharmacy() {
             )}
           </CardContent>
         </Card>
-      </main>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="activities" className="flex-1 overflow-hidden m-0 p-0">
+            <div className="p-6">
+              <PharmacyActivityLog />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="reviews" className="flex-1 overflow-hidden m-0 p-0">
+            <div className="p-6">
+              <EnhancedMedicationReview />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
