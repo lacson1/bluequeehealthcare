@@ -611,7 +611,7 @@ export function EnhancedMedicationReview({ selectedPatientId, onReviewCompleted 
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge className={getReviewTypeColor(review.reviewType)}>
-                        {review.reviewType.replace('_', ' ')}
+                        {review.reviewType ? review.reviewType.replace('_', ' ') : 'Review'}
                       </Badge>
                       <Badge variant={getPriorityColor(review.priority)}>
                         {review.priority}
