@@ -25,7 +25,7 @@ import {
   Edit
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import VisitRecordingModal from "@/components/visit-recording-modal";
+import { EnhancedVisitRecording } from "@/components/enhanced-visit-recording";
 import LabResultModal from "@/components/lab-result-modal";
 import PrescriptionModal from "@/components/prescription-modal";
 import PatientQRCard from "@/components/patient-qr-card";
