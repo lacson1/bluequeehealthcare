@@ -890,7 +890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      if (username === 'Mr Seye' && password === 'physio123') {
+      if ((username === 'Mr Seye' || username === 'seye') && password === 'physio123') {
         const token = generateToken({ id: 13, username: 'Mr Seye', role: 'physiotherapist' });
         return res.json({
           token,
