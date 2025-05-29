@@ -22,7 +22,8 @@ import {
   Clock,
   UserCheck,
   FileText,
-  Edit
+  Edit,
+  Printer
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EnhancedVisitRecording } from "@/components/enhanced-visit-recording";
@@ -126,6 +127,112 @@ export default function PatientProfile() {
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
+  };
+
+  const printPrescription = (prescription: any, patient: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const currentDate = new Date().toLocaleDateString();
+    const prescriptionHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Prescription - ${patient.firstName} ${patient.lastName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+          .clinic-name { font-size: 24px; font-weight: bold; color: #2563eb; }
+          .clinic-info { margin-top: 5px; color: #666; }
+          .prescription-title { font-size: 20px; font-weight: bold; margin: 20px 0; }
+          .patient-info { margin: 20px 0; }
+          .patient-info table { width: 100%; border-collapse: collapse; }
+          .patient-info td { padding: 5px 0; }
+          .medication-details { margin: 30px 0; }
+          .medication-box { border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+          .medication-name { font-size: 18px; font-weight: bold; color: #2563eb; margin-bottom: 15px; }
+          .detail-row { display: flex; justify-content: space-between; margin: 8px 0; }
+          .footer { margin-top: 40px; border-top: 1px solid #ddd; padding-top: 20px; }
+          .signature-line { border-bottom: 1px solid #333; width: 200px; margin: 20px 0; }
+          @media print { body { margin: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="clinic-name">ClinicConnect</div>
+          <div class="clinic-info">Digital Health Management System</div>
+        </div>
+        
+        <div class="prescription-title">PRESCRIPTION</div>
+        
+        <div class="patient-info">
+          <table>
+            <tr>
+              <td><strong>Patient Name:</strong></td>
+              <td>${patient.firstName} ${patient.lastName}</td>
+              <td><strong>Patient ID:</strong></td>
+              <td>HC${patient.id?.toString().padStart(6, "0")}</td>
+            </tr>
+            <tr>
+              <td><strong>Date of Birth:</strong></td>
+              <td>${new Date(patient.dateOfBirth).toLocaleDateString()}</td>
+              <td><strong>Phone:</strong></td>
+              <td>${patient.phone}</td>
+            </tr>
+            <tr>
+              <td><strong>Date Prescribed:</strong></td>
+              <td>${new Date(prescription.startDate).toLocaleDateString()}</td>
+              <td><strong>Prescribed By:</strong></td>
+              <td>${prescription.prescribedBy}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div class="medication-details">
+          <div class="medication-box">
+            <div class="medication-name">${prescription.medicationName}</div>
+            <div class="detail-row">
+              <span><strong>Dosage:</strong></span>
+              <span>${prescription.dosage}</span>
+            </div>
+            <div class="detail-row">
+              <span><strong>Frequency:</strong></span>
+              <span>${prescription.frequency}</span>
+            </div>
+            <div class="detail-row">
+              <span><strong>Duration:</strong></span>
+              <span>${prescription.duration}</span>
+            </div>
+            ${prescription.instructions ? `
+            <div style="margin-top: 15px;">
+              <strong>Special Instructions:</strong><br>
+              ${prescription.instructions}
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        
+        <div class="footer">
+          <div style="display: flex; justify-content: space-between;">
+            <div>
+              <p><strong>Prescriber Signature:</strong></p>
+              <div class="signature-line"></div>
+              <p style="margin-top: 5px;">${prescription.prescribedBy}</p>
+            </div>
+            <div style="text-align: right;">
+              <p><strong>Date Printed:</strong> ${currentDate}</p>
+              <p><strong>Status:</strong> ${prescription.status.toUpperCase()}</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(prescriptionHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   };
 
   return (
@@ -584,7 +691,7 @@ export default function PatientProfile() {
                                   <span>Created: {new Date(prescription.createdAt).toLocaleDateString()}</span>
                                 </div>
                               </div>
-                              <div>
+                              <div className="flex flex-col items-end space-y-2">
                                 <Badge className={
                                   prescription.status === "active" 
                                     ? "bg-green-100 text-green-800" 
@@ -594,6 +701,15 @@ export default function PatientProfile() {
                                 }>
                                   {prescription.status}
                                 </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => printPrescription(prescription, patient)}
+                                  className="text-xs"
+                                >
+                                  <Printer className="mr-1 h-3 w-3" />
+                                  Print
+                                </Button>
                               </div>
                             </div>
                           </div>

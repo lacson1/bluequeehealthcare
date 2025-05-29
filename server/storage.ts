@@ -267,12 +267,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPrescriptionsByPatient(patientId: number): Promise<Prescription[]> {
-    return await db.select({
+    const results = await db.select({
       id: prescriptions.id,
       patientId: prescriptions.patientId,
       visitId: prescriptions.visitId,
       medicationId: prescriptions.medicationId,
-      medicationName: sql<string>`COALESCE(${prescriptions.medicationName}, ${medications.name})`.as('medicationName'),
+      medicationName: prescriptions.medicationName,
+      medicationDbName: medications.name,
       dosage: prescriptions.dosage,
       frequency: prescriptions.frequency,
       duration: prescriptions.duration,
@@ -288,6 +289,12 @@ export class DatabaseStorage implements IStorage {
     .leftJoin(medications, eq(prescriptions.medicationId, medications.id))
     .where(eq(prescriptions.patientId, patientId))
     .orderBy(desc(prescriptions.createdAt));
+
+    // Combine medication names: use manual name if available, otherwise use database name
+    return results.map(result => ({
+      ...result,
+      medicationName: result.medicationName || result.medicationDbName || 'Unknown Medication'
+    }));
   }
 
   async getPrescriptionsByVisit(visitId: number): Promise<Prescription[]> {
