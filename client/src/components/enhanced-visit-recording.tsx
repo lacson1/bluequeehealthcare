@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,8 +42,23 @@ import {
   FileText,
   Save,
   Plus,
-  X
+  X,
+  Check,
+  ChevronsUpDown
 } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Comprehensive visit form schema
 const comprehensiveVisitSchema = z.object({
@@ -98,6 +113,26 @@ export function EnhancedVisitRecording({ patientId, onSave }: EnhancedVisitRecor
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [additionalDiagnoses, setAdditionalDiagnoses] = useState<string[]>([]);
   const [medicationList, setMedicationList] = useState<string[]>([]);
+  const [medicationSearchTerm, setMedicationSearchTerm] = useState("");
+  const [isMedicationPopoverOpen, setIsMedicationPopoverOpen] = useState(false);
+
+  // Fetch medications for autocomplete
+  const { data: medications = [] } = useQuery({
+    queryKey: ['/api/medicines'],
+    enabled: true,
+  });
+
+  // Filter medications based on search term
+  const filteredMedications = useMemo(() => {
+    if (!medicationSearchTerm) return medications.slice(0, 20); // Show first 20 by default
+    
+    return medications
+      .filter((med: any) => 
+        med.name.toLowerCase().includes(medicationSearchTerm.toLowerCase()) ||
+        med.genericName?.toLowerCase().includes(medicationSearchTerm.toLowerCase())
+      )
+      .slice(0, 10); // Limit to 10 results for performance
+  }, [medications, medicationSearchTerm]);
 
   const form = useForm<VisitFormData>({
     resolver: zodResolver(comprehensiveVisitSchema),
@@ -227,11 +262,13 @@ export function EnhancedVisitRecording({ patientId, onSave }: EnhancedVisitRecor
     setAdditionalDiagnoses(additionalDiagnoses.filter(d => d !== diagnosis));
   };
 
-  const addMedication = () => {
-    const newMedication = form.getValues("medications");
-    if (newMedication.trim() && !medicationList.includes(newMedication.trim())) {
-      setMedicationList([...medicationList, newMedication.trim()]);
+  const addMedication = (medicationName?: string) => {
+    const medication = medicationName || form.getValues("medications");
+    if (medication.trim() && !medicationList.includes(medication.trim())) {
+      setMedicationList([...medicationList, medication.trim()]);
       form.setValue("medications", "");
+      setMedicationSearchTerm("");
+      setIsMedicationPopoverOpen(false);
     }
   };
 
