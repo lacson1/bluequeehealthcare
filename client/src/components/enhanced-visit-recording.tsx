@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { QuickMedicationSearch } from "@/components/quick-medication-search";
 import {
   Card,
   CardContent,
