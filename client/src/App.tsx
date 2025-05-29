@@ -35,6 +35,7 @@ import TelemedicinePage from "@/pages/telemedicine";
 import PhysiotherapyPage from "@/pages/physiotherapy";
 import ExerciseLeafletsPage from "@/pages/exercise-leaflets";
 import WellnessPage from "@/pages/wellness";
+import WellnessPlansPage from "@/pages/wellness-plans";
 import MentalHealthPage from "@/pages/mental-health";
 import ClinicalProtocols from "@/components/clinical-protocols";
 import ExportCompliance from "@/components/export-compliance";
@@ -83,6 +84,7 @@ function AuthenticatedApp() {
                   <Route path="/physiotherapy" component={PhysiotherapyPage} />
                   <Route path="/exercise-leaflets" component={ExerciseLeafletsPage} />
                   <Route path="/wellness" component={WellnessPage} />
+                  <Route path="/wellness/plans" component={() => import("@/pages/wellness-plans").then(m => m.default)} />
                   <Route path="/mental-health" component={MentalHealthPage} />
                   <Route path="/protocols" component={ClinicalProtocols} />
                   <Route path="/compliance" component={ExportCompliance} />

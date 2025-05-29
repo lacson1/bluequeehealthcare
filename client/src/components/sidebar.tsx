@@ -37,12 +37,12 @@ const getNavigationGroupsForRole = (role: string) => {
           name: "Wellness Center", 
           href: "/wellness", 
           icon: Heart, 
-          roles: ["admin", "doctor", "nurse", "physiotherapist"],
+          roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"],
           submenu: [
-            { name: "Wellness Dashboard", href: "/wellness", icon: Activity, roles: ["admin", "doctor", "nurse", "physiotherapist"] },
-            { name: "Mental Health Support", href: "/mental-health", icon: Brain, roles: ["admin", "doctor", "nurse"] },
-            { name: "Patient Wellness Plans", href: "/wellness/plans", icon: ClipboardList, roles: ["admin", "doctor", "nurse", "physiotherapist"] },
-            { name: "Wellness Analytics", href: "/wellness/analytics", icon: TrendingUp, roles: ["admin", "doctor", "nurse"] }
+            { name: "Wellness Dashboard", href: "/wellness", icon: Activity, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+            { name: "Mental Health Support", href: "/mental-health", icon: Brain, roles: ["admin", "doctor", "nurse", "pharmacist"] },
+            { name: "Patient Wellness Plans", href: "/wellness/plans", icon: ClipboardList, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+            { name: "Wellness Analytics", href: "/wellness/analytics", icon: TrendingUp, roles: ["admin", "doctor", "nurse", "pharmacist"] }
           ]
         },
         { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
