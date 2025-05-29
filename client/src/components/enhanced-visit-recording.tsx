@@ -106,6 +106,7 @@ export function EnhancedVisitRecording({ patientId, onSave }: EnhancedVisitRecor
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFormVisible, setIsFormVisible] = useState(false);
   const [additionalDiagnoses, setAdditionalDiagnoses] = useState<string[]>([]);
   const [medicationList, setMedicationList] = useState<string[]>([]);
   const [medicationSearchTerm, setMedicationSearchTerm] = useState("");
@@ -273,17 +274,35 @@ export function EnhancedVisitRecording({ patientId, onSave }: EnhancedVisitRecor
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <Stethoscope className="h-5 w-5" />
-            Record Patient Visit
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Comprehensive patient visit documentation for {patientName}
-          </p>
+      {!isFormVisible ? (
+        <div className="text-center py-12">
+          <div className="bg-blue-50 p-8 rounded-lg border border-blue-200 max-w-md mx-auto">
+            <Stethoscope className="w-16 h-16 mx-auto text-blue-600 mb-4" />
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">Ready to Record Visit</h3>
+            <p className="text-sm text-blue-700 mb-6">
+              Click below to start comprehensive visit documentation including vital signs, examination, and treatment plan.
+            </p>
+            <Button 
+              onClick={() => setIsFormVisible(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+              size="lg"
+            >
+              <Stethoscope className="w-4 h-4 mr-2" />
+              Start Visit Recording
+            </Button>
+          </div>
         </div>
+      ) : (
         <div>
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Stethoscope className="h-5 w-5" />
+              Record Patient Visit
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Comprehensive patient visit documentation for {patientName}
+            </p>
+          </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               
@@ -840,7 +859,7 @@ export function EnhancedVisitRecording({ patientId, onSave }: EnhancedVisitRecor
             </form>
           </Form>
         </div>
-      </div>
+      )}
     </div>
   );
 }
