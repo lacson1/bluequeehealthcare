@@ -136,17 +136,42 @@ export default function ConsultationHistoryDisplay({ patientId }: ConsultationHi
                             </div>
                           </div>
                           
-                          {/* Conducted by information */}
-                          <div className="flex items-center gap-2 mb-3 p-2 bg-blue-50 rounded-lg">
-                            <User className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm text-blue-800">
-                              <strong>Conducted by:</strong> {consultation.conductedByName || consultation.conductedByUsername || 'Healthcare Staff'}
-                            </span>
-                            {consultation.conductedByRole && (
-                              <Badge variant="outline" className="bg-white text-blue-700 border-blue-200 text-xs">
-                                {consultation.conductedByRole}
-                              </Badge>
-                            )}
+                          {/* Enhanced Staff Information */}
+                          <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                  <User className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-semibold text-blue-900">
+                                      {consultation.conductedByFullName || consultation.conductedByFirstName || consultation.conductedByUsername || 'Healthcare Staff'}
+                                    </span>
+                                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300 text-xs font-medium">
+                                      {consultation.roleDisplayName || consultation.conductedByRole || 'Staff'}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-4 text-xs text-blue-700">
+                                    {consultation.conductedByUsername && (
+                                      <span>
+                                        <strong>Username:</strong> {consultation.conductedByUsername}
+                                      </span>
+                                    )}
+                                    {consultation.specialistRoleDisplay && consultation.specialistRoleDisplay !== 'General' && (
+                                      <span>
+                                        <strong>Specialty:</strong> {consultation.specialistRoleDisplay}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 text-xs">
+                                  {consultation.specialistRoleDisplay || 'General'}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
                           
                           {/* Consultation details */}
@@ -322,24 +347,79 @@ export default function ConsultationHistoryDisplay({ patientId }: ConsultationHi
                             
                             {/* Complete Consultation Data Display */}
                             {consultation.formData && Object.keys(consultation.formData).length > 0 && (
-                              <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                                <p className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                              <div className="mt-3 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
+                                <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
                                   <FileText className="w-4 h-4" />
-                                  Complete Consultation Details
+                                  Detailed Consultation Information
                                 </p>
                                 <div className="space-y-3">
-                                  {Object.entries(consultation.formData).map(([key, value]: [string, any]) => (
-                                    <div key={key} className="bg-white p-3 rounded-md shadow-sm">
-                                      <div className="flex flex-col gap-1">
-                                        <span className="font-medium text-gray-700 text-sm">
-                                          {key.includes('field_') ? 'Clinical Notes' : key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
-                                        </span>
-                                        <div className="text-gray-900 text-sm">
-                                          <span className="whitespace-pre-wrap">{String(value)}</span>
+                                  {Object.entries(consultation.formData).map(([key, value]: [string, any]) => {
+                                    // Skip empty or null values
+                                    if (!value || (typeof value === 'string' && value.trim() === '')) {
+                                      return null;
+                                    }
+                                    
+                                    // Format field names for better display
+                                    const formatFieldName = (fieldKey: string) => {
+                                      if (fieldKey.includes('field_')) {
+                                        return 'Clinical Notes';
+                                      }
+                                      // Convert camelCase or snake_case to proper labels
+                                      return fieldKey
+                                        .replace(/([A-Z])/g, ' $1')
+                                        .replace(/[_-]/g, ' ')
+                                        .replace(/^./, str => str.toUpperCase())
+                                        .trim();
+                                    };
+
+                                    // Format values for better display
+                                    const formatValue = (val: any) => {
+                                      if (Array.isArray(val)) {
+                                        return val.filter(item => item && item.toString().trim()).join(', ');
+                                      }
+                                      if (typeof val === 'object' && val !== null) {
+                                        return JSON.stringify(val, null, 2);
+                                      }
+                                      return String(val);
+                                    };
+
+                                    const formattedValue = formatValue(value);
+                                    if (!formattedValue || formattedValue.trim() === '') {
+                                      return null;
+                                    }
+
+                                    return (
+                                      <div key={key} className="bg-white p-3 rounded-md shadow-sm border border-gray-100">
+                                        <div className="flex flex-col gap-2">
+                                          <span className="font-medium text-gray-700 text-sm flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                            {formatFieldName(key)}
+                                          </span>
+                                          <div className="text-gray-900 text-sm ml-4">
+                                            <span className="whitespace-pre-wrap leading-relaxed">{formattedValue}</span>
+                                          </div>
                                         </div>
                                       </div>
+                                    );
+                                  })}
+                                </div>
+                                
+                                {/* Consultation Summary */}
+                                <div className="mt-4 pt-3 border-t border-gray-200">
+                                  <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
+                                    <div>
+                                      <strong>Form Type:</strong> {consultation.formName || 'General Consultation'}
                                     </div>
-                                  ))}
+                                    <div>
+                                      <strong>Completed At:</strong> {new Date(consultation.createdAt).toLocaleString()}
+                                    </div>
+                                    <div>
+                                      <strong>Specialist Area:</strong> {consultation.specialistRoleDisplay || 'General Medicine'}
+                                    </div>
+                                    <div>
+                                      <strong>Record ID:</strong> #{consultation.id}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             )}

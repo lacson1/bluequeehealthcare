@@ -1564,7 +1564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const patientId = parseInt(req.params.patientId);
       
-      // Enhanced query to include user and form information
+      // Enhanced query to include complete user and form information with detailed staff info
       const records = await db
         .select({
           id: consultationRecords.id,
@@ -1573,10 +1573,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           filledBy: consultationRecords.filledBy,
           formData: consultationRecords.formData,
           createdAt: consultationRecords.createdAt,
-          // User information
-          conductedByName: users.firstName,
+          // Complete user information
+          conductedByFirstName: users.firstName,
+          conductedByLastName: users.lastName,
           conductedByUsername: users.username,
           conductedByRole: users.role,
+          conductedByEmail: users.email,
           // Form information
           formName: consultationForms.name,
           formDescription: consultationForms.description,
@@ -1588,7 +1590,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(consultationRecords.patientId, patientId))
         .orderBy(desc(consultationRecords.createdAt));
       
-      res.json(records);
+      // Process records to include complete staff information
+      const enhancedRecords = records.map(record => ({
+        ...record,
+        // Construct full name for display
+        conductedByFullName: record.conductedByFirstName && record.conductedByLastName 
+          ? `${record.conductedByFirstName} ${record.conductedByLastName}`
+          : record.conductedByUsername || 'Healthcare Staff',
+        // Role display formatting
+        roleDisplayName: record.conductedByRole 
+          ? record.conductedByRole.charAt(0).toUpperCase() + record.conductedByRole.slice(1)
+          : 'Staff',
+        // Specialist role formatting
+        specialistRoleDisplay: record.specialistRole 
+          ? record.specialistRole.charAt(0).toUpperCase() + record.specialistRole.slice(1)
+          : 'General'
+      }));
+      
+      res.json(enhancedRecords);
     } catch (error) {
       console.error('Error fetching consultation records:', error);
       res.status(500).json({ message: "Failed to fetch consultation records" });
