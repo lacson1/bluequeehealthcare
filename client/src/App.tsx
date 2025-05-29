@@ -38,7 +38,7 @@ function AuthenticatedApp() {
   } = useOnboarding(user?.id || 0, user?.role || '');
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50">
       <Sidebar onStartTour={startTour} />
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         <TopBar />
