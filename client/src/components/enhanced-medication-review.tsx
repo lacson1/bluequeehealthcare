@@ -203,27 +203,77 @@ export function EnhancedMedicationReview({ selectedPatientId, onReviewCompleted 
                     <Pill className="w-5 h-5" />
                     Current Medications for {selectedPatient.firstName} {selectedPatient.lastName}
                   </h3>
-                  <div className="grid gap-3">
+                  <div className="space-y-3">
                     {prescriptions.map((prescription: any, index: number) => (
-                      <div key={prescription.id || index} className="bg-white p-3 rounded border border-blue-200 flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-800">{prescription.medicationName || prescription.medication}</p>
-                          <div className="text-sm text-gray-600 flex items-center gap-4 mt-1">
-                            <span>Dosage: {prescription.dosage}</span>
-                            <span>Frequency: {prescription.frequency}</span>
-                            <span>Duration: {prescription.duration}</span>
+                      <div key={prescription.id || index} className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Pill className="w-4 h-4 text-blue-600" />
+                              <h4 className="font-semibold text-gray-900 text-lg">
+                                {prescription.medicationName || prescription.medication || 'Unknown Medication'}
+                              </h4>
+                              {prescription.status && (
+                                <Badge variant={prescription.status === 'active' ? 'default' : 'secondary'}>
+                                  {prescription.status}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                              <div className="bg-gray-50 p-2 rounded">
+                                <p className="text-xs text-gray-500 uppercase font-medium">Dosage</p>
+                                <p className="text-sm font-medium text-gray-800">
+                                  {prescription.dosage || 'Not specified'}
+                                </p>
+                              </div>
+                              <div className="bg-gray-50 p-2 rounded">
+                                <p className="text-xs text-gray-500 uppercase font-medium">Frequency</p>
+                                <p className="text-sm font-medium text-gray-800">
+                                  {prescription.frequency || 'Not specified'}
+                                </p>
+                              </div>
+                              <div className="bg-gray-50 p-2 rounded">
+                                <p className="text-xs text-gray-500 uppercase font-medium">Duration</p>
+                                <p className="text-sm font-medium text-gray-800">
+                                  {prescription.duration || 'Not specified'}
+                                </p>
+                              </div>
+                              <div className="bg-gray-50 p-2 rounded">
+                                <p className="text-xs text-gray-500 uppercase font-medium">Prescribed</p>
+                                <p className="text-sm font-medium text-gray-800">
+                                  {prescription.createdAt ? format(new Date(prescription.createdAt), 'MMM dd, yyyy') : 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {prescription.instructions && (
+                              <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
+                                <p className="text-xs text-blue-600 uppercase font-medium mb-1">Special Instructions</p>
+                                <p className="text-sm text-blue-800">{prescription.instructions}</p>
+                              </div>
+                            )}
+                            
+                            {prescription.doctorName && (
+                              <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                                <User className="w-3 h-3" />
+                                <span>Prescribed by: Dr. {prescription.doctorName}</span>
+                              </div>
+                            )}
                           </div>
-                          {prescription.instructions && (
-                            <p className="text-sm text-gray-500 mt-1">Instructions: {prescription.instructions}</p>
-                          )}
-                        </div>
-                        <div className="text-right text-sm text-gray-500">
-                          <p>Prescribed: {prescription.createdAt ? format(new Date(prescription.createdAt), 'MMM dd, yyyy') : 'N/A'}</p>
-                          {prescription.status && (
-                            <Badge variant={prescription.status === 'active' ? 'default' : 'secondary'} className="mt-1">
-                              {prescription.status}
-                            </Badge>
-                          )}
+                          
+                          <div className="ml-4 flex flex-col items-end gap-2">
+                            <Button size="sm" variant="outline" className="text-xs">
+                              <Heart className="w-3 h-3 mr-1" />
+                              Check Interactions
+                            </Button>
+                            {prescription.quantity && (
+                              <div className="text-xs text-gray-500 text-right">
+                                <p>Qty: {prescription.quantity}</p>
+                                {prescription.refills && <p>Refills: {prescription.refills}</p>}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
