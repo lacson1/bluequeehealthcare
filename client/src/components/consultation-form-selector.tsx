@@ -72,7 +72,7 @@ export default function ConsultationFormSelector({
   const filteredForms = forms.filter(form => {
     const matchesSearch = form.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          form.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = !filterByRole || form.specialistRole.toLowerCase().includes(filterByRole.toLowerCase());
+    const matchesRole = !filterByRole || filterByRole === "all" || form.specialistRole.toLowerCase().includes(filterByRole.toLowerCase());
     return matchesSearch && matchesRole;
   });
 
@@ -330,7 +330,7 @@ export default function ConsultationFormSelector({
                         <SelectValue placeholder="Filter by specialist role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Roles</SelectItem>
+                        <SelectItem value="all">All Roles</SelectItem>
                         {uniqueRoles.map((role) => (
                           <SelectItem key={role} value={role}>
                             {role}
@@ -360,7 +360,7 @@ export default function ConsultationFormSelector({
                         className="mt-2"
                         onClick={() => {
                           setSearchQuery("");
-                          setFilterByRole("");
+                          setFilterByRole("all");
                         }}
                       >
                         Clear Filters
