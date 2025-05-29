@@ -148,6 +148,55 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
     }
   };
 
+  const handlePatientAction = (action: string, patient: PatientWithStats) => {
+    const fullName = `${patient.title ? patient.title + ' ' : ''}${patient.firstName} ${patient.lastName}`;
+    
+    switch (action) {
+      case 'consultation':
+        toast({
+          title: "New Consultation",
+          description: `Starting consultation for ${fullName}`,
+        });
+        break;
+      case 'vitals':
+        toast({
+          title: "Record Vitals", 
+          description: `Recording vitals for ${fullName}`,
+        });
+        break;
+      case 'lab-tests':
+        toast({
+          title: "Lab Tests",
+          description: `Ordering lab tests for ${fullName}`,
+        });
+        break;
+      case 'prescription':
+        toast({
+          title: "Prescription",
+          description: `Prescribing medication for ${fullName}`,
+        });
+        break;
+      case 'history':
+        toast({
+          title: "Medical History",
+          description: `Viewing history for ${fullName}`,
+        });
+        break;
+      case 'appointment':
+        toast({
+          title: "Schedule Appointment",
+          description: `Scheduling appointment for ${fullName}`,
+        });
+        break;
+      case 'report':
+        toast({
+          title: "Generate Report",
+          description: `Generating report for ${fullName}`,
+        });
+        break;
+    }
+  };
+
   const calculateAge = (dateOfBirth: string) => {
     return new Date().getFullYear() - new Date(dateOfBirth).getFullYear();
   };
