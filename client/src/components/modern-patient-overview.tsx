@@ -295,15 +295,9 @@ export function ModernPatientOverview({
         <TabsContent value="medications" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Pill className="h-5 w-5 text-purple-500" />
-                  Medications & Prescriptions
-                </span>
-                <Button size="sm" onClick={onAddPrescription} className="bg-purple-600 hover:bg-purple-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Prescription
-                </Button>
+              <CardTitle className="flex items-center gap-2">
+                <Pill className="h-5 w-5 text-purple-500" />
+                Medications & Prescriptions
               </CardTitle>
             </CardHeader>
             <CardContent>
