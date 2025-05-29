@@ -79,56 +79,56 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Beautiful Blue Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-white border border-gray-200">
+          <Card className="stat-card stat-card-patients text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
-                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">TOTAL PATIENTS</p>
-                <div className="text-3xl font-bold text-gray-900">{stats?.totalPatients || 6}</div>
-                <p className="text-xs text-green-600">+12% from last month</p>
+                <p className="text-sm font-medium text-white/80 uppercase tracking-wide">TOTAL PATIENTS</p>
+                <div className="text-3xl font-bold text-white">{stats?.totalPatients || 6}</div>
+                <p className="text-xs text-white/70">+12% from last month</p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <Users className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
           </Card>
 
-          <Card className="bg-white border border-gray-200">
+          <Card className="stat-card stat-card-visits text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
-                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">TODAY'S VISITS</p>
-                <div className="text-3xl font-bold text-gray-900">{stats?.todayVisits || 0}</div>
-                <p className="text-xs text-green-600">+6 from yesterday</p>
+                <p className="text-sm font-medium text-white/80 uppercase tracking-wide">TODAY'S VISITS</p>
+                <div className="text-3xl font-bold text-white">{stats?.todayVisits || 0}</div>
+                <p className="text-xs text-white/70">+6 from yesterday</p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
           </Card>
 
-          <Card className="bg-white border border-gray-200">
+          <Card className="stat-card stat-card-pending text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
-                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">LOW STOCK ITEMS</p>
-                <div className="text-3xl font-bold text-gray-900">{stats?.lowStockItems || 1}</div>
-                <p className="text-xs text-red-600">⚠️ Requires attention</p>
+                <p className="text-sm font-medium text-white/80 uppercase tracking-wide">PENDING LABS</p>
+                <div className="text-3xl font-bold text-white">{stats?.pendingLabs || 0}</div>
+                <p className="text-xs text-white/70">⏳ Awaiting results</p>
               </div>
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <Activity className="h-6 w-6 text-red-600" />
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <Activity className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
           </Card>
 
-          <Card className="bg-white border border-gray-200">
+          <Card className="stat-card stat-card-revenue text-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div>
-                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">PENDING LABS</p>
-                <div className="text-3xl font-bold text-gray-900">{stats?.pendingLabs || 0}</div>
-                <p className="text-xs text-orange-600">⏳ Awaiting results</p>
+                <p className="text-sm font-medium text-white/80 uppercase tracking-wide">LOW STOCK ITEMS</p>
+                <div className="text-3xl font-bold text-white">{stats?.lowStockItems || 1}</div>
+                <p className="text-xs text-white/70">⚠️ Requires attention</p>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Activity className="h-6 w-6 text-orange-600" />
+              <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                <Activity className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
           </Card>
