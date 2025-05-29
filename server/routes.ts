@@ -95,20 +95,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const searchTerm = `%${q.toLowerCase()}%`;
-      const result = await db.select().from(medications)
+      // Use medicines table instead of medications for prescription compatibility
+      const result = await db.select().from(medicines)
         .where(
           or(
-            ilike(medications.name, searchTerm),
-            ilike(medications.genericName, searchTerm),
-            ilike(medications.brandName, searchTerm),
-            ilike(medications.category, searchTerm)
+            ilike(medicines.name, searchTerm),
+            ilike(medicines.genericName, searchTerm),
+            ilike(medicines.category, searchTerm)
           )
         )
         .limit(10)
-        .orderBy(medications.name);
+        .orderBy(medicines.name);
       
       res.json(result);
     } catch (error) {
+      console.error('Medication suggestions error:', error);
       res.status(500).json({ error: "Failed to fetch medication suggestions" });
     }
   });
