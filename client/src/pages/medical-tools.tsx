@@ -16,14 +16,14 @@ export function MedicalToolsPage() {
       </div>
 
       <Tabs defaultValue="calculators" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="calculators" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 gap-2 md:gap-0">
+          <TabsTrigger value="calculators" className="flex items-center gap-2 text-sm">
             <Calculator className="w-4 h-4" />
-            Medical Calculators
+            <span className="hidden sm:inline">Medical </span>Calculators
           </TabsTrigger>
-          <TabsTrigger value="communication" className="flex items-center gap-2">
+          <TabsTrigger value="communication" className="flex items-center gap-2 text-sm">
             <MessageSquare className="w-4 h-4" />
-            Patient Communication
+            <span className="hidden sm:inline">Patient </span>Communication
           </TabsTrigger>
         </TabsList>
 

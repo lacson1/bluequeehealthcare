@@ -173,7 +173,7 @@ export function MedicationSelectionGuide({ isOpen, onClose }: MedicationSelectio
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                   <div>
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
                       <Badge variant="outline" className="w-3 h-3 rounded-full bg-blue-100"></Badge>
@@ -217,7 +217,7 @@ export function MedicationSelectionGuide({ isOpen, onClose }: MedicationSelectio
                 <CardTitle>Common Medication Categories in Your Clinic</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
                   <Badge variant="secondary" className="justify-center py-2">Antibiotics</Badge>
                   <Badge variant="secondary" className="justify-center py-2">Pain Relief</Badge>
                   <Badge variant="secondary" className="justify-center py-2">Antihypertensive</Badge>

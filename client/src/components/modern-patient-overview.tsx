@@ -75,6 +75,7 @@ export function ModernPatientOverview({
       age--;
     }
     return age;
+    return age;
   };
 
   const getPatientInitials = (firstName: string, lastName: string) => {
@@ -179,7 +180,7 @@ export function ModernPatientOverview({
 
         {/* Overview Tab - Compact Layout */}
         <TabsContent value="overview" className="space-y-3">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {/* Left Panel - Patient Info & Alerts */}
             <div className="space-y-3">
         {/* Patient Card */}
@@ -203,7 +204,7 @@ export function ModernPatientOverview({
                 </Badge>
               </div>
             </div>
-            
+
             <div className="space-y-1 text-xs">
               <div className="flex items-center space-x-2">
                 <Calendar className="w-3 h-3 text-gray-400" />
@@ -211,19 +212,19 @@ export function ModernPatientOverview({
                 <span className="text-gray-400">•</span>
                 <span className="capitalize">{patient.gender}</span>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Phone className="w-3 h-3 text-gray-400" />
                 <span>{patient.phone}</span>
               </div>
-              
+
               {patient.email && (
                 <div className="flex items-center space-x-2">
                   <Mail className="w-3 h-3 text-gray-400" />
                   <span>{patient.email}</span>
                 </div>
               )}
-              
+
               {patient.address && (
                 <div className="flex items-center space-x-2">
                   <MapPin className="w-3 h-3 text-gray-400" />
@@ -254,7 +255,7 @@ export function ModernPatientOverview({
               </div>
               <Badge variant="secondary">{visits.length}</Badge>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <FlaskRound className="w-4 h-4 text-green-500" />
@@ -262,7 +263,7 @@ export function ModernPatientOverview({
               </div>
               <Badge variant="secondary">{recentLabs.length}</Badge>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Pill className="w-4 h-4 text-purple-500" />

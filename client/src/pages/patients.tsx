@@ -191,7 +191,7 @@ export default function Patients() {
       ) : (
         <>
           {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {filteredPatients.map((patient: Patient) => (
             <Card key={patient.id} className="hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer border-slate-200">
               <Link href={`/patients/${patient.id}`}>

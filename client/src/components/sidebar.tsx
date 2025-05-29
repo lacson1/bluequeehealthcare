@@ -21,7 +21,7 @@ const getNavigationForRole = (role: string) => {
     { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["admin"] },
     { name: "Profile", href: "/profile", icon: Settings, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
   ];
-  
+
   return allNavigation.filter(item => item.roles.includes(role));
 };
 
@@ -52,6 +52,15 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
     setIsCollapsed(!isCollapsed);
   };
 
+  const sidebarVariants = {
+    open: { x: 0 },
+    closed: { x: "-100%" }
+  };
+
+  const handleMobileLinkClick = () => {
+    
+  };
+
   return (
     <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg flex flex-col transition-all duration-300 ease-in-out relative`}>
       {/* Toggle Button */}
@@ -80,7 +89,7 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
           </div>
         </div>
       </div>
-      
+
       {/* Navigation Menu */}
       <nav className={`flex-1 ${isCollapsed ? 'p-2' : 'p-4'} transition-all duration-300`}>
         <ul className="space-y-2">
@@ -101,7 +110,7 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
                   <span className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
                     {item.name}
                   </span>
-                  
+
                   {/* Tooltip for collapsed state */}
                   {isCollapsed && (
                     <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none">
@@ -114,7 +123,7 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
           })}
         </ul>
       </nav>
-      
+
       {/* User Profile */}
       <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-slate-200 transition-all duration-300`}>
         <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} group relative`}>
@@ -125,14 +134,14 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
             <p className="text-sm font-medium text-slate-700 whitespace-nowrap">{user?.username}</p>
             <p className="text-xs text-slate-500 capitalize whitespace-nowrap">{user?.role}</p>
           </div>
-          
+
           {/* Tooltip for collapsed user info */}
           {isCollapsed && (
             <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none">
               {user?.username} ({user?.role})
             </div>
           )}
-          
+
           {!isCollapsed && (
             <Button 
               variant="ghost" 
@@ -145,7 +154,7 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
             </Button>
           )}
         </div>
-        
+
         {/* Logout button for collapsed state */}
         {isCollapsed && (
           <div className="mt-2 flex justify-center">
@@ -160,7 +169,7 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
             </Button>
           </div>
         )}
-        
+
         {/* Help & Tour Button */}
         {onStartTour && (
           <div className={`mt-2 ${isCollapsed ? 'flex justify-center' : ''}`}>

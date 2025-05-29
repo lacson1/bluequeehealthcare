@@ -173,11 +173,11 @@ export function MedicalCalculator() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="bmi" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="bmi">BMI</TabsTrigger>
-              <TabsTrigger value="dosage">Dosage</TabsTrigger>
-              <TabsTrigger value="bsa">BSA</TabsTrigger>
-              <TabsTrigger value="heart">Heart Rate</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
+              <TabsTrigger value="bmi" className="text-xs md:text-sm">BMI</TabsTrigger>
+              <TabsTrigger value="dosage" className="text-xs md:text-sm">Dosage</TabsTrigger>
+              <TabsTrigger value="bsa" className="text-xs md:text-sm">BSA</TabsTrigger>
+              <TabsTrigger value="heart" className="text-xs md:text-sm">Heart Rate</TabsTrigger>
             </TabsList>
 
             {/* BMI Calculator */}

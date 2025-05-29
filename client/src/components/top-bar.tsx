@@ -61,36 +61,36 @@ export default function TopBar() {
 
   return (
     <>
-      <div className="h-16 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between">
+      <div className="h-14 md:h-16 bg-white border-b border-slate-200 px-3 md:px-6 flex items-center justify-between">
         {/* Mobile Menu Button & Logo */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 md:space-x-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden"
+            className="md:hidden p-2"
           >
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center space-x-2 md:hidden">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Heart className="text-white h-5 w-5" />
+            <div className="w-7 h-7 md:w-8 md:h-8 bg-primary rounded-lg flex items-center justify-center">
+              <Heart className="text-white h-4 w-4 md:h-5 md:w-5" />
             </div>
-            <span className="text-lg font-bold text-slate-800">HealthCore</span>
+            <span className="text-base md:text-lg font-bold text-slate-800">HealthCore</span>
           </div>
           <h2 className="hidden md:block text-lg font-semibold text-slate-800">Dashboard</h2>
         </div>
 
         {/* Right Side Actions */}
-        <div className="flex items-center space-x-2 md:space-x-4">
-        {/* Language Toggle */}
+        <div className="flex items-center space-x-1 md:space-x-4">
+        {/* Language Toggle - Hidden on very small screens */}
         <Button
           variant="ghost"
           size="sm"
           onClick={toggleLanguage}
-          className="text-slate-600 hover:text-slate-800"
+          className="hidden sm:flex text-slate-600 hover:text-slate-800 text-xs md:text-sm"
         >
-          <Globe className="w-4 h-4 mr-2" />
+          <Globe className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
           {language}
         </Button>
 
