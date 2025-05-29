@@ -732,7 +732,7 @@ export function ModernPatientOverview({
                     Record comprehensive visit details including vital signs, symptoms, diagnosis, and treatment plans.
                   </p>
                   <Button 
-                    onClick={onRecordVisit}
+                    onClick={() => navigate(`/patients/${patient.id}/record-visit`)}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     <Plus className="w-4 h-4 mr-2" />
