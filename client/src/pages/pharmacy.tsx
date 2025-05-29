@@ -208,16 +208,97 @@ export default function Pharmacy() {
     return 'Other';
   }, []);
 
-  // Advanced filtering and search logic
+  // Smart search function that handles medical abbreviations and synonyms
+  const createSmartSearch = useCallback((searchTerm: string) => {
+    const normalizedTerm = searchTerm.toLowerCase().trim();
+    
+    // Medical abbreviations and common terms mapping
+    const medicalAbbreviations: { [key: string]: string[] } = {
+      'pcm': ['paracetamol', 'acetaminophen'],
+      'ace': ['acetaminophen', 'paracetamol'],
+      'ibu': ['ibuprofen'],
+      'asp': ['aspirin'],
+      'amox': ['amoxicillin'],
+      'cipro': ['ciprofloxacin'],
+      'azith': ['azithromycin'],
+      'met': ['metformin'],
+      'ins': ['insulin'],
+      'vit': ['vitamin'],
+      'cal': ['calcium'],
+      'tab': ['tablet', 'tablets'],
+      'cap': ['capsule', 'capsules'],
+      'syr': ['syrup'],
+      'inj': ['injection'],
+      'susp': ['suspension'],
+      'mg': ['milligram', 'milligrams'],
+      'ml': ['milliliter', 'milliliters'],
+      'antibiotic': ['amoxicillin', 'ciprofloxacin', 'azithromycin', 'penicillin'],
+      'painkiller': ['paracetamol', 'ibuprofen', 'aspirin', 'analgesic'],
+      'fever': ['paracetamol', 'ibuprofen', 'aspirin'],
+      'pain': ['paracetamol', 'ibuprofen', 'aspirin', 'analgesic']
+    };
+
+    // Get expanded search terms
+    const expandedTerms = [normalizedTerm];
+    
+    // Add abbreviation expansions
+    Object.entries(medicalAbbreviations).forEach(([abbrev, expansions]) => {
+      if (normalizedTerm.includes(abbrev)) {
+        expandedTerms.push(...expansions);
+      }
+      // Also check if any expansion matches and add the abbreviation
+      expansions.forEach(expansion => {
+        if (normalizedTerm.includes(expansion)) {
+          expandedTerms.push(abbrev);
+        }
+      });
+    });
+
+    return expandedTerms;
+  }, []);
+
+  // Advanced filtering and search logic with comprehensive search capability
   const filteredAndSortedMedicines = useMemo(() => {
     if (!medicines) return [];
 
     let filtered = medicines.filter(medicine => {
-      // Search term filter (using debounced search)
-      const matchesSearch = debouncedSearchTerm === "" || 
-        medicine.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        medicine.description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        medicine.supplier?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      // Enhanced search with smart medical term matching
+      let matchesSearch = debouncedSearchTerm === "";
+      
+      if (!matchesSearch && debouncedSearchTerm.trim()) {
+        const searchTerms = createSmartSearch(debouncedSearchTerm);
+        const medicineName = medicine.name.toLowerCase();
+        const medicineDesc = medicine.description?.toLowerCase() || '';
+        const medicineSupplier = medicine.supplier?.toLowerCase() || '';
+        const medicineUnit = medicine.unit.toLowerCase();
+        const medicineCategory = getMedicineCategory(medicine).toLowerCase();
+        
+        // Check if any search term matches any field
+        matchesSearch = searchTerms.some(term => 
+          // Direct name match
+          medicineName.includes(term) ||
+          // Description match
+          medicineDesc.includes(term) ||
+          // Supplier match
+          medicineSupplier.includes(term) ||
+          // Unit match
+          medicineUnit.includes(term) ||
+          // Category match
+          medicineCategory.includes(term) ||
+          // Word boundary matching for better accuracy
+          new RegExp(`\\b${term}`, 'i').test(medicine.name) ||
+          // Partial word matching at start of words
+          medicineName.split(/[\s-]+/).some(word => word.startsWith(term)) ||
+          // Dosage/strength pattern matching
+          (term.includes('mg') && /\d+mg/i.test(medicineName)) ||
+          (term.includes('ml') && /\d+ml/i.test(medicineName)) ||
+          // Form-based matching
+          (term === 'tablet' && /tablet|tab(?![a-z])/i.test(medicineName)) ||
+          (term === 'capsule' && /capsule|cap(?![a-z])/i.test(medicineName)) ||
+          (term === 'syrup' && /syrup|syr(?![a-z])/i.test(medicineName)) ||
+          (term === 'injection' && /injection|inj(?![a-z])/i.test(medicineName))
+        );
+      }
 
       // Stock status filter
       const matchesStock = stockFilter === "all" || 
@@ -680,9 +761,9 @@ export default function Pharmacy() {
             <div className="flex items-center justify-between text-sm text-slate-600">
               <span>
                 Showing {filteredAndSortedMedicines.length} of {medicines?.length || 0} medicines
-                {searchTerm && (
+                {debouncedSearchTerm && (
                   <span className="ml-2 font-medium">
-                    for "{searchTerm}"
+                    for "{debouncedSearchTerm}"
                   </span>
                 )}
               </span>
