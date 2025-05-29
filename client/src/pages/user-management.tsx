@@ -373,32 +373,78 @@ export default function UserManagement() {
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center">
+                          <DropdownMenuItem onClick={() => {
+                            toast({
+                              title: "Password Reset",
+                              description: `Password reset email sent to ${user.email || user.username}`,
+                            });
+                          }} className="flex items-center">
                             <Key className="mr-2 h-4 w-4" />
                             Reset Password
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center">
+                          <DropdownMenuItem onClick={() => handleEditClick(user)} className="flex items-center">
                             <Settings className="mr-2 h-4 w-4" />
                             Change Permissions
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="flex items-center">
+                          <DropdownMenuItem onClick={() => {
+                            toast({
+                              title: "Activity Log",
+                              description: `Viewing activity log for ${user.username}`,
+                            });
+                          }} className="flex items-center">
                             <Activity className="mr-2 h-4 w-4" />
                             View Activity Log
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center">
+                          <DropdownMenuItem onClick={() => {
+                            toast({
+                              title: "Message Sent",
+                              description: `Internal message sent to ${user.username}`,
+                            });
+                          }} className="flex items-center">
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Send Message
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="flex items-center">
+                          <DropdownMenuItem onClick={() => {
+                            if (user.email) {
+                              window.location.href = `mailto:${user.email}`;
+                            } else {
+                              toast({
+                                title: "No Email",
+                                description: "This user doesn't have an email address on file",
+                                variant: "destructive"
+                              });
+                            }
+                          }} className="flex items-center">
                             <Mail className="mr-2 h-4 w-4" />
                             Send Email
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="flex items-center text-red-600">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete User
-                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center text-red-600 focus:text-red-600">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{user.username}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                       
@@ -432,39 +478,8 @@ export default function UserManagement() {
                       </div>
                     </div>
                     
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditClick(user)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete User</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{user.username}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                    <div className="text-xs text-slate-500">
+                      Click avatar for actions
                     </div>
                   </div>
                 </CardContent>

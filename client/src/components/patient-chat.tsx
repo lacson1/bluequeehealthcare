@@ -228,24 +228,39 @@ export default function PatientChat({ patientId, patientName }: PatientChatProps
                           {comment.user.username}
                         </div>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="flex items-center">
+                        <DropdownMenuItem onClick={() => {
+                          // Could navigate to user profile page
+                          console.log(`Viewing profile for ${comment.user.username}`);
+                        }} className="flex items-center">
                           <Eye className="mr-2 h-4 w-4" />
                           View Profile
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="flex items-center">
+                        <DropdownMenuItem onClick={() => {
+                          setReplyingTo(comment.id);
+                          setNewMessage(`@${comment.user.username} `);
+                        }} className="flex items-center">
                           <Reply className="mr-2 h-4 w-4" />
                           Reply to Comment
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="flex items-center">
+                        <DropdownMenuItem onClick={() => {
+                          // Could open a direct message interface
+                          console.log(`Starting conversation with ${comment.user.username}`);
+                        }} className="flex items-center">
                           <Mail className="mr-2 h-4 w-4" />
                           Send Message
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="flex items-center">
+                        <DropdownMenuItem onClick={() => {
+                          // Could show user activity in a modal
+                          console.log(`Viewing activity for ${comment.user.username}`);
+                        }} className="flex items-center">
                           <UserCheck className="mr-2 h-4 w-4" />
                           View Activity
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="flex items-center">
+                        <DropdownMenuItem onClick={() => {
+                          // Could open a report dialog
+                          console.log(`Reporting comment from ${comment.user.username}`);
+                        }} className="flex items-center">
                           <Flag className="mr-2 h-4 w-4" />
                           Report Comment
                         </DropdownMenuItem>
