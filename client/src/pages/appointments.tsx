@@ -261,12 +261,13 @@ export default function AppointmentsPage() {
                       {selectedDate ? format(selectedDate, "PPP") : "Select date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0 bg-white dark:bg-gray-800">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
                       initialFocus
+                      className="rounded-md border bg-white dark:bg-gray-800"
                     />
                   </PopoverContent>
                 </Popover>
