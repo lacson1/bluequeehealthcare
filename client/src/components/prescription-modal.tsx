@@ -66,6 +66,7 @@ export default function PrescriptionModal({
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState<number | undefined>(patientId);
   const [selectedMedicine, setSelectedMedicine] = useState<Medication | null>(null);
+  const [manualMedicationName, setManualMedicationName] = useState<string>("");
 
   const { data: patients } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
@@ -183,6 +184,15 @@ export default function PrescriptionModal({
     });
   };
 
+  const handleManualMedicationEntry = (medicationName: string) => {
+    setManualMedicationName(medicationName);
+    setSelectedMedicine(null); // Clear any selected medicine
+    toast({
+      title: "Manual medication added",
+      description: `"${medicationName}" has been added. Please fill in dosage and instructions manually.`,
+    });
+  };
+
   const onSubmit = (data: Omit<InsertPrescription, "patientId" | "medicineId">) => {
     if (!selectedPatientId) {
       toast({
@@ -193,10 +203,10 @@ export default function PrescriptionModal({
       return;
     }
 
-    if (!selectedMedicine) {
+    if (!selectedMedicine && !manualMedicationName) {
       toast({
         title: "Error",
-        description: "Please select a medicine.",
+        description: "Please select a medicine or enter a medication name manually.",
         variant: "destructive",
       });
       return;
@@ -205,7 +215,9 @@ export default function PrescriptionModal({
     const prescriptionData: InsertPrescription = {
       ...data,
       patientId: selectedPatientId,
-      medicineId: selectedMedicine.id,
+      medicineId: selectedMedicine?.id || 0, // Use 0 for manual entries
+      // Add medication name for manual entries
+      ...(manualMedicationName && { medicationName: manualMedicationName }),
     };
 
     createPrescriptionMutation.mutate(prescriptionData);

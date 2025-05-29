@@ -29,6 +29,7 @@ interface MedicationAutocompleteProps {
   value: Medication | null;
   onSelect: (medication: Medication) => void;
   onAutoFill: (medication: Medication) => void;
+  onManualEntry?: (medicationName: string) => void;
   placeholder?: string;
   className?: string;
 }
@@ -37,6 +38,7 @@ export default function MedicationAutocomplete({
   value,
   onSelect,
   onAutoFill,
+  onManualEntry,
   placeholder = "Search medications...",
   className,
 }: MedicationAutocompleteProps) {
@@ -97,12 +99,26 @@ export default function MedicationAutocomplete({
             onValueChange={setSearchQuery}
           />
           <CommandEmpty>
-            <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
               <Pill className="h-8 w-8 text-slate-400" />
               <p className="text-sm text-slate-600">No medications found</p>
               <p className="text-xs text-slate-500">
                 Try searching by generic name, brand name, or category
               </p>
+              {searchQuery && searchQuery.length >= 2 && onManualEntry && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onManualEntry(searchQuery);
+                    setOpen(false);
+                    setSearchQuery("");
+                  }}
+                  className="mt-2 text-blue-600 border-blue-300 hover:bg-blue-50"
+                >
+                  Add "{searchQuery}" manually
+                </Button>
+              )}
             </div>
           </CommandEmpty>
           <CommandList>
