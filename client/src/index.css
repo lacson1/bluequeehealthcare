@@ -212,7 +212,7 @@
 
   /* Ultra-modern dashboard stats cards with glassmorphism */
   .stat-card {
-    @apply relative overflow-hidden rounded-2xl bg-gradient-to-br p-8 text-white shadow-2xl hover:shadow-3xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105 border border-white/20 backdrop-blur-sm;
+    @apply relative overflow-hidden rounded-2xl bg-gradient-to-br p-8 text-white shadow-2xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105 border border-white/20 backdrop-blur-sm;
   }
 
   .stat-card::before {
