@@ -1,41 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  User, 
-  Calendar, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  AlertCircle, 
-  History, 
-  Stethoscope, 
-  FlaskRound,
-  Plus,
-  Pill,
-  Activity,
-  Heart,
-  Clock,
-  UserCheck,
-  FileText,
-  Edit
-} from "lucide-react";
+import { AlertCircle, Edit } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { EnhancedVisitRecording } from "@/components/enhanced-visit-recording";
 import LabResultModal from "@/components/lab-result-modal";
 import PrescriptionModal from "@/components/prescription-modal";
-import PatientQRCard from "@/components/patient-qr-card";
-import PatientChat from "@/components/patient-chat";
-import LabOrderForm from "@/components/lab-order-form";
-import LabOrdersList from "@/components/lab-orders-list";
-import ConsultationHistory from "@/components/consultation-history";
-import VaccinationManagement from "@/components/vaccination-management";
-import AllergyManagement from "@/components/allergy-management";
-import MedicalHistoryManagement from "@/components/medical-history-management";
 import { PrintExportToolbar } from "@/components/print-export-toolbar";
 import { PatientSummaryPrintable } from "@/components/patient-summary-printable";
 import { ModernPatientOverview } from "@/components/modern-patient-overview";
@@ -79,12 +50,10 @@ export default function PatientProfile() {
     enabled: !!patientId,
   });
 
-  // Fetch organization data for branding
   const { data: organizations = [] } = useQuery<Organization[]>({
     queryKey: ["/api/organizations"],
   });
 
-  // Get current user's organization
   const currentOrganization = organizations.find(org => org.id === (user as any)?.organizationId);
 
   if (patientLoading) {
@@ -109,7 +78,6 @@ export default function PatientProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -131,7 +99,6 @@ export default function PatientProfile() {
           </div>
           
           <div className="flex items-center space-x-3">
-            {/* Print/Export functionality */}
             <PrintExportToolbar 
               patientData={{
                 patient: patient as Patient,
@@ -142,7 +109,6 @@ export default function PatientProfile() {
               organizationData={currentOrganization}
             />
             
-            {/* Edit patient info - available to admin, doctor, nurse */}
             {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
               <Button variant="outline">
                 <Edit className="mr-2 h-4 w-4" />
@@ -153,7 +119,6 @@ export default function PatientProfile() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto px-4 py-6 max-w-full">
         <div className="w-full max-w-none">
           <ModernPatientOverview
@@ -165,7 +130,6 @@ export default function PatientProfile() {
           />
         </div>
         
-        {/* Floating Action Menu */}
         <FloatingActionMenu
           onRecordVisit={() => setShowVisitModal(true)}
           onAddLabResult={() => setShowLabModal(true)}
@@ -175,7 +139,6 @@ export default function PatientProfile() {
         />
       </main>
 
-      {/* Modals */}
       <EnhancedVisitRecording
         open={showVisitModal}
         onOpenChange={setShowVisitModal}
@@ -192,7 +155,6 @@ export default function PatientProfile() {
         patientId={patientId}
       />
 
-      {/* Hidden Printable Patient Summary */}
       <div className="hidden">
         <PatientSummaryPrintable
           patient={patient as Patient}

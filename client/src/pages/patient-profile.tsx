@@ -218,6 +218,7 @@ export default function PatientProfile() {
             visits={visits || []}
             recentLabs={labResults || []}
             activePrescriptions={prescriptions || []}
+            onAddPrescription={() => setShowPrescriptionModal(true)}
           />
         </div>
         
@@ -259,49 +260,6 @@ export default function PatientProfile() {
     </div>
   );
 }
-
-              <TabsContent value="overview">
-                <div className="grid gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Activity className="mr-2 h-5 w-5" />
-                        Quick Summary
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                          <h4 className="font-medium text-blue-900 mb-2">Recent Visits</h4>
-                          <p className="text-2xl font-bold text-blue-700">{visits?.length || 0}</p>
-                        </div>
-                        <div className="bg-green-50 p-4 rounded-lg">
-                          <h4 className="font-medium text-green-900 mb-2">Active Prescriptions</h4>
-                          <p className="text-2xl font-bold text-green-700">{prescriptions?.length || 0}</p>
-                        </div>
-                        <div className="bg-purple-50 p-4 rounded-lg">
-                          <h4 className="font-medium text-purple-900 mb-2">Pending Labs</h4>
-                          <p className="text-2xl font-bold text-purple-700">{labResults?.filter(lab => lab.status === 'pending').length || 0}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="medical-records">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <FileText className="mr-2 h-5 w-5" />
-                        Medical Records Hub
-                      </CardTitle>
-                      <CardDescription>
-                        Comprehensive view of patient's medical history and specialist consultations
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
                       <Tabs defaultValue="consultations" className="w-full">
                         <TabsList className="grid w-full grid-cols-4">
                           <TabsTrigger value="consultations">Consultations</TabsTrigger>
