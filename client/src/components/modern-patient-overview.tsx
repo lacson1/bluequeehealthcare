@@ -10,7 +10,8 @@ import PatientVitalSignsTracker from './patient-vital-signs-tracker';
 import SmartAppointmentScheduler from './smart-appointment-scheduler';
 import { PatientCommunicationHub } from './patient-communication-hub';
 import ConsultationFormSelector from './consultation-form-selector';
-import VisitRecordingModal from './visit-recording-modal';
+import { useLocation } from "wouter";
+import { Button } from '@/components/ui/button';
 import { 
   User, 
   Calendar, 
@@ -370,11 +371,13 @@ export function ModernPatientOverview({
                   <p className="text-sm text-gray-600 mb-4">
                     Document a new visit for {patient.firstName} {patient.lastName}
                   </p>
-                  <VisitRecordingModal 
-                    open={true} 
-                    onOpenChange={() => {}} 
-                    patientId={patient.id} 
-                  />
+                  <Button 
+                    onClick={() => window.location.href = `/patients/${patient.id}/record-visit`}
+                    className="w-full"
+                  >
+                    <Stethoscope className="h-4 w-4 mr-2" />
+                    Open Comprehensive Visit Recording
+                  </Button>
                 </div>
               </CardContent>
             </Card>
