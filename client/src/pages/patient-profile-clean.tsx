@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EnhancedVisitRecording } from "@/components/enhanced-visit-recording";
 import LabResultModal from "@/components/lab-result-modal";
 import PrescriptionModal from "@/components/prescription-modal";
+import { EditPatientModal } from "@/components/edit-patient-modal";
 import PatientQRCard from "@/components/patient-qr-card";
 import PatientChat from "@/components/patient-chat";
 import LabOrderForm from "@/components/lab-order-form";
@@ -58,6 +59,7 @@ export default function PatientProfile() {
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showLabModal, setShowLabModal] = useState(false);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false);
 
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
     queryKey: [`/api/patients/${patientId}`],
@@ -144,7 +146,7 @@ export default function PatientProfile() {
             
             {/* Edit patient info - available to admin, doctor, nurse */}
             {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setShowEditPatientModal(true)}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Info
               </Button>
@@ -191,6 +193,19 @@ export default function PatientProfile() {
         onOpenChange={setShowPrescriptionModal}
         patientId={patientId}
       />
+
+      {/* Edit Patient Modal */}
+      {patient && (
+        <EditPatientModal
+          open={showEditPatientModal}
+          onOpenChange={setShowEditPatientModal}
+          patient={patient as any}
+          onPatientUpdated={() => {
+            // Refresh patient data after update
+            window.location.reload();
+          }}
+        />
+      )}
 
       {/* Hidden Printable Patient Summary */}
       <div className="hidden">
