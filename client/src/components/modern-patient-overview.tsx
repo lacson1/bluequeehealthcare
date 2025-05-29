@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { PatientTimeline } from './patient-timeline';
 import { PatientAlertsPanel } from './patient-alerts-panel';
@@ -93,6 +94,14 @@ export function ModernPatientOverview({
   const [, navigate] = useLocation();
   const { toast } = useToast();
 
+  // Timeline filter state
+  const [timelineFilters, setTimelineFilters] = useState({
+    visits: true,
+    labResults: true,
+    consultations: true,
+    prescriptions: true
+  });
+
   // Fetch patient prescriptions from the API
   const { data: patientPrescriptions = [], isLoading: prescriptionsLoading } = useQuery({
     queryKey: ['/api/patients', patient.id, 'prescriptions'],
@@ -101,6 +110,14 @@ export function ModernPatientOverview({
 
   // Use fetched prescriptions if available, otherwise use passed activePrescriptions
   const displayPrescriptions = patientPrescriptions.length > 0 ? patientPrescriptions : activePrescriptions;
+
+  // Toggle filter function
+  const toggleFilter = (filterType: keyof typeof timelineFilters) => {
+    setTimelineFilters(prev => ({
+      ...prev,
+      [filterType]: !prev[filterType]
+    }));
+  };
 
   const handleEditPrescription = (prescription: any) => {
     toast({
@@ -596,24 +613,77 @@ export function ModernPatientOverview({
               <CardContent className="space-y-3">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-gray-700">Event Types</label>
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Activity className="w-2 h-2 text-blue-600" />
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-3">
+                      <Checkbox 
+                        id="filter-visits"
+                        checked={timelineFilters.visits}
+                        onCheckedChange={() => toggleFilter('visits')}
+                      />
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Activity className="w-2 h-2 text-blue-600" />
+                        </div>
+                        <label htmlFor="filter-visits" className="text-xs cursor-pointer">Visits</label>
                       </div>
-                      <span className="text-xs">Visits</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-green-100 rounded-full flex items-center justify-center">
-                        <FlaskRound className="w-2 h-2 text-green-600" />
+                    <div className="flex items-center space-x-3">
+                      <Checkbox 
+                        id="filter-labs"
+                        checked={timelineFilters.labResults}
+                        onCheckedChange={() => toggleFilter('labResults')}
+                      />
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-100 rounded-full flex items-center justify-center">
+                          <FlaskRound className="w-2 h-2 text-green-600" />
+                        </div>
+                        <label htmlFor="filter-labs" className="text-xs cursor-pointer">Lab Results</label>
                       </div>
-                      <span className="text-xs">Lab Results</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-orange-100 rounded-full flex items-center justify-center">
-                        <FileText className="w-2 h-2 text-orange-600" />
+                    <div className="flex items-center space-x-3">
+                      <Checkbox 
+                        id="filter-consultations"
+                        checked={timelineFilters.consultations}
+                        onCheckedChange={() => toggleFilter('consultations')}
+                      />
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-orange-100 rounded-full flex items-center justify-center">
+                          <FileText className="w-2 h-2 text-orange-600" />
+                        </div>
+                        <label htmlFor="filter-consultations" className="text-xs cursor-pointer">Consultations</label>
                       </div>
-                      <span className="text-xs">Consultations</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Checkbox 
+                        id="filter-prescriptions"
+                        checked={timelineFilters.prescriptions}
+                        onCheckedChange={() => toggleFilter('prescriptions')}
+                      />
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-purple-100 rounded-full flex items-center justify-center">
+                          <Pill className="w-2 h-2 text-purple-600" />
+                        </div>
+                        <label htmlFor="filter-prescriptions" className="text-xs cursor-pointer">Prescriptions</label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Showing {filteredActivityTrail.length} events</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 px-2 text-xs"
+                        onClick={() => setTimelineFilters({
+                          visits: true,
+                          labResults: true,
+                          consultations: true,
+                          prescriptions: true
+                        })}
+                      >
+                        Reset
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -622,7 +692,7 @@ export function ModernPatientOverview({
 
             {/* Timeline Content - Main Area */}
             <div className="lg:col-span-3">
-              <PatientTimeline events={activityTrail} />
+              <PatientTimeline events={filteredActivityTrail} />
             </div>
           </div>
         </TabsContent>
