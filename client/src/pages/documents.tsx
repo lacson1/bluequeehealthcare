@@ -166,7 +166,7 @@ export default function DocumentsPage() {
         !doc.patient?.lastName?.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
-    if (selectedCategory && doc.category !== selectedCategory) {
+    if (selectedCategory && selectedCategory !== 'all' && doc.category !== selectedCategory) {
       return false;
     }
     return true;
@@ -234,7 +234,7 @@ export default function DocumentsPage() {
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {documentCategories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
@@ -256,12 +256,12 @@ export default function DocumentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="patient">Patient (Optional)</Label>
-                <Select value={selectedPatient?.toString() || ''} onValueChange={(value) => setSelectedPatient(value ? parseInt(value) : null)}>
+                <Select value={selectedPatient?.toString() || 'none'} onValueChange={(value) => setSelectedPatient(value === 'none' ? null : parseInt(value))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select patient (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No specific patient</SelectItem>
+                    <SelectItem value="none">No specific patient</SelectItem>
                     {patients.map((patient: Patient) => (
                       <SelectItem key={patient.id} value={patient.id.toString()}>
                         {patient.firstName} {patient.lastName}

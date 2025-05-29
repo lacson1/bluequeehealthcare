@@ -133,7 +133,7 @@ export default function LabOrdersPage() {
 
   // Filter lab tests by category
   const categories = [...new Set(labTests.map((test: LabTest) => test.category))];
-  const filteredTests = selectedCategory 
+  const filteredTests = (selectedCategory && selectedCategory !== 'all')
     ? labTests.filter((test: LabTest) => test.category === selectedCategory)
     : labTests;
 
@@ -233,7 +233,7 @@ export default function LabOrdersPage() {
                     <SelectValue placeholder="Filter by category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}

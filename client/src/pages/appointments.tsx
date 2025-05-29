@@ -376,7 +376,7 @@ export default function AppointmentsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-orange-600" />
-                        <span>{format(new Date(appointment.scheduledAt), 'MMM dd, yyyy - HH:mm')}</span>
+                        <span>{appointment.scheduledAt ? format(new Date(appointment.scheduledAt), 'MMM dd, yyyy - HH:mm') : 'No date set'}</span>
                       </div>
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
                         {appointment.type}
