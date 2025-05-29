@@ -1,28 +1,68 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator, HelpCircle } from "lucide-react";
+import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator, HelpCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRole, RoleGuard } from "@/components/role-guard";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const getNavigationForRole = (role: string) => {
-  const allNavigation = [
-    { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
-    { name: "Patients", href: "/patients", icon: Users, roles: ["admin", "doctor", "nurse"] },
-    { name: "Visits", href: "/visits", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
-    { name: "Lab Results", href: "/lab-results", icon: FlaskRound, roles: ["admin", "doctor", "nurse"] },
-    { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["admin", "pharmacist"] },
-    { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
-    { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
-    { name: "Clinical Performance", href: "/clinical-performance", icon: TrendingUp, roles: ["admin", "doctor"] },
-    { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["admin", "doctor", "nurse"] },
-    { name: "User Management", href: "/user-management", icon: UserCog, roles: ["admin"] },
-    { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["admin"] },
-    { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["admin"] },
-    { name: "Profile", href: "/profile", icon: Settings, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+const getNavigationGroupsForRole = (role: string) => {
+  const navigationGroups = [
+    {
+      name: "Overview",
+      icon: BarChart3,
+      items: [
+        { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+      ]
+    },
+    {
+      name: "Patient Care",
+      icon: Users,
+      items: [
+        { name: "Patients", href: "/patients", icon: Users, roles: ["admin", "doctor", "nurse"] },
+        { name: "Visits", href: "/visits", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
+        { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+      ]
+    },
+    {
+      name: "Medical Services",
+      icon: FlaskRound,
+      items: [
+        { name: "Lab Results", href: "/lab-results", icon: FlaskRound, roles: ["admin", "doctor", "nurse"] },
+        { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["admin", "pharmacist"] },
+        { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+      ]
+    },
+    {
+      name: "Analytics & Reports",
+      icon: TrendingUp,
+      items: [
+        { name: "Clinical Performance", href: "/clinical-performance", icon: TrendingUp, roles: ["admin", "doctor"] },
+        { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["admin", "doctor", "nurse"] },
+      ]
+    },
+    {
+      name: "Administration",
+      icon: Settings,
+      items: [
+        { name: "User Management", href: "/user-management", icon: UserCog, roles: ["admin"] },
+        { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["admin"] },
+        { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["admin"] },
+      ]
+    },
+    {
+      name: "Account",
+      icon: User,
+      items: [
+        { name: "Profile", href: "/profile", icon: Settings, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+      ]
+    }
   ];
 
-  return allNavigation.filter(item => item.roles.includes(role));
+  return navigationGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => item.roles.includes(role))
+  })).filter(group => group.items.length > 0);
 };
 
 interface SidebarProps {
@@ -34,14 +74,25 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
   const { logout } = useAuth();
   const { user } = useRole();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['Overview', 'Patient Care']));
 
-  const navigation = getNavigationForRole(user?.role || '');
+  const navigationGroups = getNavigationGroupsForRole(user?.role || '');
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
       return location === "/" || location === "/dashboard";
     }
     return location.startsWith(href);
+  };
+
+  const toggleGroup = (groupName: string) => {
+    const newOpenGroups = new Set(openGroups);
+    if (newOpenGroups.has(groupName)) {
+      newOpenGroups.delete(groupName);
+    } else {
+      newOpenGroups.add(groupName);
+    }
+    setOpenGroups(newOpenGroups);
   };
 
   const handleLogout = () => {
@@ -92,36 +143,61 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
 
       {/* Navigation Menu */}
       <nav className={`flex-1 ${isCollapsed ? 'p-2' : 'p-4'} transition-all duration-300`}>
-        <ul className="space-y-2">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-3 py-2 rounded-lg font-medium transition-all duration-200 group relative ${
-                    isActive(item.href)
-                      ? "bg-primary/10 text-primary"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                  title={isCollapsed ? item.name : undefined}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  <span className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-                    {item.name}
-                  </span>
-
-                  {/* Tooltip for collapsed state */}
-                  {isCollapsed && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none">
-                      {item.name}
+        <div className="space-y-2">
+          {navigationGroups.map((group) => (
+            <div key={group.name}>
+              <Collapsible 
+                open={openGroups.has(group.name)} 
+                onOpenChange={() => toggleGroup(group.name)}
+              >
+                <CollapsibleTrigger asChild>
+                  <button className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-all duration-200 group relative`}>
+                    <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}>
+                      <group.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+                        {group.name}
+                      </span>
                     </div>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                    {!isCollapsed && (
+                      openGroups.has(group.name) ? 
+                        <ChevronDown className="w-4 h-4" /> : 
+                        <ChevronRight className="w-4 h-4" />
+                    )}
+
+                    {/* Tooltip for collapsed state */}
+                    {isCollapsed && (
+                      <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none">
+                        {group.name}
+                      </div>
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className={`${isCollapsed ? 'hidden' : 'block'}`}>
+                  <div className="ml-4 mt-1 space-y-1">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            isActive(item.href)
+                              ? "bg-primary/10 text-primary"
+                              : "text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          ))}
+        </div>
       </nav>
 
       {/* User Profile */}
