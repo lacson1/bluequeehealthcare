@@ -95,18 +95,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const searchTerm = `%${q.toLowerCase()}%`;
-      // Use medicines table instead of medications for prescription compatibility
-      const result = await db.select().from(medicines)
+      // Use comprehensive medications table for auto-fill functionality
+      const result = await db.select()
+        .from(medications)
         .where(
           or(
-            ilike(medicines.name, searchTerm),
-            ilike(medicines.description, searchTerm)
+            ilike(medications.name, searchTerm),
+            ilike(medications.genericName, searchTerm),
+            ilike(medications.brandName, searchTerm),
+            ilike(medications.category, searchTerm),
+            ilike(medications.activeIngredient, searchTerm)
           )
         )
         .limit(10)
-        .orderBy(medicines.name);
-      
-      res.json(result);
+        .orderBy(medications.name);
+
+      res.json(result.map(med => ({
+        id: med.id,
+        name: med.name,
+        genericName: med.genericName,
+        brandName: med.brandName,
+        category: med.category,
+        dosageForm: med.dosageForm,
+        strength: med.strength,
+        dosageAdult: med.dosageAdult,
+        dosageChild: med.dosageChild,
+        frequency: med.frequency,
+        indications: med.indications,
+        contraindications: med.contraindications,
+        sideEffects: med.sideEffects,
+        routeOfAdministration: med.routeOfAdministration,
+        costPerUnit: med.costPerUnit
+      })));
     } catch (error) {
       console.error('Medication suggestions error:', error);
       res.status(500).json({ error: "Failed to fetch medication suggestions" });
