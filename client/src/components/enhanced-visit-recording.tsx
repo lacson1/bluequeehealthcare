@@ -6,13 +6,7 @@ import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QuickMedicationSearch } from "@/components/quick-medication-search";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
 import {
   Form,
   FormControl,
@@ -279,17 +273,17 @@ export function EnhancedVisitRecording({ patientId, onSave }: EnhancedVisitRecor
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div>
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
             <Stethoscope className="h-5 w-5" />
             Record Patient Visit
-          </CardTitle>
-          <CardDescription>
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Comprehensive patient visit documentation for {patientName}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               
@@ -845,8 +839,8 @@ export function EnhancedVisitRecording({ patientId, onSave }: EnhancedVisitRecor
               </div>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
