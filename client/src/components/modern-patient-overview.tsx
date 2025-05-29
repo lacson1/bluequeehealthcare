@@ -172,28 +172,32 @@ export function ModernPatientOverview({
                   <Pill className="mr-2 h-4 w-4" />
                   Add Prescription
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log('Order lab tests')}>
+                <DropdownMenuItem onClick={() => navigate('/lab-orders')}>
                   <FlaskRound className="mr-2 h-4 w-4" />
                   Order Lab Tests
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log('Create consultation form')}>
+                <DropdownMenuItem onClick={() => navigate('/consultation-forms')}>
                   <FileText className="mr-2 h-4 w-4" />
                   Create Consultation Form
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log('Schedule appointment')}>
+                <DropdownMenuItem onClick={() => navigate('/appointments')}>
                   <CalendarDays className="mr-2 h-4 w-4" />
                   Schedule Appointment
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => console.log('Create referral')}>
+                <DropdownMenuItem onClick={() => navigate('/referrals')}>
                   <Users className="mr-2 h-4 w-4" />
                   Create Referral
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log('Record vitals')}>
+                <DropdownMenuItem onClick={() => {
+                  // Switch to vitals tab in current patient view
+                  const vitalsTab = document.querySelector('[data-state="inactive"][value="vitals"]') as HTMLElement;
+                  if (vitalsTab) vitalsTab.click();
+                }}>
                   <Monitor className="mr-2 h-4 w-4" />
                   Record Vital Signs
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log('Upload documents')}>
+                <DropdownMenuItem onClick={() => navigate('/documents')}>
                   <Upload className="mr-2 h-4 w-4" />
                   Upload Documents
                 </DropdownMenuItem>
@@ -202,12 +206,16 @@ export function ModernPatientOverview({
                   <Share className="mr-2 h-4 w-4" />
                   Print/Export Records
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => console.log('Send message')}>
+                <DropdownMenuItem onClick={() => {
+                  // Switch to communication tab in current patient view
+                  const commTab = document.querySelector('[data-state="inactive"][value="communication"]') as HTMLElement;
+                  if (commTab) commTab.click();
+                }}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Send Message
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem className="text-red-600" onClick={() => console.log('Archive patient functionality')}>
                   <Archive className="mr-2 h-4 w-4" />
                   Archive Patient
                 </DropdownMenuItem>
@@ -244,28 +252,32 @@ export function ModernPatientOverview({
                         <Pill className="mr-2 h-4 w-4" />
                         Add Prescription
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log('Order lab tests')}>
+                      <DropdownMenuItem onClick={() => navigate('/lab-orders')}>
                         <FlaskRound className="mr-2 h-4 w-4" />
                         Order Lab Tests
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log('Create consultation form')}>
+                      <DropdownMenuItem onClick={() => navigate('/consultation-forms')}>
                         <FileText className="mr-2 h-4 w-4" />
                         Create Consultation Form
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log('Schedule appointment')}>
+                      <DropdownMenuItem onClick={() => navigate('/appointments')}>
                         <CalendarDays className="mr-2 h-4 w-4" />
                         Schedule Appointment
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => console.log('Create referral')}>
+                      <DropdownMenuItem onClick={() => navigate('/referrals')}>
                         <Users className="mr-2 h-4 w-4" />
                         Create Referral
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log('Record vitals')}>
+                      <DropdownMenuItem onClick={() => {
+                        // Switch to vitals tab in current patient view
+                        const vitalsTab = document.querySelector('[data-state="inactive"][value="vitals"]') as HTMLElement;
+                        if (vitalsTab) vitalsTab.click();
+                      }}>
                         <Monitor className="mr-2 h-4 w-4" />
                         Record Vital Signs
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log('Upload documents')}>
+                      <DropdownMenuItem onClick={() => navigate('/documents')}>
                         <Upload className="mr-2 h-4 w-4" />
                         Upload Documents
                       </DropdownMenuItem>
@@ -274,12 +286,16 @@ export function ModernPatientOverview({
                         <Share className="mr-2 h-4 w-4" />
                         Print/Export Records
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log('Send message')}>
+                      <DropdownMenuItem onClick={() => {
+                        // Switch to communication tab in current patient view
+                        const commTab = document.querySelector('[data-state="inactive"][value="communication"]') as HTMLElement;
+                        if (commTab) commTab.click();
+                      }}>
                         <MessageSquare className="mr-2 h-4 w-4" />
                         Send Message
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-red-600">
+                      <DropdownMenuItem className="text-red-600" onClick={() => console.log('Archive patient functionality')}>
                         <Archive className="mr-2 h-4 w-4" />
                         Archive Patient
                       </DropdownMenuItem>
