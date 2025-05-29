@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Search, UserPlus, Users, Phone, Calendar, MapPin, 
   Stethoscope, FlaskRound, Pill, UserCheck, Activity,
   Heart, Clock, FileText, Grid3X3, List, LayoutGrid,
   Filter, SortAsc, Download, Upload, Eye, AlertTriangle,
-  Bookmark, BookmarkCheck, TrendingUp, Star
+  Bookmark, BookmarkCheck, TrendingUp, Star, ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Patient } from "@shared/schema";
@@ -37,6 +39,9 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
   const [sortBy, setSortBy] = useState<"name" | "age" | "lastVisit" | "riskLevel">("name");
   const [filterBy, setFilterBy] = useState<"all" | "priority" | "recent" | "highrisk">("all");
   const [selectedPatients, setSelectedPatients] = useState<Set<number>>(new Set());
+  const [isFiltersOpen, setIsFiltersOpen] = useState(true);
+  const [isStatsOpen, setIsStatsOpen] = useState(true);
+  const [isPatientsOpen, setIsPatientsOpen] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -182,8 +187,21 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
         </div>
       </div>
 
-      {/* Enhanced Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Enhanced Statistics - Collapsible */}
+      <Collapsible open={isStatsOpen} onOpenChange={setIsStatsOpen}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Patient Statistics
+          </h3>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="p-2">
+              {isStatsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -251,10 +269,25 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
             </div>
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Advanced Search and Filters */}
-      <Card className="shadow-sm">
+      {/* Advanced Search and Filters - Collapsible */}
+      <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Search & Filters
+          </h3>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="p-2">
+              {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent>
+          <Card className="shadow-sm">
         <CardContent className="p-6">
           <div className="flex flex-col space-y-4 lg:flex-row lg:gap-4 lg:space-y-0">
             {/* Search */}
@@ -337,10 +370,27 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+          </Card>
+          </CardContent>
+        </Card>
+      </CollapsibleContent>
+    </Collapsible>
 
-      {/* Enhanced Patient Display */}
+    {/* Enhanced Patient Display - Collapsible */}
+    <Collapsible open={isPatientsOpen} onOpenChange={setIsPatientsOpen}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Patient List ({filteredAndSortedPatients.length})
+        </h3>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="p-2">
+            {isPatientsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+      </div>
+      <CollapsibleContent>
       {isLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -511,6 +561,8 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
           )}
         </>
       )}
+      </CollapsibleContent>
+    </Collapsible>
     </div>
   );
 }
