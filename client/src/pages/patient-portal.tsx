@@ -51,6 +51,14 @@ export default function PatientPortal() {
   const [showMessaging, setShowMessaging] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [messageSubject, setMessageSubject] = useState('');
+  const [showAppointmentForm, setShowAppointmentForm] = useState(false);
+  const [appointmentData, setAppointmentData] = useState({
+    appointmentType: '',
+    preferredDate: '',
+    preferredTime: '',
+    reason: '',
+    notes: ''
+  });
   
   const queryClient = useQueryClient();
 
@@ -130,6 +138,49 @@ export default function PatientPortal() {
         subject: messageSubject.trim(),
         message: newMessage.trim()
       });
+    }
+  };
+
+  // Appointment booking functionality
+  const { data: appointments = [] } = useQuery({
+    queryKey: ['/api/patient-portal/appointments'],
+    enabled: isAuthenticated && !!patientSession,
+    staleTime: 30000
+  });
+
+  const bookAppointmentMutation = useMutation({
+    mutationFn: async (appointmentData: any) => {
+      const response = await fetch('/api/patient-portal/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('patientToken')}`
+        },
+        body: JSON.stringify(appointmentData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to book appointment');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/patient-portal/appointments'] });
+      setAppointmentData({
+        appointmentType: '',
+        preferredDate: '',
+        preferredTime: '',
+        reason: '',
+        notes: ''
+      });
+      setShowAppointmentForm(false);
+    }
+  });
+
+  const handleBookAppointment = () => {
+    if (appointmentData.appointmentType && appointmentData.preferredDate && appointmentData.reason) {
+      bookAppointmentMutation.mutate(appointmentData);
     }
   };
 
@@ -570,7 +621,11 @@ export default function PatientPortal() {
                   <div className="text-center py-4">
                     <Calendar className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                     <p className="text-sm text-gray-600">No upcoming appointments</p>
-                    <Button size="sm" className="mt-2">
+                    <Button 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => setShowAppointmentForm(true)}
+                    >
                       Book Appointment
                     </Button>
                   </div>
@@ -612,18 +667,155 @@ export default function PatientPortal() {
           <TabsContent value="appointments">
             <Card>
               <CardHeader>
-                <CardTitle>Appointment Booking</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Book Your Next Appointment</h3>
-                  <p className="text-gray-600 mb-4">Schedule a consultation with your healthcare provider</p>
-                  <Button>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Appointments</span>
+                  <Button 
+                    onClick={() => setShowAppointmentForm(true)}
+                    size="sm"
+                  >
                     <Calendar className="w-4 h-4 mr-2" />
                     Book New Appointment
                   </Button>
-                </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {showAppointmentForm ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="appointmentType">Appointment Type</Label>
+                        <select
+                          id="appointmentType"
+                          className="w-full p-2 border border-gray-300 rounded-md"
+                          value={appointmentData.appointmentType}
+                          onChange={(e) => setAppointmentData(prev => ({
+                            ...prev,
+                            appointmentType: e.target.value
+                          }))}
+                        >
+                          <option value="">Select appointment type</option>
+                          <option value="general-consultation">General Consultation</option>
+                          <option value="follow-up">Follow-up Visit</option>
+                          <option value="specialist-consultation">Specialist Consultation</option>
+                          <option value="routine-checkup">Routine Checkup</option>
+                          <option value="vaccination">Vaccination</option>
+                          <option value="lab-results-review">Lab Results Review</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="preferredDate">Preferred Date</Label>
+                        <Input
+                          id="preferredDate"
+                          type="date"
+                          value={appointmentData.preferredDate}
+                          onChange={(e) => setAppointmentData(prev => ({
+                            ...prev,
+                            preferredDate: e.target.value
+                          }))}
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="preferredTime">Preferred Time</Label>
+                        <select
+                          id="preferredTime"
+                          className="w-full p-2 border border-gray-300 rounded-md"
+                          value={appointmentData.preferredTime}
+                          onChange={(e) => setAppointmentData(prev => ({
+                            ...prev,
+                            preferredTime: e.target.value
+                          }))}
+                        >
+                          <option value="">Select preferred time</option>
+                          <option value="morning">Morning (8:00 AM - 12:00 PM)</option>
+                          <option value="afternoon">Afternoon (12:00 PM - 4:00 PM)</option>
+                          <option value="evening">Evening (4:00 PM - 8:00 PM)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="reason">Reason for Visit</Label>
+                        <Input
+                          id="reason"
+                          placeholder="Brief description of your concern"
+                          value={appointmentData.reason}
+                          onChange={(e) => setAppointmentData(prev => ({
+                            ...prev,
+                            reason: e.target.value
+                          }))}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                      <Textarea
+                        id="notes"
+                        placeholder="Any additional information you'd like to share..."
+                        rows={3}
+                        value={appointmentData.notes}
+                        onChange={(e) => setAppointmentData(prev => ({
+                          ...prev,
+                          notes: e.target.value
+                        }))}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleBookAppointment}
+                        disabled={!appointmentData.appointmentType || !appointmentData.preferredDate || !appointmentData.reason || bookAppointmentMutation.isPending}
+                      >
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {bookAppointmentMutation.isPending ? 'Booking...' : 'Book Appointment'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowAppointmentForm(false);
+                          setAppointmentData({
+                            appointmentType: '',
+                            preferredDate: '',
+                            preferredTime: '',
+                            reason: '',
+                            notes: ''
+                          });
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {appointments.length > 0 ? (
+                      <div className="space-y-3">
+                        {appointments.map((appointment: any) => (
+                          <div key={appointment.id} className="border rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium">{appointment.appointmentType}</h4>
+                              <Badge variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}>
+                                {appointment.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{appointment.reason}</p>
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>Date: {new Date(appointment.appointmentDate).toLocaleDateString()}</span>
+                              <span>Time: {appointment.appointmentTime}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Appointments Scheduled</h3>
+                        <p className="text-gray-600 mb-4">
+                          Schedule a consultation with your healthcare provider
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

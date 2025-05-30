@@ -3354,5 +3354,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Patient portal appointment endpoints
+  app.get('/api/patient-portal/appointments', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient?.id;
+      if (!patientId) {
+        return res.status(401).json({ error: 'Patient authentication required' });
+      }
+
+      // For now, return empty array as no appointments table exists
+      // This will need to be implemented when appointment schema is added
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching patient appointments:', error);
+      res.status(500).json({ error: 'Failed to fetch appointments' });
+    }
+  });
+
+  app.post('/api/patient-portal/appointments', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient?.id;
+      if (!patientId) {
+        return res.status(401).json({ error: 'Patient authentication required' });
+      }
+
+      const { appointmentType, preferredDate, preferredTime, reason, notes } = req.body;
+      
+      if (!appointmentType || !preferredDate || !reason) {
+        return res.status(400).json({ error: 'Appointment type, preferred date, and reason are required' });
+      }
+
+      // For now, return success response
+      // This will need actual appointment creation when appointment schema is implemented
+      const appointmentData = {
+        id: Date.now(),
+        patientId,
+        appointmentType,
+        preferredDate,
+        preferredTime,
+        reason,
+        notes,
+        status: 'pending',
+        createdAt: new Date()
+      };
+
+      res.status(201).json(appointmentData);
+    } catch (error) {
+      console.error('Error booking patient appointment:', error);
+      res.status(500).json({ error: 'Failed to book appointment' });
+    }
+  });
+
   return httpServer;
 }
