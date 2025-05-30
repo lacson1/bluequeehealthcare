@@ -144,7 +144,7 @@ export default function LabOrdersPage() {
     return (
       patient?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.orderedBy?.toLowerCase().includes(searchTerm.toLowerCase())
+      (order.orderedBy && order.orderedBy.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   });
 
