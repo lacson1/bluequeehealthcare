@@ -738,6 +738,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Prescription routes
+  app.get("/api/prescriptions", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const prescriptions = await storage.getAllPrescriptions();
+      res.json(prescriptions);
+    } catch (error) {
+      console.error('Error fetching prescriptions:', error);
+      res.status(500).json({ message: "Failed to fetch prescriptions" });
+    }
+  });
+
   app.post("/api/patients/:id/prescriptions", authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);

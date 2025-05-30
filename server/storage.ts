@@ -70,6 +70,7 @@ export interface IStorage {
 
   // Prescriptions
   getPrescription(id: number): Promise<Prescription | undefined>;
+  getAllPrescriptions(): Promise<Prescription[]>;
   getPrescriptionsByPatient(patientId: number): Promise<Prescription[]>;
   getPrescriptionsByVisit(visitId: number): Promise<Prescription[]>;
   createPrescription(prescription: InsertPrescription): Promise<Prescription>;
@@ -316,6 +317,11 @@ export class DatabaseStorage implements IStorage {
   async getPrescriptionsByVisit(visitId: number): Promise<Prescription[]> {
     return await db.select().from(prescriptions)
       .where(eq(prescriptions.visitId, visitId))
+      .orderBy(desc(prescriptions.createdAt));
+  }
+
+  async getAllPrescriptions(): Promise<Prescription[]> {
+    return await db.select().from(prescriptions)
       .orderBy(desc(prescriptions.createdAt));
   }
 
