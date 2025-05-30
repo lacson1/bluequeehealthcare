@@ -499,7 +499,7 @@ export default function PatientAccessCards() {
                     <Checkbox
                       id="include-qr"
                       checked={includeQR}
-                      onCheckedChange={setIncludeQR}
+                      onCheckedChange={(checked) => setIncludeQR(checked === true)}
                     />
                     <Label htmlFor="include-qr" className="flex items-center gap-2">
                       <QrCode className="h-4 w-4" />
@@ -511,7 +511,7 @@ export default function PatientAccessCards() {
                     <Checkbox
                       id="include-barcode"
                       checked={includeBarcode}
-                      onCheckedChange={setIncludeBarcode}
+                      onCheckedChange={(checked) => setIncludeBarcode(checked === true)}
                     />
                     <Label htmlFor="include-barcode" className="flex items-center gap-2">
                       <Scan className="h-4 w-4" />
@@ -531,7 +531,7 @@ export default function PatientAccessCards() {
                   <Checkbox
                     id="email-notifications"
                     checked={emailNotifications}
-                    onCheckedChange={setEmailNotifications}
+                    onCheckedChange={(checked) => setEmailNotifications(checked === true)}
                   />
                   <Label htmlFor="email-notifications" className="flex items-center gap-2">
                     <Mail className="h-4 w-4" />
@@ -543,7 +543,7 @@ export default function PatientAccessCards() {
                   <Checkbox
                     id="sms-notifications"
                     checked={smsNotifications}
-                    onCheckedChange={setSmsNotifications}
+                    onCheckedChange={(checked) => setSmsNotifications(checked === true)}
                   />
                   <Label htmlFor="sms-notifications" className="flex items-center gap-2">
                     <Phone className="h-4 w-4" />
