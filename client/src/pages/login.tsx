@@ -100,52 +100,55 @@ export default function Login() {
             </div>
           </div>
           
-          {/* Futuristic Feature Grid */}
+          {/* Feature Grid with Motion */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="group bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-cyan-400/20 hover:border-cyan-400/40 hover:bg-slate-800/60 transition-all duration-500">
-              <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                <Brain className="w-6 h-6 text-white drop-shadow-lg" />
+            <div className="group bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-cyan-400/20 hover:border-cyan-400/40 hover:bg-slate-800/60 transition-all duration-500 hover:shadow-lg hover:shadow-cyan-500/10 animate-fadeInUp" style={{animationDelay: '0.1s'}}>
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                <Brain className="w-6 h-6 text-white drop-shadow-lg animate-pulse" />
               </div>
-              <h3 className="font-bold text-cyan-200 mb-2">Neural Engine</h3>
-              <p className="text-sm text-cyan-300/80">Quantum-enhanced diagnostic intelligence</p>
+              <h3 className="font-bold text-cyan-200 mb-2 group-hover:text-cyan-100 transition-colors">Smart Analytics</h3>
+              <p className="text-sm text-cyan-300/80 group-hover:text-cyan-200/90 transition-colors">AI-powered diagnostic insights</p>
             </div>
             
-            <div className="group bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-blue-400/20 hover:border-blue-400/40 hover:bg-slate-800/60 transition-all duration-500">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                <BarChart3 className="w-6 h-6 text-white drop-shadow-lg" />
+            <div className="group bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-blue-400/20 hover:border-blue-400/40 hover:bg-slate-800/60 transition-all duration-500 hover:shadow-lg hover:shadow-blue-500/10 animate-fadeInUp" style={{animationDelay: '0.2s'}}>
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
+                <BarChart3 className="w-6 h-6 text-white drop-shadow-lg group-hover:animate-bounce" />
               </div>
-              <h3 className="font-bold text-blue-200 mb-2">Predictive Matrix</h3>
-              <p className="text-sm text-blue-300/80">Advanced healthcare forecasting</p>
+              <h3 className="font-bold text-blue-200 mb-2 group-hover:text-blue-100 transition-colors">Health Analytics</h3>
+              <p className="text-sm text-blue-300/80 group-hover:text-blue-200/90 transition-colors">Advanced patient insights</p>
             </div>
             
-            <div className="group bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-purple-400/20 hover:border-purple-400/40 hover:bg-slate-800/60 transition-all duration-500">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                <Heart className="w-6 h-6 text-white drop-shadow-lg" />
+            <div className="group bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-purple-400/20 hover:border-purple-400/40 hover:bg-slate-800/60 transition-all duration-500 hover:shadow-lg hover:shadow-purple-500/10 animate-fadeInUp" style={{animationDelay: '0.3s'}}>
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
+                <Heart className="w-6 h-6 text-white drop-shadow-lg animate-pulse" />
               </div>
-              <h3 className="font-bold text-purple-200 mb-2">Vital Stream</h3>
-              <p className="text-sm text-purple-300/80">Real-time biometric monitoring</p>
+              <h3 className="font-bold text-purple-200 mb-2 group-hover:text-purple-100 transition-colors">Vital Monitoring</h3>
+              <p className="text-sm text-purple-300/80 group-hover:text-purple-200/90 transition-colors">Real-time health tracking</p>
             </div>
             
-            <div className="group bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-green-400/20 hover:border-green-400/40 hover:bg-slate-800/60 transition-all duration-500">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                <Shield className="w-6 h-6 text-white drop-shadow-lg" />
+            <div className="group bg-slate-800/40 backdrop-blur-xl p-6 rounded-2xl border border-green-400/20 hover:border-green-400/40 hover:bg-slate-800/60 transition-all duration-500 hover:shadow-lg hover:shadow-green-500/10 animate-fadeInUp" style={{animationDelay: '0.4s'}}>
+              <div className="w-12 h-12 bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:-rotate-2 transition-transform duration-300">
+                <Shield className="w-6 h-6 text-white drop-shadow-lg group-hover:animate-pulse" />
               </div>
-              <h3 className="font-bold text-green-200 mb-2">Secure Vault</h3>
-              <p className="text-sm text-green-300/80">HIPAA-compliant data protection</p>
+              <h3 className="font-bold text-green-200 mb-2 group-hover:text-green-100 transition-colors">Secure Vault</h3>
+              <p className="text-sm text-green-300/80 group-hover:text-green-200/90 transition-colors">HIPAA-compliant data protection</p>
             </div>
           </div>
         </div>
         
-        {/* Right Side - Futuristic Login Form */}
-        <div className="w-full max-w-md mx-auto lg:mx-0">
-          <Card className="bg-slate-900/60 backdrop-blur-2xl border-0 shadow-2xl ring-1 ring-cyan-400/30">
+        {/* Right Side - Animated Login Form */}
+        <div className="w-full max-w-md mx-auto lg:mx-0 animate-fadeInUp" style={{animationDelay: '0.5s'}}>
+          <Card className="bg-slate-900/60 backdrop-blur-2xl border-0 shadow-2xl ring-1 ring-cyan-400/30 hover:ring-cyan-400/50 transition-all duration-500 group">
             <CardHeader className="space-y-6 pb-8">
               <div className="text-center space-y-4">
                 <div className="relative mx-auto">
-                  <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl backdrop-blur-sm border border-white/20">
-                    <Stethoscope className="w-10 h-10 text-white drop-shadow-xl" />
+                  <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl backdrop-blur-sm border border-white/20 group-hover:scale-105 transition-transform duration-500 group-hover:rotate-1">
+                    <Stethoscope className="w-10 h-10 text-white drop-shadow-xl group-hover:animate-pulse" />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse group-hover:animate-bounce"></div>
+                  {/* Floating particles */}
+                  <div className="absolute -top-4 -left-4 w-2 h-2 bg-cyan-400 rounded-full opacity-60 animate-ping" style={{animationDelay: '1s'}}></div>
+                  <div className="absolute -bottom-2 -right-6 w-3 h-3 bg-blue-400 rounded-full opacity-40 animate-ping" style={{animationDelay: '2s'}}></div>
                 </div>
                 <div className="space-y-3">
                   <CardTitle className="text-3xl font-bold bg-gradient-to-r from-white via-cyan-200 to-blue-300 bg-clip-text text-transparent">
