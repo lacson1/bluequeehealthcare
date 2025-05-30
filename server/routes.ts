@@ -1125,9 +1125,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/patients/:id/lab-orders', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      const { tests } = req.body;
+      const { tests, labTestIds, notes } = req.body;
       
-      if (!tests || !Array.isArray(tests) || tests.length === 0) {
+      // Handle both 'tests' and 'labTestIds' fields for compatibility
+      const testIds = tests || labTestIds;
+      
+      if (!testIds || !Array.isArray(testIds) || testIds.length === 0) {
         return res.status(400).json({ message: "Tests array is required" });
       }
       
@@ -1141,7 +1144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .returning();
       
       // Create lab order items for each test
-      const orderItems = tests.map((testId: number) => ({
+      const orderItems = testIds.map((testId: number) => ({
         labOrderId: labOrder.id,
         labTestId: testId,
         status: 'pending'
@@ -1153,12 +1156,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const auditLogger = new AuditLogger(req);
       await auditLogger.logPatientAction("Lab Order Created", patientId, {
         labOrderId: labOrder.id,
-        testCount: tests.length,
-        testIds: tests
+        testCount: testIds.length,
+        testIds: testIds,
+        notes: notes
       });
       
       res.status(201).json(labOrder);
     } catch (error) {
+      console.error('Lab order creation error:', error);
       res.status(500).json({ message: "Failed to create lab order" });
     }
   });
