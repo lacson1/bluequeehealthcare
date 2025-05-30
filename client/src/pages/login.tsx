@@ -71,30 +71,30 @@ export default function Login() {
                   ClinicConnect
                 </h1>
                 <p className="text-cyan-200/90 font-medium tracking-wide">
-                  AI-Powered Healthcare Evolution
+                  Modern Healthcare Management
                 </p>
               </div>
             </div>
             
             <div className="space-y-6">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-white via-cyan-100 to-blue-200 bg-clip-text text-transparent">
-                Neural Healthcare Intelligence
+                Advanced Healthcare Platform
               </h2>
               <p className="text-cyan-100/80 leading-relaxed text-lg">
-                Advanced quantum-enhanced diagnostics with neural pattern recognition, real-time health monitoring, and predictive medical interventions.
+                Comprehensive healthcare management with intelligent analytics, real-time monitoring, and streamlined patient care workflows.
               </p>
               <div className="flex flex-wrap gap-4 text-sm">
                 <span className="flex items-center bg-cyan-500/20 backdrop-blur-sm px-3 py-2 rounded-full border border-cyan-400/30">
                   <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-                  <span className="text-cyan-200">Neural Diagnostics</span>
+                  <span className="text-cyan-200">Smart Diagnostics</span>
                 </span>
                 <span className="flex items-center bg-blue-500/20 backdrop-blur-sm px-3 py-2 rounded-full border border-blue-400/30">
                   <div className="w-2 h-2 bg-blue-400 rounded-full mr-2 animate-pulse [animation-delay:0.5s]"></div>
-                  <span className="text-blue-200">Quantum Analytics</span>
+                  <span className="text-blue-200">Data Analytics</span>
                 </span>
                 <span className="flex items-center bg-purple-500/20 backdrop-blur-sm px-3 py-2 rounded-full border border-purple-400/30">
                   <div className="w-2 h-2 bg-purple-400 rounded-full mr-2 animate-pulse [animation-delay:1s]"></div>
-                  <span className="text-purple-200">Predictive AI</span>
+                  <span className="text-purple-200">Patient Insights</span>
                 </span>
               </div>
             </div>
@@ -149,10 +149,10 @@ export default function Login() {
                 </div>
                 <div className="space-y-3">
                   <CardTitle className="text-3xl font-bold bg-gradient-to-r from-white via-cyan-200 to-blue-300 bg-clip-text text-transparent">
-                    Neural Access
+                    Welcome Back
                   </CardTitle>
                   <CardDescription className="text-cyan-200/70 text-base">
-                    Enter the quantum healthcare matrix
+                    Access your healthcare dashboard
                   </CardDescription>
                 </div>
               </div>
@@ -161,13 +161,13 @@ export default function Login() {
             <CardContent className="space-y-6">
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-3">
-                  <Label htmlFor="username" className="text-sm font-medium text-cyan-200/90">Neural ID</Label>
+                  <Label htmlFor="username" className="text-sm font-medium text-cyan-200/90">Username</Label>
                   <Input
                     id="username"
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter neural identifier"
+                    placeholder="Enter your username"
                     required
                     disabled={isLoading}
                     className="h-14 bg-slate-800/50 border-cyan-400/30 focus:border-cyan-400 focus:ring-cyan-400/20 text-cyan-100 placeholder:text-cyan-300/50 backdrop-blur-sm"
@@ -175,14 +175,14 @@ export default function Login() {
                 </div>
                 
                 <div className="space-y-3">
-                  <Label htmlFor="password" className="text-sm font-medium text-cyan-200/90">Quantum Key</Label>
+                  <Label htmlFor="password" className="text-sm font-medium text-cyan-200/90">Password</Label>
                   <div className="relative">
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter quantum security key"
+                      placeholder="Enter your password"
                       required
                       disabled={isLoading}
                       className="h-14 bg-slate-800/50 border-cyan-400/30 focus:border-cyan-400 focus:ring-cyan-400/20 text-cyan-100 placeholder:text-cyan-300/50 backdrop-blur-sm pr-14"
@@ -215,34 +215,34 @@ export default function Login() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                      <span>Establishing neural link...</span>
+                      <span>Signing in...</span>
                     </>
                   ) : (
                     <>
-                      <Zap className="mr-3 h-5 w-5" />
-                      <span>Access Neural Matrix</span>
+                      <Stethoscope className="mr-3 h-5 w-5" />
+                      <span>Access Dashboard</span>
                     </>
                   )}
                 </Button>
               </form>
               
-              {/* Neural Access Codes */}
+              {/* Demo Accounts */}
               <div className="p-5 bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-cyan-400/20">
                 <p className="text-sm font-bold text-cyan-200 mb-4 flex items-center">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Neural Access Codes
+                  <Users className="w-4 h-4 mr-2" />
+                  Demo Accounts
                 </p>
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between items-center bg-slate-700/40 p-3 rounded-lg backdrop-blur-sm">
-                    <span className="text-cyan-300 font-medium">System Admin</span>
+                    <span className="text-cyan-300 font-medium">Administrator</span>
                     <span className="text-cyan-100 font-mono">admin / admin123</span>
                   </div>
                   <div className="flex justify-between items-center bg-slate-700/40 p-3 rounded-lg backdrop-blur-sm">
-                    <span className="text-blue-300 font-medium">Neural Physician</span>
+                    <span className="text-blue-300 font-medium">Doctor</span>
                     <span className="text-blue-100 font-mono">ade / doctor123</span>
                   </div>
                   <div className="flex justify-between items-center bg-slate-700/40 p-3 rounded-lg backdrop-blur-sm">
-                    <span className="text-purple-300 font-medium">Care Specialist</span>
+                    <span className="text-purple-300 font-medium">Nurse</span>
                     <span className="text-purple-100 font-mono">syb / nurse123</span>
                   </div>
                 </div>
