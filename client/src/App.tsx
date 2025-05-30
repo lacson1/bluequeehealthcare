@@ -41,6 +41,7 @@ import WellnessAnalyticsPage from "@/pages/wellness-analytics";
 import MentalHealthPage from "@/pages/mental-health";
 import ClinicalProtocols from "@/components/clinical-protocols";
 import ExportCompliance from "@/components/export-compliance";
+import PatientAccessCards from "@/pages/patient-access-cards";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
@@ -98,6 +99,7 @@ function AuthenticatedApp() {
                   <Route path="/user-management" component={UserManagementEnhanced} />
                   <Route path="/audit-logs" component={AuditLogs} />
                   <Route path="/organization-management" component={OrganizationManagement} />
+                  <Route path="/patient-access-cards" component={PatientAccessCards} />
                   <Route component={NotFound} />
                 </Switch>
               </div>

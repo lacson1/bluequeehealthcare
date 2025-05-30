@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator, HelpCircle, ChevronDown, ChevronRight, Brain, Calendar, ClipboardList, Activity, Star, Building } from "lucide-react";
+import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator, HelpCircle, ChevronDown, ChevronRight, Brain, Calendar, ClipboardList, Activity, Star, Building, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRole, RoleGuard } from "@/components/role-guard";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,7 @@ const getNavigationGroupsForRole = (role: string) => {
       items: [
         { name: "User Management", href: "/user-management", icon: UserCog, roles: ["admin"] },
         { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["admin"] },
+        { name: "Patient Access Cards", href: "/patient-access-cards", icon: CreditCard, roles: ["admin", "nurse"] },
         { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["admin"] },
       ]
     },

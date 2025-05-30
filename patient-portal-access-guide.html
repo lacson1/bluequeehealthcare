@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Portal Access Guide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .access-card {
+            border: 2px solid #2563eb;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        .patient-info {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #f59e0b;
+        }
+        .step {
+            background: #ecfdf5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #10b981;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .printable-card {
+            page-break-after: always;
+            border: 2px dashed #6b7280;
+            padding: 20px;
+            margin: 30px 0;
+            width: 85mm;
+            height: 54mm;
+            font-size: 12px;
+        }
+        .qr-placeholder {
+            width: 40px;
+            height: 40px;
+            background: #e5e7eb;
+            border: 1px solid #9ca3af;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏥 ClinicConnect Patient Portal</h1>
+        <p>Secure Access to Your Healthcare Information</p>
+    </div>
+
+    <div class="no-print">
+        <h2>📋 Patient Portal Information Guide</h2>
+        
+        <div class="access-card">
+            <h3>🌐 How to Access Your Patient Portal</h3>
+            <p><strong>Website:</strong> [Your Clinic Website]/patient-portal</p>
+            <p><strong>Available 24/7</strong> - Access your healthcare information anytime, anywhere</p>
+        </div>
+
+        <h3>🔐 What You Need to Log In</h3>
+        <div class="patient-info">
+            <p><strong>You will need these 3 pieces of information:</strong></p>
+            <ol>
+                <li><strong>Patient ID</strong> - Your unique patient number (provided by clinic staff)</li>
+                <li><strong>Phone Number</strong> - The phone number registered in your patient record</li>
+                <li><strong>Date of Birth</strong> - In YYYY-MM-DD format (example: 1985-03-15)</li>
+            </ol>
+        </div>
+
+        <h3>📱 Step-by-Step Login Process</h3>
+        <div class="step">
+            <strong>Step 1:</strong> Go to [Your Clinic Website]/patient-portal
+        </div>
+        <div class="step">
+            <strong>Step 2:</strong> Enter your Patient ID in the first field
+        </div>
+        <div class="step">
+            <strong>Step 3:</strong> Enter your registered phone number
+        </div>
+        <div class="step">
+            <strong>Step 4:</strong> Enter your date of birth (YYYY-MM-DD format)
+        </div>
+        <div class="step">
+            <strong>Step 5:</strong> Click "Login" to access your portal
+        </div>
+
+        <h3>🎯 What You Can Do in the Portal</h3>
+        <div class="features">
+            <div class="feature">
+                <h4>📅 Book Appointments</h4>
+                <p>Schedule consultations with your healthcare team</p>
+            </div>
+            <div class="feature">
+                <h4>💬 Secure Messaging</h4>
+                <p>Communicate directly with doctors, nurses, and specialists</p>
+            </div>
+            <div class="feature">
+                <h4>📊 Lab Results</h4>
+                <p>View your test results as soon as they're available</p>
+            </div>
+            <div class="feature">
+                <h4>📋 Medical Records</h4>
+                <p>Access your visit history and download reports</p>
+            </div>
+            <div class="feature">
+                <h4>💊 Prescriptions</h4>
+                <p>View current medications and request refills</p>
+            </div>
+            <div class="feature">
+                <h4>📄 Health Summary</h4>
+                <p>Track your overall health progress</p>
+            </div>
+        </div>
+
+        <h3>🆘 Need Help?</h3>
+        <div class="patient-info">
+            <p><strong>Having trouble logging in?</strong></p>
+            <ul>
+                <li>Contact our reception desk during business hours</li>
+                <li>Verify your phone number and date of birth are correct</li>
+                <li>Ask staff to confirm your Patient ID</li>
+                <li>For technical support, call [Your Clinic Phone Number]</li>
+            </ul>
+        </div>
+
+        <h3>🔒 Privacy & Security</h3>
+        <p>Your health information is protected with industry-standard security measures. Never share your login credentials with others.</p>
+    </div>
+
+    <!-- Printable Patient Access Cards -->
+    <div class="printable-card">
+        <div style="text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 8px; margin-bottom: 8px;">
+            <strong>🏥 [CLINIC NAME] Patient Portal</strong>
+        </div>
+        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+            <div class="qr-placeholder"></div>
+            <div>
+                <strong>Website:</strong><br>
+                [YourWebsite]/patient-portal
+            </div>
+        </div>
+        <div style="border: 1px solid #ddd; padding: 8px; background: #f9f9f9;">
+            <strong>Your Patient ID:</strong> ________________<br>
+            <strong>Phone:</strong> Your registered number<br>
+            <strong>DOB:</strong> YYYY-MM-DD format
+        </div>
+        <div style="font-size: 10px; margin-top: 8px; text-align: center;">
+            Access: Appointments • Messages • Records • Lab Results
+        </div>
+    </div>
+
+    <!-- Staff Distribution Checklist -->
+    <div class="no-print" style="background: #f3f4f6; padding: 20px; border-radius: 10px; margin-top: 30px;">
+        <h3>👥 For Clinic Staff: Patient Portal Distribution Checklist</h3>
+        
+        <h4>🎯 When to Provide Portal Access:</h4>
+        <ul>
+            <li>✅ During patient registration (new patients)</li>
+            <li>✅ At discharge after any visit</li>
+            <li>✅ When patients request portal access</li>
+            <li>✅ During routine checkups</li>
+            <li>✅ When lab results are ready</li>
+        </ul>
+
+        <h4>📝 What to Give Patients:</h4>
+        <ul>
+            <li>✅ Printed access card with their Patient ID</li>
+            <li>✅ Verbal explanation of portal features</li>
+            <li>✅ Confirmation of registered phone number</li>
+            <li>✅ This information guide (if requested)</li>
+        </ul>
+
+        <h4>🔍 Patient ID Lookup Process:</h4>
+        <ol>
+            <li>Search patient in clinic management system</li>
+            <li>Note their Patient ID number</li>
+            <li>Verify phone number on file</li>
+            <li>Fill out access card with Patient ID</li>
+            <li>Explain login process to patient</li>
+        </ol>
+
+        <h4>💡 Common Patient Questions:</h4>
+        <ul>
+            <li><strong>Q:</strong> "What if I forget my Patient ID?"<br>
+                <strong>A:</strong> "Contact our reception desk with your name and phone number, and we'll provide it."</li>
+            <li><strong>Q:</strong> "Can my family members access my portal?"<br>
+                <strong>A:</strong> "No, for privacy reasons, only you can access your portal with your credentials."</li>
+            <li><strong>Q:</strong> "Is this secure?"<br>
+                <strong>A:</strong> "Yes, we use bank-level security to protect your health information."</li>
+        </ul>
+    </div>
+</body>
+</html>
