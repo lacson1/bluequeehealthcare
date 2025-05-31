@@ -52,7 +52,8 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 
 interface Patient {
@@ -317,6 +318,51 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     }
   }
 
+  const handleReorderMedication = async (prescription: any) => {
+    try {
+      // Create a new prescription based on the previous one
+      const reorderData = {
+        patientId: prescription.patientId,
+        medicationId: prescription.medicationId,
+        medicationName: prescription.medicationName,
+        dosage: prescription.dosage,
+        frequency: prescription.frequency,
+        duration: prescription.duration,
+        instructions: prescription.instructions,
+        prescribedBy: user?.username || 'Unknown',
+        status: 'active',
+        startDate: new Date().toISOString(),
+        organizationId: user?.organizationId
+      };
+
+      const response = await fetch('/api/prescriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reorderData),
+      });
+
+      if (response.ok) {
+        // Refresh prescriptions data
+        queryClient.invalidateQueries(['/api/patients', patient.id, 'prescriptions']);
+        toast({
+          title: "Medication Reordered",
+          description: `${prescription.medicationName} has been reordered successfully.`,
+        });
+      } else {
+        throw new Error('Failed to reorder medication');
+      }
+    } catch (error) {
+      console.error('Error reordering medication:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reorder medication. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleGenerateQRCode = async (prescription: any) => {
     try {
       // Create a human-readable prescription summary that displays properly when scanned
@@ -552,7 +598,7 @@ Present this QR code for medication dispensing.`;
             <CardContent>
               <Tabs defaultValue="current" className="w-full">
                 <div className="flex items-center justify-between mb-4">
-                  <TabsList className="grid w-full grid-cols-3 max-w-md">
+                  <TabsList className="grid w-full grid-cols-4 max-w-2xl">
                     <TabsTrigger value="current" className="flex items-center gap-2">
                       <Pill className="w-4 h-4" />
                       Current ({activeMedications.length})
@@ -560,6 +606,10 @@ Present this QR code for medication dispensing.`;
                     <TabsTrigger value="past" className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
                       Past ({discontinuedMedications.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="repeat" className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4" />
+                      Repeat
                     </TabsTrigger>
                     <TabsTrigger value="summary" className="flex items-center gap-2">
                       <FileText className="w-4 h-4" />
@@ -765,15 +815,26 @@ Present this QR code for medication dispensing.`;
                                 <div className="text-xs text-gray-500">
                                   Started: {new Date(prescription.startDate).toLocaleDateString()}
                                 </div>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-gray-600 hover:text-gray-800"
-                                  onClick={() => handlePrintPrescription(prescription)}
-                                >
-                                  <Printer className="w-3 h-3 mr-1" />
-                                  Print
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-blue-600 hover:text-blue-800 border-blue-200"
+                                    onClick={() => handleReorderMedication(prescription)}
+                                  >
+                                    <RefreshCw className="w-3 h-3 mr-1" />
+                                    Reorder
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-gray-600 hover:text-gray-800"
+                                    onClick={() => handlePrintPrescription(prescription)}
+                                  >
+                                    <Printer className="w-3 h-3 mr-1" />
+                                    Print
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -787,6 +848,245 @@ Present this QR code for medication dispensing.`;
                       <p className="text-sm text-gray-500">Historical medications will appear here when available</p>
                     </div>
                   )}
+                </TabsContent>
+
+                {/* Repeat Medications Tab */}
+                <TabsContent value="repeat" className="space-y-4">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                    <h4 className="font-medium text-blue-800 mb-2">Repeat Prescriptions</h4>
+                    <p className="text-sm text-blue-700">
+                      These are ongoing medications that require regular review by medical staff. Reviews ensure safety and effectiveness.
+                    </p>
+                  </div>
+                  
+                  {/* Mock repeat medications for demonstration */}
+                  <div className="space-y-3">
+                    <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="font-semibold text-green-800 text-lg">
+                              Lisinopril (Repeat Prescription)
+                            </h4>
+                            <Badge className="bg-green-100 text-green-800 border-green-200">
+                              Active Repeat
+                            </Badge>
+                            <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                              Review Due: Dec 15, 2025
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
+                            <div className="bg-white p-3 rounded-md border">
+                              <span className="font-medium text-gray-700 block">Dosage</span>
+                              <p className="text-gray-800 mt-1">10mg once daily</p>
+                            </div>
+                            <div className="bg-white p-3 rounded-md border">
+                              <span className="font-medium text-gray-700 block">Frequency</span>
+                              <p className="text-gray-800 mt-1">Once daily</p>
+                            </div>
+                            <div className="bg-white p-3 rounded-md border">
+                              <span className="font-medium text-gray-700 block">Review Interval</span>
+                              <p className="text-gray-800 mt-1">6 months</p>
+                            </div>
+                            <div className="bg-white p-3 rounded-md border">
+                              <span className="font-medium text-gray-700 block">Reviewed By</span>
+                              <p className="text-gray-800 mt-1">Dr. Johnson</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
+                            <span className="font-medium text-gray-700 flex items-center gap-2">
+                              <FileText className="w-4 h-4" />
+                              Review Notes
+                            </span>
+                            <p className="text-gray-800 mt-2">Blood pressure well controlled. Continue current dosage. Monitor kidney function.</p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-green-200">
+                            <div className="flex items-center space-x-4 text-xs text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>Started: Jan 15, 2025</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>Last Review: Jun 15, 2025</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-blue-600 hover:text-blue-800 border-blue-200"
+                              >
+                                <UserCheck className="w-3 h-3 mr-1" />
+                                Schedule Review
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-green-600 hover:text-green-800 border-green-200"
+                              >
+                                <RefreshCw className="w-3 h-3 mr-1" />
+                                Issue Repeat
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-800">
+                                    <MoreVertical className="w-3 h-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-[180px]">
+                                  <DropdownMenuItem>
+                                    <Edit className="w-3 h-3 mr-2" />
+                                    Edit Repeat
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Printer className="w-3 h-3 mr-2" />
+                                    Print
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem>
+                                    <XCircle className="w-3 h-3 mr-2 text-red-600" />
+                                    Stop Repeat
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="font-semibold text-yellow-800 text-lg">
+                              Metformin (Repeat Prescription)
+                            </h4>
+                            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                              Review Overdue
+                            </Badge>
+                            <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                              Review Overdue: Nov 20, 2025
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
+                            <div className="bg-white p-3 rounded-md border">
+                              <span className="font-medium text-gray-700 block">Dosage</span>
+                              <p className="text-gray-800 mt-1">500mg twice daily</p>
+                            </div>
+                            <div className="bg-white p-3 rounded-md border">
+                              <span className="font-medium text-gray-700 block">Frequency</span>
+                              <p className="text-gray-800 mt-1">Twice daily</p>
+                            </div>
+                            <div className="bg-white p-3 rounded-md border">
+                              <span className="font-medium text-gray-700 block">Review Interval</span>
+                              <p className="text-gray-800 mt-1">3 months</p>
+                            </div>
+                            <div className="bg-white p-3 rounded-md border">
+                              <span className="font-medium text-gray-700 block">Reviewed By</span>
+                              <p className="text-gray-800 mt-1">Dr. Smith</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-4 p-3 bg-red-50 rounded-md border border-red-200">
+                            <span className="font-medium text-red-700 flex items-center gap-2">
+                              <AlertTriangle className="w-4 h-4" />
+                              Review Required
+                            </span>
+                            <p className="text-red-800 mt-2">This repeat prescription requires immediate medical review before issuing. Please schedule appointment.</p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between mt-4 pt-3 border-t border-yellow-200">
+                            <div className="flex items-center space-x-4 text-xs text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>Started: Mar 10, 2025</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>Last Review: Aug 20, 2025</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                size="sm" 
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                              >
+                                <UserCheck className="w-3 h-3 mr-1" />
+                                Urgent Review
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-gray-400 border-gray-300"
+                                disabled
+                              >
+                                <RefreshCw className="w-3 h-3 mr-1" />
+                                Issue Repeat
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Review Assignment Section */}
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 mt-6">
+                    <h4 className="font-medium text-gray-800 mb-3">Assign Review</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-2">Assign to:</label>
+                        <select className="w-full p-2 border border-gray-300 rounded-md text-sm">
+                          <option>Select reviewer...</option>
+                          <option>Dr. Johnson (Doctor)</option>
+                          <option>Dr. Smith (Doctor)</option>
+                          <option>Sarah Wilson (Pharmacist)</option>
+                          <option>Mike Brown (Nurse)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-2">Review Type:</label>
+                        <select className="w-full p-2 border border-gray-300 rounded-md text-sm">
+                          <option>Routine Review</option>
+                          <option>Urgent Review</option>
+                          <option>Medication Safety Review</option>
+                          <option>Dosage Adjustment</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-2">Due Date:</label>
+                        <input 
+                          type="date" 
+                          className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                          defaultValue="2025-12-15"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-gray-700 block mb-2">Review Notes:</label>
+                      <textarea 
+                        className="w-full p-2 border border-gray-300 rounded-md text-sm" 
+                        rows={3}
+                        placeholder="Add notes for the reviewer..."
+                      ></textarea>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Assign Review
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Schedule Follow-up
+                      </Button>
+                    </div>
+                  </div>
                 </TabsContent>
 
                 {/* Summary Tab */}
