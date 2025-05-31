@@ -337,6 +337,9 @@ export class PrintService {
   }
 
   private static generatePrescriptionContent(prescription: any, organization: any = null): string {
+    console.log('Generating prescription content for:', prescription);
+    console.log('Organization data:', organization);
+    
     const prescriptionDate = prescription.startDate ? new Date(prescription.startDate).toLocaleDateString() : new Date().toLocaleDateString();
     
     // Use organization data if provided, otherwise fetch from database
@@ -347,7 +350,9 @@ export class PrintService {
     const orgEmail = organization?.email || 'grace@clinic.com';
     
     // Support both single prescription and JSON-structured prescription data
-    const isStructuredPrescription = prescription.doctor || prescription.patient || prescription.medications;
+    const isStructuredPrescription = prescription.prescription || (prescription.doctor || prescription.patient || prescription.medications);
+    
+    console.log('Is structured prescription:', isStructuredPrescription);
     
     if (isStructuredPrescription) {
       return this.generateStructuredPrescriptionContent(prescription);
