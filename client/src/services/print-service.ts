@@ -340,6 +340,15 @@ export class PrintService {
     const prescriptionDate = prescription.startDate ? new Date(prescription.startDate).toLocaleDateString() : new Date().toLocaleDateString();
     
     return `
+    <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #2563eb;">
+        <div style="font-size: 28px; font-weight: bold; color: #1e40af; margin-bottom: 8px;">GRACE MEDICAL CLINIC</div>
+        <div style="font-size: 16px; color: #3730a3; margin-bottom: 8px;">HEALTHCARE FACILITY</div>
+        <div style="font-size: 14px; color: #4b5563; line-height: 1.4;">
+            123 Healthcare Avenue, Lagos, Nigeria<br>
+            Tel: +234 802 123 4567 | Email: info@gracemedical.ng
+        </div>
+    </div>
+    
     <div style="font-size: 22px; font-weight: bold; text-align: center; margin: 25px 0; color: #1e40af; text-decoration: underline;">
         PRESCRIPTION
     </div>
