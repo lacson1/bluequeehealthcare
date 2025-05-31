@@ -497,6 +497,8 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
         organizationId: user?.organizationId
       };
 
+      console.log('🔄 Reordering medication with data:', reorderData);
+      
       const response = await fetch(`/api/patients/${prescription.patientId}/prescriptions`, {
         method: 'POST',
         headers: {
@@ -504,6 +506,10 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
         },
         body: JSON.stringify(reorderData),
       });
+
+      console.log('🔄 Reorder response status:', response.status);
+      const responseText = await response.text();
+      console.log('🔄 Reorder response body:', responseText);
 
       if (response.ok) {
         // Refresh prescriptions data
@@ -513,7 +519,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
           description: `${prescription.medicationName} has been reordered successfully.`,
         });
       } else {
-        throw new Error('Failed to reorder medication');
+        throw new Error(`Failed to reorder medication: ${responseText}`);
       }
     } catch (error) {
       console.error('Error reordering medication:', error);
