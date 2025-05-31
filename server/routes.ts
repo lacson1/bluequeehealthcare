@@ -1274,13 +1274,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })
       .from(prescriptions)
       .leftJoin(patients, eq(prescriptions.patientId, patients.id))
-      .leftJoin(users, eq(prescriptions.prescribedBy, users.username))
+      .leftJoin(users, sql`LOWER(${prescriptions.prescribedBy}) = LOWER(${users.username})`)
       .leftJoin(organizations, eq(users.organizationId, organizations.id))
       .where(eq(prescriptions.id, prescriptionId));
 
       if (!prescriptionResult) {
         return res.status(404).json({ message: "Prescription not found" });
       }
+
+      // Debug: Log the prescription result to see what organization data we're getting
+      console.log('Prescription result for org debug:', {
+        organizationName: prescriptionResult.organizationName,
+        organizationType: prescriptionResult.organizationType,
+        organizationPhone: prescriptionResult.organizationPhone,
+        organizationEmail: prescriptionResult.organizationEmail,
+        prescribedBy: prescriptionResult.prescribedBy,
+        doctorUsername: prescriptionResult.doctorUsername
+      });
 
       // Generate HTML for printing
       const html = generatePrescriptionHTML(prescriptionResult);
