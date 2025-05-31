@@ -68,7 +68,12 @@ export function StaffRegistrationModal({ open, onOpenChange }: StaffRegistration
   const registerStaffMutation = useMutation({
     mutationFn: async (data: StaffRegistrationData) => {
       const { confirmPassword, ...submitData } = data;
-      return apiRequest("POST", "/api/users", submitData);
+      // Add organization ID - for now using organizationId: 1 (Grace clinic)
+      const staffData = {
+        ...submitData,
+        organizationId: 1
+      };
+      return apiRequest("POST", "/api/users", staffData);
     },
     onSuccess: () => {
       toast({
