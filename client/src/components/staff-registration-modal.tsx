@@ -68,20 +68,7 @@ export function StaffRegistrationModal({ open, onOpenChange }: StaffRegistration
   const registerStaffMutation = useMutation({
     mutationFn: async (data: StaffRegistrationData) => {
       const { confirmPassword, ...submitData } = data;
-      const response = await fetch("/api/organization/staff", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submitData),
-      });
-      
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || "Failed to register staff member");
-      }
-      
-      return response.json();
+      return apiRequest("POST", "/api/users", submitData);
     },
     onSuccess: () => {
       toast({
