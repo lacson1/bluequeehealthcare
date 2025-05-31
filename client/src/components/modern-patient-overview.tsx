@@ -186,6 +186,39 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     }
   };
 
+  const handleUpdateMedicationStatus = async (prescriptionId: number, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/prescriptions/${prescriptionId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        queryClient.invalidateQueries(['/api/patients', patient.id, 'prescriptions']);
+        
+        const statusText = newStatus === 'completed' ? 'completed' : 
+                          newStatus === 'discontinued' ? 'discontinued' : 'reactivated';
+        
+        toast({
+          title: "Medication Status Updated",
+          description: `Medication has been ${statusText}`,
+        });
+      } else {
+        throw new Error('Failed to update status');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update medication status",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Timeline filter state
   const [timelineFilters, setTimelineFilters] = useState({
     visits: true,

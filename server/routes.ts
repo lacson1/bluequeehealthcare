@@ -1303,6 +1303,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/prescriptions/:id/status", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const prescriptionId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!status || !['active', 'completed', 'discontinued', 'stopped'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status provided" });
+      }
+
+      const updatedPrescription = await storage.updatePrescriptionStatus(prescriptionId, status);
+      
+      if (!updatedPrescription) {
+        return res.status(404).json({ message: "Prescription not found" });
+      }
+
+      res.json(updatedPrescription);
+    } catch (error) {
+      console.error('Update prescription status error:', error);
+      res.status(500).json({ message: "Failed to update prescription status" });
+    }
+  });
+
   app.get("/api/patients/:id/prescriptions/active", async (req, res) => {
     try {
       const patientId = parseInt(req.params.id);
