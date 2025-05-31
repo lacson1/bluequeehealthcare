@@ -4563,15 +4563,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Organization data for print documents
   app.get("/api/print/organization", authenticateToken, async (req: AuthRequest, res) => {
     try {
+      // Always fetch fresh user data to get current organization assignment
+      const [currentUser] = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          organizationId: users.organizationId
+        })
+        .from(users)
+        .where(eq(users.id, req.user!.id))
+        .limit(1);
+
       let organization;
 
-      // First try to get user's assigned organization if they have organizationId
-      if (req.user?.organizationId) {
+      // Get user's current assigned organization if they have organizationId
+      if (currentUser?.organizationId) {
         [organization] = await db
           .select()
           .from(organizations)
           .where(and(
-            eq(organizations.id, req.user.organizationId),
+            eq(organizations.id, currentUser.organizationId),
             eq(organizations.isActive, true)
           ));
       }
