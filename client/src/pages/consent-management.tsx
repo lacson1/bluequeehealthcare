@@ -123,7 +123,13 @@ const CONSENT_TEMPLATES = {
 export default function ConsentManagement() {
   const [selectedTab, setSelectedTab] = useState("forms");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [viewingForm, setViewingForm] = useState<any>(null);
+  const [editingForm, setEditingForm] = useState<any>(null);
+  const [selectedFormForPatient, setSelectedFormForPatient] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
@@ -135,6 +141,11 @@ export default function ConsentManagement() {
   // Fetch patient consents
   const { data: patientConsents = [], isLoading: consentsLoading } = useQuery({
     queryKey: ["/api/patient-consents"],
+  });
+
+  // Fetch patients for attachment
+  const { data: patients = [] } = useQuery({
+    queryKey: ["/api/patients"],
   });
 
   const form = useForm<ConsentFormData>({
@@ -643,11 +654,35 @@ export default function ConsentManagement() {
                         </CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setViewingForm(form);
+                            setIsViewModalOpen(true);
+                          }}
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingForm(form);
+                            setIsEditModalOpen(true);
+                          }}
+                        >
                           <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedFormForPatient(form);
+                            setIsPatientModalOpen(true);
+                          }}
+                        >
+                          <Users className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
