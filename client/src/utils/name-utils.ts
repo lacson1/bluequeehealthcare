@@ -16,22 +16,26 @@ interface UserProfile {
 export function getDisplayName(profile: UserProfile): string {
   const { title, firstName, lastName, username } = profile;
   
-  // Check if we have first or last name
-  const hasPersonalName = firstName?.trim() || lastName?.trim();
+  // Ensure we're working with strings
+  const firstStr = typeof firstName === 'string' ? firstName.trim() : '';
+  const lastStr = typeof lastName === 'string' ? lastName.trim() : '';
+  const titleStr = typeof title === 'string' ? title.trim() : '';
+  const userStr = typeof username === 'string' ? username.trim() : '';
   
-  if (hasPersonalName) {
-    const fullName = `${firstName?.trim() || ''} ${lastName?.trim() || ''}`.trim();
+  // Check if we have first or last name
+  if (firstStr || lastStr) {
+    const fullName = `${firstStr} ${lastStr}`.trim();
     
     // Add title if available and not "none"
-    if (title && title !== 'none') {
-      return `${title} ${fullName}`;
+    if (titleStr && titleStr !== 'none') {
+      return `${titleStr} ${fullName}`;
     }
     
     return fullName;
   }
   
   // Fallback to username if no personal name is available
-  return username || 'User';
+  return userStr || 'User';
 }
 
 /**
