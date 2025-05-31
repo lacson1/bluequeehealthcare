@@ -1282,16 +1282,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Prescription not found" });
       }
 
-      // Debug: Log the prescription result to see what organization data we're getting
-      console.log('Prescription result for org debug:', {
-        organizationName: prescriptionResult.organizationName,
-        organizationType: prescriptionResult.organizationType,
-        organizationPhone: prescriptionResult.organizationPhone,
-        organizationEmail: prescriptionResult.organizationEmail,
-        prescribedBy: prescriptionResult.prescribedBy,
-        doctorUsername: prescriptionResult.doctorUsername
-      });
-
       // Generate HTML for printing
       const html = generatePrescriptionHTML(prescriptionResult);
       
