@@ -4,6 +4,13 @@ interface User {
   id: number;
   username: string;
   role: string;
+  organizationId?: number;
+  organization?: {
+    id: number;
+    name: string;
+    type: string;
+    themeColor: string;
+  };
 }
 
 interface AuthContextType {

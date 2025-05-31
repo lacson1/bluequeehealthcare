@@ -1024,8 +1024,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username and password required" });
       }
       
+      // Helper function to get organization details
+      const getOrganizationDetails = async (orgId: number) => {
+        const [org] = await db.select()
+          .from(organizations)
+          .where(eq(organizations.id, orgId))
+          .limit(1);
+        return org;
+      };
+      
       // Simple hardcoded login for immediate access
       if (username === 'admin' && password === 'admin123') {
+        const org = await getOrganizationDetails(1);
         const token = generateToken({ id: 1, username: 'admin', role: 'admin', organizationId: 1 });
         return res.json({
           token,
@@ -1033,12 +1043,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: 1,
             username: 'admin',
             role: 'admin',
-            organizationId: 1
+            organizationId: 1,
+            organization: org ? {
+              id: org.id,
+              name: org.name,
+              type: org.type || 'clinic',
+              themeColor: org.themeColor || '#3B82F6'
+            } : null
           }
         });
       }
       
       if (username === 'ade' && password === 'doctor123') {
+        const org = await getOrganizationDetails(1);
         const token = generateToken({ id: 10, username: 'ade', role: 'doctor', organizationId: 1 });
         return res.json({
           token,
@@ -1046,43 +1063,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: 10,
             username: 'ade',
             role: 'doctor',
-            organizationId: 1
+            organizationId: 1,
+            organization: org ? {
+              id: org.id,
+              name: org.name,
+              type: org.type || 'clinic',
+              themeColor: org.themeColor || '#3B82F6'
+            } : null
           }
         });
       }
       
       if (username === 'syb' && password === 'nurse123') {
-        const token = generateToken({ id: 11, username: 'syb', role: 'nurse' });
+        const org = await getOrganizationDetails(1);
+        const token = generateToken({ id: 11, username: 'syb', role: 'nurse', organizationId: 1 });
         return res.json({
           token,
           user: {
             id: 11,
             username: 'syb',
-            role: 'nurse'
+            role: 'nurse',
+            organizationId: 1,
+            organization: org ? {
+              id: org.id,
+              name: org.name,
+              type: org.type || 'clinic',
+              themeColor: org.themeColor || '#3B82F6'
+            } : null
           }
         });
       }
       
       if (username === 'akin' && password === 'pharmacist123') {
-        const token = generateToken({ id: 12, username: 'akin', role: 'pharmacist' });
+        const org = await getOrganizationDetails(1);
+        const token = generateToken({ id: 12, username: 'akin', role: 'pharmacist', organizationId: 1 });
         return res.json({
           token,
           user: {
             id: 12,
             username: 'akin',
-            role: 'pharmacist'
+            role: 'pharmacist',
+            organizationId: 1,
+            organization: org ? {
+              id: org.id,
+              name: org.name,
+              type: org.type || 'clinic',
+              themeColor: org.themeColor || '#3B82F6'
+            } : null
           }
         });
       }
       
       if (username === 'seye' && password === 'physio123') {
-        const token = generateToken({ id: 13, username: 'seye', role: 'physiotherapist' });
+        const org = await getOrganizationDetails(1);
+        const token = generateToken({ id: 13, username: 'seye', role: 'physiotherapist', organizationId: 1 });
         return res.json({
           token,
           user: {
             id: 13,
             username: 'seye',
-            role: 'physiotherapist'
+            role: 'physiotherapist',
+            organizationId: 1,
+            organization: org ? {
+              id: org.id,
+              name: org.name,
+              type: org.type || 'clinic',
+              themeColor: org.themeColor || '#3B82F6'
+            } : null
           }
         });
       }

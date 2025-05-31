@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Globe, Moon, Sun, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, Download } from "lucide-react";
+import { Bell, Globe, Moon, Sun, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, Download, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -84,6 +84,26 @@ export default function TopBar() {
           </div>
           <h2 className="hidden md:block text-lg font-semibold text-slate-800">Dashboard</h2>
         </div>
+
+        {/* Organization Context Indicator */}
+        {user?.organization && (
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+            <div 
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: user.organization.themeColor }}
+            />
+            <MapPin className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              {user.organization.name}
+            </span>
+            <Badge 
+              variant="secondary" 
+              className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-600"
+            >
+              {user.organization.type}
+            </Badge>
+          </div>
+        )}
 
         {/* Right Side Actions */}
         <div className="flex items-center space-x-1 md:space-x-4">
