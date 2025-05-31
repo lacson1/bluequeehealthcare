@@ -69,11 +69,64 @@ export default function OrganizationManagement() {
   const [nameCheckTimeout, setNameCheckTimeout] = useState<NodeJS.Timeout | null>(null);
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
   const [checkingName, setCheckingName] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const { toast } = useToast();
 
   const { data: organizations = [], isLoading, refetch } = useQuery<Organization[]>({
     queryKey: ["/api/organizations"],
   });
+
+  // Filtered and sorted organizations
+  const filteredAndSortedOrganizations = useMemo(() => {
+    let filtered = organizations.filter(org => {
+      const matchesSearch = searchTerm === "" || 
+        org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.address?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesType = filterType === "all" || org.type === filterType;
+      
+      return matchesSearch && matchesType;
+    });
+
+    // Sort organizations
+    filtered.sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortBy) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "type":
+          aValue = a.type.toLowerCase();
+          bValue = b.type.toLowerCase();
+          break;
+        case "createdAt":
+          aValue = new Date(a.createdAt).getTime();
+          bValue = new Date(b.createdAt).getTime();
+          break;
+        case "status":
+          aValue = a.isActive ? 1 : 0;
+          bValue = b.isActive ? 1 : 0;
+          break;
+        default:
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [organizations, searchTerm, filterType, sortBy, sortOrder]);
 
   const form = useForm<OrganizationFormData>({
     resolver: zodResolver(organizationSchema),
@@ -428,8 +481,67 @@ export default function OrganizationManagement() {
         </Dialog>
       </div>
 
+      {/* Search and Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-4 items-center w-full">
+          {/* Search */}
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search organizations..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Filter by Type */}
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-600" />
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="clinic">Clinics</SelectItem>
+                <SelectItem value="hospital">Hospitals</SelectItem>
+                <SelectItem value="health_center">Health Centers</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sort Controls */}
+          <div className="flex items-center gap-2">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="type">Type</SelectItem>
+                <SelectItem value="createdAt">Date Created</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+            >
+              {sortOrder === "asc" ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="text-sm text-gray-600 whitespace-nowrap">
+          {filteredAndSortedOrganizations.length} of {organizations.length} organizations
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {organizations.map((org) => (
+        {filteredAndSortedOrganizations.map((org) => (
           <Card key={org.id} className="relative overflow-hidden">
             <div 
               className="h-2 w-full" 
@@ -530,6 +642,27 @@ export default function OrganizationManagement() {
             </CardContent>
           </Card>
         ))}
+
+        {/* No Results State */}
+        {filteredAndSortedOrganizations.length === 0 && organizations.length > 0 && (
+          <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+            <Building2 className="h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No organizations found</h3>
+            <p className="text-gray-500 max-w-md">
+              No organizations match your current search and filter criteria. Try adjusting your search terms or filters.
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm("");
+                setFilterType("all");
+              }}
+              className="mt-4"
+            >
+              Clear filters
+            </Button>
+          </div>
+        )}
       </div>
 
       {organizations.length === 0 && (
