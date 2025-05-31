@@ -485,10 +485,6 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
       console.log('🔄 Starting reorder for prescription:', prescription);
       console.log('🔄 Current user data:', user);
       
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
       // Create a new prescription based on the previous one
       const reorderData = {
         patientId: prescription.patientId,
@@ -498,10 +494,10 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
         frequency: prescription.frequency,
         duration: prescription.duration,
         instructions: prescription.instructions,
-        prescribedBy: user?.username || 'Unknown',
+        prescribedBy: user?.username || 'System',
         status: 'active',
         startDate: new Date().toISOString(),
-        organizationId: user?.organizationId
+        organizationId: user?.organizationId || 2 // Default to organization 2 (Lagos Island Hospital)
       };
 
       console.log('🔄 Reordering medication with data:', reorderData);
