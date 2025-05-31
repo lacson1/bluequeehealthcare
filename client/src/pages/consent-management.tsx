@@ -773,6 +773,302 @@ export default function ConsentManagement() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* View Consent Form Modal */}
+      {viewingForm && (
+        <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                {viewingForm.title}
+              </DialogTitle>
+              <DialogDescription>
+                View consent form template details and structure
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-medium">Category</Label>
+                  <p className="text-sm">{viewingForm.category}</p>
+                </div>
+                <div>
+                  <Label className="font-medium">Consent Type</Label>
+                  <p className="text-sm">{viewingForm.consentType}</p>
+                </div>
+                <div>
+                  <Label className="font-medium">Status</Label>
+                  <p className="text-sm">{viewingForm.isActive ? 'Active' : 'Inactive'}</p>
+                </div>
+                <div>
+                  <Label className="font-medium">Created</Label>
+                  <p className="text-sm">{new Date(viewingForm.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {viewingForm.description && (
+                <div>
+                  <Label className="font-medium">Description</Label>
+                  <p className="text-sm mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                    {viewingForm.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Form Sections */}
+              <div>
+                <Label className="font-medium">Consent Form Sections</Label>
+                <div className="mt-2 space-y-3">
+                  {viewingForm.template?.sections?.map((section: any, index: number) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-medium">{section.title}</h4>
+                        {section.required && (
+                          <Badge variant="outline" className="text-xs">Required</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{section.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Risk Factors */}
+              {viewingForm.riskFactors?.length > 0 && (
+                <div>
+                  <Label className="font-medium">Risk Factors</Label>
+                  <ul className="mt-2 space-y-1">
+                    {viewingForm.riskFactors.map((risk: string, index: number) => (
+                      <li key={index} className="text-sm flex items-center gap-2">
+                        <AlertTriangle className="w-3 h-3 text-red-500" />
+                        {risk}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Benefits */}
+              {viewingForm.benefits?.length > 0 && (
+                <div>
+                  <Label className="font-medium">Benefits</Label>
+                  <ul className="mt-2 space-y-1">
+                    {viewingForm.benefits.map((benefit: string, index: number) => (
+                      <li key={index} className="text-sm flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-green-500" />
+                        {benefit}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Alternatives */}
+              {viewingForm.alternatives?.length > 0 && (
+                <div>
+                  <Label className="font-medium">Alternative Treatments</Label>
+                  <ul className="mt-2 space-y-1">
+                    {viewingForm.alternatives.map((alternative: string, index: number) => (
+                      <li key={index} className="text-sm">• {alternative}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
+                Close
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  // Generate printable consent form
+                  const printContent = `
+                    <html>
+                      <head>
+                        <title>${viewingForm.title}</title>
+                        <style>
+                          body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
+                          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+                          .section { margin-bottom: 25px; page-break-inside: avoid; }
+                          .section-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+                          .content { margin-bottom: 15px; }
+                          .signature-section { margin-top: 50px; border-top: 1px solid #333; padding-top: 30px; }
+                          .signature-line { border-bottom: 1px solid #333; margin: 20px 0; height: 40px; }
+                          .signature-label { font-weight: bold; margin-bottom: 5px; }
+                          .checkbox { width: 15px; height: 15px; border: 1px solid #333; display: inline-block; margin-right: 10px; }
+                          ul { padding-left: 20px; }
+                          @media print { body { margin: 20px; } }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="header">
+                          <h1>${viewingForm.title}</h1>
+                          <p><strong>Category:</strong> ${viewingForm.category} | <strong>Type:</strong> ${viewingForm.consentType}</p>
+                        </div>
+                        
+                        ${viewingForm.description ? `<div class="section"><div class="section-title">Description</div><div class="content">${viewingForm.description}</div></div>` : ''}
+                        
+                        ${viewingForm.template?.sections?.map((section: any) => `
+                          <div class="section">
+                            <div class="section-title">${section.title} ${section.required ? '(Required)' : ''}</div>
+                            <div class="content">${section.content.replace(/\n/g, '<br>')}</div>
+                          </div>
+                        `).join('') || ''}
+                        
+                        ${viewingForm.riskFactors?.length > 0 ? `
+                          <div class="section">
+                            <div class="section-title">Risk Factors and Complications</div>
+                            <ul>
+                              ${viewingForm.riskFactors.map((risk: string) => `<li>${risk}</li>`).join('')}
+                            </ul>
+                          </div>
+                        ` : ''}
+                        
+                        ${viewingForm.benefits?.length > 0 ? `
+                          <div class="section">
+                            <div class="section-title">Benefits</div>
+                            <ul>
+                              ${viewingForm.benefits.map((benefit: string) => `<li>${benefit}</li>`).join('')}
+                            </ul>
+                          </div>
+                        ` : ''}
+                        
+                        ${viewingForm.alternatives?.length > 0 ? `
+                          <div class="section">
+                            <div class="section-title">Alternative Treatments</div>
+                            <ul>
+                              ${viewingForm.alternatives.map((alt: string) => `<li>${alt}</li>`).join('')}
+                            </ul>
+                          </div>
+                        ` : ''}
+                        
+                        <div class="signature-section">
+                          <h3>Patient Consent and Signature</h3>
+                          
+                          <div style="margin: 20px 0;">
+                            <span class="checkbox"></span> I acknowledge that I have read and understood this consent form.
+                          </div>
+                          <div style="margin: 20px 0;">
+                            <span class="checkbox"></span> I have had the opportunity to ask questions, and all my questions have been answered to my satisfaction.
+                          </div>
+                          <div style="margin: 20px 0;">
+                            <span class="checkbox"></span> I understand the risks, benefits, and alternatives to the proposed treatment.
+                          </div>
+                          <div style="margin: 20px 0;">
+                            <span class="checkbox"></span> I voluntarily consent to the proposed treatment/procedure.
+                          </div>
+                          
+                          <div style="margin-top: 40px;">
+                            <div class="signature-label">Patient Name:</div>
+                            <div class="signature-line"></div>
+                          </div>
+                          
+                          <div style="margin-top: 30px;">
+                            <div class="signature-label">Patient Signature:</div>
+                            <div class="signature-line"></div>
+                          </div>
+                          
+                          <div style="margin-top: 30px;">
+                            <div class="signature-label">Date:</div>
+                            <div class="signature-line"></div>
+                          </div>
+                          
+                          <div style="margin-top: 40px;">
+                            <div class="signature-label">Guardian/Representative (if applicable):</div>
+                            <div class="signature-line"></div>
+                          </div>
+                          
+                          <div style="margin-top: 30px;">
+                            <div class="signature-label">Relationship to Patient:</div>
+                            <div class="signature-line"></div>
+                          </div>
+                          
+                          <div style="margin-top: 40px;">
+                            <div class="signature-label">Witness Name and Signature:</div>
+                            <div class="signature-line"></div>
+                          </div>
+                          
+                          <div style="margin-top: 30px;">
+                            <div class="signature-label">Healthcare Provider:</div>
+                            <div class="signature-line"></div>
+                          </div>
+                        </div>
+                      </body>
+                    </html>
+                  `;
+                  
+                  const printWindow = window.open('', '_blank');
+                  if (printWindow) {
+                    printWindow.document.write(printContent);
+                    printWindow.document.close();
+                    printWindow.focus();
+                    setTimeout(() => printWindow.print(), 500);
+                  }
+                }}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Print for Signature
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Patient Attachment Modal */}
+      {selectedFormForPatient && (
+        <Dialog open={isPatientModalOpen} onOpenChange={setIsPatientModalOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Attach to Patient</DialogTitle>
+              <DialogDescription>
+                Select a patient to attach this consent form: {selectedFormForPatient.title}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="grid gap-3 max-h-80 overflow-y-auto">
+                {patients.map((patient: any) => (
+                  <Card key={patient.id} className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          // Here you would implement the patient attachment logic
+                          toast({
+                            title: "Success",
+                            description: `Consent form attached to ${patient.firstName} ${patient.lastName}`,
+                          });
+                          setIsPatientModalOpen(false);
+                        }}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium">{patient.title} {patient.firstName} {patient.lastName}</h4>
+                          <p className="text-sm text-gray-500">
+                            {patient.gender} • {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} years
+                          </p>
+                          {patient.phone && (
+                            <p className="text-sm text-gray-500">{patient.phone}</p>
+                          )}
+                        </div>
+                        <Users className="w-5 h-5 text-gray-400" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsPatientModalOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
