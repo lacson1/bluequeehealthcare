@@ -161,16 +161,6 @@ export default function PatientProfile() {
             </div>
           </div>
           <div className="flex space-x-2">
-            {/* Print & Export Patient Summary */}
-            <PrintExportToolbar
-              elementId="patient-summary-print"
-              filename={`patient_${patient.firstName}_${patient.lastName}_summary`}
-              organization={currentOrganization}
-              data={visits || []}
-              showCSV={false}
-              className="mr-2"
-            />
-            
             {/* Doctor-only actions */}
             {user?.role === 'doctor' && (
               <>
