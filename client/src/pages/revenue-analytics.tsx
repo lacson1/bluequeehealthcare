@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { LoadingState, CardLoadingSkeleton } from '@/components/ui/loading-state';
+import { ErrorDisplay } from '@/components/ui/error-display';
 import {
   Select,
   SelectContent,
@@ -98,8 +100,47 @@ export default function RevenueAnalytics() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Revenue Analytics</h1>
+          <LoadingState text="Loading analytics..." />
         </div>
-        <div className="text-center py-8">Loading revenue data...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <CardLoadingSkeleton />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <CardLoadingSkeleton />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <CardLoadingSkeleton />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || comprehensiveError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900">Revenue Analytics</h1>
+        </div>
+        <ErrorDisplay
+          title="Failed to Load Analytics"
+          message={error?.message || comprehensiveError?.message || "Unable to fetch revenue data"}
+          onRetry={() => {
+            refetch();
+            refetchComprehensive();
+          }}
+        />
       </div>
     );
   }
