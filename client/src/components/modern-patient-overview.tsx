@@ -545,19 +545,53 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-slate-800">Current Medications</h3>
-                    <Button 
-                      onClick={onAddPrescription} 
-                      size="sm" 
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Medication
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => {
+                          console.log('Manual refresh triggered for patient:', patient.id);
+                          queryClient.invalidateQueries(['/api/patients', patient.id, 'prescriptions']);
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Load Meds
+                      </Button>
+                      <Button 
+                        onClick={onAddPrescription} 
+                        size="sm" 
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Medication
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Debug Info */}
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg text-sm">
+                    <div>Patient ID: {patient.id}</div>
+                    <div>Loading: {prescriptionsLoading ? 'Yes' : 'No'}</div>
+                    <div>Error: {prescriptionsError ? (prescriptionsError as any).message || 'Unknown error' : 'None'}</div>
+                    <div>Prescriptions count: {patientPrescriptions.length}</div>
+                    <div>Active medications: {activeMedications.length}</div>
                   </div>
                   
                   {prescriptionsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="text-slate-500">Loading prescriptions...</div>
+                    </div>
+                  ) : prescriptionsError ? (
+                    <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                      <div className="text-red-500">Failed to load prescriptions</div>
+                      <Button 
+                        onClick={() => queryClient.invalidateQueries(['/api/patients', patient.id, 'prescriptions'])}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Retry Loading
+                      </Button>
                     </div>
                   ) : activeMedications.length > 0 ? (
                     <div className="grid gap-4">
