@@ -70,6 +70,7 @@ export default function UserManagement() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterSpecialty, setFilterSpecialty] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
