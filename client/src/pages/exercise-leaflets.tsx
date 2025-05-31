@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Download, Printer, BookOpen, ExternalLink, Heart, Search, User } from 'lucide-react';
+import { FileText, Download, Printer, BookOpen, ExternalLink, Heart, Search, User, Building, Phone, Mail, Globe } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
 
 interface Patient {
   id: number;
@@ -25,8 +26,17 @@ export default function ExerciseLeafletsPage() {
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [customCondition, setCustomCondition] = useState('');
 
+  const { user } = useAuth();
+
   const { data: patients } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
+  });
+
+  // Fetch organization data for letterhead
+  const { data: organizationData } = useQuery({
+    queryKey: ['/api/organizations', user?.organizationId],
+    queryFn: () => fetch(`/api/organizations/${user?.organizationId}`).then(res => res.json()),
+    enabled: !!user?.organizationId
   });
 
   const filteredPatients = patients?.filter(patient => 
