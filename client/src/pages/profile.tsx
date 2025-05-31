@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { 
   User, 
   Edit3, 
@@ -33,11 +34,10 @@ type ProfileForm = z.infer<typeof profileSchema>;
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
+  const { user, refreshUser } = useAuth();
 
-  // Fetch current user data
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['/api/profile'],
-  });
+  // Use auth context user data instead of separate API call
+  const isLoading = !user;
 
   const form = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -61,23 +61,11 @@ export default function Profile() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileForm) => {
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
-      }
-      
-      return response.json();
+      return apiRequest("PUT", "/api/profile", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      // Refresh user session to update the auth context with new data
+      refreshUser();
       setIsEditing(false);
       toast({
         title: "Profile Updated",

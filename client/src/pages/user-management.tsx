@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,7 @@ export default function UserManagement() {
   const [showStaffModal, setShowStaffModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { refreshUser, user: currentUser } = useAuth();
 
   // Form state for create/edit
   const [formData, setFormData] = useState({
@@ -127,8 +129,14 @@ export default function UserManagement() {
     mutationFn: async ({ id, userData }: { id: number; userData: Partial<User> }) => {
       return apiRequest("PATCH", `/api/users/${id}`, userData);
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      
+      // If the updated user is the current logged-in user, refresh their session
+      if (currentUser && variables.id === currentUser.id) {
+        refreshUser();
+      }
+      
       setEditDialogOpen(false);
       setSelectedUser(null);
       resetForm();
