@@ -3713,9 +3713,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: users.lastName,
         phone: users.phone,
         role: users.role,
-        createdAt: users.createdAt
+        organizationId: users.organizationId,
+        createdAt: users.createdAt,
+        organization: {
+          id: organizations.id,
+          name: organizations.name,
+          type: organizations.type,
+          themeColor: organizations.themeColor
+        }
       })
       .from(users)
+      .leftJoin(organizations, eq(users.organizationId, organizations.id))
       .where(eq(users.id, userId))
       .limit(1);
 
