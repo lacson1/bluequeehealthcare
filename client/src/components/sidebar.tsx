@@ -24,64 +24,64 @@ const getNavigationGroupsForRole = (role: string) => {
       name: "Overview",
       icon: BarChart3,
       items: [
-        { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
       ]
     },
     {
       name: "Patient Care",
       icon: Users,
       items: [
-        { name: "Patients", href: "/patients", icon: Users, roles: ["admin", "doctor", "nurse"] },
-        { name: "Visits", href: "/visits", icon: Stethoscope, roles: ["admin", "doctor", "nurse"] },
-        { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Patients", href: "/patients", icon: Users, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Visits", href: "/visits", icon: Stethoscope, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
       ]
     },
     {
       name: "Medical Services",
       icon: FlaskRound,
       items: [
-        { name: "Lab Results", href: "/lab-results", icon: FlaskRound, roles: ["admin", "doctor", "nurse"] },
-        { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["admin", "pharmacist"] },
-        { name: "Physiotherapy", href: "/physiotherapy", icon: Heart, roles: ["admin", "physiotherapist"] },
-        { name: "Exercise Leaflets", href: "/exercise-leaflets", icon: FileText, roles: ["admin", "doctor", "physiotherapist"] },
+        { name: "Lab Results", href: "/lab-results", icon: FlaskRound, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["superadmin", "admin", "pharmacist"] },
+        { name: "Physiotherapy", href: "/physiotherapy", icon: Heart, roles: ["superadmin", "admin", "physiotherapist"] },
+        { name: "Exercise Leaflets", href: "/exercise-leaflets", icon: FileText, roles: ["superadmin", "admin", "doctor", "physiotherapist"] },
         { 
           name: "Wellness Center", 
           href: "/wellness", 
           icon: Heart, 
-          roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"],
+          roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"],
           submenu: [
-            { name: "Wellness Dashboard", href: "/wellness", icon: Activity, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
-            { name: "Mental Health Support", href: "/mental-health", icon: Brain, roles: ["admin", "doctor", "nurse", "pharmacist"] },
-            { name: "Patient Wellness Plans", href: "/wellness/plans", icon: ClipboardList, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
-            { name: "Wellness Analytics", href: "/wellness/analytics", icon: TrendingUp, roles: ["admin", "doctor", "nurse", "pharmacist"] }
+            { name: "Wellness Dashboard", href: "/wellness", icon: Activity, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+            { name: "Mental Health Support", href: "/mental-health", icon: Brain, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist"] },
+            { name: "Patient Wellness Plans", href: "/wellness/plans", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+            { name: "Wellness Analytics", href: "/wellness/analytics", icon: TrendingUp, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist"] }
           ]
         },
-        { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
       ]
     },
     {
       name: "Analytics & Reports",
       icon: TrendingUp,
       items: [
-        { name: "Clinical Performance", href: "/clinical-performance", icon: TrendingUp, roles: ["admin", "doctor"] },
-        { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["admin", "doctor", "nurse"] },
+        { name: "Clinical Performance", href: "/clinical-performance", icon: TrendingUp, roles: ["superadmin", "admin", "doctor"] },
+        { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["superadmin", "admin", "doctor", "nurse"] },
       ]
     },
     {
       name: "Administration",
       icon: Settings,
       items: [
-        { name: "User Management", href: "/user-management", icon: UserCog, roles: ["admin"] },
-        { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["admin"] },
-        { name: "Patient Access Cards", href: "/patient-access-cards", icon: CreditCard, roles: ["admin", "nurse"] },
-        { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["admin"] },
+        { name: "User Management", href: "/user-management", icon: UserCog, roles: ["superadmin", "admin"] },
+        { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["superadmin", "admin"] },
+        { name: "Patient Access Cards", href: "/patient-access-cards", icon: CreditCard, roles: ["superadmin", "admin", "nurse"] },
+        { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["superadmin", "admin"] },
       ]
     },
     {
       name: "Account",
       icon: User,
       items: [
-        { name: "Profile", href: "/profile", icon: Settings, roles: ["admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Profile", href: "/profile", icon: Settings, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
       ]
     }
   ];
