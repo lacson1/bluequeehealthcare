@@ -13,6 +13,7 @@ import { User, InsertUser } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { UserPlus, Edit, Trash2, Shield, UserX, Settings, Search, Grid3X3, List, Filter, X, Stethoscope, Pill, Heart, Activity } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { StaffRegistrationModal } from "@/components/staff-registration-modal";
 
 const USER_ROLES = [
   { 
@@ -66,6 +67,7 @@ export default function UserManagementEnhanced() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterSpecialty, setFilterSpecialty] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -339,6 +341,14 @@ export default function UserManagementEnhanced() {
               <p className="text-slate-600 mt-1">Manage clinic staff accounts and permissions</p>
             </div>
             <div className="flex items-center space-x-3">
+              <Button 
+                onClick={() => setShowStaffModal(true)}
+                className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+              >
+                <Stethoscope className="w-4 h-4 mr-2" />
+                Register Staff
+              </Button>
+              
               <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={resetForm} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
@@ -836,6 +846,12 @@ export default function UserManagementEnhanced() {
           </DialogContent>
         </Dialog>
       </div>
+      
+      {/* Staff Registration Modal */}
+      <StaffRegistrationModal
+        open={showStaffModal}
+        onOpenChange={setShowStaffModal}
+      />
     </TooltipProvider>
   );
 }
