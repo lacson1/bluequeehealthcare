@@ -23,16 +23,14 @@ interface Appointment {
   priority: 'low' | 'medium' | 'high' | 'urgent';
 }
 
-export function SimpleEnhancedCalendar() {
+export function StableCalendar() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const { toast } = useToast();
 
-  // Fetch appointments
   const { data: appointments = [], isLoading } = useQuery({
     queryKey: ['/api/appointments']
   });
 
-  // Update appointment status
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
       const response = await fetch(`/api/appointments/${id}/status`, {
@@ -62,12 +60,6 @@ export function SimpleEnhancedCalendar() {
   const weekStart = startOfWeek(currentWeek);
   const weekEnd = endOfWeek(currentWeek);
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
-  const timeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30', '17:00'
-  ];
 
   const getAppointmentsForDay = (date: Date) => {
     return appointments.filter((apt: Appointment) => {
@@ -118,7 +110,7 @@ export function SimpleEnhancedCalendar() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Enhanced Appointment Calendar
+              Weekly Appointment Calendar
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button
@@ -142,92 +134,92 @@ export function SimpleEnhancedCalendar() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-8 gap-2">
-            {/* Header row */}
-            <div className="p-2 text-center font-medium text-sm">Time</div>
-            {weekDays.map((day) => (
-              <div key={day.toISOString()} className="p-2 text-center">
-                <div className="font-medium">{format(day, 'EEE')}</div>
-                <div className="text-sm text-muted-foreground">{format(day, 'MMM dd')}</div>
-              </div>
-            ))}
-
-            {/* Time slots */}
-            {timeSlots.map((time) => [
-              <div key={`time-${time}`} className="p-2 text-center text-sm font-medium border-r">
-                {time}
-              </div>,
-              ...weekDays.map((day) => {
-                const dayAppointments = getAppointmentsForDay(day);
-                const slotAppointment = dayAppointments.find(
-                  (apt: Appointment) => apt.appointmentTime === time
-                );
-
-                return (
-                  <div key={`${day.toISOString()}-${time}`} className="p-1 min-h-[60px] border">
-                    {slotAppointment && (
-                      <div className={`p-2 rounded text-xs ${getPriorityColor(slotAppointment.priority)}`}>
-                        <div className="font-medium truncate">{slotAppointment.patientName}</div>
-                        <div className="text-gray-600 truncate">{slotAppointment.doctorName}</div>
-                        <Badge className={`text-xs ${getStatusColor(slotAppointment.status)}`}>
-                          {slotAppointment.status}
-                        </Badge>
-                        <div className="flex gap-1 mt-1">
-                          {slotAppointment.status === 'scheduled' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-5"
-                              onClick={() => updateStatusMutation.mutate({
-                                id: slotAppointment.id,
-                                status: 'confirmed'
-                              })}
-                              disabled={updateStatusMutation.isPending}
-                            >
-                              Confirm
-                            </Button>
-                          )}
-                          {slotAppointment.status === 'confirmed' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-5"
-                              onClick={() => updateStatusMutation.mutate({
-                                id: slotAppointment.id,
-                                status: 'in-progress'
-                              })}
-                              disabled={updateStatusMutation.isPending}
-                            >
-                              Start
-                            </Button>
-                          )}
-                          {slotAppointment.status === 'in-progress' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-5"
-                              onClick={() => updateStatusMutation.mutate({
-                                id: slotAppointment.id,
-                                status: 'completed'
-                              })}
-                              disabled={updateStatusMutation.isPending}
-                            >
-                              Complete
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+          <div className="space-y-4">
+            {weekDays.map((day) => {
+              const dayAppointments = getAppointmentsForDay(day);
+              
+              return (
+                <div key={day.toISOString()} className="border rounded-lg p-4">
+                  <div className="font-medium text-lg mb-3">
+                    {format(day, 'EEEE, MMM dd')}
                   </div>
-                );
-              })
-            ])
-            ))}
+                  
+                  {dayAppointments.length === 0 ? (
+                    <div className="text-gray-500 text-sm">No appointments scheduled</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {dayAppointments.map((appointment: Appointment) => (
+                        <div
+                          key={appointment.id}
+                          className={`p-3 rounded border ${getPriorityColor(appointment.priority)} bg-white`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="text-sm font-medium">
+                                {appointment.appointmentTime}
+                              </div>
+                              <div>
+                                <div className="font-medium">{appointment.patientName}</div>
+                                <div className="text-sm text-gray-600">{appointment.doctorName}</div>
+                              </div>
+                              <Badge className={`${getStatusColor(appointment.status)}`}>
+                                {appointment.status}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              {appointment.status === 'scheduled' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateStatusMutation.mutate({
+                                    id: appointment.id,
+                                    status: 'confirmed'
+                                  })}
+                                  disabled={updateStatusMutation.isPending}
+                                >
+                                  Confirm
+                                </Button>
+                              )}
+                              {appointment.status === 'confirmed' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateStatusMutation.mutate({
+                                    id: appointment.id,
+                                    status: 'in-progress'
+                                  })}
+                                  disabled={updateStatusMutation.isPending}
+                                >
+                                  Start
+                                </Button>
+                              )}
+                              {appointment.status === 'in-progress' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => updateStatusMutation.mutate({
+                                    id: appointment.id,
+                                    status: 'completed'
+                                  })}
+                                  disabled={updateStatusMutation.isPending}
+                                >
+                                  Complete
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
-      {/* Today's Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
