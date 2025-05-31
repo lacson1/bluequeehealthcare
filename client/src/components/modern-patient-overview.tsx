@@ -482,6 +482,9 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   const handleReorderMedication = async (prescription: any) => {
     try {
+      console.log('🔄 Starting reorder for prescription:', prescription);
+      console.log('🔄 Current user data:', user);
+      
       // Create a new prescription based on the previous one
       const reorderData = {
         patientId: prescription.patientId,
