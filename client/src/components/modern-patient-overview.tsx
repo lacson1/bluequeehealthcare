@@ -1083,7 +1083,19 @@ Present this QR code for medication dispensing.`;
                                 variant="outline" 
                                 size="sm" 
                                 className="text-blue-600 hover:text-blue-800 border-blue-200"
-                                onClick={() => handleScheduleReview(999, "Lisinopril")}
+                                onClick={() => {
+                                  // Use the first active prescription for demo
+                                  const activePrescription = prescriptionsData?.find(p => p.status === 'active');
+                                  if (activePrescription) {
+                                    handleScheduleReview(activePrescription.id, activePrescription.medicationName);
+                                  } else {
+                                    toast({
+                                      title: "No Active Prescriptions",
+                                      description: "Cannot schedule review - no active prescriptions found",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
                               >
                                 <UserCheck className="w-3 h-3 mr-1" />
                                 Schedule Review
@@ -1092,7 +1104,19 @@ Present this QR code for medication dispensing.`;
                                 variant="outline" 
                                 size="sm" 
                                 className="text-green-600 hover:text-green-800 border-green-200"
-                                onClick={() => handleIssueRepeat(999, "Lisinopril")}
+                                onClick={() => {
+                                  // Use the first active prescription for demo
+                                  const activePrescription = prescriptionsData?.find(p => p.status === 'active');
+                                  if (activePrescription) {
+                                    handleIssueRepeat(activePrescription.id, activePrescription.medicationName);
+                                  } else {
+                                    toast({
+                                      title: "No Active Prescriptions",
+                                      description: "Cannot issue repeat - no active prescriptions found",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
                               >
                                 <RefreshCw className="w-3 h-3 mr-1" />
                                 Issue Repeat
