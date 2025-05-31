@@ -100,9 +100,22 @@ export default function ProceduralReports() {
   const form = useForm<ProceduralReportForm>({
     resolver: zodResolver(proceduralReportSchema),
     defaultValues: {
+      patientId: "",
+      performedBy: "",
+      procedureType: "",
+      procedureDate: "",
+      procedureLocation: "",
+      anesthesiaType: "",
+      procedureDetails: "",
+      findings: "",
+      complications: "",
+      specimens: "",
+      bloodLoss: "",
+      duration: "",
       assistedBy: [],
       status: "completed",
       followUpRequired: false,
+      postOpInstructions: "",
     },
   });
 
