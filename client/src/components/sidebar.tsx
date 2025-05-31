@@ -33,23 +33,34 @@ const getNavigationGroupsForRole = (role: string) => {
       icon: Users,
       items: [
         { name: "Patients", href: "/patients", icon: Users, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Appointments", href: "/appointments", icon: Calendar, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { name: "Visits", href: "/visits", icon: Stethoscope, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
       ]
     },
     {
-      name: "Medical Services",
+      name: "Laboratory & Diagnostics",
       icon: FlaskRound,
       items: [
+        { name: "Lab Orders", href: "/lab-orders", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { name: "Lab Results", href: "/lab-results", icon: FlaskRound, roles: ["superadmin", "admin", "doctor", "nurse"] },
+      ]
+    },
+    {
+      name: "Pharmacy & Inventory",
+      icon: Pill,
+      items: [
         { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["superadmin", "admin", "pharmacist"] },
         { name: "Inventory", href: "/inventory", icon: Building2, roles: ["superadmin", "admin", "pharmacist"] },
-        { name: "Procedural Reports", href: "/procedural-reports", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
-        { name: "Consent Management", href: "/consent-management", icon: Shield, roles: ["superadmin", "admin", "doctor", "nurse"] },
+      ]
+    },
+    {
+      name: "Specialized Care",
+      icon: Heart,
+      items: [
         { name: "Physiotherapy", href: "/physiotherapy", icon: Heart, roles: ["superadmin", "admin", "physiotherapist"] },
-        { name: "Exercise Leaflets", href: "/exercise-leaflets", icon: FileText, roles: ["superadmin", "admin", "doctor", "physiotherapist"] },
-        { name: "Medical Certificates", href: "/medical-certificates", icon: Shield, roles: ["superadmin", "admin", "doctor", "nurse"] },
-        { name: "Referral Letters", href: "/referral-letters", icon: UserCheck, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Procedural Reports", href: "/procedural-reports", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Telemedicine", href: "/telemedicine", icon: Heart, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { 
           name: "Wellness Center", 
           href: "/wellness", 
@@ -62,7 +73,26 @@ const getNavigationGroupsForRole = (role: string) => {
             { name: "Wellness Analytics", href: "/wellness/analytics", icon: TrendingUp, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist"] }
           ]
         },
+      ]
+    },
+    {
+      name: "Medical Documents",
+      icon: FileText,
+      items: [
+        { name: "Exercise Leaflets", href: "/exercise-leaflets", icon: FileText, roles: ["superadmin", "admin", "doctor", "physiotherapist"] },
+        { name: "Medical Certificates", href: "/medical-certificates", icon: Shield, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Referral Letters", href: "/referral-letters", icon: UserCheck, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Documents", href: "/documents", icon: FileText, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Consent Management", href: "/consent-management", icon: Shield, roles: ["superadmin", "admin", "doctor", "nurse"] },
+      ]
+    },
+    {
+      name: "Tools & Utilities",
+      icon: Calculator,
+      items: [
         { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Clinical Protocols", href: "/protocols", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Export Compliance", href: "/compliance", icon: Shield, roles: ["superadmin", "admin"] },
       ]
     },
     {
@@ -70,6 +100,7 @@ const getNavigationGroupsForRole = (role: string) => {
       icon: TrendingUp,
       items: [
         { name: "Clinical Performance", href: "/clinical-performance", icon: TrendingUp, roles: ["superadmin", "admin", "doctor"] },
+        { name: "Revenue Analytics", href: "/analytics", icon: TrendingUp, roles: ["superadmin", "admin"] },
         { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["superadmin", "admin", "doctor", "nurse"] },
       ]
     },
@@ -80,6 +111,7 @@ const getNavigationGroupsForRole = (role: string) => {
         { name: "User Management", href: "/user-management", icon: UserCog, roles: ["superadmin", "admin"] },
         { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["superadmin", "admin"] },
         { name: "Patient Access Cards", href: "/patient-access-cards", icon: CreditCard, roles: ["superadmin", "admin", "nurse"] },
+        { name: "Staff Messages", href: "/staff-messages", icon: Mail, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
         { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["superadmin", "admin"] },
       ]
     },
@@ -87,7 +119,8 @@ const getNavigationGroupsForRole = (role: string) => {
       name: "Account",
       icon: User,
       items: [
-        { name: "Profile", href: "/profile", icon: Settings, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Profile", href: "/profile", icon: User, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Settings", href: "/settings", icon: Settings, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
       ]
     }
   ];
