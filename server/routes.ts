@@ -3774,6 +3774,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Repeat Prescription endpoint
+  app.post("/api/prescriptions/:prescriptionId/repeat", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const prescriptionId = parseInt(req.params.prescriptionId);
+      const { patientId, issuedBy, notes } = req.body;
+
+      // Get the original prescription details
+      const [originalPrescription] = await db
+        .select()
+        .from(prescriptions)
+        .where(eq(prescriptions.id, prescriptionId))
+        .limit(1);
+
+      if (!originalPrescription) {
+        return res.status(404).json({ message: "Original prescription not found" });
+      }
+
+      // Create new repeat prescription with active status
+      const repeatPrescriptionData = {
+        patientId: originalPrescription.patientId,
+        medicationId: originalPrescription.medicationId,
+        medicationName: originalPrescription.medicationName,
+        dosage: originalPrescription.dosage,
+        frequency: originalPrescription.frequency,
+        duration: originalPrescription.duration,
+        instructions: originalPrescription.instructions,
+        prescribedBy: req.user?.username || issuedBy || 'system',
+        status: 'active', // Ensure it appears in Current medications
+        startDate: new Date(),
+        organizationId: req.user?.organizationId || originalPrescription.organizationId,
+        createdAt: new Date()
+      };
+
+      const [newRepeatPrescription] = await db
+        .insert(prescriptions)
+        .values(repeatPrescriptionData)
+        .returning();
+
+      console.log(`🔄 REPEAT PRESCRIPTION ISSUED: #${newRepeatPrescription.id} for patient ${patientId} - ${originalPrescription.medicationName}`);
+
+      res.json(newRepeatPrescription);
+    } catch (error) {
+      console.error('Error creating repeat prescription:', error);
+      res.status(500).json({ message: "Failed to create repeat prescription" });
+    }
+  });
+
   // Staff Notification endpoint
   app.post("/api/notifications/staff", authenticateToken, async (req: AuthRequest, res) => {
     try {
