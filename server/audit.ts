@@ -1,6 +1,7 @@
 import { Request } from "express";
 import { db } from "./db";
-import { auditLogs, type InsertAuditLog } from "@shared/schema";
+import { auditLogs, users, type InsertAuditLog } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import type { AuthRequest } from "./middleware/auth";
 
 export interface AuditContext {
@@ -77,6 +78,14 @@ export const EntityTypes = {
  */
 export async function createAuditLog(context: AuditContext): Promise<void> {
   try {
+    // Verify the user exists before creating audit log
+    const userExists = await db.select().from(users).where(eq(users.id, context.userId)).limit(1);
+    
+    if (userExists.length === 0) {
+      console.warn(`⚠️ AUDIT WARNING: Attempted to log action for non-existent user ${context.userId}. Skipping audit log.`);
+      return;
+    }
+
     const auditData: InsertAuditLog = {
       userId: context.userId,
       action: context.action,
