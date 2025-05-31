@@ -3604,9 +3604,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: users.lastName,
         phone: users.phone,
         role: users.role,
-        department: users.department,
-        specialty: users.specialty,
-        bio: users.bio,
         createdAt: users.createdAt
       })
       .from(users)
@@ -3630,8 +3627,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const updateData = req.body;
       
-      // Validate the data
-      const allowedFields = ['firstName', 'lastName', 'phone', 'bio', 'department', 'specialty'];
+      // Validate the data - only update fields that exist in the schema
+      const allowedFields = ['firstName', 'lastName', 'phone'];
       const filteredData: any = {};
       
       for (const field of allowedFields) {

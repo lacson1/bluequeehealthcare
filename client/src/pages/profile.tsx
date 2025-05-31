@@ -1,10 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -21,19 +19,13 @@ import {
   X, 
   Mail, 
   Phone, 
-  Calendar, 
-  MapPin, 
-  Shield,
-  Building
+  Calendar
 } from 'lucide-react';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   phone: z.string().optional(),
-  bio: z.string().optional(),
-  department: z.string().optional(),
-  specialty: z.string().optional(),
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
@@ -53,25 +45,19 @@ export default function Profile() {
       firstName: '',
       lastName: '',
       phone: '',
-      bio: '',
-      department: '',
-      specialty: '',
     },
   });
 
   // Update form when user data is loaded
-  useState(() => {
+  useEffect(() => {
     if (user) {
       form.reset({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         phone: user.phone || '',
-        bio: user.bio || '',
-        department: user.department || '',
-        specialty: user.specialty || '',
       });
     }
-  });
+  }, [user, form]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileForm) => {
@@ -112,7 +98,13 @@ export default function Profile() {
   };
 
   const handleCancel = () => {
-    form.reset();
+    if (user) {
+      form.reset({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phone: user.phone || '',
+      });
+    }
     setIsEditing(false);
   };
 
@@ -172,14 +164,6 @@ export default function Profile() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {user?.bio && (
-              <div>
-                <p className="text-sm text-gray-600 text-center italic">
-                  "{user.bio}"
-                </p>
-              </div>
-            )}
-            
             <Separator />
             
             <div className="space-y-2">
@@ -193,12 +177,6 @@ export default function Profile() {
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-gray-500" />
                   <span>{user.phone}</span>
-                </div>
-              )}
-              {user?.department && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Building className="h-4 w-4 text-gray-500" />
-                  <span>{user.department}</span>
                 </div>
               )}
             </div>
@@ -222,7 +200,7 @@ export default function Profile() {
               Personal Information
             </CardTitle>
             <CardDescription>
-              Update your personal details and professional information
+              Update your personal details
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -266,53 +244,6 @@ export default function Profile() {
                       <FormLabel>Phone Number</FormLabel>
                       <FormControl>
                         <Input {...field} disabled={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="specialty"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Specialty</FormLabel>
-                      <FormControl>
-                        <Input {...field} disabled={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="bio"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bio</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field} 
-                          disabled={!isEditing}
-                          placeholder="Tell us about yourself..."
-                          rows={3}
-                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
