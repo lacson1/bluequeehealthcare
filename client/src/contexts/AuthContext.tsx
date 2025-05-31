@@ -92,7 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = async () => {
     try {
       const token = localStorage.getItem('clinic_token');
-      if (!token) return;
+      if (!token) {
+        logout(); // Clear user data if no token
+        return;
+      }
 
       const response = await fetch('/api/profile', {
         headers: {
@@ -104,9 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = await response.json();
         setUser(userData);
         localStorage.setItem('clinic_user', JSON.stringify(userData));
+      } else if (response.status === 401 || response.status === 404) {
+        // Token is invalid or user not found, log out
+        logout();
       }
     } catch (error) {
       console.error('Failed to refresh user data:', error);
+      // Don't logout on network errors, only on auth failures
     }
   };
 
