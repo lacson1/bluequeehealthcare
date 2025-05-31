@@ -550,21 +550,34 @@ Present this QR code for medication dispensing.`;
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                {/* Current Active Medications */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-800">Current Medications</h3>
-                    <Button 
-                      onClick={onAddPrescription} 
-                      size="sm" 
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Medication
-                    </Button>
-                  </div>
-                  
+              <Tabs defaultValue="current" className="w-full">
+                <div className="flex items-center justify-between mb-4">
+                  <TabsList className="grid w-full grid-cols-3 max-w-md">
+                    <TabsTrigger value="current" className="flex items-center gap-2">
+                      <Pill className="w-4 h-4" />
+                      Current ({activeMedications.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="past" className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Past ({discontinuedMedications.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="summary" className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Summary
+                    </TabsTrigger>
+                  </TabsList>
+                  <Button 
+                    onClick={onAddPrescription} 
+                    size="sm" 
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Medication
+                  </Button>
+                </div>
+
+                {/* Current Medications Tab */}
+                <TabsContent value="current" className="space-y-4">
                   {prescriptionsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="text-slate-500">Loading prescriptions...</div>
@@ -702,15 +715,11 @@ Present this QR code for medication dispensing.`;
                     </Button>
                   </div>
                 )}
-                </div>
-                
-                {/* Discontinued/Historical Medications Section */}
-                {discontinuedMedications.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-gray-500" />
-                      Medication History ({discontinuedMedications.length})
-                    </h3>
+                </TabsContent>
+
+                {/* Past Medications Tab */}
+                <TabsContent value="past" className="space-y-4">
+                  {discontinuedMedications.length > 0 ? (
                     <div className="grid gap-3">
                       {discontinuedMedications.map((prescription: any) => (
                         <div key={prescription.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:shadow-sm transition-shadow">
@@ -771,30 +780,88 @@ Present this QR code for medication dispensing.`;
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-                
-                {/* Summary Statistics */}
-                {displayPrescriptions.length > 0 && (
-                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                    <h4 className="font-medium text-purple-800 mb-2">Medication Summary</h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <Clock className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">No Past Medications</h3>
+                      <p className="text-sm text-gray-500">Historical medications will appear here when available</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Summary Tab */}
+                <TabsContent value="summary" className="space-y-4">
+                  <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
+                    <h4 className="font-semibold text-purple-800 mb-4 text-lg">Medication Overview</h4>
+                    <div className="grid grid-cols-3 gap-6">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-purple-700">{activeMedications.length}</div>
-                        <div className="text-purple-600">Active</div>
+                        <div className="text-3xl font-bold text-purple-700 mb-1">{activeMedications.length}</div>
+                        <div className="text-purple-600 font-medium">Active Medications</div>
+                        <div className="text-xs text-purple-500 mt-1">Currently prescribed</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-700">{discontinuedMedications.length}</div>
-                        <div className="text-blue-600">Historical</div>
+                        <div className="text-3xl font-bold text-blue-700 mb-1">{discontinuedMedications.length}</div>
+                        <div className="text-blue-600 font-medium">Past Medications</div>
+                        <div className="text-xs text-blue-500 mt-1">Completed or discontinued</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-gray-700">{displayPrescriptions.length}</div>
-                        <div className="text-gray-600">Total</div>
+                        <div className="text-3xl font-bold text-gray-700 mb-1">{displayPrescriptions.length}</div>
+                        <div className="text-gray-600 font-medium">Total Prescriptions</div>
+                        <div className="text-xs text-gray-500 mt-1">All time</div>
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
+                  
+                  {displayPrescriptions.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <h5 className="font-medium text-gray-800 mb-3">Recent Activity</h5>
+                        <div className="space-y-2">
+                          {displayPrescriptions.slice(0, 3).map((prescription: any) => (
+                            <div key={prescription.id} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-700">{prescription.medicationName}</span>
+                              <Badge className={
+                                prescription.status === "active" 
+                                  ? "bg-green-100 text-green-800" 
+                                  : prescription.status === "completed"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }>
+                                {prescription.status}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <h5 className="font-medium text-gray-800 mb-3">Quick Actions</h5>
+                        <div className="space-y-2">
+                          <Button 
+                            onClick={onAddPrescription} 
+                            size="sm" 
+                            className="w-full bg-purple-600 hover:bg-purple-700"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add New Medication
+                          </Button>
+                          {activeMedications.length > 0 && (
+                            <Button 
+                              onClick={() => handlePrintPrescription(activeMedications[0])} 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full"
+                            >
+                              <Printer className="w-4 h-4 mr-2" />
+                              Print Recent Prescription
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>
