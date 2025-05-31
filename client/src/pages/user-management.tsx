@@ -348,6 +348,14 @@ export default function UserManagement() {
               <p className="text-slate-600 mt-1">Manage clinic staff accounts and permissions</p>
             </div>
             <div className="flex items-center space-x-3">
+              <Button 
+                onClick={() => setShowStaffModal(true)}
+                className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+              >
+                <Stethoscope className="w-4 h-4 mr-2" />
+                Register Staff
+              </Button>
+              
               <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={resetForm} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
@@ -1035,6 +1043,12 @@ export default function UserManagement() {
           </div>
         </div>
       </div>
+      
+      {/* Staff Registration Modal */}
+      <StaffRegistrationModal
+        open={showStaffModal}
+        onOpenChange={setShowStaffModal}
+      />
     </TooltipProvider>
   );
 }
