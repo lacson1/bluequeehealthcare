@@ -898,3 +898,63 @@ export const insertSafetyAlertSchema = createInsertSchema(safetyAlerts).omit({
 
 export type SafetyAlert = typeof safetyAlerts.$inferSelect;
 export type InsertSafetyAlert = z.infer<typeof insertSafetyAlertSchema>;
+
+// Appointment Reminders
+export const appointmentReminders = pgTable('appointment_reminders', {
+  id: serial('id').primaryKey(),
+  appointmentId: integer('appointment_id').references(() => appointments.id).notNull(),
+  reminderType: varchar('reminder_type', { length: 20 }).notNull(), // 'sms', 'email', 'push'
+  scheduledTime: timestamp('scheduled_time').notNull(), // When to send the reminder
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // 'pending', 'sent', 'failed'
+  sentAt: timestamp('sent_at'),
+  failureReason: text('failure_reason'),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+// Appointment Availability Slots
+export const availabilitySlots = pgTable('availability_slots', {
+  id: serial('id').primaryKey(),
+  doctorId: integer('doctor_id').references(() => users.id).notNull(),
+  dayOfWeek: integer('day_of_week').notNull(), // 0=Sunday, 1=Monday, etc.
+  startTime: varchar('start_time', { length: 8 }).notNull(), // "09:00:00"
+  endTime: varchar('end_time', { length: 8 }).notNull(), // "17:00:00"
+  slotDuration: integer('slot_duration').default(30).notNull(), // minutes
+  isActive: boolean('is_active').default(true),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+// Holiday/Blackout Dates
+export const blackoutDates = pgTable('blackout_dates', {
+  id: serial('id').primaryKey(),
+  doctorId: integer('doctor_id').references(() => users.id), // null means clinic-wide
+  startDate: date('start_date').notNull(),
+  endDate: date('end_date').notNull(),
+  reason: varchar('reason', { length: 100 }).notNull(),
+  isRecurring: boolean('is_recurring').default(false), // for annual holidays
+  organizationId: integer('organization_id').references(() => organizations.id),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+export const insertAppointmentReminderSchema = createInsertSchema(appointmentReminders).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAvailabilitySlotSchema = createInsertSchema(availabilitySlots).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBlackoutDateSchema = createInsertSchema(blackoutDates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AppointmentReminder = typeof appointmentReminders.$inferSelect;
+export type InsertAppointmentReminder = z.infer<typeof insertAppointmentReminderSchema>;
+export type AvailabilitySlot = typeof availabilitySlots.$inferSelect;
+export type InsertAvailabilitySlot = z.infer<typeof insertAvailabilitySlotSchema>;
+export type BlackoutDate = typeof blackoutDates.$inferSelect;
+export type InsertBlackoutDate = z.infer<typeof insertBlackoutDateSchema>;

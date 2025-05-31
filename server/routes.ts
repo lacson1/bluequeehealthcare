@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
 import { fileStorage } from "./storage-service";
-import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, insertLabTestSchema, insertConsultationFormSchema, insertConsultationRecordSchema, insertVaccinationSchema, insertAllergySchema, insertMedicalHistorySchema, insertAppointmentSchema, insertSafetyAlertSchema, insertPharmacyActivitySchema, insertMedicationReviewSchema, insertProceduralReportSchema, insertConsentFormSchema, insertPatientConsentSchema, insertMessageSchema, users, auditLogs, labTests, medications, medicines, labOrders, labOrderItems, consultationForms, consultationRecords, organizations, visits, patients, vitalSigns, appointments, safetyAlerts, pharmacyActivities, medicationReviews, prescriptions, pharmacies, proceduralReports, consentForms, patientConsents, messages } from "@shared/schema";
+import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, insertLabTestSchema, insertConsultationFormSchema, insertConsultationRecordSchema, insertVaccinationSchema, insertAllergySchema, insertMedicalHistorySchema, insertAppointmentSchema, insertSafetyAlertSchema, insertPharmacyActivitySchema, insertMedicationReviewSchema, insertProceduralReportSchema, insertConsentFormSchema, insertPatientConsentSchema, insertMessageSchema, insertAppointmentReminderSchema, insertAvailabilitySlotSchema, insertBlackoutDateSchema, users, auditLogs, labTests, medications, medicines, labOrders, labOrderItems, consultationForms, consultationRecords, organizations, visits, patients, vitalSigns, appointments, safetyAlerts, pharmacyActivities, medicationReviews, prescriptions, pharmacies, proceduralReports, consentForms, patientConsents, messages, appointmentReminders, availabilitySlots, blackoutDates } from "@shared/schema";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { db } from "./db";
@@ -1671,6 +1671,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(logs);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+
+  // Availability Slots API
+  app.get('/api/availability-slots', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { doctorId } = req.query;
+      let query = db.select({
+        id: availabilitySlots.id,
+        doctorId: availabilitySlots.doctorId,
+        dayOfWeek: availabilitySlots.dayOfWeek,
+        startTime: availabilitySlots.startTime,
+        endTime: availabilitySlots.endTime,
+        slotDuration: availabilitySlots.slotDuration,
+        isActive: availabilitySlots.isActive,
+        doctorName: users.username
+      })
+      .from(availabilitySlots)
+      .leftJoin(users, eq(availabilitySlots.doctorId, users.id))
+      .where(eq(availabilitySlots.organizationId, req.user!.organizationId!));
+
+      if (doctorId) {
+        query = query.where(eq(availabilitySlots.doctorId, parseInt(doctorId as string)));
+      }
+
+      const slots = await query;
+      res.json(slots);
+    } catch (error) {
+      console.error('Error fetching availability slots:', error);
+      res.status(500).json({ message: "Failed to fetch availability slots" });
+    }
+  });
+
+  app.post('/api/availability-slots', authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const slotData = insertAvailabilitySlotSchema.parse({
+        ...req.body,
+        organizationId: req.user!.organizationId
+      });
+      
+      const [newSlot] = await db.insert(availabilitySlots)
+        .values(slotData)
+        .returning();
+      
+      res.json(newSlot);
+    } catch (error) {
+      console.error('Error creating availability slot:', error);
+      res.status(500).json({ message: "Failed to create availability slot" });
+    }
+  });
+
+  // Blackout Dates API
+  app.get('/api/blackout-dates', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { doctorId } = req.query;
+      let query = db.select({
+        id: blackoutDates.id,
+        doctorId: blackoutDates.doctorId,
+        startDate: blackoutDates.startDate,
+        endDate: blackoutDates.endDate,
+        reason: blackoutDates.reason,
+        isRecurring: blackoutDates.isRecurring,
+        doctorName: users.username
+      })
+      .from(blackoutDates)
+      .leftJoin(users, eq(blackoutDates.doctorId, users.id))
+      .where(eq(blackoutDates.organizationId, req.user!.organizationId!));
+
+      if (doctorId) {
+        query = query.where(eq(blackoutDates.doctorId, parseInt(doctorId as string)));
+      }
+
+      const dates = await query;
+      res.json(dates);
+    } catch (error) {
+      console.error('Error fetching blackout dates:', error);
+      res.status(500).json({ message: "Failed to fetch blackout dates" });
+    }
+  });
+
+  app.post('/api/blackout-dates', authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const blackoutData = insertBlackoutDateSchema.parse({
+        ...req.body,
+        organizationId: req.user!.organizationId
+      });
+      
+      const [newBlackout] = await db.insert(blackoutDates)
+        .values(blackoutData)
+        .returning();
+      
+      res.json(newBlackout);
+    } catch (error) {
+      console.error('Error creating blackout date:', error);
+      res.status(500).json({ message: "Failed to create blackout date" });
+    }
+  });
+
+  // Appointment Reminders API
+  app.get('/api/appointment-reminders', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { appointmentId } = req.query;
+      let query = db.select({
+        id: appointmentReminders.id,
+        appointmentId: appointmentReminders.appointmentId,
+        reminderType: appointmentReminders.reminderType,
+        scheduledTime: appointmentReminders.scheduledTime,
+        status: appointmentReminders.status,
+        sentAt: appointmentReminders.sentAt,
+        failureReason: appointmentReminders.failureReason,
+        patientName: patients.firstName,
+        appointmentTime: appointments.appointmentTime,
+        appointmentDate: appointments.appointmentDate
+      })
+      .from(appointmentReminders)
+      .leftJoin(appointments, eq(appointmentReminders.appointmentId, appointments.id))
+      .leftJoin(patients, eq(appointments.patientId, patients.id))
+      .where(eq(appointmentReminders.organizationId, req.user!.organizationId!));
+
+      if (appointmentId) {
+        query = query.where(eq(appointmentReminders.appointmentId, parseInt(appointmentId as string)));
+      }
+
+      const reminders = await query;
+      res.json(reminders);
+    } catch (error) {
+      console.error('Error fetching appointment reminders:', error);
+      res.status(500).json({ message: "Failed to fetch appointment reminders" });
+    }
+  });
+
+  app.post('/api/appointment-reminders', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const reminderData = insertAppointmentReminderSchema.parse({
+        ...req.body,
+        organizationId: req.user!.organizationId
+      });
+      
+      const [newReminder] = await db.insert(appointmentReminders)
+        .values(reminderData)
+        .returning();
+      
+      res.json(newReminder);
+    } catch (error) {
+      console.error('Error creating appointment reminder:', error);
+      res.status(500).json({ message: "Failed to create appointment reminder" });
     }
   });
 
