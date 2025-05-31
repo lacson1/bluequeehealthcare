@@ -5,16 +5,35 @@ export async function fetchPrintData() {
   const userResponse = await fetch('/api/profile');
   const currentUser = await userResponse.json();
   
-  // Since we're getting forbidden access to organizations API, 
-  // we'll use a default organization based on the clinic system
-  const organization = {
-    name: 'Grace Medical Clinic',
+  // Try to get organization data from the system
+  let organization = {
+    name: 'Grace',
     type: 'clinic',
     address: '123 Healthcare Avenue, Lagos, Nigeria',
     phone: '+234 802 123 4567',
-    email: 'info@gracemedical.ng',
-    website: 'www.gracemedical.ng'
+    email: 'grace@clinic.com',
+    website: 'www.grace-clinic.com'
   };
+  
+  // If user has organizationId, try to fetch specific organization
+  if (currentUser.organizationId) {
+    try {
+      const orgResponse = await fetch(`/api/organizations/${currentUser.organizationId}`);
+      if (orgResponse.ok) {
+        const orgData = await orgResponse.json();
+        organization = {
+          name: orgData.name,
+          type: orgData.type,
+          address: orgData.address || '123 Healthcare Avenue, Lagos, Nigeria',
+          phone: orgData.phone || '+234 802 123 4567',
+          email: orgData.email,
+          website: orgData.website || `www.${orgData.name.toLowerCase().replace(/\s+/g, '-')}.com`
+        };
+      }
+    } catch (error) {
+      console.warn('Could not fetch specific organization, using default');
+    }
+  }
   
   return {
     currentUser,

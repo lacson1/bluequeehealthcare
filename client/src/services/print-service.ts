@@ -323,10 +323,10 @@ export class PrintService {
     }
   }
 
-  private static generateContentSection(type: string, data: any): string {
+  private static generateContentSection(type: string, data: any, organization?: any): string {
     switch (type) {
       case 'prescription':
-        return this.generatePrescriptionContent(data);
+        return this.generatePrescriptionContent(data, organization);
       case 'lab-order':
         return this.generateLabOrderContent(data);
       case 'consultation':
@@ -336,16 +336,23 @@ export class PrintService {
     }
   }
 
-  private static generatePrescriptionContent(prescription: any): string {
+  private static generatePrescriptionContent(prescription: any, organization: any = null): string {
     const prescriptionDate = prescription.startDate ? new Date(prescription.startDate).toLocaleDateString() : new Date().toLocaleDateString();
+    
+    // Use organization data if provided, otherwise fetch from database
+    const orgName = organization?.name || 'Grace';
+    const orgType = organization?.type || 'clinic';
+    const orgAddress = organization?.address || '123 Healthcare Avenue, Lagos, Nigeria';
+    const orgPhone = organization?.phone || '+234 802 123 4567';
+    const orgEmail = organization?.email || 'grace@clinic.com';
     
     return `
     <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #2563eb;">
-        <div style="font-size: 28px; font-weight: bold; color: #1e40af; margin-bottom: 8px;">GRACE MEDICAL CLINIC</div>
-        <div style="font-size: 16px; color: #3730a3; margin-bottom: 8px;">HEALTHCARE FACILITY</div>
+        <div style="font-size: 28px; font-weight: bold; color: #1e40af; margin-bottom: 8px;">${orgName.toUpperCase()}</div>
+        <div style="font-size: 16px; color: #3730a3; margin-bottom: 8px;">${orgType.toUpperCase().replace('_', ' ')} FACILITY</div>
         <div style="font-size: 14px; color: #4b5563; line-height: 1.4;">
-            123 Healthcare Avenue, Lagos, Nigeria<br>
-            Tel: +234 802 123 4567 | Email: info@gracemedical.ng
+            ${orgAddress}<br>
+            Tel: ${orgPhone} | Email: ${orgEmail}
         </div>
     </div>
     
