@@ -142,7 +142,7 @@ export default function RevenueAnalytics() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Patients</p>
                 <p className="text-2xl font-bold text-blue-600">
-                  {mockRevenueData.totalPatients}
+                  {revenueData?.totalPatients || 0}
                 </p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
@@ -200,7 +200,7 @@ export default function RevenueAnalytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={mockRevenueData.dailyRevenue}>
+              <LineChart data={revenueData?.dailyRevenue || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -219,16 +219,16 @@ export default function RevenueAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={paymentMethodData}
+                  data={paymentMethods || []}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percentage }) => `${name} (${percentage}%)`}
+                  label={({ name, percentage }: any) => `${name} (${percentage}%)`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {paymentMethodData.map((entry, index) => (
+                  {(paymentMethods || []).map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
