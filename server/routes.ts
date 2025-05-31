@@ -1239,19 +1239,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get prescription details with patient info and prescribing staff organization
       const [prescriptionResult] = await db.select({
-        prescriptionId: schema.prescriptions.id,
-        patientId: schema.prescriptions.patientId,
-        medicationId: schema.prescriptions.medicationId,
-        medicationName: schema.prescriptions.medicationName,
-        dosage: schema.prescriptions.dosage,
-        frequency: schema.prescriptions.frequency,
-        duration: schema.prescriptions.duration,
-        instructions: schema.prescriptions.instructions,
-        startDate: schema.prescriptions.startDate,
-        endDate: schema.prescriptions.endDate,
-        status: schema.prescriptions.status,
-        prescribedBy: schema.prescriptions.prescribedBy,
-        createdAt: schema.prescriptions.createdAt,
+        prescriptionId: prescriptions.id,
+        patientId: prescriptions.patientId,
+        medicationId: prescriptions.medicationId,
+        medicationName: prescriptions.medicationName,
+        dosage: prescriptions.dosage,
+        frequency: prescriptions.frequency,
+        duration: prescriptions.duration,
+        instructions: prescriptions.instructions,
+        startDate: prescriptions.startDate,
+        endDate: prescriptions.endDate,
+        status: prescriptions.status,
+        prescribedBy: prescriptions.prescribedBy,
+        createdAt: prescriptions.createdAt,
         patientFirstName: patients.firstName,
         patientLastName: patients.lastName,
         patientDateOfBirth: patients.dateOfBirth,
@@ -1272,11 +1272,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organizationLogo: organizations.logoUrl,
         organizationTheme: organizations.themeColor
       })
-      .from(schema.prescriptions)
-      .leftJoin(patients, eq(schema.prescriptions.patientId, patients.id))
-      .leftJoin(users, eq(schema.prescriptions.prescribedBy, users.username))
+      .from(prescriptions)
+      .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+      .leftJoin(users, eq(prescriptions.prescribedBy, users.username))
       .leftJoin(organizations, eq(users.organizationId, organizations.id))
-      .where(eq(schema.prescriptions.id, prescriptionId));
+      .where(eq(prescriptions.id, prescriptionId));
 
       if (!prescriptionResult) {
         return res.status(404).json({ message: "Prescription not found" });
