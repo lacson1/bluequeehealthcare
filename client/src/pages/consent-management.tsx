@@ -915,8 +915,8 @@ export default function ConsentManagement() {
                         
                         ${viewingForm.template?.sections?.map((section: any) => `
                           <div class="section">
-                            <div class="section-title">${section.title} ${section.required ? '(Required)' : ''}</div>
-                            <div class="content">${section.content.replace(/\n/g, '<br>')}</div>
+                            <div class="section-title">${section.title || ''} ${section.required ? '(Required)' : ''}</div>
+                            <div class="content">${(section.content || '').replace(/\n/g, '<br>')}</div>
                           </div>
                         `).join('') || ''}
                         
