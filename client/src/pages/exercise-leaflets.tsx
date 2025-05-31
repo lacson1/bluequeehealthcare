@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Download, Printer, BookOpen, ExternalLink, Heart, Search, User, Building, Phone, Mail, Globe } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Patient {
   id: number;
@@ -241,9 +241,47 @@ export default function ExerciseLeafletsPage() {
                   </DialogHeader>
                   
                   <div className="space-y-6 p-6 bg-white">
-                    {/* Header */}
-                    <div className="text-center border-b-2 border-blue-600 pb-4">
-                      <h1 className="text-2xl font-bold text-blue-600">Home Exercise Program</h1>
+                    {/* Organization Header */}
+                    {organizationData && (
+                      <div className="text-center border-b-2 border-blue-600 pb-4 mb-6">
+                        <div className="flex items-center justify-center gap-3 mb-2">
+                          <Building className="w-8 h-8 text-blue-600" />
+                          <h1 className="text-2xl font-bold text-blue-600">{organizationData.name}</h1>
+                        </div>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          {organizationData.address && (
+                            <p className="flex items-center justify-center gap-1">
+                              <Building className="w-3 h-3" />
+                              {organizationData.address}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-center gap-4">
+                            {organizationData.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="w-3 h-3" />
+                                {organizationData.phone}
+                              </span>
+                            )}
+                            {organizationData.email && (
+                              <span className="flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                {organizationData.email}
+                              </span>
+                            )}
+                            {organizationData.website && (
+                              <span className="flex items-center gap-1">
+                                <Globe className="w-3 h-3" />
+                                {organizationData.website}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Exercise Program Header */}
+                    <div className="text-center border-b border-gray-300 pb-4">
+                      <h2 className="text-xl font-bold text-gray-800">Home Exercise Program</h2>
                       <p className="text-gray-600">Personalized Physiotherapy Prescription</p>
                     </div>
                     
@@ -285,11 +323,47 @@ export default function ExerciseLeafletsPage() {
                       </ul>
                     </div>
                     
-                    {/* Contact Info */}
-                    <div className="text-center text-sm text-gray-600 border-t pt-4">
-                      <p>For questions or concerns, please contact your physiotherapist</p>
-                      <p className="font-medium">Follow-up appointment recommended in 2-3 weeks</p>
+                    {/* Prescribing Provider */}
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border-t border-blue-200">
+                      <div>
+                        <h3 className="font-semibold text-blue-800 mb-2">Prescribed by:</h3>
+                        <p className="text-sm text-blue-700">
+                          {user?.title ? `${user.title} ` : ''}{user?.firstName} {user?.lastName}
+                        </p>
+                        <p className="text-xs text-blue-600">{user?.role}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-blue-800 mb-2">Date prescribed:</h3>
+                        <p className="text-sm text-blue-700">{new Date().toLocaleDateString()}</p>
+                        <p className="text-xs text-blue-600">Follow-up recommended in 2-3 weeks</p>
+                      </div>
                     </div>
+
+                    {/* Organization Footer */}
+                    {organizationData && (
+                      <div className="text-center text-sm text-gray-600 border-t border-gray-300 pt-4 mt-6">
+                        <div className="space-y-2">
+                          <p className="font-medium text-blue-600">{organizationData.name}</p>
+                          <div className="flex items-center justify-center gap-4 text-xs">
+                            {organizationData.phone && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="w-3 h-3" />
+                                {organizationData.phone}
+                              </span>
+                            )}
+                            {organizationData.email && (
+                              <span className="flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                {organizationData.email}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            For questions or concerns about this exercise program, please contact our physiotherapy department
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex justify-end gap-3 pt-4">
