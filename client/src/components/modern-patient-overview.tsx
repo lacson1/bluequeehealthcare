@@ -232,13 +232,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     queryKey: ['/api/patients', patient.id, 'prescriptions'],
     queryFn: async () => {
       console.log('Fetching prescriptions for patient:', patient.id);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/patients/${patient.id}/prescriptions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(`/api/patients/${patient.id}/prescriptions`);
       console.log('Prescription response status:', response.status);
       if (!response.ok) {
         const errorText = await response.text();
