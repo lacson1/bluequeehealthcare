@@ -28,9 +28,15 @@ import {
   FileSignature,
   Edit3,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Info,
+  HelpCircle,
+  Zap,
+  Target
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface PatientSession {
   id: number;
@@ -374,6 +380,38 @@ export default function PatientPortal() {
         },
       });
       if (!response.ok) throw new Error('Failed to fetch visits');
+      return response.json();
+    },
+    enabled: isAuthenticated && !!patientSession?.id
+  });
+
+  // Pending consent forms data
+  const { data: pendingConsents = [] } = useQuery({
+    queryKey: ['/api/patient-portal/pending-consents'],
+    queryFn: async () => {
+      const token = localStorage.getItem('patientToken');
+      const response = await fetch('/api/patient-portal/pending-consents', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch pending consents');
+      return response.json();
+    },
+    enabled: isAuthenticated && !!patientSession?.id
+  });
+
+  // Signed consent forms data
+  const { data: signedConsents = [] } = useQuery({
+    queryKey: ['/api/patient-portal/signed-consents'],
+    queryFn: async () => {
+      const token = localStorage.getItem('patientToken');
+      const response = await fetch('/api/patient-portal/signed-consents', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error('Failed to fetch signed consents');
       return response.json();
     },
     enabled: isAuthenticated && !!patientSession?.id
@@ -1056,99 +1094,71 @@ export default function PatientPortal() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-medium text-sm">General Treatment Consent</h4>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Required for all medical treatments and procedures
-                          </p>
-                          <Badge variant="secondary" className="mt-2 text-xs">
-                            Required
-                          </Badge>
-                        </div>
-                        <Button 
-                          size="sm" 
-                          onClick={() => {
-                            setSelectedConsent({
-                              id: 1,
-                              title: 'General Treatment Consent',
-                              category: 'General',
-                              description: 'Consent for general medical treatment and procedures',
-                              template: {
-                                sections: [
-                                  {
-                                    title: 'Treatment Authorization',
-                                    content: 'I authorize the healthcare team to provide necessary medical treatment and care.'
-                                  },
-                                  {
-                                    title: 'Risks and Benefits',
-                                    content: 'I understand that all medical treatments carry inherent risks and benefits that have been explained to me.'
-                                  }
-                                ]
-                              },
-                              riskFactors: ['Allergic reactions', 'Bleeding', 'Infection'],
-                              benefits: ['Improved health outcomes', 'Pain relief', 'Disease management'],
-                              alternatives: ['Conservative management', 'Alternative treatments']
-                            });
-                            setShowConsentSigning(true);
-                          }}
+                    {pendingConsents.length > 0 ? (
+                      pendingConsents.map((consent: any) => (
+                        <div 
+                          key={consent.id} 
+                          className={`border rounded-lg p-4 ${
+                            consent.isRequired ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'
+                          }`}
                         >
-                          <Edit3 className="w-3 h-3 mr-1" />
-                          Sign Now
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-medium text-sm">Laboratory Testing Consent</h4>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Authorization for laboratory tests and blood work
-                          </p>
-                          <Badge variant="outline" className="mt-2 text-xs">
-                            Optional
-                          </Badge>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-medium text-sm">{consent.title}</h4>
+                              <p className="text-xs text-gray-600 mt-1">
+                                {consent.description}
+                              </p>
+                              <Badge 
+                                variant={consent.isRequired ? "secondary" : "outline"} 
+                                className="mt-2 text-xs"
+                              >
+                                {consent.isRequired ? "Required" : "Optional"}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setSelectedConsent(consent);
+                                        setShowConsentSigning(true);
+                                      }}
+                                    >
+                                      <Eye className="w-3 h-3 mr-1" />
+                                      Preview
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Review consent details before signing</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              
+                              <Button 
+                                size="sm" 
+                                variant={consent.isRequired ? "default" : "outline"}
+                                onClick={() => {
+                                  setSelectedConsent(consent);
+                                  setShowConsentSigning(true);
+                                }}
+                              >
+                                <Edit3 className="w-3 h-3 mr-1" />
+                                {consent.isRequired ? "Sign Now" : "Sign"}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedConsent({
-                              id: 2,
-                              title: 'Laboratory Testing Consent',
-                              category: 'Laboratory',
-                              description: 'Consent for laboratory testing and diagnostic procedures',
-                              template: {
-                                sections: [
-                                  {
-                                    title: 'Testing Authorization',
-                                    content: 'I consent to laboratory testing as recommended by my healthcare provider.'
-                                  },
-                                  {
-                                    title: 'Sample Collection',
-                                    content: 'I understand that blood, urine, or other samples may be collected for testing.'
-                                  }
-                                ]
-                              },
-                              riskFactors: ['Minor bleeding', 'Bruising', 'Discomfort'],
-                              benefits: ['Accurate diagnosis', 'Treatment monitoring', 'Health screening'],
-                              alternatives: ['Clinical assessment only', 'Alternative testing methods']
-                            });
-                            setShowConsentSigning(true);
-                          }}
-                        >
-                          <Edit3 className="w-3 h-3 mr-1" />
-                          Sign
-                        </Button>
+                      ))
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        <CheckCircle className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                        <p className="text-sm">No pending consent forms</p>
+                        <p className="text-xs text-gray-400 mt-1">All required consents have been completed</p>
                       </div>
-                    </div>
-
-                    <div className="text-center py-6 text-gray-500">
-                      <FileSignature className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                      <p className="text-sm">All pending consent forms will appear here</p>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1163,29 +1173,41 @@ export default function PatientPortal() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="border rounded-lg p-4 bg-green-50 border-green-200">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-medium text-sm">Privacy Policy Consent</h4>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Signed on {new Date().toLocaleDateString()}
-                          </p>
-                          <Badge className="mt-2 text-xs bg-green-100 text-green-800">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Signed
-                          </Badge>
+                    {signedConsents.length > 0 ? (
+                      signedConsents.map((consent: any) => (
+                        <div key={consent.id} className="border rounded-lg p-4 bg-green-50 border-green-200">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-medium text-sm">{consent.consentFormTitle}</h4>
+                              <p className="text-xs text-gray-600 mt-1">
+                                Signed on {new Date(consent.signatureDate).toLocaleDateString()}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge className="text-xs bg-green-100 text-green-800">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Signed
+                                </Badge>
+                                {consent.category && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {consent.category}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <Button size="sm" variant="ghost">
+                              <Download className="w-3 h-3 mr-1" />
+                              Download
+                            </Button>
+                          </div>
                         </div>
-                        <Button size="sm" variant="ghost">
-                          <Download className="w-3 h-3 mr-1" />
-                          Download
-                        </Button>
+                      ))
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        <FileSignature className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                        <p className="text-sm">No signed consent forms yet</p>
+                        <p className="text-xs text-gray-400 mt-1">Your signed consent forms will appear here</p>
                       </div>
-                    </div>
-
-                    <div className="text-center py-6 text-gray-500">
-                      <CheckCircle className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                      <p className="text-sm">Your signed consent forms will appear here</p>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1357,12 +1379,44 @@ export default function PatientPortal() {
               Cancel
             </Button>
             <Button 
-              onClick={() => {
-                if (signatureData.toLowerCase().trim() === `${patientSession?.firstName} ${patientSession?.lastName}`.toLowerCase()) {
-                  setShowConsentSigning(false);
-                  setSignatureData('');
-                  // Here you would normally save the signed consent to the backend
-                  alert('Consent form signed successfully!');
+              onClick={async () => {
+                const expectedName = `${patientSession?.firstName} ${patientSession?.lastName}`.toLowerCase();
+                if (signatureData.toLowerCase().trim() === expectedName) {
+                  try {
+                    const token = localStorage.getItem('patientToken');
+                    const response = await fetch('/api/patient-portal/sign-consent', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({
+                        consentFormId: selectedConsent.id,
+                        digitalSignature: signatureData,
+                        consentGivenBy: 'patient',
+                        additionalNotes: `Digitally signed via patient portal on ${new Date().toISOString()}`
+                      }),
+                    });
+
+                    if (response.ok) {
+                      const result = await response.json();
+                      setShowConsentSigning(false);
+                      setSignatureData('');
+                      setSelectedConsent(null);
+                      
+                      // Refresh consent data
+                      queryClient.invalidateQueries({ queryKey: ['/api/patient-portal/pending-consents'] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/patient-portal/signed-consents'] });
+                      
+                      alert('Consent form signed successfully!');
+                    } else {
+                      const error = await response.json();
+                      alert(`Failed to sign consent: ${error.message}`);
+                    }
+                  } catch (error) {
+                    console.error('Error signing consent:', error);
+                    alert('Failed to sign consent form. Please try again.');
+                  }
                 } else {
                   alert('Please type your full name exactly as shown to complete the digital signature');
                 }

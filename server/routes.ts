@@ -3467,6 +3467,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+  // Patient Portal Authentication Middleware
+  const authenticatePatient = async (req: PatientAuthRequest, res: any, next: any) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
+      
+      // Fetch patient data
+      const [patient] = await db.select()
+        .from(patients)
+        .where(eq(patients.id, decoded.patientId))
+        .limit(1);
+
+      if (!patient) {
+        return res.status(401).json({ error: 'Patient not found' });
+      }
+
+      req.patient = patient;
+      next();
+    } catch (error) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+  };
+
+  // Patient Portal Consent Management
+  app.get('/api/patient-portal/pending-consents', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient!.id;
+      
+      // Get consent forms that haven't been signed by this patient
+      const result = await db
+        .select({
+          id: consentForms.id,
+          title: consentForms.title,
+          description: consentForms.description,
+          consentType: consentForms.consentType,
+          category: consentForms.category,
+          template: consentForms.template,
+          riskFactors: consentForms.riskFactors,
+          benefits: consentForms.benefits,
+          alternatives: consentForms.alternatives,
+          isRequired: consentForms.isRequired
+        })
+        .from(consentForms)
+        .where(
+          and(
+            eq(consentForms.isActive, true),
+            sql`${consentForms.id} NOT IN (
+              SELECT consent_form_id FROM patient_consents 
+              WHERE patient_id = ${patientId} AND status = 'active'
+            )`
+          )
+        )
+        .orderBy(consentForms.title);
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching pending consents:', error);
+      res.status(500).json({ message: "Failed to fetch pending consents" });
+    }
+  });
+
+  app.post('/api/patient-portal/sign-consent', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient!.id;
+      const {
+        consentFormId,
+        digitalSignature,
+        consentGivenBy = 'patient',
+        guardianName,
+        guardianRelationship,
+        interpreterUsed = false,
+        interpreterName,
+        additionalNotes
+      } = req.body;
+
+      if (!consentFormId || !digitalSignature) {
+        return res.status(400).json({ message: "Consent form ID and digital signature are required" });
+      }
+
+      // Check if consent already exists
+      const existingConsent = await db
+        .select()
+        .from(patientConsents)
+        .where(and(
+          eq(patientConsents.patientId, patientId),
+          eq(patientConsents.consentFormId, consentFormId),
+          eq(patientConsents.status, 'active')
+        ))
+        .limit(1);
+
+      if (existingConsent.length > 0) {
+        return res.status(400).json({ message: "Consent already signed for this form" });
+      }
+
+      // Create new patient consent
+      const [newConsent] = await db
+        .insert(patientConsents)
+        .values({
+          patientId,
+          consentFormId,
+          consentGivenBy,
+          guardianName,
+          guardianRelationship,
+          interpreterUsed,
+          interpreterName,
+          digitalSignature,
+          signatureDate: new Date(),
+          status: 'active',
+          organizationId: req.patient!.organizationId || 1,
+          additionalNotes,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      res.json({
+        success: true,
+        message: "Consent form signed successfully",
+        consent: newConsent
+      });
+    } catch (error) {
+      console.error('Error signing consent:', error);
+      res.status(500).json({ message: "Failed to sign consent form" });
+    }
+  });
+
+  app.get('/api/patient-portal/signed-consents', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient!.id;
+      
+      const result = await db
+        .select({
+          id: patientConsents.id,
+          consentFormTitle: consentForms.title,
+          consentType: consentForms.consentType,
+          category: consentForms.category,
+          consentGivenBy: patientConsents.consentGivenBy,
+          guardianName: patientConsents.guardianName,
+          signatureDate: patientConsents.signatureDate,
+          status: patientConsents.status,
+          expiryDate: patientConsents.expiryDate
+        })
+        .from(patientConsents)
+        .leftJoin(consentForms, eq(patientConsents.consentFormId, consentForms.id))
+        .where(eq(patientConsents.patientId, patientId))
+        .orderBy(desc(patientConsents.signatureDate));
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching signed consents:', error);
+      res.status(500).json({ message: "Failed to fetch signed consents" });
+    }
+  });
+
   // Patient Portal Authentication
   app.post('/api/patient-auth/login', async (req, res) => {
     try {
@@ -4150,35 +4308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Patient authentication middleware
-  const authenticatePatient = async (req: PatientAuthRequest, res: any, next: any) => {
-    try {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return res.status(401).json({ error: 'No token provided' });
-      }
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
-      if (decoded.type !== 'patient') {
-        return res.status(401).json({ error: 'Invalid token type' });
-      }
-
-      // Find the patient to attach to request
-      const [patient] = await db.select()
-        .from(patients)
-        .where(eq(patients.id, decoded.patientId));
-
-      if (!patient) {
-        return res.status(401).json({ error: 'Patient not found' });
-      }
-
-      req.patient = patient;
-      next();
-    } catch (error) {
-      console.error('Patient authentication error:', error);
-      res.status(401).json({ error: 'Invalid token' });
-    }
-  };
+  // Patient authentication middleware (removed duplicate);
 
   // Patient Portal Messaging API endpoints
   app.get('/api/patient-portal/messages', authenticatePatient, async (req: PatientAuthRequest, res) => {
