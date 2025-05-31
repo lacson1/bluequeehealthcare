@@ -1293,12 +1293,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/patients/:id/prescriptions", async (req, res) => {
+  app.get("/api/patients/:id/prescriptions", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const prescriptions = await storage.getPrescriptionsByPatient(patientId);
       res.json(prescriptions);
     } catch (error) {
+      console.error('Fetch prescriptions error:', error);
       res.status(500).json({ message: "Failed to fetch prescriptions" });
     }
   });
