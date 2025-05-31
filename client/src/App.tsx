@@ -45,6 +45,7 @@ import PatientAccessCards from "@/pages/patient-access-cards";
 import Settings from "@/pages/settings";
 import Profile from "@/pages/profile";
 import SuperAdminAnalytics from "@/pages/superadmin-analytics";
+import SuperAdminControlPanel from "@/pages/super-admin-control-panel";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 
@@ -106,6 +107,7 @@ function AuthenticatedApp() {
                   <Route path="/organization-management" component={OrganizationManagement} />
                   <Route path="/patient-access-cards" component={PatientAccessCards} />
                   <Route path="/global-analytics" component={SuperAdminAnalytics} />
+                  <Route path="/super-admin-control" component={SuperAdminControlPanel} />
                   <Route component={NotFound} />
                 </Switch>
               </div>

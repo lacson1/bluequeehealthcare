@@ -15,6 +15,7 @@ const getNavigationGroupsForRole = (role: string) => {
       icon: BarChart3,
       items: [
         { name: "Global Analytics", href: "/superadmin/analytics", icon: TrendingUp, roles: ["superadmin"] },
+        { name: "Super Admin Control Panel", href: "/super-admin-control", icon: Shield, roles: ["superadmin"] },
       ]
     }
   ] : [];
