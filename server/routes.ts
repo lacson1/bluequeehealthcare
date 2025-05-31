@@ -4076,7 +4076,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/pharmacy/activities", authenticateToken, requireAnyRole(['pharmacist', 'admin']), async (req: AuthRequest, res) => {
     try {
       const { pharmacistId, activityType, startDate, endDate } = req.query;
-      let query = db.select().from(pharmacyActivities);
       
       const conditions = [eq(pharmacyActivities.organizationId, req.user!.organizationId)];
       
@@ -4087,7 +4086,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conditions.push(eq(pharmacyActivities.activityType, activityType as string));
       }
       
-      const activities = await query
+      const activities = await db
+        .select({
+          id: pharmacyActivities.id,
+          pharmacistId: pharmacyActivities.pharmacistId,
+          activityType: pharmacyActivities.activityType,
+          patientId: pharmacyActivities.patientId,
+          medicineId: pharmacyActivities.medicineId,
+          prescriptionId: pharmacyActivities.prescriptionId,
+          title: pharmacyActivities.title,
+          description: pharmacyActivities.description,
+          quantity: pharmacyActivities.quantity,
+          comments: pharmacyActivities.comments,
+          status: pharmacyActivities.status,
+          priority: pharmacyActivities.priority,
+          organizationId: pharmacyActivities.organizationId,
+          createdAt: pharmacyActivities.createdAt,
+          updatedAt: pharmacyActivities.updatedAt,
+          medicationName: medicines.name,
+          patientFirstName: patients.firstName,
+          patientLastName: patients.lastName
+        })
+        .from(pharmacyActivities)
+        .leftJoin(medicines, eq(pharmacyActivities.medicineId, medicines.id))
+        .leftJoin(patients, eq(pharmacyActivities.patientId, patients.id))
         .where(and(...conditions))
         .orderBy(desc(pharmacyActivities.createdAt))
         .limit(100);
