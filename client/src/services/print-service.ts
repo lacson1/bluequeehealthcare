@@ -336,7 +336,7 @@ export class PrintService {
                 <span class="label">Phone:</span> ${patientInfo.phone}
             </div>
         </div>
-        ${patientInfo.address ? `<div class="info-item" style="margin-top: 10px;"><span class="label">Address:</span> ${patientInfo.address}</div>` : ''}
+        ${patientInfo.address ? `<div class="info-item"><span class="label">Address:</span> ${patientInfo.address}</div>` : ''}
     </div>
     
     <div class="info-section">
