@@ -110,6 +110,8 @@ function AuthenticatedApp() {
                   <Route path="/audit-logs" component={AuditLogs} />
                   <Route path="/organization-management" component={OrganizationManagement} />
                   <Route path="/patient-access-cards" component={PatientAccessCards} />
+                  <Route path="/procedural-reports" component={ProceduralReports} />
+                  <Route path="/consent-management" component={ConsentManagement} />
                   <Route path="/global-analytics" component={SuperAdminAnalytics} />
                   <Route path="/super-admin-control" component={SuperAdminControlPanel} />
                   <Route component={NotFound} />
