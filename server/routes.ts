@@ -5361,7 +5361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: invoices.id,
         invoiceNumber: invoices.invoiceNumber,
         patientId: invoices.patientId,
-        patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`.as('patientName'),
+        patientName: sql<string>`${patients.first_name} || ' ' || ${patients.last_name}`.as('patientName'),
         patientPhone: patients.phone,
         patientEmail: patients.email,
         issueDate: invoices.issueDate,
