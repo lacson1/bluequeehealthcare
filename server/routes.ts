@@ -3745,13 +3745,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Organization data for print documents
   app.get("/api/print/organization", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      // Since users may not have organizationId set, fetch the first active organization as default
-      const [organization] = await db
-        .select()
-        .from(organizations)
-        .where(eq(organizations.isActive, true))
-        .orderBy(organizations.id)
-        .limit(1);
+      let organization;
+
+      // First try to get user's assigned organization if they have organizationId
+      if (req.user?.organizationId) {
+        [organization] = await db
+          .select()
+          .from(organizations)
+          .where(and(
+            eq(organizations.id, req.user.organizationId),
+            eq(organizations.isActive, true)
+          ));
+      }
+
+      // If user doesn't have an organization or it's not found, get the first active one
+      if (!organization) {
+        [organization] = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.isActive, true))
+          .orderBy(organizations.id)
+          .limit(1);
+      }
 
       if (!organization) {
         return res.status(404).json({ error: 'No active organization found' });
