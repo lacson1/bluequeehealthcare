@@ -35,6 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token && userData) {
       try {
         setUser(JSON.parse(userData));
+        // Refresh user data to get latest information
+        refreshUser();
       } catch (error) {
         localStorage.removeItem('clinic_token');
         localStorage.removeItem('clinic_user');
@@ -42,6 +44,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(false);
   }, []);
+
+  // Set up periodic session refresh
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      refreshUser();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
