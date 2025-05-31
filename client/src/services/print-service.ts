@@ -108,7 +108,7 @@ export class PrintService {
         
         body {
             font-family: 'Times New Roman', serif;
-            line-height: 1.6;
+            line-height: 1.4;
             color: #000;
             margin: 0;
             padding: 20px;
@@ -117,81 +117,82 @@ export class PrintService {
         }
         
         .print-container {
-            background: white;
-            max-width: 800px;
+            background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 50%, #f0f8f0 100%);
+            max-width: 420px;
             margin: 0 auto;
-            padding: 40px;
-            border-radius: 10px;
+            padding: 20px;
+            border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border: 2px solid #e0e7ff;
+            border: 2px solid #22c55e;
+            min-height: 595px;
         }
         
         .header {
             text-align: center;
-            border-bottom: 3px solid #1e40af;
-            padding: 25px 20px;
-            margin-bottom: 35px;
-            background: linear-gradient(135deg, #f8faff 0%, #ffffff 100%);
-            border-radius: 8px 8px 0 0;
+            border-bottom: 3px solid #22c55e;
+            padding: 15px 10px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-radius: 6px 6px 0 0;
         }
         
         .org-name {
-            font-size: 36px;
+            font-size: 22px;
             font-weight: bold;
-            margin-bottom: 10px;
-            color: #1e40af;
-            letter-spacing: 2px;
+            margin-bottom: 6px;
+            color: #166534;
+            letter-spacing: 1px;
             text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         .org-type {
-            font-size: 16px;
-            color: #3730a3;
-            margin-bottom: 15px;
+            font-size: 12px;
+            color: #15803d;
+            margin-bottom: 8px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
         }
         
         .org-details {
-            font-size: 14px;
-            line-height: 1.6;
-            color: #4b5563;
-            padding: 12px 0;
-            border-top: 1px solid #e5e7eb;
-            margin-top: 15px;
+            font-size: 10px;
+            line-height: 1.4;
+            color: #374151;
+            padding: 8px 0;
+            border-top: 1px solid #bbf7d0;
+            margin-top: 8px;
         }
         
         .document-title {
             text-align: center;
-            font-size: 24px;
+            font-size: 16px;
             font-weight: bold;
-            margin: 30px 0;
+            margin: 15px 0;
             text-transform: uppercase;
-            border: 3px solid #1e40af;
-            padding: 15px;
-            background: #f8faff;
-            color: #1e40af;
-            letter-spacing: 2px;
-            border-radius: 8px;
+            border: 2px solid #22c55e;
+            padding: 8px;
+            background: #f0fdf4;
+            color: #166534;
+            letter-spacing: 1px;
+            border-radius: 6px;
         }
         
         .info-section {
-            margin: 25px 0;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 20px;
-            background: #fafbfc;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin: 12px 0;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            padding: 10px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            box-shadow: 0 1px 3px rgba(34,197,94,0.1);
         }
         
         .info-title {
             font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #1e40af;
-            padding-bottom: 8px;
-            color: #1e40af;
+            font-size: 12px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #22c55e;
+            padding-bottom: 4px;
+            color: #166534;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -430,26 +431,26 @@ export class PrintService {
     return `
     <style>
         .prescription-medication {
-            border: 2px solid #1e40af;
-            padding: 15px;
-            background: white;
+            border: 2px solid #22c55e;
+            padding: 10px;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border-radius: 6px;
-            margin: 15px 0;
+            margin: 10px 0;
         }
         .rx-header {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
-            color: #1e40af;
-            margin-bottom: 12px;
+            color: #166534;
+            margin-bottom: 8px;
             text-align: center;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 6px;
+            border-bottom: 1px solid #bbf7d0;
+            padding-bottom: 4px;
         }
         .med-details {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 8px;
         }
         .med-item {
             display: flex;
@@ -457,34 +458,35 @@ export class PrintService {
         }
         .med-label {
             font-weight: bold;
-            color: #374151;
-            font-size: 10px;
+            color: #15803d;
+            font-size: 9px;
             margin-bottom: 2px;
         }
         .med-value {
-            color: #1f2937;
-            font-size: 11px;
+            color: #374151;
+            font-size: 10px;
         }
         @media print {
             .prescription-medication {
-                padding: 10px !important;
-                margin: 0.1in 0 !important;
+                padding: 8px !important;
+                margin: 0.08in 0 !important;
+                background: #f0fdf4 !important;
             }
             .rx-header {
-                font-size: 12pt !important;
-                margin-bottom: 6px !important;
-                padding-bottom: 4px !important;
+                font-size: 11pt !important;
+                margin-bottom: 4px !important;
+                padding-bottom: 3px !important;
             }
             .med-details {
-                gap: 6px !important;
-                margin-bottom: 6px !important;
+                gap: 4px !important;
+                margin-bottom: 4px !important;
             }
             .med-label {
-                font-size: 8pt !important;
+                font-size: 7pt !important;
                 margin-bottom: 1px !important;
             }
             .med-value {
-                font-size: 9pt !important;
+                font-size: 8pt !important;
             }
         }
     </style>
@@ -512,7 +514,7 @@ export class PrintService {
             </div>
         </div>
         ${prescription.instructions ? `
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #bbf7d0;">
             <span class="med-label">Special Instructions:</span><br>
             <span class="med-value">${prescription.instructions}</span>
         </div>
