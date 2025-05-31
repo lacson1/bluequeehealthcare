@@ -215,7 +215,7 @@ export default function RevenueAnalytics() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueData?.dailyRevenue || []}>
+              <LineChart data={trends?.daily || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -234,7 +234,11 @@ export default function RevenueAnalytics() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={paymentMethods || []}
+                  data={trends?.paymentMethods?.map((method: any) => ({
+                    name: method.method,
+                    value: method.total,
+                    percentage: ((method.total / revenue?.total) * 100).toFixed(1)
+                  })) || []}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -243,11 +247,11 @@ export default function RevenueAnalytics() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {(paymentMethods || []).map((entry: any, index: number) => (
+                  {(trends?.paymentMethods || []).map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`${value}%`, 'Percentage']} />
+                <Tooltip formatter={(value) => [`₦${value?.toLocaleString()}`, 'Amount']} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -261,14 +265,51 @@ export default function RevenueAnalytics() {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={serviceRevenue || []}>
+            <BarChart data={services?.breakdown || []}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="service" />
+              <XAxis dataKey="serviceType" />
               <YAxis />
               <Tooltip formatter={(value) => [`₦${value?.toLocaleString()}`, 'Revenue']} />
-              <Bar dataKey="revenue" fill="#3b82f6" />
+              <Bar dataKey="totalRevenue" fill="#3b82f6" />
             </BarChart>
           </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Top Paying Patients */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Paying Patients</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-4">Patient Name</th>
+                  <th className="text-center p-4">Phone</th>
+                  <th className="text-right p-4">Total Spent</th>
+                  <th className="text-right p-4">Invoices</th>
+                  <th className="text-right p-4">Avg Invoice</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(patients?.topPaying || []).map((patient: any, index: number) => (
+                  <tr key={patient.patientId} className="border-b hover:bg-gray-50">
+                    <td className="p-4 font-medium">{patient.patientName}</td>
+                    <td className="p-4 text-center text-sm text-gray-600">{patient.phone}</td>
+                    <td className="p-4 text-right font-semibold text-green-600">
+                      ₦{patient.totalSpent?.toLocaleString() || '0'}
+                    </td>
+                    <td className="p-4 text-right">
+                      <Badge variant="outline">{patient.invoiceCount}</Badge>
+                    </td>
+                    <td className="p-4 text-right">₦{patient.averageInvoiceValue?.toLocaleString() || '0'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
 
@@ -282,26 +323,23 @@ export default function RevenueAnalytics() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-4">Service</th>
-                  <th className="text-right p-4">Revenue</th>
-                  <th className="text-right p-4">Percentage</th>
-                  <th className="text-right p-4">Trend</th>
+                  <th className="text-left p-4">Service Type</th>
+                  <th className="text-right p-4">Total Revenue</th>
+                  <th className="text-right p-4">Transactions</th>
+                  <th className="text-right p-4">Avg Price</th>
                 </tr>
               </thead>
               <tbody>
-                {(serviceRevenue || []).map((service: any, index: number) => (
-                  <tr key={service.service} className="border-b hover:bg-gray-50">
-                    <td className="p-4 font-medium">{service.service}</td>
-                    <td className="p-4 text-right">₦{service.revenue?.toLocaleString() || '0'}</td>
-                    <td className="p-4 text-right">
-                      <Badge variant="outline">{service.percentage || 0}%</Badge>
+                {(services?.breakdown || []).map((service: any, index: number) => (
+                  <tr key={service.serviceType} className="border-b hover:bg-gray-50">
+                    <td className="p-4 font-medium">{service.serviceType}</td>
+                    <td className="p-4 text-right font-semibold text-green-600">
+                      ₦{service.totalRevenue?.toLocaleString() || '0'}
                     </td>
                     <td className="p-4 text-right">
-                      <div className="flex items-center justify-end">
-                        <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                        <span className="text-sm text-green-500">+5.2%</span>
-                      </div>
+                      <Badge variant="outline">{service.transactionCount}</Badge>
                     </td>
+                    <td className="p-4 text-right">₦{service.averagePrice?.toLocaleString() || '0'}</td>
                   </tr>
                 ))}
               </tbody>
