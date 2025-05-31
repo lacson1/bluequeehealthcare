@@ -46,15 +46,15 @@ export class PrintService {
     <style>
         @media print {
             @page {
-                size: A5;
-                margin: 0.5in 0.4in;
+                size: A6;
+                margin: 0.3in 0.25in;
             }
             body { 
                 margin: 0; 
                 padding: 0;
                 background: white !important; 
-                font-size: 10pt;
-                line-height: 1.3;
+                font-size: 8pt;
+                line-height: 1.2;
             }
             .print-container {
                 margin: 0;
@@ -66,42 +66,42 @@ export class PrintService {
                 min-height: auto;
             }
             .header {
-                margin-bottom: 0.2in;
-                padding: 10px 0;
+                margin-bottom: 0.1in;
+                padding: 6px 0;
             }
             .org-name {
-                font-size: 18pt !important;
-                margin-bottom: 4px !important;
+                font-size: 14pt !important;
+                margin-bottom: 2px !important;
             }
             .org-type {
-                font-size: 10pt !important;
-                margin-bottom: 6px !important;
+                font-size: 8pt !important;
+                margin-bottom: 3px !important;
             }
             .org-details {
-                font-size: 8pt !important;
-                padding: 6px 0 !important;
+                font-size: 6pt !important;
+                padding: 3px 0 !important;
             }
             .document-title {
-                margin: 0.15in 0;
-                padding: 8px;
-                font-size: 14pt !important;
+                margin: 0.08in 0;
+                padding: 4px;
+                font-size: 10pt !important;
             }
             .info-section {
-                margin: 0.1in 0;
-                padding: 8px;
+                margin: 0.05in 0;
+                padding: 4px;
                 page-break-inside: avoid;
             }
             .info-title {
-                font-size: 11pt !important;
-                margin-bottom: 6px !important;
+                font-size: 7pt !important;
+                margin-bottom: 3px !important;
             }
             .info-grid {
-                gap: 8px !important;
-                font-size: 9pt !important;
+                gap: 3px !important;
+                font-size: 6pt !important;
             }
             .label {
-                min-width: 70px !important;
-                font-size: 9pt !important;
+                min-width: 40px !important;
+                font-size: 6pt !important;
             }
             .no-print { display: none; }
         }
@@ -118,102 +118,103 @@ export class PrintService {
         
         .print-container {
             background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e8 50%, #f0f8f0 100%);
-            max-width: 420px;
+            max-width: 300px;
             margin: 0 auto;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 15px;
+            border-radius: 6px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             border: 2px solid #22c55e;
-            min-height: 595px;
+            min-height: 420px;
         }
         
         .header {
             text-align: center;
-            border-bottom: 3px solid #22c55e;
-            padding: 15px 10px;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #22c55e;
+            padding: 8px 5px;
+            margin-bottom: 10px;
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            border-radius: 6px 6px 0 0;
+            border-radius: 4px 4px 0 0;
         }
         
         .org-name {
-            font-size: 22px;
+            font-size: 16px;
             font-weight: bold;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
             color: #166534;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         .org-type {
-            font-size: 12px;
+            font-size: 9px;
             color: #15803d;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
         
         .org-details {
-            font-size: 10px;
-            line-height: 1.4;
+            font-size: 7px;
+            line-height: 1.2;
             color: #374151;
-            padding: 8px 0;
+            padding: 4px 0;
             border-top: 1px solid #bbf7d0;
-            margin-top: 8px;
+            margin-top: 4px;
         }
         
         .document-title {
             text-align: center;
-            font-size: 16px;
+            font-size: 12px;
             font-weight: bold;
-            margin: 15px 0;
+            margin: 8px 0;
             text-transform: uppercase;
-            border: 2px solid #22c55e;
-            padding: 8px;
+            border: 1px solid #22c55e;
+            padding: 4px;
             background: #f0fdf4;
             color: #166534;
-            letter-spacing: 1px;
-            border-radius: 6px;
+            letter-spacing: 0.5px;
+            border-radius: 4px;
         }
         
         .info-section {
-            margin: 12px 0;
+            margin: 6px 0;
             border: 1px solid #bbf7d0;
-            border-radius: 6px;
-            padding: 10px;
+            border-radius: 4px;
+            padding: 6px;
             background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-            box-shadow: 0 1px 3px rgba(34,197,94,0.1);
+            box-shadow: 0 1px 2px rgba(34,197,94,0.1);
         }
         
         .info-title {
             font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 8px;
-            border-bottom: 2px solid #22c55e;
-            padding-bottom: 4px;
+            font-size: 8px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid #22c55e;
+            padding-bottom: 2px;
             color: #166534;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
         
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            font-size: 14px;
+            gap: 4px;
+            font-size: 7px;
         }
         
         .info-item {
-            margin-bottom: 8px;
-            padding: 5px 0;
+            margin-bottom: 3px;
+            padding: 2px 0;
         }
         
         .label {
             font-weight: bold;
             display: inline-block;
-            min-width: 120px;
+            min-width: 30px;
             color: #374151;
+            font-size: 6px;
         }
         
         .content-section {
@@ -432,25 +433,26 @@ export class PrintService {
     <style>
         .prescription-medication {
             border: 2px solid #22c55e;
-            padding: 10px;
+            padding: 20px;
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border-radius: 6px;
-            margin: 10px 0;
+            margin: 15px 0;
+            min-height: 180px;
         }
         .rx-header {
-            font-size: 14px;
+            font-size: 18px;
             font-weight: bold;
             color: #166534;
-            margin-bottom: 8px;
+            margin-bottom: 15px;
             text-align: center;
-            border-bottom: 1px solid #bbf7d0;
-            padding-bottom: 4px;
+            border-bottom: 2px solid #bbf7d0;
+            padding-bottom: 8px;
         }
         .med-details {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 15px;
+            margin-bottom: 15px;
         }
         .med-item {
             display: flex;
@@ -459,12 +461,12 @@ export class PrintService {
         .med-label {
             font-weight: bold;
             color: #15803d;
-            font-size: 9px;
-            margin-bottom: 2px;
+            font-size: 12px;
+            margin-bottom: 4px;
         }
         .med-value {
             color: #374151;
-            font-size: 10px;
+            font-size: 14px;
         }
         @media print {
             .prescription-medication {
