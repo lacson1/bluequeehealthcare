@@ -1253,34 +1253,232 @@ export default function PatientPortal() {
 
       {/* Digital Consent Signing Dialog */}
       <Dialog open={showConsentSigning} onOpenChange={setShowConsentSigning}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileSignature className="w-5 h-5" />
-              Digital Consent Signing
+              Smart Consent Preview & Signing
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="ml-2">
+                      <Info className="w-3 h-3 mr-1" />
+                      Interactive
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Hover over highlighted terms for detailed explanations</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </DialogTitle>
             <DialogDescription>
-              Please review the consent form carefully before signing
+              Review the consent form carefully. Hover over highlighted terms for more information before signing.
             </DialogDescription>
           </DialogHeader>
 
           {selectedConsent && (
             <div className="space-y-6">
-              {/* Consent Form Header */}
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-semibold">{selectedConsent.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">{selectedConsent.description}</p>
-                <Badge variant="outline" className="mt-2">
-                  {selectedConsent.category}
-                </Badge>
+              {/* Quick Overview Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Target className="w-4 h-4 text-blue-600" />
+                      Benefits
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="cursor-help">
+                            <p className="text-xs text-blue-700">
+                              {selectedConsent?.benefits?.length || 0} potential benefits
+                            </p>
+                            <p className="text-xs text-blue-600 mt-1 hover:underline">
+                              Hover for details
+                            </p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm">
+                          <div className="space-y-2">
+                            <p className="font-medium">Expected Benefits:</p>
+                            {selectedConsent?.benefits?.map((benefit: string, idx: number) => (
+                              <p key={idx} className="text-xs">• {benefit}</p>
+                            )) || <p className="text-xs">Benefits will be explained by your healthcare provider</p>}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-orange-200 bg-orange-50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-600" />
+                      Risks
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="cursor-help">
+                            <p className="text-xs text-orange-700">
+                              {selectedConsent?.riskFactors?.length || 0} potential risks
+                            </p>
+                            <p className="text-xs text-orange-600 mt-1 hover:underline">
+                              Hover for details
+                            </p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm">
+                          <div className="space-y-2">
+                            <p className="font-medium">Potential Risks:</p>
+                            {selectedConsent?.riskFactors?.map((risk: string, idx: number) => (
+                              <p key={idx} className="text-xs">• {risk}</p>
+                            )) || <p className="text-xs">Risks will be discussed with your healthcare provider</p>}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-green-200 bg-green-50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-green-600" />
+                      Alternatives
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="cursor-help">
+                            <p className="text-xs text-green-700">
+                              {selectedConsent?.alternatives?.length || 0} alternatives available
+                            </p>
+                            <p className="text-xs text-green-600 mt-1 hover:underline">
+                              Hover for options
+                            </p>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-sm">
+                          <div className="space-y-2">
+                            <p className="font-medium">Alternative Options:</p>
+                            {selectedConsent?.alternatives?.map((alt: string, idx: number) => (
+                              <p key={idx} className="text-xs">• {alt}</p>
+                            )) || <p className="text-xs">Alternative treatments available - discuss with your provider</p>}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </CardContent>
+                </Card>
               </div>
 
-              {/* Consent Content */}
+              {/* Enhanced Consent Form Header */}
+              <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-blue-900">{selectedConsent.title}</h3>
+                    <p className="text-sm text-blue-700 mt-1">{selectedConsent.description}</p>
+                  </div>
+                  <Badge variant="outline" className="bg-white">
+                    {selectedConsent.category || 'General'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Enhanced Consent Content with Smart Tooltips */}
               <div className="space-y-4">
                 {selectedConsent.template?.sections?.map((section: any, index: number) => (
-                  <div key={index} className="border rounded-lg p-4 bg-gray-50">
-                    <h4 className="font-medium text-sm mb-2">{section.title}</h4>
-                    <p className="text-sm text-gray-700">{section.content}</p>
+                  <div key={index} className="border rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                        {index + 1}
+                      </div>
+                      <h4 className="font-medium text-gray-900 text-base">{section.title}</h4>
+                    </div>
+                    
+                    <div className="ml-11 space-y-3">
+                      <div className="prose prose-sm max-w-none">
+                        <div className="text-gray-700 leading-relaxed text-sm">
+                          {section.content.split(/(\b(?:procedure|treatment|medication|anesthesia|surgery|diagnosis|therapy|consent|authorization|risks|benefits|complications|side effects|alternative|informed consent)\b)/gi).map((part: string, partIndex: number) => {
+                            const medicalTerms = ['procedure', 'treatment', 'medication', 'anesthesia', 'surgery', 'diagnosis', 'therapy', 'consent', 'authorization', 'risks', 'benefits', 'complications', 'side effects', 'alternative', 'informed consent'];
+                            
+                            if (medicalTerms.some(term => part.toLowerCase() === term.toLowerCase())) {
+                              return (
+                                <TooltipProvider key={partIndex}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="bg-blue-100 text-blue-800 px-1 py-0.5 rounded cursor-help hover:bg-blue-200 transition-colors font-medium">
+                                        {part}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <div className="space-y-2">
+                                        <p className="font-medium">{part.charAt(0).toUpperCase() + part.slice(1)}</p>
+                                        <p className="text-xs">
+                                          {part.toLowerCase() === 'procedure' && 'A medical intervention or operation performed by healthcare professionals.'}
+                                          {part.toLowerCase() === 'treatment' && 'Medical care given to a patient for an illness or injury.'}
+                                          {part.toLowerCase() === 'medication' && 'Drugs or medicines used to treat, cure, or prevent disease.'}
+                                          {part.toLowerCase() === 'anesthesia' && 'Loss of sensation or awareness during medical procedures.'}
+                                          {part.toLowerCase() === 'surgery' && 'Medical treatment involving an operation to repair or remove part of the body.'}
+                                          {part.toLowerCase() === 'diagnosis' && 'The identification of a disease or condition by examination of symptoms.'}
+                                          {part.toLowerCase() === 'therapy' && 'Treatment intended to relieve or heal a disorder.'}
+                                          {part.toLowerCase() === 'consent' && 'Permission for something to happen or agreement to do something.'}
+                                          {part.toLowerCase() === 'authorization' && 'Official permission or approval for medical treatment.'}
+                                          {part.toLowerCase() === 'risks' && 'Potential dangers or adverse outcomes that may occur.'}
+                                          {part.toLowerCase() === 'benefits' && 'Positive outcomes or advantages expected from treatment.'}
+                                          {part.toLowerCase() === 'complications' && 'Medical problems that arise during or after treatment.'}
+                                          {part.toLowerCase() === 'side effects' && 'Unintended effects of medication or treatment.'}
+                                          {part.toLowerCase() === 'alternative' && 'Different treatment options available to you.'}
+                                          {part.toLowerCase() === 'informed consent' && 'Agreement to treatment after understanding the risks, benefits, and alternatives.'}
+                                        </p>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            }
+                            return <span key={partIndex}>{part}</span>;
+                          })}
+                        </div>
+                      </div>
+                      
+                      {section.title.toLowerCase().includes('risk') && (
+                        <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium text-orange-900">Risk Information</p>
+                              <p className="text-xs text-orange-800 mt-1">
+                                Your healthcare provider will discuss these risks with you in detail before any procedure.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {section.title.toLowerCase().includes('benefit') && (
+                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <Target className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium text-green-900">Expected Benefits</p>
+                              <p className="text-xs text-green-800 mt-1">
+                                These are the positive outcomes we expect from your treatment plan.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
 
