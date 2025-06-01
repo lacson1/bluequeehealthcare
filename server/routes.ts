@@ -5106,28 +5106,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       
-      const userProfile = await db.select({
-        id: users.id,
-        username: users.username,
-        role: users.role,
-        organizationId: users.organizationId,
-        organization: {
-          id: organizations.id,
-          name: organizations.name,
-          type: organizations.type,
-          themeColor: organizations.themeColor
-        }
-      })
-      .from(users)
-      .leftJoin(organizations, eq(users.organizationId, organizations.id))
-      .where(eq(users.id, userId))
-      .limit(1);
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
-      if (!userProfile.length) {
+      if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      res.json(userProfile[0]);
+      // Get organization details if user has organizationId
+      let organization = null;
+      if (user.organizationId) {
+        const [org] = await db.select()
+          .from(organizations)
+          .where(eq(organizations.id, user.organizationId))
+          .limit(1);
+        
+        if (org) {
+          organization = {
+            id: org.id,
+            name: org.name,
+            type: org.type || 'clinic',
+            themeColor: org.themeColor || '#3B82F6'
+          };
+        }
+      }
+
+      // Return same structure as login endpoint
+      res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        organizationId: user.organizationId,
+        organization
+      });
     } catch (error) {
       console.error('Error fetching user profile:', error);
       res.status(500).json({ error: 'Failed to fetch profile' });
