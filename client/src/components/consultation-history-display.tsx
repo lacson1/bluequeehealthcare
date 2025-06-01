@@ -21,34 +21,49 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
     queryKey: [`/api/patients/${patientId}/visits`],
   });
 
-  // Filter for consultation-type visits and format them
+  // Fetch staff data to get actual doctor names
+  const { data: staffData = [] } = useQuery({
+    queryKey: ['/api/staff'],
+    enabled: visitData.length > 0,
+  });
+
+  // Filter for consultation-type visits and format them with actual doctor names
   const consultationHistory = visitData.filter((visit: any) => 
     visit.visitType === 'consultation'
-  ).map((visit: any) => ({
-    id: visit.id,
-    patientId: visit.patientId,
-    formName: 'General Consultation',
-    formDescription: 'Patient consultation visit',
-    conductedByUsername: 'Healthcare Staff',
-    conductedByRole: 'doctor',
-    roleDisplayName: 'Doctor',
-    specialistRole: 'General',
-    specialistRoleDisplay: 'General Medicine',
-    createdAt: visit.visitDate || visit.createdAt,
-    formData: {
-      'Chief Complaint': visit.complaint,
-      'Diagnosis': visit.diagnosis,
-      'Treatment Plan': visit.treatment,
-      'Vital Signs': {
-        'Blood Pressure': visit.bloodPressure,
-        'Heart Rate': visit.heartRate,
-        'Temperature': visit.temperature,
-        'Weight': visit.weight
-      },
-      'Visit Type': visit.visitType,
-      'Status': visit.status
-    }
-  }));
+  ).map((visit: any) => {
+    // Find the doctor who conducted this visit
+    const doctor = staffData.find((staff: any) => staff.id === visit.doctorId);
+    const doctorName = doctor ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() : doctor?.username || 'Healthcare Staff';
+    
+    return {
+      id: visit.id,
+      patientId: visit.patientId,
+      formName: 'General Consultation',
+      formDescription: 'Patient consultation visit',
+      conductedByUsername: doctor?.username || 'healthcare-staff',
+      conductedByFirstName: doctor?.firstName,
+      conductedByLastName: doctor?.lastName,
+      conductedByFullName: doctorName,
+      conductedByRole: doctor?.role || 'doctor',
+      roleDisplayName: doctor?.role ? doctor.role.charAt(0).toUpperCase() + doctor.role.slice(1) : 'Doctor',
+      specialistRole: 'General',
+      specialistRoleDisplay: 'General Medicine',
+      createdAt: visit.visitDate || visit.createdAt,
+      formData: {
+        'Chief Complaint': visit.complaint,
+        'Diagnosis': visit.diagnosis,
+        'Treatment Plan': visit.treatment,
+        'Vital Signs': {
+          'Blood Pressure': visit.bloodPressure,
+          'Heart Rate': visit.heartRate,
+          'Temperature': visit.temperature,
+          'Weight': visit.weight
+        },
+        'Visit Type': visit.visitType,
+        'Status': visit.status
+      }
+    };
+  });
 
   // Handle viewing consultation details - navigate to visit edit page for now
   const handleViewConsultation = (consultation: any) => {
@@ -140,12 +155,12 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent>
-            <div className="relative">
+          <CardContent className="p-0">
+            <div className="relative max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               {/* Timeline line */}
               <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-purple-500"></div>
               
-              <div className="space-y-6">
+              <div className="space-y-4 p-4">
                 {(consultationHistory as any[]).map((consultation: any, index: number) => (
                   <div key={consultation.id} className="relative flex items-start" data-testid="consultation-record">
                     {/* Timeline dot */}
@@ -153,33 +168,30 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
                       <FileText className="w-5 h-5 text-white" />
                     </div>
                     
-                    {/* Consultation content */}
+                    {/* Consultation content - Compact version */}
                     <div className="ml-4 flex-1">
                       <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-3">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex flex-col gap-1">
-                              <h4 className="font-semibold text-lg text-gray-900">
+                              <h4 className="font-semibold text-base text-gray-900">
                                 {consultation.formName || 'Consultation'}
                               </h4>
-                              <div className="flex items-center gap-2 text-sm">
-                                <span className="text-gray-600">Created by:</span>
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="text-gray-600">By:</span>
                                 <span className="font-medium text-blue-800">
-                                  {consultation.conductedByFullName || consultation.conductedByFirstName || consultation.conductedByUsername || 'Healthcare Staff'}
+                                  {consultation.conductedByFullName || 'Healthcare Staff'}
                                 </span>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                                  {consultation.roleDisplayName || consultation.conductedByRole || 'Staff'}
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs px-1 py-0">
+                                  {consultation.roleDisplayName || 'Staff'}
                                 </Badge>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <div className="flex items-center gap-1">
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
                                 #{consultation.id}
                               </Badge>
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                {consultation.specialistRole || 'General'}
-                              </Badge>
-                              <Badge variant="secondary">
+                              <Badge variant="secondary" className="text-xs">
                                 {new Date(consultation.createdAt).toLocaleDateString()}
                               </Badge>
                               <ConsultationDropdownMenu 
@@ -190,290 +202,45 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
                             </div>
                           </div>
                           
-                          {/* Enhanced Staff Information */}
-                          <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                                  <User className="w-5 h-5 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-blue-900">
-                                      {consultation.conductedByFullName || consultation.conductedByFirstName || consultation.conductedByUsername || 'Healthcare Staff'}
-                                    </span>
-                                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300 text-xs font-medium">
-                                      {consultation.roleDisplayName || consultation.conductedByRole || 'Staff'}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-4 text-xs text-blue-700">
-                                    {consultation.conductedByUsername && (
-                                      <span>
-                                        <strong>Username:</strong> {consultation.conductedByUsername}
-                                      </span>
-                                    )}
-                                    {consultation.specialistRoleDisplay && consultation.specialistRoleDisplay !== 'General' && (
-                                      <span>
-                                        <strong>Specialty:</strong> {consultation.specialistRoleDisplay}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <Badge variant="secondary" className="bg-indigo-100 text-indigo-800 text-xs">
-                                  {consultation.specialistRoleDisplay || 'General'}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Consultation details */}
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-4 text-xs">
-                              <span className="text-gray-600">
-                                <strong>Date:</strong> {new Date(consultation.createdAt).toLocaleDateString('en-US', { 
-                                  weekday: 'long', 
-                                  year: 'numeric', 
-                                  month: 'long', 
-                                  day: 'numeric' 
-                                })}
-                              </span>
-                              <span className="text-gray-600">
-                                <strong>Time:</strong> {new Date(consultation.createdAt).toLocaleTimeString('en-US', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
-                              </span>
+                          {/* Compact consultation details */}
+                          <div className="space-y-2">
+                            <div className="text-xs text-gray-600">
+                              <strong>Date:</strong> {new Date(consultation.createdAt).toLocaleDateString()} at {new Date(consultation.createdAt).toLocaleTimeString('en-US', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
                             </div>
                             
-                            {/* Vital Signs Section */}
-                            {consultation.vitalSigns && (
-                              <div className="bg-red-50 p-3 rounded-lg border border-red-200">
-                                <h5 className="text-xs font-semibold text-red-800 mb-2 flex items-center gap-2">
-                                  <Activity className="w-3 h-3" />
-                                  Vital Signs
-                                </h5>
-                                <div className="grid grid-cols-2 gap-2 text-xs">
-                                  {consultation.vitalSigns.bloodPressure && (
-                                    <span className="text-gray-700">
-                                      <strong>BP:</strong> {consultation.vitalSigns.bloodPressure}
-                                    </span>
-                                  )}
-                                  {consultation.vitalSigns.heartRate && (
-                                    <span className="text-gray-700">
-                                      <strong>HR:</strong> {consultation.vitalSigns.heartRate} bpm
-                                    </span>
-                                  )}
-                                  {consultation.vitalSigns.temperature && (
-                                    <span className="text-gray-700">
-                                      <strong>Temp:</strong> {consultation.vitalSigns.temperature}°C
-                                    </span>
-                                  )}
-                                  {consultation.vitalSigns.weight && (
-                                    <span className="text-gray-700">
-                                      <strong>Weight:</strong> {consultation.vitalSigns.weight} kg
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Nursing Notes Section */}
-                            {consultation.nursingNotes && (
-                              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                                <h5 className="text-xs font-semibold text-green-800 mb-2 flex items-center gap-2">
-                                  <User className="w-3 h-3" />
-                                  Nursing Assessment
-                                </h5>
+                            {/* Core consultation information - Compact display */}
+                            {consultation.formData && (
+                              <div className="mt-2 p-2 bg-gray-50 rounded border">
                                 <div className="space-y-1 text-xs">
-                                  {consultation.nursingNotes.assessment && (
+                                  {consultation.formData['Chief Complaint'] && (
                                     <div>
-                                      <strong className="text-green-700">Assessment:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.nursingNotes.assessment}</p>
+                                      <span className="font-medium text-gray-700">Complaint:</span> {consultation.formData['Chief Complaint']}
                                     </div>
                                   )}
-                                  {consultation.nursingNotes.medications && (
+                                  {consultation.formData['Diagnosis'] && (
                                     <div>
-                                      <strong className="text-green-700">Medications Administered:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.nursingNotes.medications}</p>
+                                      <span className="font-medium text-gray-700">Diagnosis:</span> {consultation.formData['Diagnosis']}
                                     </div>
                                   )}
-                                  {consultation.nursingNotes.notes && (
+                                  {consultation.formData['Treatment Plan'] && (
                                     <div>
-                                      <strong className="text-green-700">Notes:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.nursingNotes.notes}</p>
+                                      <span className="font-medium text-gray-700">Treatment:</span> {consultation.formData['Treatment Plan']}
                                     </div>
                                   )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Physiotherapy Section */}
-                            {consultation.physiotherapyNotes && (
-                              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                                <h5 className="text-xs font-semibold text-purple-800 mb-2 flex items-center gap-2">
-                                  <Activity className="w-3 h-3" />
-                                  Physiotherapy Assessment
-                                </h5>
-                                <div className="space-y-1 text-xs">
-                                  {consultation.physiotherapyNotes.mobility && (
+                                  {consultation.formData['Vital Signs'] && Object.values(consultation.formData['Vital Signs']).some(v => v) && (
                                     <div>
-                                      <strong className="text-purple-700">Mobility:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.physiotherapyNotes.mobility}</p>
+                                      <span className="font-medium text-gray-700">Vitals:</span>
+                                      <span className="ml-1">
+                                        {consultation.formData['Vital Signs']['Blood Pressure'] && `BP: ${consultation.formData['Vital Signs']['Blood Pressure']}`}
+                                        {consultation.formData['Vital Signs']['Temperature'] && `, Temp: ${consultation.formData['Vital Signs']['Temperature']}°C`}
+                                        {consultation.formData['Vital Signs']['Heart Rate'] && `, HR: ${consultation.formData['Vital Signs']['Heart Rate']}`}
+                                        {consultation.formData['Vital Signs']['Weight'] && `, Weight: ${consultation.formData['Vital Signs']['Weight']}kg`}
+                                      </span>
                                     </div>
                                   )}
-                                  {consultation.physiotherapyNotes.exercises && (
-                                    <div>
-                                      <strong className="text-purple-700">Prescribed Exercises:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.physiotherapyNotes.exercises}</p>
-                                    </div>
-                                  )}
-                                  {consultation.physiotherapyNotes.progress && (
-                                    <div>
-                                      <strong className="text-purple-700">Progress:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.physiotherapyNotes.progress}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Pharmacy Section */}
-                            {consultation.pharmacyNotes && (
-                              <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                                <h5 className="text-xs font-semibold text-orange-800 mb-2 flex items-center gap-2">
-                                  <Pill className="w-3 h-3" />
-                                  Pharmacy Review
-                                </h5>
-                                <div className="space-y-1 text-xs">
-                                  {consultation.pharmacyNotes.interactions && (
-                                    <div>
-                                      <strong className="text-orange-700">Drug Interactions:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.pharmacyNotes.interactions}</p>
-                                    </div>
-                                  )}
-                                  {consultation.pharmacyNotes.counseling && (
-                                    <div>
-                                      <strong className="text-orange-700">Patient Counseling:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.pharmacyNotes.counseling}</p>
-                                    </div>
-                                  )}
-                                  {consultation.pharmacyNotes.recommendations && (
-                                    <div>
-                                      <strong className="text-orange-700">Recommendations:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.pharmacyNotes.recommendations}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Continuity of Care */}
-                            {consultation.followUp && (
-                              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                                <h5 className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                                  <Calendar className="w-3 h-3" />
-                                  Follow-up & Continuity
-                                </h5>
-                                <div className="space-y-1 text-xs">
-                                  {consultation.followUp.nextAppointment && (
-                                    <div>
-                                      <strong className="text-blue-700">Next Appointment:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.followUp.nextAppointment}</p>
-                                    </div>
-                                  )}
-                                  {consultation.followUp.instructions && (
-                                    <div>
-                                      <strong className="text-blue-700">Care Instructions:</strong>
-                                      <p className="text-gray-700 ml-2">{consultation.followUp.instructions}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {consultation.formDescription && (
-                              <div className="text-xs text-gray-600">
-                                <strong>Type:</strong> {consultation.formDescription}
-                              </div>
-                            )}
-                            
-                            {/* Complete Consultation Data Display */}
-                            {consultation.formData && Object.keys(consultation.formData).length > 0 && (
-                              <div className="mt-3 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
-                                <p className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                  <FileText className="w-4 h-4" />
-                                  Detailed Consultation Information
-                                </p>
-                                <div className="space-y-3">
-                                  {Object.entries(consultation.formData).map(([key, value]: [string, any]) => {
-                                    // Skip empty or null values
-                                    if (!value || (typeof value === 'string' && value.trim() === '')) {
-                                      return null;
-                                    }
-                                    
-                                    // Format field names for better display
-                                    const formatFieldName = (fieldKey: string) => {
-                                      if (fieldKey.includes('field_')) {
-                                        return 'Clinical Notes';
-                                      }
-                                      // Convert camelCase or snake_case to proper labels
-                                      return fieldKey
-                                        .replace(/([A-Z])/g, ' $1')
-                                        .replace(/[_-]/g, ' ')
-                                        .replace(/^./, str => str.toUpperCase())
-                                        .trim();
-                                    };
-
-                                    // Format values for better display
-                                    const formatValue = (val: any) => {
-                                      if (Array.isArray(val)) {
-                                        return val.filter(item => item && item.toString().trim()).join(', ');
-                                      }
-                                      if (typeof val === 'object' && val !== null) {
-                                        return JSON.stringify(val, null, 2);
-                                      }
-                                      return String(val);
-                                    };
-
-                                    const formattedValue = formatValue(value);
-                                    if (!formattedValue || formattedValue.trim() === '') {
-                                      return null;
-                                    }
-
-                                    return (
-                                      <div key={key} className="bg-white p-3 rounded-md shadow-sm border border-gray-100">
-                                        <div className="flex flex-col gap-2">
-                                          <span className="font-medium text-gray-700 text-sm flex items-center gap-2">
-                                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                            {formatFieldName(key)}
-                                          </span>
-                                          <div className="text-gray-900 text-sm ml-4">
-                                            <span className="whitespace-pre-wrap leading-relaxed">{formattedValue}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                                
-                                {/* Consultation Summary */}
-                                <div className="mt-4 pt-3 border-t border-gray-200">
-                                  <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
-                                    <div>
-                                      <strong>Form Type:</strong> {consultation.formName || 'General Consultation'}
-                                    </div>
-                                    <div>
-                                      <strong>Completed At:</strong> {new Date(consultation.createdAt).toLocaleString()}
-                                    </div>
-                                    <div>
-                                      <strong>Specialist Area:</strong> {consultation.specialistRoleDisplay || 'General Medicine'}
-                                    </div>
-                                    <div>
-                                      <strong>Record ID:</strong> #{consultation.id}
-                                    </div>
-                                  </div>
                                 </div>
                               </div>
                             )}
