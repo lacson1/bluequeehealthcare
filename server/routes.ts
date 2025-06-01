@@ -4636,33 +4636,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Upload medical document
   app.post("/api/upload/medical", authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
     try {
+      console.log('=== UPLOAD DEBUG ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('Request file:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
+      console.log('====================');
+
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
       const { category, patientId } = req.body;
-      console.log('Upload request body:', req.body);
-      console.log('Category received:', category);
       
       if (!category) {
         return res.status(400).json({ message: "Category is required" });
       }
 
-      // Valid categories
+      // Valid categories - accept any reasonable category for now
       const validCategories = [
         'lab-results',
+        'lab results', 
         'prescriptions', 
         'medical-records',
+        'medical records',
         'imaging',
         'insurance',
         'consent-forms',
+        'consent forms',
         'referrals',
         'other'
       ];
 
-      if (!validCategories.includes(category)) {
+      if (!validCategories.includes(category.toLowerCase())) {
+        console.log(`Category "${category}" not found in valid categories:`, validCategories);
         return res.status(400).json({ 
           message: "Invalid upload category",
+          received: category,
           validCategories 
         });
       }
