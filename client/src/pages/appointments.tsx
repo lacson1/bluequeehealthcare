@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Clock, Plus, Search, User, Stethoscope, Filter, Grid3X3, List, CheckCircle, XCircle, Calendar as CalendarView } from 'lucide-react';
+import { CalendarIcon, Clock, Plus, Search, User, Stethoscope, Filter, Grid3X3, List, CheckCircle, XCircle, Calendar as CalendarView, Brain, Zap, AlertCircle } from 'lucide-react';
 import { format, isSameDay, parseISO, startOfWeek, endOfWeek, addWeeks, subWeeks, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
@@ -58,6 +58,7 @@ export default function AppointmentsPage() {
   const [duration, setDuration] = useState('30');
   const [notes, setNotes] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isSmartScheduling, setIsSmartScheduling] = useState(false);
   
   // New state for enhanced features
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -65,6 +66,10 @@ export default function AppointmentsPage() {
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [editingAppointment, setEditingAppointment] = useState<number | null>(null);
+  
+  // Smart scheduling state
+  const [smartSuggestions, setSmartSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -130,6 +135,124 @@ export default function AppointmentsPage() {
     setAppointmentType('');
     setDuration('30');
     setNotes('');
+  };
+
+  // Smart scheduling functions
+  const generateSmartSuggestions = async () => {
+    if (!selectedPatient || !selectedStaff || !appointmentType) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please select patient, provider, and appointment type first',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoadingSuggestions(true);
+    try {
+      // Get existing appointments for conflict detection
+      const existingAppointments = Array.isArray(appointments) ? appointments : [];
+      
+      // Generate time suggestions based on availability
+      const suggestions = [];
+      const today = new Date();
+      const appointmentDuration = parseInt(duration);
+      
+      // Generate suggestions for next 7 days
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + dayOffset);
+        
+        // Skip weekends for regular appointments (unless emergency)
+        if (appointmentType !== 'emergency' && (targetDate.getDay() === 0 || targetDate.getDay() === 6)) {
+          continue;
+        }
+        
+        // Generate time slots from 9 AM to 5 PM
+        for (let hour = 9; hour < 17; hour++) {
+          for (let minute = 0; minute < 60; minute += 30) {
+            const timeSlot = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            const slotDateTime = new Date(targetDate);
+            slotDateTime.setHours(hour, minute, 0, 0);
+            
+            // Check for conflicts
+            const hasConflict = existingAppointments.some((apt: any) => {
+              if (apt.doctorId !== selectedStaff) return false;
+              
+              const aptDate = new Date(apt.appointmentDate);
+              const aptTime = apt.appointmentTime.split(':');
+              const aptDateTime = new Date(aptDate);
+              aptDateTime.setHours(parseInt(aptTime[0]), parseInt(aptTime[1]), 0, 0);
+              
+              const aptEndTime = new Date(aptDateTime);
+              aptEndTime.setMinutes(aptEndTime.getMinutes() + apt.duration);
+              
+              const slotEndTime = new Date(slotDateTime);
+              slotEndTime.setMinutes(slotEndTime.getMinutes() + appointmentDuration);
+              
+              return (slotDateTime < aptEndTime && slotEndTime > aptDateTime);
+            });
+            
+            if (!hasConflict) {
+              // Calculate priority score
+              let priority = 100;
+              
+              // Prefer morning slots
+              if (hour < 12) priority += 20;
+              
+              // Prefer earlier in the week
+              priority += (7 - dayOffset) * 5;
+              
+              // Emergency appointments get highest priority on same day
+              if (appointmentType === 'emergency' && dayOffset === 0) {
+                priority += 50;
+              }
+              
+              suggestions.push({
+                date: targetDate,
+                time: timeSlot,
+                priority,
+                reason: getRecommendationReason(hour, dayOffset, appointmentType)
+              });
+            }
+          }
+        }
+      }
+      
+      // Sort by priority and take top 6 suggestions
+      const topSuggestions = suggestions
+        .sort((a, b) => b.priority - a.priority)
+        .slice(0, 6);
+      
+      setSmartSuggestions(topSuggestions);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to generate smart suggestions',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const getRecommendationReason = (hour: number, dayOffset: number, type: string) => {
+    if (type === 'emergency') return 'Available for emergency appointment';
+    if (hour < 10) return 'Early morning - less crowded';
+    if (hour < 12) return 'Morning slot - optimal for consultations';
+    if (dayOffset === 0) return 'Available today';
+    if (dayOffset === 1) return 'Available tomorrow';
+    return 'Available slot';
+  };
+
+  const selectSmartSuggestion = (suggestion: any) => {
+    setSelectedDate(suggestion.date);
+    setSelectedTime(suggestion.time);
+    setIsSmartScheduling(false);
+    toast({
+      title: 'Time Selected',
+      description: `Selected ${format(suggestion.date, 'MMM dd, yyyy')} at ${suggestion.time}`
+    });
   };
 
   const handleCreateAppointment = () => {
@@ -229,10 +352,19 @@ export default function AppointmentsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Appointments</h1>
           <p className="text-gray-600">Schedule and manage patient appointments</p>
         </div>
-        <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Schedule Appointment
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Schedule Appointment
+          </Button>
+          <Button 
+            onClick={() => setIsSmartScheduling(true)} 
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+          >
+            <Brain className="h-4 w-4" />
+            Smart Schedule
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -437,6 +569,166 @@ export default function AppointmentsPage() {
                 Cancel
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Smart Scheduling Modal */}
+      {isSmartScheduling && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-blue-600" />
+              Smart Scheduling Assistant
+            </CardTitle>
+            <p className="text-sm text-gray-600">
+              AI-powered scheduling that finds the best available time slots based on provider availability and appointment type
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="smart-patient">Patient *</Label>
+                <Select value={selectedPatient?.toString() || ''} onValueChange={(value) => setSelectedPatient(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select patient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(patients as any[]).map((patient: Patient) => (
+                      <SelectItem key={patient.id} value={patient.id.toString()}>
+                        {patient.firstName} {patient.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="smart-staff">Healthcare Provider *</Label>
+                <Select value={selectedStaff?.toString() || ''} onValueChange={(value) => setSelectedStaff(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(healthcareStaff as any[]).map((staff: HealthcareStaff) => (
+                      <SelectItem key={staff.id} value={staff.id.toString()}>
+                        {staff.role === 'doctor' ? 'Dr.' : ''} {staff.firstName || staff.username} {staff.lastName || ''} ({staff.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="smart-type">Appointment Type *</Label>
+                <Select value={appointmentType} onValueChange={setAppointmentType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="consultation">General Consultation</SelectItem>
+                    <SelectItem value="follow-up">Follow-up</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
+                    <SelectItem value="procedure">Procedure</SelectItem>
+                    <SelectItem value="check-up">Check-up</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                onClick={generateSmartSuggestions}
+                disabled={loadingSuggestions}
+                className="flex items-center gap-2"
+              >
+                {loadingSuggestions ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4" />
+                    Generate Smart Suggestions
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" onClick={() => setIsSmartScheduling(false)}>
+                Cancel
+              </Button>
+            </div>
+
+            {smartSuggestions.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-green-600" />
+                  Recommended Time Slots
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {smartSuggestions.map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="border rounded-lg p-4 hover:bg-blue-50 cursor-pointer transition-colors"
+                      onClick={() => selectSmartSuggestion(suggestion)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-lg">
+                            {format(suggestion.date, 'MMM dd, yyyy')}
+                          </div>
+                          <div className="text-blue-600 font-semibold">
+                            {suggestion.time}
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            {suggestion.reason}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-gray-500">
+                            Priority: {suggestion.priority}
+                          </div>
+                          {index === 0 && (
+                            <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
+                              Best Match
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {selectedDate && selectedTime && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-800">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-medium">Selected: {format(selectedDate, 'MMM dd, yyyy')} at {selectedTime}</span>
+                    </div>
+                    <div className="mt-2">
+                      <Button onClick={handleCreateAppointment} className="mr-2">
+                        Confirm Appointment
+                      </Button>
+                      <Button variant="outline" onClick={() => {
+                        setSelectedDate(undefined);
+                        setSelectedTime('');
+                      }}>
+                        Change Selection
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {smartSuggestions.length === 0 && !loadingSuggestions && selectedPatient && selectedStaff && appointmentType && (
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center gap-2 text-yellow-800">
+                  <AlertCircle className="h-5 w-5" />
+                  <span>No available slots found. Try adjusting the appointment type or duration.</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
