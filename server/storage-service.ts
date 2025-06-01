@@ -15,7 +15,8 @@ export class FileStorageService {
       path.join(this.baseDir, 'patients'),
       path.join(this.baseDir, 'staff'),
       path.join(this.baseDir, 'organizations'),
-      path.join(this.baseDir, 'documents')
+      path.join(this.baseDir, 'documents'),
+      path.join(this.baseDir, 'medical')
     ];
 
     for (const dir of dirs) {
@@ -27,7 +28,7 @@ export class FileStorageService {
     }
   }
 
-  async saveFile(buffer: Buffer, originalName: string, category: 'patients' | 'staff' | 'organizations' | 'documents'): Promise<string> {
+  async saveFile(buffer: Buffer, originalName: string, category: 'patients' | 'staff' | 'organizations' | 'documents' | 'medical'): Promise<string> {
     const fileId = randomUUID();
     const extension = path.extname(originalName);
     const fileName = `${fileId}${extension}`;
@@ -37,7 +38,7 @@ export class FileStorageService {
     return fileName;
   }
 
-  async getFile(fileName: string, category: 'patients' | 'staff' | 'organizations' | 'documents'): Promise<Buffer | null> {
+  async getFile(fileName: string, category: 'patients' | 'staff' | 'organizations' | 'documents' | 'medical'): Promise<Buffer | null> {
     try {
       const filePath = path.join(this.baseDir, category, fileName);
       return await fs.readFile(filePath);
@@ -46,7 +47,7 @@ export class FileStorageService {
     }
   }
 
-  async deleteFile(fileName: string, category: 'patients' | 'staff' | 'organizations' | 'documents'): Promise<boolean> {
+  async deleteFile(fileName: string, category: 'patients' | 'staff' | 'organizations' | 'documents' | 'medical'): Promise<boolean> {
     try {
       const filePath = path.join(this.baseDir, category, fileName);
       await fs.unlink(filePath);
@@ -56,7 +57,7 @@ export class FileStorageService {
     }
   }
 
-  getFileUrl(fileName: string, category: 'patients' | 'staff' | 'organizations' | 'documents'): string {
+  getFileUrl(fileName: string, category: 'patients' | 'staff' | 'organizations' | 'documents' | 'medical'): string {
     return `/api/files/${category}/${fileName}`;
   }
 }
