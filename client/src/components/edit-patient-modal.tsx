@@ -58,7 +58,7 @@ export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated
 
   // Fetch organizations for selection
   const { data: organizations = [] } = useQuery({
-    queryKey: ['/api/organizations'],
+    queryKey: ['/api/organizations/list'],
     enabled: open
   });
 

@@ -27,6 +27,23 @@ export function setupTenantRoutes(app: Express) {
     }
   });
 
+  // Get organizations for patient assignment (accessible to all authenticated users)
+  app.get("/api/organizations/list", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const orgs = await db.select({
+        id: organizations.id,
+        name: organizations.name,
+        type: organizations.type
+      }).from(organizations)
+        .where(eq(organizations.isActive, true))
+        .orderBy(organizations.name);
+      res.json(orgs);
+    } catch (error) {
+      console.error('Error fetching organization list:', error);
+      res.status(500).json({ error: 'Failed to fetch organization list' });
+    }
+  });
+
   // Get current organization details
   app.get("/api/organization", authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
     try {
