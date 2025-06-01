@@ -4641,8 +4641,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { category, patientId } = req.body;
+      console.log('Upload request body:', req.body);
+      console.log('Category received:', category);
+      
       if (!category) {
         return res.status(400).json({ message: "Category is required" });
+      }
+
+      // Valid categories
+      const validCategories = [
+        'lab-results',
+        'prescriptions', 
+        'medical-records',
+        'imaging',
+        'insurance',
+        'consent-forms',
+        'referrals',
+        'other'
+      ];
+
+      if (!validCategories.includes(category)) {
+        return res.status(400).json({ 
+          message: "Invalid upload category",
+          validCategories 
+        });
       }
 
       // Generate unique filename
