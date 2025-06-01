@@ -279,9 +279,9 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
     const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     return template
-      .replace(/\{\{patientName\}\}/g, `${patientData.firstName} ${patientData.lastName}`)
-      .replace(/\{\{firstName\}\}/g, patientData.firstName || 'Patient')
-      .replace(/\{\{lastName\}\}/g, patientData.lastName || '')
+      .replace(/\{\{patientName\}\}/g, `${patientData.firstName || patientData.first_name} ${patientData.lastName || patientData.last_name}`)
+      .replace(/\{\{firstName\}\}/g, patientData.firstName || patientData.first_name || 'Patient')
+      .replace(/\{\{lastName\}\}/g, patientData.lastName || patientData.last_name || '')
       .replace(/\{\{date\}\}/g, currentDate)
       .replace(/\{\{time\}\}/g, currentTime)
       .replace(/\{\{testDate\}\}/g, currentDate)
