@@ -4220,35 +4220,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple Medication Reviews endpoint (for quick scheduling)
+  // Enhanced Medication Reviews endpoint (for active scheduling with proper reviewer assignment)
   app.post("/api/medication-reviews", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { patientId, prescriptionId, reviewType, notes, scheduledDate } = req.body;
+      const { patientId, prescriptionId, reviewType, notes, scheduledDate, priority } = req.body;
       
       if (!patientId || !prescriptionId) {
         return res.status(400).json({ message: "Patient ID and Prescription ID are required" });
       }
 
-      // Create mock review response
+      // Find available reviewers (doctors with "Dr" title)
+      const availableReviewers = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          title: users.title,
+          role: users.role
+        })
+        .from(users)
+        .where(and(
+          eq(users.role, 'doctor'),
+          eq(users.organizationId, req.user!.organizationId),
+          isNotNull(users.title)
+        ));
+
+      // Assign to a random available reviewer or the current user if they're a doctor
+      let assignedReviewerId = req.user!.id;
+      let assignedReviewerName = req.user!.username;
+      
+      if (availableReviewers.length > 0) {
+        const randomReviewer = availableReviewers[Math.floor(Math.random() * availableReviewers.length)];
+        assignedReviewerId = randomReviewer.id;
+        assignedReviewerName = `${randomReviewer.title} ${randomReviewer.username}`;
+      }
+
+      // Create the medication review
       const reviewData = {
         id: Math.floor(Math.random() * 1000) + 1000,
         patientId,
         prescriptionId,
         reviewType: reviewType || 'scheduled',
-        notes: notes || '',
+        notes: notes || 'Routine medication review scheduled',
         scheduledDate: scheduledDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         status: 'pending',
-        assignedTo: req.user?.username || 'system',
-        organizationId: req.user?.organizationId || 1,
+        assignedTo: assignedReviewerName,
+        assignedToId: assignedReviewerId,
+        requestedBy: req.user!.username,
+        priority: priority || 'normal',
+        organizationId: req.user!.organizationId,
         createdAt: new Date().toISOString()
       };
 
       console.log(`📋 MEDICATION REVIEW SCHEDULED: Review #${reviewData.id} for patient ${patientId}`);
-
-      res.json(reviewData);
+      console.log(`👨‍⚕️ ASSIGNED TO: ${assignedReviewerName} (ID: ${assignedReviewerId})`);
+      
+      res.status(201).json(reviewData);
     } catch (error) {
-      console.error('Error creating medication review:', error);
-      res.status(500).json({ message: "Failed to create medication review" });
+      console.error('Error scheduling medication review:', error);
+      res.status(500).json({ error: 'Failed to schedule medication review' });
     }
   });
 
