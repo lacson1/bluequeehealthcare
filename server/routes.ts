@@ -3278,6 +3278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Handle medical documents separately
       if (category === 'medical') {
+        console.log('Processing medical document upload...');
         const { category: docCategory, patientId } = req.body;
         
         // Generate unique filename
@@ -3285,20 +3286,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const originalExtension = req.file.originalname.split('.').pop();
         const uniqueFileName = `medical_${timestamp}_${Math.random().toString(36).substring(7)}.${originalExtension}`;
         
-        // Save to medical documents table
-        const [document] = await db.insert(medicalDocuments).values({
+        console.log('Inserting into database:', {
           fileName: uniqueFileName,
           originalName: req.file.originalname,
           category: docCategory || 'other',
-          fileSize: req.file.size,
+          size: req.file.size,
+          mimeType: req.file.mimetype,
           uploadedBy: req.user!.id,
           organizationId: req.user!.organizationId!,
           patientId: patientId ? parseInt(patientId) : null
-        }).returning();
+        });
+
+        // Save to medical documents table using raw SQL to avoid type issues
+        const documentResult = await db.execute(sql`
+          INSERT INTO medical_documents (file_name, original_name, category, size, mime_type, uploaded_by, organization_id, patient_id)
+          VALUES (${uniqueFileName}, ${req.file.originalname}, ${docCategory || 'other'}, ${req.file.size}, ${req.file.mimetype}, ${req.user!.id}, ${req.user!.organizationId!}, ${patientId ? parseInt(patientId) : null})
+          RETURNING id, file_name, original_name, category, size
+        `);
+
+        const document = documentResult.rows[0];
+        console.log('Document saved to database:', document);
 
         // Save file using file storage
         const fileName = await fileStorage.saveFile(req.file.buffer, uniqueFileName, 'medical');
         const fileUrl = fileStorage.getFileUrl(fileName, 'medical');
+        console.log('File saved to storage:', fileName);
 
         // Create audit log
         const auditLogger = new AuditLogger(req);
