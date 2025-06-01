@@ -3265,8 +3265,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // File Upload Endpoints for Replit Storage
   app.post('/api/upload/:category', authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
     try {
-      const category = req.params.category as 'patients' | 'staff' | 'organizations' | 'documents';
-      const validCategories = ['patients', 'staff', 'organizations', 'documents'];
+      const category = req.params.category as 'patients' | 'staff' | 'organizations' | 'documents' | 'medical';
+      const validCategories = ['patients', 'staff', 'organizations', 'documents', 'medical'];
       
       if (!validCategories.includes(category)) {
         return res.status(400).json({ message: 'Invalid upload category' });
@@ -3276,6 +3276,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
+      // Handle medical documents separately
+      if (category === 'medical') {
+        const { category: docCategory, patientId } = req.body;
+        
+        // Generate unique filename
+        const timestamp = Date.now();
+        const originalExtension = req.file.originalname.split('.').pop();
+        const uniqueFileName = `medical_${timestamp}_${Math.random().toString(36).substring(7)}.${originalExtension}`;
+        
+        // Save to medical documents table
+        const [document] = await db.insert(medicalDocuments).values({
+          fileName: uniqueFileName,
+          originalName: req.file.originalname,
+          category: docCategory || 'other',
+          fileSize: req.file.size,
+          uploadedBy: req.user!.id,
+          organizationId: req.user!.organizationId!,
+          patientId: patientId ? parseInt(patientId) : null
+        }).returning();
+
+        // Save file using file storage
+        const fileName = await fileStorage.saveFile(req.file.buffer, uniqueFileName, 'medical');
+        const fileUrl = fileStorage.getFileUrl(fileName, 'medical');
+
+        // Create audit log
+        const auditLogger = new AuditLogger(req);
+        await auditLogger.logSystemAction('medical_document_uploaded', {
+          documentId: document.id,
+          fileName: req.file.originalname,
+          category: docCategory,
+          fileSize: req.file.size
+        });
+
+        return res.json({
+          id: document.id,
+          fileName,
+          fileUrl,
+          originalName: req.file.originalname,
+          size: req.file.size,
+          category: docCategory
+        });
+      }
+
+      // Handle other file categories
       const fileName = await fileStorage.saveFile(req.file.buffer, req.file.originalname, category);
       const fileUrl = fileStorage.getFileUrl(fileName, category);
 
@@ -3302,7 +3346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/files/:category/:fileName', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { category, fileName } = req.params;
-      const validCategories = ['patients', 'staff', 'organizations', 'documents'];
+      const validCategories = ['patients', 'staff', 'organizations', 'documents', 'medical'];
       
       if (!validCategories.includes(category)) {
         return res.status(400).json({ message: 'Invalid file category' });
@@ -4651,29 +4695,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Category is required" });
       }
 
-      // Valid categories - accept any reasonable category for now
-      const validCategories = [
-        'lab-results',
-        'lab results', 
-        'prescriptions', 
-        'medical-records',
-        'medical records',
-        'imaging',
-        'insurance',
-        'consent-forms',
-        'consent forms',
-        'referrals',
-        'other'
-      ];
-
-      if (!validCategories.includes(category.toLowerCase())) {
-        console.log(`Category "${category}" not found in valid categories:`, validCategories);
-        return res.status(400).json({ 
-          message: "Invalid upload category",
-          received: category,
-          validCategories 
-        });
-      }
+      // Accept any category for now - we'll normalize it
+      const normalizedCategory = category.toLowerCase().trim();
 
       // Generate unique filename
       const timestamp = Date.now();
