@@ -1038,27 +1038,82 @@ export default function PatientProfile() {
                                             Print Prescription
                                           </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => {
-                                            const qrData = `RX-${prescription.id}: ${prescription.medicationName} - ${prescription.dosage}`;
-                                            alert(`QR Code Data: ${qrData}`);
+                                            const qrData = JSON.stringify({
+                                              id: prescription.id,
+                                              patient: `${patient?.firstName} ${patient?.lastName}`,
+                                              medication: prescription.medicationName,
+                                              dosage: prescription.dosage,
+                                              frequency: prescription.frequency,
+                                              duration: prescription.duration,
+                                              prescribedDate: prescription.createdAt,
+                                              verificationCode: `RX${prescription.id}${new Date().getFullYear()}`
+                                            });
+                                            navigator.clipboard.writeText(qrData);
+                                            alert(`QR Code data copied to clipboard for ${prescription.medicationName}`);
                                           }}>
                                             <QrCode className="mr-2 h-4 w-4" />
                                             Generate QR Code
                                           </DropdownMenuItem>
                                           <DropdownMenuSeparator />
-                                          <DropdownMenuItem onClick={() => {
-                                            alert(`Reordering ${prescription.medicationName} - Creating new prescription with same details`);
+                                          <DropdownMenuItem onClick={async () => {
+                                            const reorderData = {
+                                              patientId: prescription.patientId,
+                                              medicationName: prescription.medicationName,
+                                              dosage: prescription.dosage,
+                                              frequency: prescription.frequency,
+                                              duration: prescription.duration,
+                                              instructions: prescription.instructions,
+                                              quantity: prescription.quantity
+                                            };
+                                            
+                                            try {
+                                              const response = await fetch(`/api/patients/${patientId}/prescriptions`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify(reorderData)
+                                              });
+                                              if (response.ok) {
+                                                alert(`${prescription.medicationName} reordered successfully`);
+                                                window.location.reload();
+                                              }
+                                            } catch (error) {
+                                              alert('Failed to reorder prescription');
+                                            }
                                           }}>
                                             <RefreshCw className="mr-2 h-4 w-4" />
                                             Reorder Medication
                                           </DropdownMenuItem>
-                                          <DropdownMenuItem onClick={() => {
-                                            alert(`${prescription.medicationName} added to repeat prescriptions`);
+                                          <DropdownMenuItem onClick={async () => {
+                                            try {
+                                              const response = await fetch(`/api/prescriptions/${prescription.id}`, {
+                                                method: 'PATCH',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ 
+                                                  duration: 'Ongoing as directed',
+                                                  isRepeat: true 
+                                                })
+                                              });
+                                              if (response.ok) {
+                                                alert(`${prescription.medicationName} added to repeat prescriptions`);
+                                                window.location.reload();
+                                              }
+                                            } catch (error) {
+                                              alert('Failed to add to repeat prescriptions');
+                                            }
                                           }}>
                                             <RotateCcw className="mr-2 h-4 w-4" />
                                             Add to Repeat
                                           </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => {
-                                            alert(`Sending ${prescription.medicationName} to selected pharmacy`);
+                                            const pharmacyData = {
+                                              prescriptionId: prescription.id,
+                                              medication: prescription.medicationName,
+                                              patient: `${patient?.firstName} ${patient?.lastName}`,
+                                              dosage: prescription.dosage,
+                                              quantity: prescription.quantity || 'As prescribed'
+                                            };
+                                            navigator.clipboard.writeText(JSON.stringify(pharmacyData, null, 2));
+                                            alert(`Prescription details for ${prescription.medicationName} copied to clipboard for pharmacy transmission`);
                                           }}>
                                             <Send className="mr-2 h-4 w-4" />
                                             Send to Pharmacy
