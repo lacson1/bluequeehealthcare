@@ -84,116 +84,107 @@ export default function PrescriptionDocument({
         </Button>
       </div>
 
-      <LetterheadTemplate
-        organization={organization}
-        doctor={doctor}
-        patient={patient}
-        documentType="prescription"
-        documentTitle="MEDICAL PRESCRIPTION"
-        documentDate={new Date(prescription.createdAt)}
-        additionalInfo={`Prescription #${prescription.id}`}
-      >
-        <div className="prescription-content space-y-6">
-          {/* Rx Symbol and Header */}
-          <div className="flex items-center gap-4 mb-6">
-            <div 
-              className="text-4xl font-bold px-4 py-2 rounded-lg text-white"
-              style={{ backgroundColor: organization.themeColor || '#3B82F6' }}
-            >
-              Rx
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Prescribed Medications</h3>
-              <p className="text-sm text-gray-600">
-                Date: {format(new Date(prescription.createdAt), 'MMMM dd, yyyy')}
-              </p>
-            </div>
-          </div>
+      {/* A6 Prescription Card with Light Green Background */}
+      <div className="prescription-card bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto shadow-lg">
+        {/* Organization Header */}
+        <div className="text-center mb-4 border-b border-green-200 pb-3">
+          <h2 className="text-lg font-bold text-green-800">{organization.name}</h2>
+          <p className="text-sm text-green-700">{organization.type}</p>
+          <p className="text-xs text-green-600">{organization.address}</p>
+          <p className="text-xs text-green-600">{organization.phone} | {organization.email}</p>
+        </div>
 
-          {/* Medications List */}
-          <div className="medications-list space-y-4">
+        {/* Prescription Header */}
+        <div className="text-center mb-4">
+          <h3 className="text-xl font-bold text-green-800 mb-1">PRESCRIPTION</h3>
+          <p className="text-sm text-green-700">Rx #{prescription.id}</p>
+          <p className="text-xs text-green-600">{format(new Date(prescription.createdAt), 'MMM dd, yyyy')}</p>
+        </div>
+
+        {/* Patient Info */}
+        <div className="mb-4 bg-white rounded p-3 border border-green-100">
+          <h4 className="font-semibold text-green-800 mb-1">Patient:</h4>
+          <p className="text-sm text-green-700">
+            {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName}
+          </p>
+          {patient.phone && (
+            <p className="text-xs text-green-600">{patient.phone}</p>
+          )}
+        </div>
+
+        {/* Medications */}
+        <div className="mb-6">
+          <h4 className="font-semibold text-green-800 mb-2">Medications:</h4>
+          <div className="space-y-3">
             {prescription.medications.map((medication, index) => (
-              <div 
-                key={medication.id} 
-                className="medication-item border border-gray-200 rounded-lg p-4 bg-gray-50"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="text-lg font-semibold text-green-700 uppercase">
-                    {index + 1}. {medication.name}
-                  </h4>
-                  {medication.quantity && (
-                    <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded">
-                      Qty: {medication.quantity}
-                    </span>
+              <div key={medication.id} className="bg-white rounded p-3 border border-green-100">
+                <h5 className="font-medium text-green-800 mb-1">
+                  {index + 1}. {medication.name}
+                </h5>
+                <div className="text-xs text-green-700 space-y-1">
+                  <p><span className="font-medium">Dosage:</span> {medication.dosage}</p>
+                  <p><span className="font-medium">Frequency:</span> {medication.frequency}</p>
+                  <p><span className="font-medium">Duration:</span> {medication.duration}</p>
+                  {medication.instructions && (
+                    <p><span className="font-medium">Instructions:</span> {medication.instructions}</p>
                   )}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">Dosage:</span>
-                    <p className="text-gray-900">{medication.dosage}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Frequency:</span>
-                    <p className="text-gray-900">{medication.frequency}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Duration:</span>
-                    <p className="text-gray-900">{medication.duration}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Instructions:</span>
-                    <p className="text-gray-900">{medication.instructions}</p>
-                  </div>
+                  {medication.quantity && (
+                    <p><span className="font-medium">Quantity:</span> {medication.quantity}</p>
+                  )}
                 </div>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* Additional Notes */}
-          {prescription.notes && (
-            <div 
-              className="notes-section p-4 rounded-lg border-l-4"
-              style={{ 
-                backgroundColor: `${organization.themeColor || '#3B82F6'}10`,
-                borderLeftColor: organization.themeColor || '#3B82F6'
-              }}
-            >
-              <h4 className="font-semibold text-gray-900 mb-2">Additional Instructions:</h4>
-              <p className="text-gray-700 leading-relaxed">{prescription.notes}</p>
-            </div>
-          )}
-
-          {/* Important Medication Guidelines */}
-          <div className="guidelines-section bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h4 className="font-semibold text-yellow-800 mb-2">Important Guidelines:</h4>
-            <ul className="text-sm text-yellow-700 space-y-1">
-              <li>• Take medications exactly as prescribed</li>
-              <li>• Complete the full course even if you feel better</li>
-              <li>• Contact your doctor if you experience adverse reactions</li>
-              <li>• Store medications in a cool, dry place away from children</li>
-              <li>• Do not share medications with others</li>
-            </ul>
+        {/* Additional Notes */}
+        {prescription.notes && (
+          <div className="mb-4 bg-white rounded p-3 border border-green-100">
+            <h4 className="font-semibold text-green-800 mb-1">Notes:</h4>
+            <p className="text-xs text-green-700">{prescription.notes}</p>
           </div>
+        )}
 
-          {/* Follow-up Instructions */}
-          <div className="follow-up bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-800 mb-2">Follow-up Care:</h4>
-            <p className="text-sm text-blue-700">
-              Please schedule a follow-up appointment if symptoms persist or worsen. 
-              Contact {organization.name} at {organization.phone} for any concerns.
+        {/* Doctor Signature Section */}
+        <div className="mt-6 pt-4 border-t border-green-200">
+          <div className="text-center">
+            <div className="mb-2">
+              <div className="h-8 border-b border-green-300 w-48 mx-auto mb-1"></div>
+              <p className="text-xs text-green-700">Doctor's Signature</p>
+            </div>
+            <p className="text-sm font-medium text-green-800">
+              Dr. {doctor.firstName || doctor.username} {doctor.lastName || ''}
             </p>
+            <p className="text-xs text-green-600">{doctor.role}</p>
+            {doctor.credentials && (
+              <p className="text-xs text-green-600">{doctor.credentials}</p>
+            )}
           </div>
         </div>
-      </LetterheadTemplate>
+      </div>
 
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          .prescription-document { 
-            background: white !important;
-            -webkit-print-color-adjust: exact;
-            color-adjust: exact;
+          .prescription-card { 
+            width: 105mm !important;
+            height: 148mm !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 8mm !important;
+            background: #f0fdf4 !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-shadow: none !important;
+            border: 1px solid #bbf7d0 !important;
+          }
+          @page {
+            size: A6;
+            margin: 5mm;
+          }
+          body {
+            font-size: 10px !important;
           }
         }
       `}</style>
