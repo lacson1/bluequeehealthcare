@@ -324,22 +324,23 @@ export default function StandaloneVitalSignsRecorder({
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          {/* Enhanced Action Buttons */}
+          <div className="form-button-group">
             <Button 
               variant="outline" 
               onClick={onClose}
               disabled={recordVitalsMutation.isPending}
+              className="btn-ghost hover:bg-gray-50 transition-all duration-200 border-gray-300"
             >
-              <X className="w-4 h-4 mr-2" />
+              <X className="w-4 h-4 mr-2 icon-professional text-gray-600" />
               Cancel
             </Button>
             <Button 
               onClick={handleSubmit}
               disabled={recordVitalsMutation.isPending}
-              className="bg-blue-500 hover:bg-blue-600"
+              className="btn-primary shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 bg-gradient-to-r from-blue-600 to-blue-700 border-0"
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-4 h-4 mr-2 icon-professional" />
               {recordVitalsMutation.isPending ? 'Recording...' : 'Record Vitals'}
             </Button>
           </div>
