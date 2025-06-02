@@ -1263,44 +1263,125 @@ export default function PatientProfile() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="medications">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Pill className="h-5 w-5 text-purple-500" />
-                    Medications & Prescriptions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Tabs defaultValue="current" className="w-full">
-                    <div className="flex items-center justify-between mb-4">
-                      <TabsList className="grid w-full grid-cols-4 max-w-2xl">
-                        <TabsTrigger value="current" className="flex items-center gap-2">
-                          <Pill className="w-4 h-4" />
-                          Current ({prescriptions?.filter(p => p.status === 'active')?.length || 0})
-                        </TabsTrigger>
-                        <TabsTrigger value="past" className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          Past ({prescriptions?.filter(p => p.status === 'completed')?.length || 0})
-                        </TabsTrigger>
-                        <TabsTrigger value="repeat" className="flex items-center gap-2">
-                          <Activity className="w-4 h-4" />
-                          Repeat ({prescriptions?.filter(p => p.duration?.includes('Ongoing'))?.length || 0})
-                        </TabsTrigger>
-                        <TabsTrigger value="summary" className="flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Summary
-                        </TabsTrigger>
-                      </TabsList>
-                      
-                      {(user?.role === 'doctor' || user?.role === 'admin') && (
-                        <Button 
-                          onClick={() => setShowPrescriptionModal(true)}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Prescribe Medication
-                        </Button>
+            <TabsContent value="documents">
+              <PatientDocuments patientId={patient.id} patientName={`${patient.firstName} ${patient.lastName}`} />
+            </TabsContent>
+
+            <TabsContent value="chat">
+              <PatientChat 
+                patientId={patient.id} 
+                patientName={`${patient.firstName} ${patient.lastName}`}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        {/* Floating Action Menu */}
+        <FloatingActionMenu
+          onRecordVisit={() => setShowVisitModal(true)}
+          onAddLabResult={() => setShowLabModal(true)}
+          onAddPrescription={() => setShowPrescriptionModal(true)}
+          onCreateConsultation={() => setShowVisitModal(true)}
+          userRole={user?.role || 'guest'}
+        />
+      </main>
+
+      {/* Modals */}
+      <EnhancedVisitRecording
+        open={showVisitModal}
+        onOpenChange={setShowVisitModal}
+        patientId={patientId || 0}
+      />
+      <LabResultModal
+        open={showLabModal}
+        onOpenChange={setShowLabModal}
+        patientId={patientId}
+      />
+      <PrescriptionModal
+        open={showPrescriptionModal}
+        onOpenChange={setShowPrescriptionModal}
+        patientId={patientId}
+      />
+
+      {/* Edit Patient Modal */}
+      {patient && (
+        <EditPatientModal
+          open={showEditPatientModal}
+          onOpenChange={setShowEditPatientModal}
+          patient={patient as any}
+          onPatientUpdated={() => {
+            // Refresh patient data after update
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Specialty Assessment Modal */}
+      <Dialog open={showAssessmentModal} onOpenChange={setShowAssessmentModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAssessmentType ? `${selectedAssessmentType.charAt(0).toUpperCase() + selectedAssessmentType.slice(1)} Assessment` : 'Specialty Assessment'}
+            </DialogTitle>
+            <DialogDescription>
+              Complete the {selectedAssessmentType} assessment form for {patient?.firstName} {patient?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {selectedAssessmentType && (
+              <div className="space-y-4">
+                <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {selectedAssessmentType.charAt(0).toUpperCase() + selectedAssessmentType.slice(1)} Assessment
+                  </h3>
+                  <p className="text-gray-500 mb-6">
+                    This would open the {selectedAssessmentType} assessment form for completion.
+                    Assessment results will be saved to the patient's consultation history.
+                  </p>
+                  <div className="flex justify-center space-x-3">
+                    <Button 
+                      onClick={() => {
+                        // Simulate assessment completion
+                        handleAssessmentComplete({
+                          findings: `${selectedAssessmentType} assessment completed`,
+                          diagnosis: 'Assessment findings recorded',
+                          treatment: 'Follow-up as needed',
+                          assessmentType: selectedAssessmentType
+                        });
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Complete Assessment
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowAssessmentModal(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
+
+      {/* Hidden Printable Patient Summary */}
+      <div className="hidden">
+        <PatientSummaryPrintable
+          patient={patient as Patient}
+          visits={visits || []}
+          organization={currentOrganization}
+        />
+      </div>
+    </div>
+  );
+}
                       )}
                     </div>
 
