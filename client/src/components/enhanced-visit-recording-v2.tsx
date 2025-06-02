@@ -215,7 +215,7 @@ export function EnhancedVisitRecordingV2({ patientId, onSave }: EnhancedVisitRec
         doctorId: Array.isArray(staff) ? staff.find((s: any) => s.role === "doctor")?.id || 1 : 1,
       };
 
-      const response = await apiRequest("POST", "/api/visits", visitData);
+      const response = await apiRequest("POST", `/api/patients/${patientId}/visits`, visitData);
       return await response.json();
     },
     onSuccess: () => {
