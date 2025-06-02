@@ -37,7 +37,14 @@ import {
   Printer,
   ChevronDown,
   BarChart3,
-  Settings
+  Settings,
+  MoreHorizontal,
+  QrCode,
+  RefreshCw,
+  Send,
+  Ban,
+  StopCircle,
+  RotateCcw
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { VisitRecordingModal } from "@/components/visit-recording-modal";
@@ -1013,30 +1020,78 @@ export default function PatientProfile() {
                                     )}
                                   </div>
                                   
-                                  <div className="flex flex-col gap-2 ml-4">
+                                  <div className="flex items-center gap-2 ml-4">
                                     {(user?.role === 'doctor' || user?.role === 'admin') && (
-                                      <>
-                                        <Button 
-                                          variant="outline" 
-                                          size="sm" 
-                                          onClick={() => handleCompletePrescription(prescription)}
-                                          title="Mark as Completed"
-                                          className="btn-success text-white border-green-500 hover:bg-green-600 transition-all duration-200"
-                                        >
-                                          <CheckCircle className="w-4 h-4 mr-1 icon-professional" />
-                                          Complete
-                                        </Button>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          onClick={() => handlePrintPrescription(prescription)}
-                                          title="Print Prescription"
-                                          className="btn-icon-ghost hover:bg-blue-50 transition-all duration-200"
-                                        >
-                                          <Printer className="w-4 h-4 mr-1 icon-professional text-blue-600" />
-                                          Print
-                                        </Button>
-                                      </>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-8 w-8 p-0 hover:bg-slate-100"
+                                          >
+                                            <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-56">
+                                          <DropdownMenuItem onClick={() => handlePrintPrescription(prescription)}>
+                                            <Printer className="mr-2 h-4 w-4" />
+                                            Print Prescription
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => {
+                                            const qrData = `RX-${prescription.id}: ${prescription.medicationName} - ${prescription.dosage}`;
+                                            alert(`QR Code Data: ${qrData}`);
+                                          }}>
+                                            <QrCode className="mr-2 h-4 w-4" />
+                                            Generate QR Code
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => {
+                                            alert(`Reordering ${prescription.medicationName} - Creating new prescription with same details`);
+                                          }}>
+                                            <RefreshCw className="mr-2 h-4 w-4" />
+                                            Reorder Medication
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => {
+                                            alert(`${prescription.medicationName} added to repeat prescriptions`);
+                                          }}>
+                                            <RotateCcw className="mr-2 h-4 w-4" />
+                                            Add to Repeat
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => {
+                                            alert(`Sending ${prescription.medicationName} to selected pharmacy`);
+                                          }}>
+                                            <Send className="mr-2 h-4 w-4" />
+                                            Send to Pharmacy
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => handleCompletePrescription(prescription)}>
+                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                            Mark Complete
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem 
+                                            onClick={() => {
+                                              if (confirm(`Discontinue ${prescription.medicationName}?`)) {
+                                                alert(`${prescription.medicationName} has been discontinued`);
+                                              }
+                                            }}
+                                            className="text-orange-600"
+                                          >
+                                            <StopCircle className="mr-2 h-4 w-4" />
+                                            Discontinue
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem 
+                                            onClick={() => {
+                                              if (confirm(`Cancel ${prescription.medicationName}?`)) {
+                                                alert(`${prescription.medicationName} has been cancelled`);
+                                              }
+                                            }}
+                                            className="text-red-600"
+                                          >
+                                            <Ban className="mr-2 h-4 w-4" />
+                                            Cancel Prescription
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     )}
                                   </div>
                                 </div>
