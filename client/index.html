@@ -2,93 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bluequee - Healthcare Management</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { 
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-      }
-      .container {
-        text-align: center;
-        background: rgba(255, 255, 255, 0.1);
-        padding: 3rem;
-        border-radius: 20px;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        max-width: 500px;
-        width: 90%;
-      }
-      h1 { font-size: 2.5rem; margin-bottom: 1rem; font-weight: 600; }
-      .subtitle { font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9; }
-      .status { 
-        background: #28a745; 
-        padding: 0.75rem 1.5rem; 
-        border-radius: 50px; 
-        display: inline-block; 
-        font-weight: 500;
-        margin-bottom: 1rem;
-      }
-      .time { font-size: 0.9rem; opacity: 0.8; margin-top: 1rem; }
-      .features {
-        margin-top: 2rem;
-        text-align: left;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 1.5rem;
-        border-radius: 10px;
-      }
-      .feature { margin-bottom: 0.5rem; }
-      .loading {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid #ffffff30;
-        border-radius: 50%;
-        border-top-color: #fff;
-        animation: spin 1s ease-in-out infinite;
-        margin-right: 10px;
-      }
-      @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="description" content="Comprehensive clinic management system optimized for rural healthcare delivery with offline capabilities" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bluequee" />
+    <link rel="apple-touch-icon" href="/generated-icon.png" />
+    <link rel="icon" href="/generated-icon.png" />
+    <title>Bluequee - Rural Healthcare Management</title>
   </head>
   <body>
-    <div class="container">
-      <h1>🏥 Bluequee</h1>
-      <div class="subtitle">Digital Healthcare Management Platform</div>
-      <div class="status">✅ System Online</div>
-      <div class="features">
-        <div class="feature">📋 Patient Management</div>
-        <div class="feature">🧪 Lab Results & Orders</div>
-        <div class="feature">💊 Pharmacy Integration</div>
-        <div class="feature">📊 Analytics & Reports</div>
-        <div class="feature">📱 Mobile Responsive</div>
-      </div>
-      <div class="time">
-        <span class="loading"></span>
-        Loading full application...
-      </div>
-    </div>
-    
-    <script>
-      // Simple test to verify JavaScript is working
-      console.log('Bluequee Healthcare Platform - JavaScript loaded successfully');
-      
-      // Update time every second
-      function updateTime() {
-        const timeElement = document.querySelector('.time');
-        if (timeElement) {
-          timeElement.innerHTML = '<span class="loading"></span>Ready to load React app at ' + new Date().toLocaleTimeString();
-        }
-      }
-      
-      setTimeout(updateTime, 2000);
-      setInterval(updateTime, 5000);
-    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
