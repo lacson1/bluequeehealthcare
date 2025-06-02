@@ -2748,15 +2748,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/nursing/dashboard", authenticateToken, requireAnyRole(['nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const orgId = req.user!.organizationId!;
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       
       const [
         recentVitals,
         todaysAppointments,
         criticalAlerts,
-        recentConsultations,
         summaryStats
       ] = await Promise.all([
-        // Recent vital signs recorded
+        // Recent vital signs (last 20 records)
         db.select({
           id: vitalSigns.id,
           patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
@@ -2767,14 +2770,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(vitalSigns)
         .leftJoin(patients, eq(vitalSigns.patientId, patients.id))
-        .where(and(
-          eq(patients.organizationId, orgId),
-          gte(vitalSigns.recordedAt, sql`DATE('now', '-7 days')`)
-        ))
+        .where(eq(patients.organizationId, orgId))
         .orderBy(desc(vitalSigns.recordedAt))
         .limit(20),
 
-        // Today's appointments
+        // Today's appointments  
         db.select({
           id: appointments.id,
           patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
@@ -2786,8 +2786,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .leftJoin(patients, eq(appointments.patientId, patients.id))
         .where(and(
           eq(appointments.organizationId, orgId),
-          gte(appointments.appointmentTime, sql`DATE('now')`),
-          sql`${appointments.appointmentTime} < DATE('now', '+1 day')`
+          gte(appointments.appointmentTime, startOfDay),
+          lte(appointments.appointmentTime, endOfDay)
         ))
         .orderBy(appointments.appointmentTime)
         .limit(15),
@@ -2811,22 +2811,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .orderBy(desc(safetyAlerts.priority), desc(safetyAlerts.dateAdded))
         .limit(10),
 
-        // Recent consultation records
-        db.select({
-          id: consultationRecords.id,
-          patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
-          createdAt: consultationRecords.createdAt,
-          filledBy: consultationRecords.filledBy
-        })
-        .from(consultationRecords)
-        .leftJoin(patients, eq(consultationRecords.patientId, patients.id))
-        .where(and(
-          eq(patients.organizationId, orgId),
-          gte(consultationRecords.createdAt, sql`DATE('now', '-7 days')`)
-        ))
-        .orderBy(desc(consultationRecords.createdAt))
-        .limit(10),
-
         // Summary statistics
         Promise.all([
           db.select({ count: sql<number>`count(*)` })
@@ -2834,14 +2818,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .leftJoin(patients, eq(vitalSigns.patientId, patients.id))
             .where(and(
               eq(patients.organizationId, orgId),
-              gte(vitalSigns.recordedAt, sql`DATE('now')`)
+              gte(vitalSigns.recordedAt, startOfDay)
             )),
           db.select({ count: sql<number>`count(*)` })
             .from(appointments)
             .where(and(
               eq(appointments.organizationId, orgId),
-              gte(appointments.appointmentTime, sql`DATE('now')`),
-              sql`${appointments.appointmentTime} < DATE('now', '+1 day')`
+              gte(appointments.appointmentTime, startOfDay),
+              lte(appointments.appointmentTime, endOfDay)
             ))
         ]).then(([vitalsToday, appointmentsToday]) => ({
           vitalsRecordedToday: vitalsToday[0]?.count || 0,
@@ -2861,9 +2845,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         alerts: {
           critical: criticalAlerts,
           totalActive: criticalAlerts.length
-        },
-        consultations: {
-          recent: recentConsultations
         },
         summary: {
           vitalsRecordedToday: summaryStats.vitalsRecordedToday,
