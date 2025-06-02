@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   User, 
   Calendar, 
@@ -32,7 +33,10 @@ import {
   Ear,
   Search,
   X,
-  Printer
+  Printer,
+  ChevronDown,
+  BarChart3,
+  Settings
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EnhancedVisitRecording } from "@/components/enhanced-visit-recording";
@@ -252,29 +256,77 @@ export default function PatientProfile() {
           {/* Patient Identity & Basic Info */}
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
-              <Avatar className="w-16 h-16">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xl font-semibold">
-                  {patient.firstName?.[0]?.toUpperCase()}{patient.lastName?.[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName}
-                </h1>
-                <div className="flex items-center gap-6 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    Patient ID: HC{patient.id?.toString().padStart(6, "0")}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    DOB: {new Date(patient.dateOfBirth).toLocaleDateString()}
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} years • {patient.gender}
-                  </Badge>
-                </div>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-4 hover:bg-gray-50 p-2 rounded-lg transition-colors group">
+                    <Avatar className="w-16 h-16">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xl font-semibold">
+                        {patient.firstName?.[0]?.toUpperCase()}{patient.lastName?.[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-2 text-left">
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-3xl font-bold text-gray-900">
+                          {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName}
+                        </h1>
+                        <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                      </div>
+                      <div className="flex items-center gap-6 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <User className="w-4 h-4" />
+                          Patient ID: HC{patient.id?.toString().padStart(6, "0")}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          DOB: {new Date(patient.dateOfBirth).toLocaleDateString()}
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} years • {patient.gender}
+                        </Badge>
+                      </div>
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuItem onClick={() => setActiveTab("overview")}>
+                    <User className="w-4 h-4 mr-2" />
+                    Patient Overview
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("vitals")}>
+                    <Thermometer className="w-4 h-4 mr-2" />
+                    Vital Signs
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("visits")}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Visits History
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("specialty")}>
+                    <Brain className="w-4 h-4 mr-2" />
+                    Specialty Assessment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("lab-results")}>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Lab Results
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("medications")}>
+                    <Pill className="w-4 h-4 mr-2" />
+                    Medications
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("documents")}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Documents
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("chat")}>
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Patient Chat
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Patient Settings
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
             <div className="flex items-center space-x-3">
