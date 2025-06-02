@@ -345,13 +345,13 @@ export default function PatientProfile() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="visits">Visits</TabsTrigger>
               <TabsTrigger value="vitals">Vitals</TabsTrigger>
-              <TabsTrigger value="chat">Chat</TabsTrigger>
+              <TabsTrigger value="visits">Visits</TabsTrigger>
               <TabsTrigger value="specialty">Specialty Assessment</TabsTrigger>
               <TabsTrigger value="labs">Lab Results</TabsTrigger>
               <TabsTrigger value="medications">Medications</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="chat">Chat</TabsTrigger>
             </TabsList>
             
             <TabsContent value="overview" className="space-y-6">
