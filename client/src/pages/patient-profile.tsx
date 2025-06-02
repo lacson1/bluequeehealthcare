@@ -144,7 +144,7 @@ export default function PatientProfile() {
     <div className="min-h-screen bg-slate-50">
       {/* Top Bar */}
       <header className="bg-white shadow-sm border-b border-slate-200 px-4 py-3 sticky top-0 z-10">
-        <div className="max-w-full flex items-center justify-between">
+        <div className="w-full flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
               <span className="text-white font-semibold text-lg">
@@ -160,22 +160,17 @@ export default function PatientProfile() {
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            {/* DEBUG: Simple test text */}
-            <span className="px-4 py-2 bg-red-500 text-white rounded">TEST</span>
+          <div className="flex items-center gap-2 bg-yellow-100 p-2 rounded">
+            <span className="text-red-600 font-bold">BUTTONS HERE:</span>
             
-            {/* Schedule button - always visible */}
-            <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+            <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm">
               Schedule
             </button>
             
-            {/* Edit patient info - available to admin, doctor, nurse */}
-            {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
-              <Button variant="outline">
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Info
-              </Button>
-            )}
+            <button className="px-3 py-1 bg-gray-500 text-white rounded text-sm">
+              Edit Info
+            </button>
+          </div>
             
             {/* Doctor-only actions */}
             {user?.role === 'doctor' && (
