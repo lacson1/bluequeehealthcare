@@ -740,7 +740,7 @@ export function EnhancedMedicationReview({ selectedPatientId, onReviewCompleted 
               <SelectContent>
                 {patients.map((patient: any) => (
                   <SelectItem key={patient.id} value={patient.id.toString()}>
-                    {patient.firstName} {patient.lastName} (ID: {patient.id})
+                    {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName} (ID: {patient.id})
                   </SelectItem>
                 ))}
               </SelectContent>

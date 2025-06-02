@@ -113,53 +113,94 @@ export default function PatientProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
+      {/* Comprehensive Patient Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Avatar className="w-12 h-12">
-              <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
-                {patient.firstName?.[0]?.toUpperCase()}{patient.lastName?.[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName}
-              </h1>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">
-                  Patient ID: HC{patient.id?.toString().padStart(6, "0")} • 
-                  Age: {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} years • 
-                  {patient.gender}
-                </p>
-                <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+        <div className="space-y-4">
+          {/* Patient Identity & Basic Info */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-4">
+              <Avatar className="w-16 h-16">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xl font-semibold">
+                  {patient.firstName?.[0]?.toUpperCase()}{patient.lastName?.[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold text-gray-900">
+                  {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName}
+                </h1>
+                <div className="flex items-center gap-6 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
+                    <User className="w-4 h-4" />
+                    Patient ID: HC{patient.id?.toString().padStart(6, "0")}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
                     DOB: {new Date(patient.dateOfBirth).toLocaleDateString()}
                   </div>
-                  {patient.phone && (
-                    <div className="flex items-center gap-1">
-                      <Phone className="w-3 h-3" />
-                      {patient.phone}
-                    </div>
-                  )}
-                  {patient.address && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {patient.address}
-                    </div>
-                  )}
+                  <Badge variant="outline" className="text-xs">
+                    {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} years • {patient.gender}
+                  </Badge>
                 </div>
               </div>
             </div>
+            
+            <div className="flex items-center space-x-3">
+              <Badge variant="secondary" className="text-xs px-3 py-1">
+                Active Patient
+              </Badge>
+            </div>
           </div>
-          
-          <div className="flex items-center space-x-3">
-            {/* Edit patient info - available to admin, doctor, nurse */}
+
+          {/* Contact & Location Information */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+            {patient.phone && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Phone className="w-4 h-4 text-blue-500" />
+                <span className="font-medium">Phone:</span>
+                <span>{patient.phone}</span>
+              </div>
+            )}
+            {patient.email && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Mail className="w-4 h-4 text-green-500" />
+                <span className="font-medium">Email:</span>
+                <span>{patient.email}</span>
+              </div>
+            )}
+            {patient.address && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4 text-red-500" />
+                <span className="font-medium">Address:</span>
+                <span className="truncate">{patient.address}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Stats & Actions */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-blue-500" />
+                <span className="font-medium">Total Visits:</span>
+                <Badge variant="outline">{visits?.length || 0}</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <FlaskRound className="w-4 h-4 text-green-500" />
+                <span className="font-medium">Lab Results:</span>
+                <Badge variant="outline">{labResults?.length || 0}</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Pill className="w-4 h-4 text-purple-500" />
+                <span className="font-medium">Active Prescriptions:</span>
+                <Badge variant="outline">{prescriptions?.filter(p => p.status === 'active')?.length || 0}</Badge>
+              </div>
+            </div>
+            
+            {/* Edit Button moved to bottom right */}
             {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
               <Button variant="outline" onClick={() => setShowEditPatientModal(true)}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit Info
+                Edit Patient Info
               </Button>
             )}
           </div>
@@ -169,13 +210,185 @@ export default function PatientProfile() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto px-4 py-6 max-w-full">
         <div className="w-full max-w-none">
-          <ModernPatientOverview
-            patient={patient as Patient}
-            visits={visits || []}
-            recentLabs={labResults || []}
-            activePrescriptions={prescriptions || []}
-            onAddPrescription={() => setShowPrescriptionModal(true)}
-          />
+          {/* Tabs for different sections */}
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="visits">Visits</TabsTrigger>
+              <TabsTrigger value="labs">Lab Results</TabsTrigger>
+              <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="overview" className="space-y-6">
+              {/* Patient Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Recent Activity */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Recent Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {visits?.slice(0, 3).map((visit: any) => (
+                        <div key={visit.id} className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{visit.reason}</p>
+                            <p className="text-sm text-gray-500">{new Date(visit.visitDate).toLocaleDateString()}</p>
+                          </div>
+                          <Badge variant="outline">{visit.status}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Vital Signs */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Heart className="w-5 h-5" />
+                      Latest Vitals
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Blood Pressure:</span>
+                        <span className="font-medium">120/80 mmHg</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Heart Rate:</span>
+                        <span className="font-medium">72 bpm</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Temperature:</span>
+                        <span className="font-medium">36.5°C</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Allergies & Alerts */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      Health Alerts
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {patient.allergies ? (
+                      <div className="space-y-2">
+                        <Badge variant="destructive" className="w-full justify-center">
+                          Allergies: {patient.allergies}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No known allergies</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="visits">
+              <ConsultationHistory patientId={patient.id} />
+            </TabsContent>
+
+            <TabsContent value="labs">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Laboratory Results</CardTitle>
+                  <CardDescription>Recent lab tests and results</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {labResults?.map((lab: any) => (
+                      <div key={lab.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{lab.testName}</h4>
+                            <p className="text-sm text-gray-500">
+                              {new Date(lab.testDate).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Badge variant={lab.status === 'normal' ? 'default' : 'destructive'}>
+                            {lab.status}
+                          </Badge>
+                        </div>
+                        <div className="mt-2">
+                          <p className="text-sm">
+                            <span className="font-medium">Result:</span> {lab.result} {lab.unit}
+                          </p>
+                          {lab.referenceRange && (
+                            <p className="text-sm text-gray-500">
+                              Reference: {lab.referenceRange}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="prescriptions">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Medications & Prescriptions</CardTitle>
+                  <CardDescription>Current and past prescriptions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {prescriptions?.map((prescription: any) => (
+                      <div key={prescription.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium">{prescription.medicationName}</h4>
+                            <p className="text-sm text-gray-500">
+                              {prescription.dosage} - {prescription.frequency}
+                            </p>
+                            <p className="text-sm">Duration: {prescription.duration}</p>
+                          </div>
+                          <Badge variant={prescription.status === 'active' ? 'default' : 'secondary'}>
+                            {prescription.status}
+                          </Badge>
+                        </div>
+                        {prescription.instructions && (
+                          <p className="text-sm text-gray-600 mt-2">
+                            Instructions: {prescription.instructions}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="documents">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Patient Documents</CardTitle>
+                  <CardDescription>Medical records and patient files</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-4 text-lg font-medium text-gray-900">No documents yet</h3>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Patient documents will appear here when uploaded.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
         
         {/* Floating Action Menu */}

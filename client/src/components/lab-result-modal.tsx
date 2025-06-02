@@ -173,7 +173,7 @@ export default function LabResultModal({
                                 selectedPatientId === patient.id ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            {patient.firstName} {patient.lastName} - {patient.phone}
+                            {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName} - {patient.phone}
                           </CommandItem>
                         ))}
                       </CommandGroup>

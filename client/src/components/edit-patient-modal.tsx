@@ -186,13 +186,23 @@ export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated
                     <SelectValue placeholder="Select title" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="">None</SelectItem>
                     <SelectItem value="Mr">Mr</SelectItem>
                     <SelectItem value="Mrs">Mrs</SelectItem>
                     <SelectItem value="Miss">Miss</SelectItem>
                     <SelectItem value="Ms">Ms</SelectItem>
                     <SelectItem value="Dr">Dr</SelectItem>
                     <SelectItem value="Prof">Prof</SelectItem>
+                    <SelectItem value="Alhaji">Alhaji</SelectItem>
+                    <SelectItem value="Alhaja">Alhaja</SelectItem>
+                    <SelectItem value="Chief">Chief</SelectItem>
+                    <SelectItem value="Hon">Hon</SelectItem>
+                    <SelectItem value="Rev">Rev</SelectItem>
+                    <SelectItem value="Pastor">Pastor</SelectItem>
+                    <SelectItem value="Imam">Imam</SelectItem>
+                    <SelectItem value="Elder">Elder</SelectItem>
+                    <SelectItem value="Deacon">Deacon</SelectItem>
+                    <SelectItem value="Deaconess">Deaconess</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
