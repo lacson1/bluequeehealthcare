@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { QRCodeSVG } from 'qrcode.react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -119,6 +120,9 @@ export default function MedicationManagementTabs({ patient, prescriptions }: Med
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [isAddingToPastMedications, setIsAddingToPastMedications] = useState(false);
   const [isCreatingRepeatList, setIsCreatingRepeatList] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [currentQRCode, setCurrentQRCode] = useState<string>('');
+  const [currentPrescription, setCurrentPrescription] = useState<Prescription | null>(null);
 
   // Fetch past medications
   const { data: pastMedications = [] } = useQuery<PastMedication[]>({
@@ -284,11 +288,18 @@ export default function MedicationManagementTabs({ patient, prescriptions }: Med
 
       const qrData = `RX${prescriptionId} ${patient.firstName} ${patient.lastName} - ${prescription.medicationName} ${prescription.dosage} ${prescription.frequency} ${prescription.duration} - ${format(new Date(prescription.startDate), 'dd/MM/yyyy')}`;
       
-      return apiRequest(
+      await apiRequest(
         'PATCH',
         `/api/prescriptions/${prescriptionId}/qr-code`,
         { qrCode: qrData }
       );
+
+      // Set the QR code data and show modal
+      setCurrentQRCode(qrData);
+      setCurrentPrescription(prescription);
+      setShowQRModal(true);
+      
+      return qrData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries([`/api/patients/${patient.id}/prescriptions`]);
@@ -687,6 +698,48 @@ export default function MedicationManagementTabs({ patient, prescriptions }: Med
             onCancel={() => setIsCreatingRepeatList(false)}
             isLoading={createRepeatList.isPending}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Modal */}
+      <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Prescription QR Code</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center space-y-4">
+            {currentPrescription && (
+              <div className="text-center space-y-2">
+                <h3 className="font-semibold text-lg">{currentPrescription.medicationName}</h3>
+                <p className="text-sm text-gray-600">
+                  {currentPrescription.dosage} - {currentPrescription.frequency} - {currentPrescription.duration}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Patient: {patient.firstName} {patient.lastName}
+                </p>
+              </div>
+            )}
+            {currentQRCode && (
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <QRCodeSVG 
+                  value={currentQRCode}
+                  size={200}
+                  level="M"
+                  includeMargin={true}
+                />
+              </div>
+            )}
+            <div className="text-xs text-gray-500 text-center max-w-sm">
+              Scan this QR code to verify prescription authenticity and access medication details.
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowQRModal(false)}
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
