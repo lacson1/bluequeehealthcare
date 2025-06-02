@@ -45,7 +45,10 @@ export default function StandaloneVitalSignsRecorder({
   isOpen, 
   onClose 
 }: StandaloneVitalSignsRecorderProps) {
-  const { toast } = useToast();
+  // Simple alert instead of toast to avoid errors
+  const showAlert = (message: string) => {
+    alert(message);
+  };
   const { user } = useRole();
   const queryClient = useQueryClient();
 

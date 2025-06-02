@@ -107,7 +107,7 @@ export default function PatientProfile() {
   });
 
   const { data: prescriptions, isLoading: prescriptionsLoading } = useQuery<Prescription[]>({
-    queryKey: ["/api/patients", patientId, "prescriptions"],
+    queryKey: [`/api/patients/${patientId}/prescriptions`],
     enabled: !!patientId,
   });
 
