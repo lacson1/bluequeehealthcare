@@ -500,43 +500,50 @@ export default function PatientProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Comprehensive Patient Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-6">
-        <div className="space-y-4">
-          {/* Patient Identity & Basic Info */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white">
+      {/* Premium Compact Header */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/50 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          {/* Patient Identity & Actions Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar className="w-12 h-12 ring-2 ring-blue-100 ring-offset-2">
+                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700 text-white text-lg font-semibold">
+                  {patient.firstName?.[0]?.toUpperCase()}{patient.lastName?.[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-slate-900">
+                    {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName}
+                  </h1>
+                  <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    HC{patient.id?.toString().padStart(6, "0")}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-slate-600">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {new Date(patient.dateOfBirth).toLocaleDateString()}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <User className="w-3.5 h-3.5" />
+                    {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} years
+                  </span>
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {patient.gender}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            
+            {/* Quick Action Buttons */}
+            <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-4 hover:bg-gray-50 p-2 rounded-lg transition-colors group">
-                    <Avatar className="w-16 h-16">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xl font-semibold">
-                        {patient.firstName?.[0]?.toUpperCase()}{patient.lastName?.[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-2 text-left">
-                      <div className="flex items-center gap-2">
-                        <h1 className="text-3xl font-bold text-gray-900">
-                          {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName}
-                        </h1>
-                        <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                      </div>
-                      <div className="flex items-center gap-6 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
-                          Patient ID: HC{patient.id?.toString().padStart(6, "0")}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          DOB: {new Date(patient.dateOfBirth).toLocaleDateString()}
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()} years • {patient.gender}
-                        </Badge>
-                      </div>
-                    </div>
-                  </button>
+                  <Button variant="outline" size="sm" className="bg-white/50">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-64">
                   <DropdownMenuItem onClick={() => setActiveTab("overview")}>
@@ -644,17 +651,17 @@ export default function PatientProfile() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 max-w-full">
-        <div className="w-full max-w-none">
-          {/* Professional Tabs Navigation */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="bg-gradient-to-r from-white to-slate-50 border border-slate-200 rounded-xl p-3 mb-6 shadow-sm">
-              <TabsList className="grid w-full grid-cols-8 bg-transparent gap-2 h-auto p-0">
+      <main className="flex-1 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 py-6 h-full">
+          {/* Professional Compact Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 rounded-xl px-4 py-3 mb-6 shadow-sm">
+              <TabsList className="grid w-full grid-cols-8 bg-slate-50/50 gap-1 h-11 p-1 rounded-lg">
                 <TabsTrigger 
                   value="overview" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:border-blue-600 
-                           rounded-lg transition-all duration-300 ease-in-out text-slate-700 hover:bg-blue-50 hover:text-blue-700 border border-transparent
-                           font-medium py-3 px-4 text-sm flex items-center justify-center gap-2 min-h-[44px]"
+                  className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm 
+                           rounded-md transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-white/50
+                           font-medium py-2 px-3 text-sm flex items-center justify-center gap-2 h-9"
                 >
                   <User className="w-4 h-4" />
                   Overview
@@ -734,46 +741,53 @@ export default function PatientProfile() {
               </TabsList>
             </div>
             
-            <TabsContent value="overview" className="space-y-6">
-              {/* Patient Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {/* Quick Timeline Summary */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
-                      Patient Timeline
+            <TabsContent value="overview" className="flex-1 space-y-6 overflow-y-auto">
+              {/* Compact Overview Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {/* Timeline Summary */}
+                <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200/50 hover:shadow-md transition-all duration-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                      Timeline Summary
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Stethoscope className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm">Visits: {visits?.length || 0}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FlaskRound className="w-4 h-4 text-green-600" />
-                          <span className="text-sm">Lab Orders: {labOrders?.length || 0}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Pill className="w-4 h-4 text-purple-600" />
-                          <span className="text-sm">Prescriptions: {prescriptions?.length || 0}</span>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full mt-2"
-                        onClick={() => setActiveTab("timeline")}
-                      >
-                        View Full Timeline
-                      </Button>
+                  <CardContent className="pt-0 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2 text-slate-600">
+                        <Stethoscope className="w-3.5 h-3.5 text-blue-600" />
+                        Visits
+                      </span>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">
+                        {visits?.length || 0}
+                      </Badge>
                     </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2 text-slate-600">
+                        <FlaskRound className="w-3.5 h-3.5 text-green-600" />
+                        Lab Orders
+                      </span>
+                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                        {labOrders?.length || 0}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2 text-slate-600">
+                        <Pill className="w-3.5 h-3.5 text-purple-600" />
+                        Prescriptions
+                      </span>
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
+                        {prescriptions?.length || 0}
+                      </Badge>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full mt-3 text-blue-600 hover:bg-blue-50 h-8"
+                      onClick={() => setActiveTab("timeline")}
+                    >
+                      View Timeline
+                    </Button>
                   </CardContent>
                 </Card>
 
