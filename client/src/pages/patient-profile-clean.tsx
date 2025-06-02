@@ -864,7 +864,10 @@ export default function PatientProfile() {
                     <Activity className="w-5 h-5" />
                     Vital Signs Monitor
                   </h2>
-                  <Button className="bg-blue-500 hover:bg-blue-600 text-white">
+                  <Button 
+                    onClick={() => setShowVisitModal(true)}
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Record Vital
                   </Button>
