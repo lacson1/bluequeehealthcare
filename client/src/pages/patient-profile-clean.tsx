@@ -113,8 +113,18 @@ export default function PatientProfile() {
     );
     
     if (matchingForm) {
-      // Navigate to the actual form with patient context
-      window.location.href = `/consultation-form/${matchingForm.id}?patientId=${patientId}&returnTo=/patient/${patientId}`;
+      // Switch to consultation tab and trigger form selection
+      const consultationTab = document.querySelector('[data-testid="consultation-tab"]') as HTMLElement;
+      if (consultationTab) {
+        consultationTab.click();
+        // Wait a moment for tab to load, then trigger form selection
+        setTimeout(() => {
+          const formCard = document.querySelector(`[data-testid="form-card"]:has([data-form-id="${matchingForm.id}"])`) as HTMLElement;
+          if (formCard) {
+            formCard.click();
+          }
+        }, 500);
+      }
     } else {
       // Fallback to assessment modal for forms not yet created
       setSelectedAssessmentType(assessmentType);
