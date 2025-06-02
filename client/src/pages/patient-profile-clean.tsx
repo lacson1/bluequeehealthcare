@@ -68,6 +68,8 @@ export default function PatientProfile() {
   const [selectedAssessmentType, setSelectedAssessmentType] = useState<string | null>(null);
   const [showAssessmentModal, setShowAssessmentModal] = useState(false);
   const [showEditPatientModal, setShowEditPatientModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
 
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
     queryKey: [`/api/patients/${patientId}`],
@@ -113,18 +115,9 @@ export default function PatientProfile() {
     );
     
     if (matchingForm) {
-      // Switch to consultation tab and trigger form selection
-      const consultationTab = document.querySelector('[data-testid="consultation-tab"]') as HTMLElement;
-      if (consultationTab) {
-        consultationTab.click();
-        // Wait a moment for tab to load, then trigger form selection
-        setTimeout(() => {
-          const formCard = document.querySelector(`[data-testid="form-card"]:has([data-form-id="${matchingForm.id}"])`) as HTMLElement;
-          if (formCard) {
-            formCard.click();
-          }
-        }, 500);
-      }
+      // Switch to visits tab (where consultation forms are) and pre-select the form
+      setActiveTab("visits");
+      setSelectedFormId(matchingForm.id);
     } else {
       // Fallback to assessment modal for forms not yet created
       setSelectedAssessmentType(assessmentType);
@@ -282,7 +275,7 @@ export default function PatientProfile() {
       <main className="flex-1 overflow-y-auto px-4 py-6 max-w-full">
         <div className="w-full max-w-none">
           {/* Tabs for different sections */}
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="visits">Visits</TabsTrigger>
@@ -377,7 +370,12 @@ export default function PatientProfile() {
               </div>
             </TabsContent>
 
-            <TabsContent value="visits">
+            <TabsContent value="visits" className="space-y-6">
+              <ConsultationFormSelector 
+                patientId={patient.id} 
+                patient={patient}
+                preSelectedFormId={selectedFormId}
+              />
               <ConsultationHistory patientId={patient.id} />
             </TabsContent>
 
