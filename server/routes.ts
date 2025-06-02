@@ -5046,40 +5046,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const prescriptionId = parseInt(req.params.id);
       
-      // Get prescription with patient and organization details
-      const prescriptionResults = await db.select({
-        prescriptionId: prescriptions.id,
-        medicationName: prescriptions.medicationName,
-        dosage: prescriptions.dosage,
-        frequency: prescriptions.frequency,
-        duration: prescriptions.duration,
-        instructions: prescriptions.instructions,
-        startDate: prescriptions.startDate,
-        prescribedBy: prescriptions.prescribedBy,
-        organizationId: prescriptions.organizationId,
-        patientFirstName: patients.firstName,
-        patientLastName: patients.lastName,
-        patientTitle: patients.title,
-        patientPhone: patients.phone,
-        patientDateOfBirth: patients.dateOfBirth,
-        patientGender: patients.gender,
-        organizationName: organizations.name,
-        organizationType: organizations.type,
-        organizationAddress: organizations.address,
-        organizationPhone: organizations.phone,
-        organizationEmail: organizations.email,
-        organizationLicense: organizations.licenseNumber,
-      })
-      .from(prescriptions)
-      .leftJoin(patients, eq(prescriptions.patientId, patients.id))
-      .leftJoin(organizations, eq(prescriptions.organizationId, organizations.id))
-      .where(eq(prescriptions.id, prescriptionId));
+      // Get prescription details first
+      const [prescription] = await db
+        .select()
+        .from(prescriptions)
+        .where(eq(prescriptions.id, prescriptionId));
 
-      const prescriptionData = prescriptionResults[0];
-
-      if (!prescriptionData) {
+      if (!prescription) {
         return res.status(404).json({ message: "Prescription not found" });
       }
+
+      // Get patient details
+      const [patient] = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.id, prescription.patientId));
+
+      // Get organization details if organizationId exists
+      let organization = null;
+      if (prescription.organizationId) {
+        const [orgResult] = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.id, prescription.organizationId));
+        organization = orgResult;
+      }
+
+      // Combine the data
+      const prescriptionData = {
+        prescriptionId: prescription.id,
+        medicationName: prescription.medicationName,
+        dosage: prescription.dosage,
+        frequency: prescription.frequency,
+        duration: prescription.duration,
+        instructions: prescription.instructions,
+        startDate: prescription.startDate,
+        prescribedBy: prescription.prescribedBy,
+        organizationId: prescription.organizationId,
+        patientFirstName: patient?.firstName || 'Unknown',
+        patientLastName: patient?.lastName || 'Patient',
+        patientTitle: patient?.title || '',
+        patientPhone: patient?.phone || '',
+        patientDateOfBirth: patient?.dateOfBirth || '',
+        patientGender: patient?.gender || '',
+        organizationName: organization?.name || 'Healthcare Facility',
+        organizationType: organization?.type || 'Medical',
+        organizationAddress: organization?.address || 'Healthcare Facility Address',
+        organizationPhone: organization?.phone || 'Contact Number',
+        organizationEmail: organization?.email || 'Contact Email',
+        organizationLicense: organization?.licenseNumber || 'Licensed Healthcare Provider',
+      };
 
       // Format prescription date
       const prescriptionDate = new Date(prescriptionData.startDate).toLocaleDateString('en-GB');
