@@ -448,7 +448,7 @@ export default function PatientAccessCards() {
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="font-medium">
-                              {patient.firstName} {patient.lastName}
+                              {patient.title ? `${patient.title} ` : ''}{patient.firstName} {patient.lastName}
                             </div>
                             <div className="text-sm text-gray-600">
                               ID: PT{patient.id.toString().padStart(6, '0')}<br />
