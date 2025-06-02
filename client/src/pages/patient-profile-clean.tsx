@@ -30,7 +30,8 @@ import {
   Eye,
   Ear,
   Search,
-  X
+  X,
+  Printer
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { EnhancedVisitRecording } from "@/components/enhanced-visit-recording";
@@ -342,11 +343,12 @@ export default function PatientProfile() {
         <div className="w-full max-w-none">
           {/* Tabs for different sections */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="visits">Visits</TabsTrigger>
               <TabsTrigger value="specialty">Specialty Assessment</TabsTrigger>
               <TabsTrigger value="labs">Lab Results</TabsTrigger>
+              <TabsTrigger value="medications">Medications</TabsTrigger>
               <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
@@ -620,36 +622,189 @@ export default function PatientProfile() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="medications">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Pill className="h-5 w-5 text-purple-500" />
+                    Current Medications
+                  </CardTitle>
+                  <CardDescription>Active medications and medication management</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {prescriptions && prescriptions.length > 0 ? (
+                    <div className="space-y-4">
+                      {prescriptions
+                        .filter((prescription: any) => prescription.status === 'active')
+                        .map((prescription: any) => (
+                          <div key={prescription.id} className="border border-purple-200 rounded-lg p-4 bg-purple-50">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h4 className="font-semibold text-purple-900">{prescription.medicationName}</h4>
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                                    Active
+                                  </Badge>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                  <div>
+                                    <span className="font-medium text-purple-700">Dosage:</span>
+                                    <p className="text-purple-900">{prescription.dosage}</p>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-purple-700">Frequency:</span>
+                                    <p className="text-purple-900">{prescription.frequency}</p>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-purple-700">Duration:</span>
+                                    <p className="text-purple-900">{prescription.duration}</p>
+                                  </div>
+                                </div>
+                                {prescription.instructions && (
+                                  <div className="mt-3 p-3 bg-white rounded border border-purple-200">
+                                    <span className="font-medium text-purple-700">Instructions:</span>
+                                    <p className="text-purple-900 mt-1">{prescription.instructions}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Pill className="mx-auto h-12 w-12 text-purple-400" />
+                      <h3 className="mt-4 text-lg font-medium text-gray-900">No active medications</h3>
+                      <p className="mt-2 text-sm text-gray-500">
+                        This patient currently has no active medications prescribed.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="prescriptions">
               <Card>
                 <CardHeader>
-                  <CardTitle>Medications & Prescriptions</CardTitle>
-                  <CardDescription>Current and past prescriptions</CardDescription>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-blue-500" />
+                        Prescription History
+                      </CardTitle>
+                      <CardDescription>All prescriptions (current and past)</CardDescription>
+                    </div>
+                    {(user?.role === 'doctor' || user?.role === 'admin') && (
+                      <Button 
+                        onClick={() => setShowPrescriptionModal(true)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Prescribe Medication
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {prescriptions?.map((prescription: any) => (
-                      <div key={prescription.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{prescription.medicationName}</h4>
-                            <p className="text-sm text-gray-500">
-                              {prescription.dosage} - {prescription.frequency}
-                            </p>
-                            <p className="text-sm">Duration: {prescription.duration}</p>
+                  {prescriptions && prescriptions.length > 0 ? (
+                    <div className="space-y-4">
+                      {prescriptions.map((prescription: any) => (
+                        <div key={prescription.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="font-semibold text-lg">{prescription.medicationName}</h4>
+                                <Badge variant={prescription.status === 'active' ? 'default' : 'secondary'}>
+                                  {prescription.status}
+                                </Badge>
+                                {prescription.status === 'active' && (
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                                    Current
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
+                                <div className="bg-gray-50 p-3 rounded">
+                                  <span className="font-medium text-gray-700 block">Dosage</span>
+                                  <p className="text-gray-900">{prescription.dosage}</p>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded">
+                                  <span className="font-medium text-gray-700 block">Frequency</span>
+                                  <p className="text-gray-900">{prescription.frequency}</p>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded">
+                                  <span className="font-medium text-gray-700 block">Duration</span>
+                                  <p className="text-gray-900">{prescription.duration}</p>
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded">
+                                  <span className="font-medium text-gray-700 block">Prescribed By</span>
+                                  <p className="text-gray-900">Dr. {prescription.doctorName || 'Unknown'}</p>
+                                </div>
+                              </div>
+                              
+                              {prescription.instructions && (
+                                <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                  <span className="font-medium text-blue-800 block mb-1">Special Instructions:</span>
+                                  <p className="text-blue-900 text-sm">{prescription.instructions}</p>
+                                </div>
+                              )}
+                              
+                              {prescription.pharmacyId && (
+                                <div className="mt-2 text-sm text-gray-600">
+                                  <span className="font-medium">Dispensed at:</span> {prescription.pharmacyName || `Pharmacy ID: ${prescription.pharmacyId}`}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-col gap-2 ml-4">
+                              {prescription.status === 'active' && (user?.role === 'doctor' || user?.role === 'admin') && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    // TODO: Implement discontinue prescription functionality
+                                    console.log('Discontinuing prescription:', prescription.id);
+                                  }}
+                                >
+                                  Discontinue
+                                </Button>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  // TODO: Implement print prescription functionality
+                                  console.log('Printing prescription:', prescription.id);
+                                }}
+                              >
+                                <Printer className="w-4 h-4 mr-1" />
+                                Print
+                              </Button>
+                            </div>
                           </div>
-                          <Badge variant={prescription.status === 'active' ? 'default' : 'secondary'}>
-                            {prescription.status}
-                          </Badge>
                         </div>
-                        {prescription.instructions && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            Instructions: {prescription.instructions}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-4 text-lg font-medium text-gray-900">No prescriptions yet</h3>
+                      <p className="mt-2 text-sm text-gray-500">
+                        This patient has no prescription history. Click "Prescribe Medication" to add the first prescription.
+                      </p>
+                      {(user?.role === 'doctor' || user?.role === 'admin') && (
+                        <Button 
+                          onClick={() => setShowPrescriptionModal(true)}
+                          className="mt-4 bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Prescribe First Medication
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
