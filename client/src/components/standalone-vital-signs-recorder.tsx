@@ -69,6 +69,7 @@ export default function StandaloneVitalSignsRecorder({
     mutationFn: async (data: any) => {
       return await apiRequest(`/api/patients/${patientId}/vitals`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
     },

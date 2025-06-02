@@ -1073,7 +1073,8 @@ export default function PatientProfile() {
                                                 body: JSON.stringify(reorderData)
                                               });
                                               if (response.ok) {
-                                                alert(`${prescription.medicationName} reordered successfully`);
+                                                // Use toast instead of alert for better UX
+                                                console.log(`${prescription.medicationName} reordered successfully`);
                                                 window.location.reload();
                                               }
                                             } catch (error) {
@@ -1094,7 +1095,7 @@ export default function PatientProfile() {
                                                 })
                                               });
                                               if (response.ok) {
-                                                alert(`${prescription.medicationName} added to repeat prescriptions`);
+                                                console.log(`${prescription.medicationName} added to repeat prescriptions`);
                                                 window.location.reload();
                                               }
                                             } catch (error) {
@@ -1128,7 +1129,7 @@ export default function PatientProfile() {
                                               });
                                               
                                               if (response.ok) {
-                                                alert(`Prescription for ${prescription.medicationName} sent to ${selectedPharmacy.name} successfully`);
+                                                console.log(`Prescription for ${prescription.medicationName} sent to ${selectedPharmacy.name} successfully`);
                                                 window.location.reload();
                                               } else {
                                                 throw new Error('Failed to send prescription');
@@ -1402,7 +1403,7 @@ export default function PatientProfile() {
                           </div>
                           <div className="text-center">
                             <div className="text-2xl font-bold text-gray-900 mb-1">
-                              {latestVitals?.temperature ? `${latestVitals.temperature}°C` : 'N/A'}
+                              {latestVitals?.temperature ? `${parseFloat(latestVitals.temperature).toFixed(1)}°C` : 'N/A'}
                             </div>
                             <div className="text-sm font-medium text-gray-600">Temperature</div>
                             <div className="text-xs text-gray-500">Celsius</div>
