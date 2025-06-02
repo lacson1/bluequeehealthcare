@@ -216,7 +216,7 @@ export default function PatientLabResults({ patientId }: PatientLabResultsProps)
           <div className="flex items-center gap-2 mb-2">
             <h4 className="font-semibold text-lg">Lab Order #{order.id}</h4>
             <Badge className={getStatusColor(order.status)}>
-              {order.status.replace('_', ' ').toUpperCase()}
+              {order.status ? order.status.replace('_', ' ').toUpperCase() : 'UNKNOWN'}
             </Badge>
             <Badge className={getPriorityColor(order.priority)}>
               {order.priority ? order.priority.toUpperCase() : 'NORMAL'}
@@ -230,11 +230,11 @@ export default function PatientLabResults({ patientId }: PatientLabResultsProps)
             </div>
             <div className="bg-gray-50 p-3 rounded">
               <span className="font-medium text-gray-700 block">Status</span>
-              <p className="text-gray-900 capitalize">{order.status.replace('_', ' ')}</p>
+              <p className="text-gray-900 capitalize">{order.status ? order.status.replace('_', ' ') : 'Unknown'}</p>
             </div>
             <div className="bg-gray-50 p-3 rounded">
               <span className="font-medium text-gray-700 block">Priority</span>
-              <p className="text-gray-900 capitalize">{order.priority}</p>
+              <p className="text-gray-900 capitalize">{order.priority || 'Normal'}</p>
             </div>
           </div>
         </div>
