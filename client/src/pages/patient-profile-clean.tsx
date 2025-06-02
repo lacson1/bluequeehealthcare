@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   User, 
   Calendar, 
@@ -369,7 +370,7 @@ export default function PatientProfile() {
                       <CardDescription>Select and complete specialized medical assessment forms</CardDescription>
                     </div>
                     <Button 
-                      onClick={handleCreateAssessmentForm}
+                      onClick={() => window.location.href = '/form-builder'}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Plus className="w-4 h-4 mr-2" />
@@ -699,6 +700,61 @@ export default function PatientProfile() {
           }}
         />
       )}
+
+      {/* Specialty Assessment Modal */}
+      <Dialog open={showAssessmentModal} onOpenChange={setShowAssessmentModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAssessmentType ? `${selectedAssessmentType.charAt(0).toUpperCase() + selectedAssessmentType.slice(1)} Assessment` : 'Specialty Assessment'}
+            </DialogTitle>
+            <DialogDescription>
+              Complete the {selectedAssessmentType} assessment form for {patient?.firstName} {patient?.lastName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {selectedAssessmentType && (
+              <div className="space-y-4">
+                <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {selectedAssessmentType.charAt(0).toUpperCase() + selectedAssessmentType.slice(1)} Assessment
+                  </h3>
+                  <p className="text-gray-500 mb-6">
+                    This would open the {selectedAssessmentType} assessment form for completion.
+                    Assessment results will be saved to the patient's consultation history.
+                  </p>
+                  <div className="flex justify-center space-x-3">
+                    <Button 
+                      onClick={() => {
+                        // Simulate assessment completion
+                        handleAssessmentComplete({
+                          findings: `${selectedAssessmentType} assessment completed`,
+                          diagnosis: 'Assessment findings recorded',
+                          treatment: 'Follow-up as needed',
+                          assessmentType: selectedAssessmentType
+                        });
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Complete Assessment
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowAssessmentModal(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* Hidden Printable Patient Summary */}
       <div className="hidden">
