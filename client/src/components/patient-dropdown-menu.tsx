@@ -28,6 +28,7 @@ interface Patient {
   id: number;
   firstName: string;
   lastName: string;
+  title?: string;
 }
 
 interface PatientDropdownMenuProps {
