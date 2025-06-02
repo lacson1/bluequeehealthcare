@@ -215,13 +215,8 @@ export function EnhancedVisitRecordingV2({ patientId, onSave }: EnhancedVisitRec
         doctorId: Array.isArray(staff) ? staff.find((s: any) => s.role === "doctor")?.id || 1 : 1,
       };
 
-      return await apiRequest("/api/visits", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(visitData),
-      });
+      const response = await apiRequest("POST", "/api/visits", visitData);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
