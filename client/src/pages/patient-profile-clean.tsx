@@ -1276,15 +1276,12 @@ export default function PatientProfile() {
                                             Print Prescription
                                           </DropdownMenuItem>
                                           <DropdownMenuItem onClick={() => {
-                                            const qrText = `PRESCRIPTION DETAILS
-Patient: ${patient?.firstName} ${patient?.lastName}
-Medication: ${prescription.medicationName}
-Dosage: ${prescription.dosage}
-Frequency: ${prescription.frequency}
-Duration: ${prescription.duration}
-Prescribed: ${new Date(prescription.createdAt).toLocaleDateString()}
-Verification Code: RX${prescription.id}${new Date().getFullYear()}
-Prescription ID: ${prescription.id}`;
+                                            const qrText = `RX-${prescription.id}
+${patient?.firstName} ${patient?.lastName}
+${prescription.medicationName}
+${prescription.dosage}, ${prescription.frequency}
+${prescription.duration}
+${new Date(prescription.createdAt).toLocaleDateString()}`;
                                             setQRCodeData(qrText);
                                             setShowQRModal(true);
                                           }}>
@@ -2368,9 +2365,11 @@ Prescription ID: ${prescription.id}`;
               <div className="p-4 bg-white border rounded-lg shadow-sm">
                 <QRCodeSVG 
                   value={qrCodeData} 
-                  size={200}
-                  level="M"
+                  size={256}
+                  level="H"
                   includeMargin={true}
+                  bgColor="#FFFFFF"
+                  fgColor="#000000"
                 />
               </div>
             )}
