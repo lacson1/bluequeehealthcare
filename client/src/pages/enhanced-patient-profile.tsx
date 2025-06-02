@@ -13,6 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import PatientStatsDashboard from "@/components/patient-stats-dashboard";
+import PatientQuickActions from "@/components/patient-quick-actions";
 import { 
   User, 
   Calendar, 
@@ -102,6 +104,7 @@ export default function EnhancedPatientProfile({ patientId: propPatientId }: Enh
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Patient>>({});
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [quickActionType, setQuickActionType] = useState<'appointment' | 'lab' | 'prescription' | 'visit' | 'vitals' | null>(null);
 
   // Fetch patient data with enhanced error handling
   const { data: patient, isLoading: patientLoading, error: patientError } = useQuery<Patient>({
@@ -810,21 +813,37 @@ export default function EnhancedPatientProfile({ patientId: propPatientId }: Enh
                   <CardTitle className={`text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setQuickActionType('appointment')}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Schedule Appointment
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setQuickActionType('lab')}
+                  >
                     <FlaskRound className="w-4 h-4 mr-2" />
                     Order Lab Test
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setQuickActionType('prescription')}
+                  >
                     <Pill className="w-4 h-4 mr-2" />
                     Prescribe Medication
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Generate Report
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setQuickActionType('vitals')}
+                  >
+                    <Activity className="w-4 h-4 mr-2" />
+                    Record Vitals
                   </Button>
                 </CardContent>
               </Card>
@@ -858,6 +877,15 @@ export default function EnhancedPatientProfile({ patientId: propPatientId }: Enh
           </div>
         </div>
       </div>
+
+      {/* Quick Actions Modal */}
+      <PatientQuickActions
+        patientId={patientId!}
+        patientName={patient ? `${patient.firstName} ${patient.lastName}` : ''}
+        isOpen={!!quickActionType}
+        onClose={() => setQuickActionType(null)}
+        action={quickActionType}
+      />
     </TooltipProvider>
   );
 }
