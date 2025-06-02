@@ -92,7 +92,7 @@ interface RecentActivity {
 }
 
 export default function EnhancedPatientProfile({ patientId: propPatientId }: EnhancedPatientProfileProps) {
-  const [, params] = useRoute("/patients/:id");
+  const [, params] = useRoute("/patients/:id/enhanced");
   const patientId = propPatientId || params?.id;
   const { user } = useRole();
   const { toast } = useToast();
