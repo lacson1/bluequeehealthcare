@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FlaskRound, Plus, Eye, Printer, Calendar, User, Clock, TestTube, MoreVertical, Download, Share, Edit, Trash2, RefreshCw } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
-import LabOrderForm from "@/components/lab-order-form";
+
 
 interface PatientLabResultsProps {
   patientId: number;
@@ -43,7 +43,6 @@ interface LabOrderItem {
 }
 
 export default function PatientLabResults({ patientId }: PatientLabResultsProps) {
-  const [showLabOrderModal, setShowLabOrderModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const { toast } = useToast();
 
@@ -81,11 +80,11 @@ export default function PatientLabResults({ patientId }: PatientLabResultsProps)
       }
     },
     share: (orderId: number) => {
-      const shareUrl = `${window.location.origin}/lab-results/${orderId}`;
+      const shareUrl = `${window.location.origin}/patient-portal/lab-results/${orderId}`;
       navigator.clipboard.writeText(shareUrl);
       toast({
-        title: "Link Copied",
-        description: "Lab results link copied to clipboard.",
+        title: "Patient Portal Link Copied",
+        description: "Lab results link for patient portal copied to clipboard.",
       });
     },
     refresh: async (orderId: number) => {
