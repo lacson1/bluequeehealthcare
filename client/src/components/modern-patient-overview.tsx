@@ -15,6 +15,7 @@ import { PatientCommunicationHub } from './patient-communication-hub';
 import ConsultationFormSelector from './consultation-form-selector';
 import { PatientDropdownMenu } from './patient-dropdown-menu';
 import { EditPatientModal } from './edit-patient-modal';
+import { PrescriptionCard } from './PrescriptionCard';
 import { useLocation } from "wouter";
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
@@ -1023,120 +1024,15 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   ) : activeMedications.length > 0 ? (
                     <div className="grid gap-4">
                       {activeMedications.map((prescription: any) => (
-                        <div key={prescription.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h4 className="font-semibold text-slate-800 text-lg">
-                                  {prescription.medicationName}
-                                </h4>
-                                {prescription.medicationId && (
-                                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                                    ✓ Verified
-                                  </Badge>
-                                )}
-                                <Badge className={
-                                  prescription.status === "active" 
-                                    ? "bg-green-100 text-green-800 border-green-200" 
-                                    : prescription.status === "completed"
-                                    ? "bg-blue-100 text-blue-800 border-blue-200"
-                                    : "bg-gray-100 text-gray-800 border-gray-200"
-                                }>
-                                  {prescription.status}
-                                </Badge>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
-                                <div className="bg-slate-50 p-3 rounded-md">
-                                  <span className="font-medium text-slate-700 block">Dosage</span>
-                                  <p className="text-slate-800 mt-1">{prescription.dosage}</p>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-md">
-                                  <span className="font-medium text-slate-700 block">Frequency</span>
-                                  <p className="text-slate-800 mt-1">{prescription.frequency}</p>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-md">
-                                  <span className="font-medium text-slate-700 block">Duration</span>
-                                  <p className="text-slate-800 mt-1">{prescription.duration}</p>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-md">
-                                  <span className="font-medium text-slate-700 block">Prescribed by</span>
-                                  <p className="text-slate-800 mt-1">{prescription.prescribedBy}</p>
-                                </div>
-                              </div>
-                              
-                              {prescription.instructions && (
-                                <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
-                                  <span className="font-medium text-slate-700 flex items-center gap-2">
-                                    <FileText className="w-4 h-4" />
-                                    Special Instructions
-                                  </span>
-                                  <p className="text-slate-800 mt-2">{prescription.instructions}</p>
-                                </div>
-                              )}
-                              
-                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
-                                <div className="flex items-center space-x-4 text-xs text-slate-500">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>Started: {new Date(prescription.startDate).toLocaleDateString()}</span>
-                                  </div>
-                                  {prescription.endDate && (
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="w-3 h-3" />
-                                      <span>Ends: {new Date(prescription.endDate).toLocaleDateString()}</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-800">
-                                        <MoreVertical className="w-3 h-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-[180px]">
-                                      <DropdownMenuItem onClick={() => handleEditPrescription(prescription)}>
-                                        <Edit className="w-3 h-3 mr-2" />
-                                        Edit Details
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handlePrintPrescription(prescription)}>
-                                        <Printer className="w-3 h-3 mr-2" />
-                                        Print
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleGenerateQRCode(prescription)}>
-                                        <QrCode className="w-3 h-3 mr-2" />
-                                        Generate QR Code
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleSendToRepeatMedications(prescription)}>
-                                        <RefreshCw className="w-3 h-3 mr-2 text-blue-600" />
-                                        Add to Repeat Medications
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleSendToDispensary(prescription)}>
-                                        <Building2 className="w-3 h-3 mr-2 text-green-600" />
-                                        Send to Dispensary
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'completed')}>
-                                        <CheckCircle className="w-3 h-3 mr-2 text-blue-600" />
-                                        Mark Completed
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'discontinued')}>
-                                        <XCircle className="w-3 h-3 mr-2 text-orange-600" />
-                                        Discontinue
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'active')}>
-                                        <RefreshCw className="w-3 h-3 mr-2 text-green-600" />
-                                        Reactivate
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <PrescriptionCard
+                          key={prescription.id}
+                          prescription={prescription}
+                          variant="active"
+                          onEdit={handleEditPrescription}
+                          onPrint={handlePrintPrescription}
+                          onReorder={handleReorderMedication}
+                          onUpdateStatus={handleUpdateMedicationStatus}
+                        />
                       ))}
                     </div>
                 ) : (
@@ -1262,118 +1158,16 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                           prescription.duration === 'Ongoing as directed'
                         )
                         .map((prescription: any) => (
-                        <div key={prescription.id} className="border border-green-200 rounded-lg p-4 bg-green-50">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h4 className="font-semibold text-green-800 text-lg">
-                                  {prescription.medicationName}
-                                </h4>
-                                <Badge className="bg-green-100 text-green-800 border-green-200">
-                                  Repeat Prescription
-                                </Badge>
-                                {prescription.reviewDate && (
-                                  <Badge variant="outline" className={`text-xs ${
-                                    new Date(prescription.reviewDate) < new Date() 
-                                      ? 'bg-red-50 text-red-700 border-red-200'
-                                      : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                  }`}>
-                                    {new Date(prescription.reviewDate) < new Date() 
-                                      ? 'Review Overdue' 
-                                      : `Review Due: ${new Date(prescription.reviewDate).toLocaleDateString()}`
-                                    }
-                                  </Badge>
-                                )}
-                              </div>
-                              
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
-                                <div className="bg-white p-3 rounded-md border">
-                                  <span className="font-medium text-gray-700 block">Dosage</span>
-                                  <p className="text-gray-800 mt-1">{prescription.dosage}</p>
-                                </div>
-                                <div className="bg-white p-3 rounded-md border">
-                                  <span className="font-medium text-gray-700 block">Frequency</span>
-                                  <p className="text-gray-800 mt-1">{prescription.frequency}</p>
-                                </div>
-                                <div className="bg-white p-3 rounded-md border">
-                                  <span className="font-medium text-gray-700 block">Duration</span>
-                                  <p className="text-gray-800 mt-1">{prescription.duration}</p>
-                                </div>
-                                <div className="bg-white p-3 rounded-md border">
-                                  <span className="font-medium text-gray-700 block">Prescribed by</span>
-                                  <p className="text-gray-800 mt-1">{prescription.prescribedBy}</p>
-                                </div>
-                              </div>
-                              
-                              {prescription.instructions && (
-                                <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
-                                  <span className="font-medium text-gray-700 flex items-center gap-2">
-                                    <FileText className="w-4 h-4" />
-                                    Instructions
-                                  </span>
-                                  <p className="text-gray-800 mt-2">{prescription.instructions}</p>
-                                </div>
-                              )}
-                              
-                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-green-200">
-                                <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>Started: {new Date(prescription.startDate).toLocaleDateString()}</span>
-                                  </div>
-                                  {prescription.lastReviewDate && (
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="w-3 h-3" />
-                                      <span>Last Review: {new Date(prescription.lastReviewDate).toLocaleDateString()}</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="text-blue-600 hover:text-blue-800 border-blue-200"
-                                    onClick={() => handleScheduleReview(prescription.id, prescription.medicationName)}
-                                  >
-                                    <UserCheck className="w-3 h-3 mr-1" />
-                                    Schedule Review
-                                  </Button>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="text-green-600 hover:text-green-800 border-green-200"
-                                    onClick={() => handleIssueRepeat(prescription.id, prescription.medicationName)}
-                                  >
-                                    <RefreshCw className="w-3 h-3 mr-1" />
-                                    Issue Repeat
-                                  </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-800">
-                                        <MoreVertical className="w-3 h-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-[180px]">
-                                      <DropdownMenuItem onClick={() => handleEditPrescription(prescription)}>
-                                        <Edit className="w-3 h-3 mr-2" />
-                                        Edit Repeat
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handlePrintPrescription(prescription)}>
-                                        <Printer className="w-3 h-3 mr-2" />
-                                        Print
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'discontinued')}>
-                                        <XCircle className="w-3 h-3 mr-2 text-red-600" />
-                                        Stop Repeat
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <PrescriptionCard
+                          key={prescription.id}
+                          prescription={prescription}
+                          variant="repeat"
+                          onEdit={handleEditPrescription}
+                          onPrint={handlePrintPrescription}
+                          onScheduleReview={handleScheduleReview}
+                          onIssueRepeat={handleIssueRepeat}
+                          onUpdateStatus={handleUpdateMedicationStatus}
+                        />
                       ))}
                     </div>
                   ) : (
