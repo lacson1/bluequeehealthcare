@@ -76,7 +76,10 @@ export function PrescriptionCard({
               variant="outline" 
               size="sm" 
               className="text-green-600 hover:text-green-800 border-green-200"
-              onClick={() => onGenerateQR?.(prescription)}
+              onClick={() => {
+                console.log('QR Code button clicked!', prescription);
+                onGenerateQR?.(prescription);
+              }}
             >
               <QrCode className="w-3 h-3 mr-1" />
               QR Code
