@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Calendar, 
   FlaskRound, 
@@ -13,6 +12,7 @@ import {
   Filter
 } from "lucide-react";
 import { useState } from "react";
+import TimelineFilterItem from "@/components/TimelineFilterItem";
 
 interface PatientTimelineProps {
   patientId: number;
@@ -140,42 +140,38 @@ export default function PatientTimeline({ patientId }: PatientTimelineProps) {
           <div className="space-y-3">
             <p className="text-sm font-medium text-gray-700">Event Types</p>
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="visits"
-                  checked={eventFilters.visits}
-                  onCheckedChange={() => toggleFilter('visits')}
-                />
-                <Stethoscope className="w-4 h-4 text-blue-600" />
-                <label htmlFor="visits" className="text-sm">Visits</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="labResults"
-                  checked={eventFilters.labResults}
-                  onCheckedChange={() => toggleFilter('labResults')}
-                />
-                <FlaskRound className="w-4 h-4 text-green-600" />
-                <label htmlFor="labResults" className="text-sm">Lab Results</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="consultations"
-                  checked={eventFilters.consultations}
-                  onCheckedChange={() => toggleFilter('consultations')}
-                />
-                <Activity className="w-4 h-4 text-orange-600" />
-                <label htmlFor="consultations" className="text-sm">Consultations</label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="prescriptions"
-                  checked={eventFilters.prescriptions}
-                  onCheckedChange={() => toggleFilter('prescriptions')}
-                />
-                <Pill className="w-4 h-4 text-purple-600" />
-                <label htmlFor="prescriptions" className="text-sm">Prescriptions</label>
-              </div>
+              <TimelineFilterItem
+                id="visits"
+                checked={eventFilters.visits}
+                onCheckedChange={() => toggleFilter('visits')}
+                icon={Stethoscope}
+                iconColor="text-blue-600"
+                label="Visits"
+              />
+              <TimelineFilterItem
+                id="labResults"
+                checked={eventFilters.labResults}
+                onCheckedChange={() => toggleFilter('labResults')}
+                icon={FlaskRound}
+                iconColor="text-green-600"
+                label="Lab Results"
+              />
+              <TimelineFilterItem
+                id="consultations"
+                checked={eventFilters.consultations}
+                onCheckedChange={() => toggleFilter('consultations')}
+                icon={Activity}
+                iconColor="text-orange-600"
+                label="Consultations"
+              />
+              <TimelineFilterItem
+                id="prescriptions"
+                checked={eventFilters.prescriptions}
+                onCheckedChange={() => toggleFilter('prescriptions')}
+                icon={Pill}
+                iconColor="text-purple-600"
+                label="Prescriptions"
+              />
             </div>
             <div className="pt-2 border-t">
               <p className="text-sm text-gray-500">
