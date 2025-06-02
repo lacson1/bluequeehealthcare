@@ -136,30 +136,44 @@ export default function StandaloneVitalSignsRecorder({
 
   const getVitalStatus = (type: string, value: string) => {
     const numValue = parseFloat(value);
-    if (!numValue) return { status: 'normal', color: 'text-gray-400' };
+    if (!numValue || isNaN(numValue)) return { status: 'Enter value', color: 'text-gray-400' };
 
     switch (type) {
       case 'systolic':
-        if (numValue < 90) return { status: 'low', color: 'text-blue-600' };
-        if (numValue > 140) return { status: 'high', color: 'text-red-600' };
-        return { status: 'normal', color: 'text-green-600' };
+        // European Heart Association guidelines for systolic
+        if (numValue >= 180) return { status: 'Grade 3 HTN', color: 'text-red-600' };
+        if (numValue >= 160) return { status: 'Grade 2 HTN', color: 'text-red-500' };
+        if (numValue >= 140) return { status: 'Grade 1 HTN', color: 'text-orange-600' };
+        if (numValue >= 130) return { status: 'High Normal', color: 'text-yellow-600' };
+        if (numValue < 90) return { status: 'Low', color: 'text-blue-600' };
+        return { status: 'Optimal', color: 'text-green-600' };
+      
       case 'diastolic':
-        if (numValue < 60) return { status: 'low', color: 'text-blue-600' };
-        if (numValue > 90) return { status: 'high', color: 'text-red-600' };
-        return { status: 'normal', color: 'text-green-600' };
+        // European Heart Association guidelines for diastolic
+        if (numValue >= 110) return { status: 'Grade 3 HTN', color: 'text-red-600' };
+        if (numValue >= 100) return { status: 'Grade 2 HTN', color: 'text-red-500' };
+        if (numValue >= 90) return { status: 'Grade 1 HTN', color: 'text-orange-600' };
+        if (numValue >= 85) return { status: 'High Normal', color: 'text-yellow-600' };
+        if (numValue < 60) return { status: 'Low', color: 'text-blue-600' };
+        return { status: 'Optimal', color: 'text-green-600' };
+      
       case 'heartRate':
-        if (numValue < 60) return { status: 'low', color: 'text-blue-600' };
-        if (numValue > 100) return { status: 'high', color: 'text-red-600' };
-        return { status: 'normal', color: 'text-green-600' };
+        if (numValue < 60) return { status: 'Bradycardia', color: 'text-orange-600' };
+        if (numValue > 100) return { status: 'Tachycardia', color: 'text-red-600' };
+        return { status: 'Normal', color: 'text-green-600' };
+      
       case 'temperature':
-        if (numValue < 36.1) return { status: 'low', color: 'text-blue-600' };
-        if (numValue > 37.2) return { status: 'high', color: 'text-red-600' };
-        return { status: 'normal', color: 'text-green-600' };
+        if (numValue < 36.1) return { status: 'Hypothermia', color: 'text-blue-600' };
+        if (numValue > 37.2) return { status: 'Fever', color: 'text-red-600' };
+        return { status: 'Normal', color: 'text-green-600' };
+      
       case 'oxygenSat':
-        if (numValue < 95) return { status: 'low', color: 'text-red-600' };
-        return { status: 'normal', color: 'text-green-600' };
+        if (numValue < 90) return { status: 'Critical', color: 'text-red-600' };
+        if (numValue < 95) return { status: 'Low', color: 'text-orange-600' };
+        return { status: 'Normal', color: 'text-green-600' };
+      
       default:
-        return { status: 'normal', color: 'text-gray-600' };
+        return { status: 'Normal', color: 'text-gray-600' };
     }
   };
 
