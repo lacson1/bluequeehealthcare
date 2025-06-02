@@ -316,39 +316,59 @@ export default function MedicationManagementTabs({ patient, prescriptions }: Med
       return apiRequest('POST', `/api/prescriptions/${prescriptionId}/print`, {});
     },
     onSuccess: (response: any) => {
-      // Create a blob URL for the HTML content
-      const blob = new Blob([response.html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
+      // Create and configure a new window for printing
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
       
-      // Open in new window
-      const printWindow = window.open(url, '_blank');
       if (printWindow) {
+        // Write the HTML content directly
+        printWindow.document.open();
+        printWindow.document.write(response.html);
+        printWindow.document.close();
+        
+        // Wait for content to load, then print
         printWindow.onload = () => {
           setTimeout(() => {
+            printWindow.focus();
             printWindow.print();
-            printWindow.close();
-            URL.revokeObjectURL(url);
-          }, 500);
+          }, 1000);
         };
-      } else {
-        // Fallback: create a temporary iframe
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'absolute';
-        iframe.style.left = '-9999px';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        document.body.appendChild(iframe);
         
-        iframe.contentDocument?.open();
-        iframe.contentDocument?.write(response.html);
-        iframe.contentDocument?.close();
-        
+        // If onload doesn't fire, use a timeout
         setTimeout(() => {
-          iframe.contentWindow?.print();
-          document.body.removeChild(iframe);
-        }, 500);
+          printWindow.focus();
+          printWindow.print();
+        }, 1500);
+      } else {
+        // If popup is blocked, show the HTML in a modal instead
+        const printDiv = document.createElement('div');
+        printDiv.innerHTML = response.html;
+        printDiv.style.position = 'fixed';
+        printDiv.style.top = '0';
+        printDiv.style.left = '0';
+        printDiv.style.width = '100%';
+        printDiv.style.height = '100%';
+        printDiv.style.backgroundColor = 'white';
+        printDiv.style.zIndex = '9999';
+        printDiv.style.overflow = 'auto';
+        printDiv.style.padding = '20px';
+        
+        // Add close button
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Close';
+        closeBtn.style.position = 'fixed';
+        closeBtn.style.top = '10px';
+        closeBtn.style.right = '10px';
+        closeBtn.style.zIndex = '10000';
+        closeBtn.onclick = () => document.body.removeChild(printDiv);
+        printDiv.appendChild(closeBtn);
+        
+        document.body.appendChild(printDiv);
+        
+        toast({ title: "Info", description: "Popup blocked. Prescription opened in overlay. Use Ctrl+P to print." });
+        return;
       }
-      toast({ title: "Success", description: "Prescription sent to printer" });
+      
+      toast({ title: "Success", description: "Prescription opened for printing" });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to print prescription", variant: "destructive" });
