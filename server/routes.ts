@@ -819,7 +819,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Enhanced patients endpoint with analytics
-  app.get("/api/patients/enhanced", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  app.get("/api/patients/enhanced", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const patients = await storage.getPatients();
       res.json(patients);
@@ -830,7 +830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Patient analytics endpoint
-  app.get("/api/patients/analytics", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  app.get("/api/patients/analytics", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const patients = await storage.getPatients();
       res.json(patients);
