@@ -83,7 +83,7 @@ export default function LetterheadTemplate({
 
   return (
     <div className="letterhead-container bg-white min-h-screen">
-      <style jsx>{`
+      <style>{`
         @media print {
           .letterhead-container {
             margin: 0;
