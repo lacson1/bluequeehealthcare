@@ -74,6 +74,7 @@ export default function PatientProfile() {
   const [showEditPatientModal, setShowEditPatientModal] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
+  const [preSelectedFormId, setPreSelectedFormId] = useState<number | null>(null);
   const [assessmentSearchTerm, setAssessmentSearchTerm] = useState('');
 
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
@@ -146,8 +147,8 @@ export default function PatientProfile() {
     });
     
     if (matchingForm) {
-      // Switch to consultation tab and pre-select the form
-      setActiveTab("consultation");
+      // Switch to visits tab and pre-select the form
+      setActiveTab("visits");
       setPreSelectedFormId(matchingForm.id);
       
       // Clear the selection after a brief delay to allow form to load
@@ -155,8 +156,8 @@ export default function PatientProfile() {
         setPreSelectedFormId(null);
       }, 2000);
     } else {
-      // Switch to consultation tab to show form selector for creating new assessment
-      setActiveTab("consultation");
+      // Switch to visits tab to show form selector for creating new assessment
+      setActiveTab("visits");
       setPreSelectedFormId(null);
     }
   };
@@ -439,7 +440,7 @@ export default function PatientProfile() {
               <ConsultationFormSelector 
                 patientId={patient.id} 
                 patient={patient}
-                preSelectedFormId={selectedFormId}
+                preSelectedFormId={preSelectedFormId}
               />
               <ConsultationHistory patientId={patient.id} />
             </TabsContent>
