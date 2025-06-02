@@ -380,6 +380,51 @@ export default function PatientProfile() {
                   </CardContent>
                 </Card>
 
+                {/* Vital Signs Dashboard */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Heart className="w-5 h-5 text-red-500" />
+                      Latest Vitals
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {visits && visits.length > 0 && (visits[0].bloodPressure || visits[0].heartRate || visits[0].temperature || visits[0].weight) ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {visits[0].bloodPressure && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-center">
+                            <div className="text-red-600 text-xs font-medium">BP</div>
+                            <div className="text-lg font-bold text-red-800">{visits[0].bloodPressure}</div>
+                          </div>
+                        )}
+                        {visits[0].heartRate && (
+                          <div className="p-3 bg-pink-50 border border-pink-200 rounded-lg text-center">
+                            <div className="text-pink-600 text-xs font-medium">HR</div>
+                            <div className="text-lg font-bold text-pink-800">{visits[0].heartRate}</div>
+                          </div>
+                        )}
+                        {visits[0].temperature && (
+                          <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg text-center">
+                            <div className="text-orange-600 text-xs font-medium">Temp</div>
+                            <div className="text-lg font-bold text-orange-800">{visits[0].temperature}°C</div>
+                          </div>
+                        )}
+                        {visits[0].weight && (
+                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                            <div className="text-blue-600 text-xs font-medium">Weight</div>
+                            <div className="text-lg font-bold text-blue-800">{visits[0].weight}kg</div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <Heart className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500">No vitals recorded</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Quick Actions */}
                 <Card>
                   <CardHeader>
