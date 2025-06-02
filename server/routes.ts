@@ -5112,6 +5112,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const prescriptionDate = new Date(prescriptionData.startDate).toLocaleDateString('en-GB');
       const currentDate = new Date().toLocaleDateString('en-GB');
 
+      // Debug log to check prescription data
+      console.log('Prescription Data for Print:', {
+        medicationName: prescriptionData.medicationName,
+        dosage: prescriptionData.dosage,
+        frequency: prescriptionData.frequency,
+        duration: prescriptionData.duration,
+        instructions: prescriptionData.instructions
+      });
+
       // Generate medical standard prescription with organization letterhead
       const html = `
         <!DOCTYPE html>
