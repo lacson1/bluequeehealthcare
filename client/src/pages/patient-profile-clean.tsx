@@ -72,6 +72,8 @@ import { useRole } from "@/components/role-guard";
 import PatientDocuments from "@/components/patient-documents";
 import PatientLabResults from "@/components/patient-lab-results";
 import StandaloneVitalSignsRecorder from "@/components/standalone-vital-signs-recorder";
+import VitalSignsTrends from "@/components/vital-signs-trends";
+import VitalSignsAlerts from "@/components/vital-signs-alerts";
 import type { Patient, Visit, LabResult, Prescription } from "@shared/schema";
 
 interface Organization {
@@ -101,6 +103,8 @@ export default function PatientProfile() {
   const [showVisitDetails, setShowVisitDetails] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null);
   const [showStandaloneVitals, setShowStandaloneVitals] = useState(false);
+  const [showVitalsTrends, setShowVitalsTrends] = useState(false);
+  const [showVitalsAlerts, setShowVitalsAlerts] = useState(false);
   const [vitalsTimeRange, setVitalsTimeRange] = useState('30'); // Days to show
 
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
@@ -1580,11 +1584,21 @@ export default function PatientProfile() {
                             </p>
                           )}
                           <div className="flex justify-center gap-2">
-                            <Button size="sm" variant="outline" className="text-xs">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs"
+                              onClick={() => setShowVitalsTrends(true)}
+                            >
                               <TrendingUp className="w-3 h-3 mr-1" />
                               Trends
                             </Button>
-                            <Button size="sm" variant="outline" className="text-xs">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs"
+                              onClick={() => setShowVitalsAlerts(true)}
+                            >
                               <AlertTriangle className="w-3 h-3 mr-1" />
                               Alerts
                             </Button>
@@ -2260,6 +2274,26 @@ export default function PatientProfile() {
           patientName={`${patient.firstName} ${patient.lastName}`}
           isOpen={showStandaloneVitals}
           onClose={() => setShowStandaloneVitals(false)}
+        />
+      )}
+
+      {/* Vital Signs Trends Dialog */}
+      {showVitalsTrends && patient && (
+        <VitalSignsTrends
+          isOpen={showVitalsTrends}
+          onClose={() => setShowVitalsTrends(false)}
+          patientId={patientId!}
+          patientName={`${patient.firstName} ${patient.lastName}`}
+        />
+      )}
+
+      {/* Vital Signs Alerts Dialog */}
+      {showVitalsAlerts && patient && (
+        <VitalSignsAlerts
+          isOpen={showVitalsAlerts}
+          onClose={() => setShowVitalsAlerts(false)}
+          patientId={patientId!}
+          patientName={`${patient.firstName} ${patient.lastName}`}
         />
       )}
 
