@@ -6067,40 +6067,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       
-      // First get user to check if they have an organization
-      const [user] = await db.select({
-        organizationId: users.organizationId
-      })
-      .from(users)
-      .where(eq(users.id, userId));
-
-      if (!user || !user.organizationId) {
+      // Use raw SQL to avoid Drizzle ORM issues with complex select structures
+      const userResult = await pool.query('SELECT organization_id FROM users WHERE id = $1', [userId]);
+      
+      if (userResult.rows.length === 0 || !userResult.rows[0].organization_id) {
         return res.status(404).json({ error: "No organization found for user" });
       }
 
-      // Now get the organization details
-      const [organization] = await db.select({
-        organizationId: organizations.id,
-        name: organizations.name,
-        type: organizations.type,
-        address: organizations.address,
-        phone: organizations.phone,
-        email: organizations.email,
-        website: organizations.website,
-        registrationNumber: organizations.registrationNumber,
-        licenseNumber: organizations.licenseNumber,
-        description: organizations.description,
-        themeColor: organizations.themeColor,
-        logoUrl: organizations.logoUrl
-      })
-      .from(organizations)
-      .where(eq(organizations.id, user.organizationId));
+      const organizationId = userResult.rows[0].organization_id;
 
-      if (!organization) {
+      // Get organization details using raw SQL
+      const orgResult = await pool.query(`
+        SELECT 
+          id as "organizationId",
+          name,
+          type,
+          address,
+          phone,
+          email,
+          website,
+          registration_number as "registrationNumber",
+          license_number as "licenseNumber",
+          description,
+          theme_color as "themeColor",
+          logo_url as "logoUrl"
+        FROM organizations 
+        WHERE id = $1
+      `, [organizationId]);
+
+      if (orgResult.rows.length === 0) {
         return res.status(404).json({ error: "Organization not found" });
       }
 
-      res.json(organization);
+      res.json(orgResult.rows[0]);
     } catch (error) {
       console.error('Error fetching user organization:', error);
       res.status(500).json({ error: "Failed to fetch organization data" });
