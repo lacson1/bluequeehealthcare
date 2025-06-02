@@ -106,8 +106,20 @@ export default function PatientProfile() {
 
   // Handler for selecting an assessment form
   const handleAssessmentFormSelect = (assessmentType: string) => {
-    setSelectedAssessmentType(assessmentType);
-    setShowAssessmentModal(true);
+    // Find matching consultation form from Form Builder
+    const matchingForm = consultationForms.find((form: any) => 
+      form.name.toLowerCase().includes(assessmentType.toLowerCase()) ||
+      assessmentType.toLowerCase().includes(form.name.toLowerCase())
+    );
+    
+    if (matchingForm) {
+      // Navigate to the actual form with patient context
+      window.location.href = `/consultation-form/${matchingForm.id}?patientId=${patientId}&returnTo=/patient/${patientId}`;
+    } else {
+      // Fallback to assessment modal for forms not yet created
+      setSelectedAssessmentType(assessmentType);
+      setShowAssessmentModal(true);
+    }
   };
 
   // Handler for creating a new assessment form
