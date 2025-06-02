@@ -45,10 +45,7 @@ export default function StandaloneVitalSignsRecorder({
   isOpen, 
   onClose 
 }: StandaloneVitalSignsRecorderProps) {
-  // Simple alert instead of toast to avoid errors
-  const showAlert = (message: string) => {
-    alert(message);
-  };
+  const { toast } = useToast();
   const { user } = useRole();
   const queryClient = useQueryClient();
 
@@ -68,11 +65,7 @@ export default function StandaloneVitalSignsRecorder({
   const recordVitalsMutation = useMutation({
     mutationFn: async (data: any) => {
       try {
-        return await apiRequest(`/api/patients/${patientId}/vitals`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
+        return await apiRequest('POST', `/api/patients/${patientId}/vitals`, data);
       } catch (error) {
         console.error('API request failed:', error);
         throw error;
