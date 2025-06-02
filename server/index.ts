@@ -203,6 +203,7 @@ app.use((req, res, next) => {
       <p>Time: ${new Date().toLocaleString()}</p>
       <p>Status: ONLINE</p>
       <p><a href="/app" style="color: yellow; font-size: 28px;">Click here for full healthcare app</a></p>
+      <p style="font-size: 18px; margin-top: 20px;">Direct URL: <span style="color: #90EE90;">https://${req.get('host')}</span></p>
     </body></html>`);
   });
 
