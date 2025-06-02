@@ -201,12 +201,18 @@ export default function PatientProfile() {
               </>
             )}
             
-            {/* Edit patient info - available to admin, doctor, nurse */}
+            {/* Schedule and Edit patient info - available to admin, doctor, nurse */}
             {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
-              <Button variant="outline">
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Info
-              </Button>
+              <>
+                <Button variant="outline">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Schedule
+                </Button>
+                <Button variant="outline">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Info
+                </Button>
+              </>
             )}
           </div>
         </div>
