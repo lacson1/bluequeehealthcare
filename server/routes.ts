@@ -5048,7 +5048,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get prescription details first
       const [prescription] = await db
-        .select()
+        .select({
+          id: prescriptions.id,
+          patientId: prescriptions.patientId,
+          medicationName: prescriptions.medicationName,
+          dosage: prescriptions.dosage,
+          frequency: prescriptions.frequency,
+          duration: prescriptions.duration,
+          instructions: prescriptions.instructions,
+          prescribedBy: prescriptions.prescribedBy,
+          startDate: prescriptions.startDate,
+          organizationId: prescriptions.organizationId,
+        })
         .from(prescriptions)
         .where(eq(prescriptions.id, prescriptionId));
 
