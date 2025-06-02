@@ -5041,12 +5041,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Print prescription endpoint
+  // Print prescription endpoint with organization letterhead
   app.post("/api/prescriptions/:id/print", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const prescriptionId = parseInt(req.params.id);
       
-      // Get prescription with patient details
+      // Get prescription with patient and organization details
       const [prescriptionData] = await db.select({
         prescriptionId: prescriptions.id,
         medicationName: prescriptions.medicationName,
@@ -5056,55 +5056,320 @@ export async function registerRoutes(app: Express): Promise<Server> {
         instructions: prescriptions.instructions,
         startDate: prescriptions.startDate,
         prescribedBy: prescriptions.prescribedBy,
+        organizationId: prescriptions.organizationId,
         patientFirstName: patients.firstName,
         patientLastName: patients.lastName,
+        patientTitle: patients.title,
         patientPhone: patients.phone,
         patientDateOfBirth: patients.dateOfBirth,
+        patientGender: patients.gender,
+        organizationName: organizations.name,
+        organizationType: organizations.type,
+        organizationAddress: organizations.address,
+        organizationPhone: organizations.phone,
+        organizationEmail: organizations.email,
+        organizationLicense: organizations.licenseNumber,
       })
       .from(prescriptions)
       .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+      .leftJoin(organizations, eq(prescriptions.organizationId, organizations.id))
       .where(eq(prescriptions.id, prescriptionId));
 
       if (!prescriptionData) {
         return res.status(404).json({ message: "Prescription not found" });
       }
 
-      // Generate printable HTML
+      // Format prescription date
+      const prescriptionDate = new Date(prescriptionData.startDate).toLocaleDateString('en-GB');
+      const currentDate = new Date().toLocaleDateString('en-GB');
+
+      // Generate medical standard prescription with organization letterhead
       const html = `
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Prescription - RX${prescriptionId}</title>
+          <title>Medical Prescription - RX${prescriptionId}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
-            .prescription-details { margin: 20px 0; }
-            .patient-info, .medication-info { margin: 15px 0; }
-            .signature-section { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 20px; }
+            @page {
+              size: A6;
+              margin: 10mm;
+            }
+            
+            body {
+              font-family: 'Times New Roman', serif;
+              margin: 0;
+              padding: 15px;
+              background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+              min-height: 100vh;
+              font-size: 11px;
+              line-height: 1.4;
+            }
+            
+            .prescription-container {
+              background: #ffffff;
+              border: 2px solid #16a34a;
+              border-radius: 8px;
+              padding: 15px;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+              max-width: 100%;
+            }
+            
+            .letterhead {
+              text-align: center;
+              border-bottom: 2px solid #16a34a;
+              padding-bottom: 12px;
+              margin-bottom: 15px;
+              background: linear-gradient(to right, #f0fdf4, #ffffff, #f0fdf4);
+              padding: 10px;
+              border-radius: 4px;
+            }
+            
+            .organization-name {
+              font-size: 16px;
+              font-weight: bold;
+              color: #15803d;
+              margin: 0;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            
+            .organization-details {
+              font-size: 9px;
+              color: #374151;
+              margin: 4px 0;
+            }
+            
+            .license-info {
+              font-size: 8px;
+              color: #6b7280;
+              font-style: italic;
+            }
+            
+            .prescription-header {
+              text-align: center;
+              background: #f0fdf4;
+              padding: 8px;
+              border-radius: 4px;
+              margin: 10px 0;
+              border: 1px solid #bbf7d0;
+            }
+            
+            .rx-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #15803d;
+              margin: 0;
+              font-family: serif;
+            }
+            
+            .rx-number {
+              font-size: 10px;
+              color: #6b7280;
+              margin: 2px 0 0 0;
+            }
+            
+            .patient-section, .medication-section {
+              margin: 12px 0;
+              padding: 8px;
+              border-left: 3px solid #22c55e;
+              background: #fafffe;
+            }
+            
+            .section-title {
+              font-size: 12px;
+              font-weight: bold;
+              color: #15803d;
+              margin: 0 0 6px 0;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            
+            .patient-info, .medication-info {
+              font-size: 10px;
+              line-height: 1.5;
+            }
+            
+            .info-row {
+              margin: 3px 0;
+            }
+            
+            .label {
+              font-weight: bold;
+              color: #374151;
+              display: inline-block;
+              width: 60px;
+            }
+            
+            .value {
+              color: #111827;
+            }
+            
+            .medication-details {
+              background: #f9fffe;
+              border: 1px solid #d1fae5;
+              border-radius: 4px;
+              padding: 8px;
+              margin: 6px 0;
+            }
+            
+            .medication-name {
+              font-size: 14px;
+              font-weight: bold;
+              color: #15803d;
+              margin-bottom: 4px;
+            }
+            
+            .dosage-info {
+              font-size: 11px;
+              color: #374151;
+            }
+            
+            .instructions {
+              background: #fffbeb;
+              border: 1px solid #fed7aa;
+              border-radius: 4px;
+              padding: 6px;
+              margin: 6px 0;
+              font-style: italic;
+              color: #92400e;
+            }
+            
+            .signature-section {
+              margin-top: 20px;
+              border-top: 1px solid #d1d5db;
+              padding-top: 10px;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-end;
+            }
+            
+            .prescriber-info {
+              text-align: left;
+            }
+            
+            .date-info {
+              text-align: right;
+            }
+            
+            .prescriber-name {
+              font-size: 11px;
+              font-weight: bold;
+              color: #15803d;
+            }
+            
+            .prescriber-title {
+              font-size: 9px;
+              color: #6b7280;
+            }
+            
+            .date-label {
+              font-size: 9px;
+              color: #6b7280;
+            }
+            
+            .date-value {
+              font-size: 10px;
+              font-weight: bold;
+              color: #374151;
+            }
+            
+            .footer {
+              text-align: center;
+              margin-top: 15px;
+              padding-top: 8px;
+              border-top: 1px solid #e5e7eb;
+              font-size: 8px;
+              color: #6b7280;
+            }
+            
+            .rx-symbol {
+              font-size: 24px;
+              color: #16a34a;
+              font-weight: bold;
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h2>Bluequee Healthcare Clinical Management</h2>
-            <p>Prescription - RX${prescriptionId}</p>
-          </div>
-          <div class="patient-info">
-            <h3>Patient Information</h3>
-            <p><strong>Name:</strong> ${prescriptionData.patientFirstName} ${prescriptionData.patientLastName}</p>
-            <p><strong>Phone:</strong> ${prescriptionData.patientPhone || 'N/A'}</p>
-            <p><strong>Date of Birth:</strong> ${prescriptionData.patientDateOfBirth || 'N/A'}</p>
-          </div>
-          <div class="medication-info">
-            <h3>Medication Details</h3>
-            <p><strong>Medication:</strong> ${prescriptionData.medicationName}</p>
-            <p><strong>Dosage:</strong> ${prescriptionData.dosage}</p>
-            <p><strong>Frequency:</strong> ${prescriptionData.frequency}</p>
-            <p><strong>Duration:</strong> ${prescriptionData.duration}</p>
-            <p><strong>Instructions:</strong> ${prescriptionData.instructions || 'Take as directed'}</p>
-          </div>
-          <div class="signature-section">
-            <p><strong>Prescribed by:</strong> ${prescriptionData.prescribedBy}</p>
-            <p><strong>Date:</strong> ${new Date(prescriptionData.startDate).toLocaleDateString()}</p>
+          <div class="prescription-container">
+            <!-- Organization Letterhead -->
+            <div class="letterhead">
+              <h1 class="organization-name">${prescriptionData.organizationName || 'Healthcare Facility'}</h1>
+              <div class="organization-details">
+                ${prescriptionData.organizationAddress || 'Healthcare Facility Address'}<br>
+                Tel: ${prescriptionData.organizationPhone || 'Contact Number'} | Email: ${prescriptionData.organizationEmail || 'Contact Email'}
+              </div>
+              <div class="license-info">
+                License: ${prescriptionData.organizationLicense || 'Licensed Healthcare Provider'} | ${prescriptionData.organizationType || 'Medical'} Facility
+              </div>
+            </div>
+            
+            <!-- Prescription Header -->
+            <div class="prescription-header">
+              <div class="rx-symbol">℞</div>
+              <h2 class="rx-title">MEDICAL PRESCRIPTION</h2>
+              <p class="rx-number">Prescription No: RX-${String(prescriptionId).padStart(4, '0')}</p>
+            </div>
+            
+            <!-- Patient Information -->
+            <div class="patient-section">
+              <h3 class="section-title">Patient Information</h3>
+              <div class="patient-info">
+                <div class="info-row">
+                  <span class="label">Name:</span>
+                  <span class="value">${prescriptionData.patientTitle || ''} ${prescriptionData.patientFirstName} ${prescriptionData.patientLastName}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">DOB:</span>
+                  <span class="value">${prescriptionData.patientDateOfBirth ? new Date(prescriptionData.patientDateOfBirth).toLocaleDateString('en-GB') : 'Not specified'}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Gender:</span>
+                  <span class="value">${prescriptionData.patientGender || 'Not specified'}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Phone:</span>
+                  <span class="value">${prescriptionData.patientPhone || 'Not provided'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Medication Information -->
+            <div class="medication-section">
+              <h3 class="section-title">Prescribed Medication</h3>
+              <div class="medication-details">
+                <div class="medication-name">${prescriptionData.medicationName}</div>
+                <div class="dosage-info">
+                  <strong>Strength:</strong> ${prescriptionData.dosage}<br>
+                  <strong>Frequency:</strong> ${prescriptionData.frequency}<br>
+                  <strong>Duration:</strong> ${prescriptionData.duration}
+                </div>
+              </div>
+              ${prescriptionData.instructions ? `
+              <div class="instructions">
+                <strong>Instructions:</strong> ${prescriptionData.instructions}
+              </div>
+              ` : ''}
+            </div>
+            
+            <!-- Signature Section -->
+            <div class="signature-section">
+              <div class="prescriber-info">
+                <div class="prescriber-name">${prescriptionData.prescribedBy}</div>
+                <div class="prescriber-title">Prescribing Physician</div>
+              </div>
+              <div class="date-info">
+                <div class="date-label">Date Prescribed:</div>
+                <div class="date-value">${prescriptionDate}</div>
+                <div class="date-label">Date Printed:</div>
+                <div class="date-value">${currentDate}</div>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="footer">
+              This prescription is valid for dispensing at any licensed pharmacy in Nigeria<br>
+              For verification, contact ${prescriptionData.organizationPhone || 'the prescribing facility'}
+            </div>
           </div>
         </body>
         </html>
