@@ -98,8 +98,9 @@ export default function PDFViewer({
                 transformOrigin: 'center center'
               }}
             >
-              <iframe
-                src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH&zoom=${zoom}`}
+              <embed
+                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH&zoom=${zoom}`}
+                type="application/pdf"
                 className="w-full border-0 bg-white shadow-lg"
                 style={{
                   height: '80vh',
@@ -107,9 +108,6 @@ export default function PDFViewer({
                   maxWidth: rotation % 180 === 0 ? '100%' : 'calc(100vh - 200px)'
                 }}
                 title={originalName}
-                onError={(e) => {
-                  console.error('Failed to load PDF:', e);
-                }}
               />
             </div>
           </div>
