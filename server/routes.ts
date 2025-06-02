@@ -6067,8 +6067,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       
-      const [userOrg] = await db.select({
-        organizationId: users.organizationId,
+      // First get user to check if they have an organization
+      const [user] = await db.select({
+        organizationId: users.organizationId
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+
+      if (!user || !user.organizationId) {
+        return res.status(404).json({ error: "No organization found for user" });
+      }
+
+      // Now get the organization details
+      const [organization] = await db.select({
+        organizationId: organizations.id,
         name: organizations.name,
         type: organizations.type,
         address: organizations.address,
@@ -6081,15 +6093,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         themeColor: organizations.themeColor,
         logoUrl: organizations.logoUrl
       })
-      .from(users)
-      .leftJoin(organizations, eq(users.organizationId, organizations.id))
-      .where(eq(users.id, userId));
+      .from(organizations)
+      .where(eq(organizations.id, user.organizationId));
 
-      if (!userOrg || !userOrg.organizationId) {
-        return res.status(404).json({ error: "No organization found for user" });
+      if (!organization) {
+        return res.status(404).json({ error: "Organization not found" });
       }
 
-      res.json(userOrg);
+      res.json(organization);
     } catch (error) {
       console.error('Error fetching user organization:', error);
       res.status(500).json({ error: "Failed to fetch organization data" });
