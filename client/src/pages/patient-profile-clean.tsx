@@ -58,6 +58,7 @@ import { FloatingActionMenu } from "@/components/floating-action-menu";
 import { useRole } from "@/components/role-guard";
 import PatientDocuments from "@/components/patient-documents";
 import PatientLabResults from "@/components/patient-lab-results";
+import StandaloneVitalSignsRecorder from "@/components/standalone-vital-signs-recorder";
 import type { Patient, Visit, LabResult, Prescription } from "@shared/schema";
 
 interface Organization {
@@ -86,6 +87,7 @@ export default function PatientProfile() {
   const [selectedVisit, setSelectedVisit] = useState<any>(null);
   const [showVisitDetails, setShowVisitDetails] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null);
+  const [showStandaloneVitals, setShowStandaloneVitals] = useState(false);
 
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
     queryKey: [`/api/patients/${patientId}`],
@@ -104,6 +106,12 @@ export default function PatientProfile() {
 
   const { data: prescriptions, isLoading: prescriptionsLoading } = useQuery<Prescription[]>({
     queryKey: ["/api/patients", patientId, "prescriptions"],
+    enabled: !!patientId,
+  });
+
+  // Fetch standalone vital signs data
+  const { data: vitalSigns = [], isLoading: vitalsLoading } = useQuery({
+    queryKey: [`/api/patients/${patientId}/vitals`],
     enabled: !!patientId,
   });
 
@@ -1011,47 +1019,105 @@ export default function PatientProfile() {
                     Vital Signs Monitor
                   </h2>
                   <Button 
-                    onClick={() => setShowVisitModal(true)}
+                    onClick={() => setShowStandaloneVitals(true)}
                     className="bg-blue-500 hover:bg-blue-600 text-white"
+                    disabled={!user || (user.role !== 'nurse' && user.role !== 'doctor' && user.role !== 'admin')}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Record Vital
+                    Record Vital Signs
                   </Button>
                 </div>
                 
                 {/* Vital Signs Cards - exact layout from screenshot */}
                 <div className="grid grid-cols-4 gap-6 mb-8">
-                  {/* Blood Pressure */}
-                  <div className="text-center">
-                    <Heart className="w-6 h-6 mx-auto mb-2 text-red-500" />
-                    <div className="text-xs text-green-600 font-medium mb-1">normal</div>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">110/70</div>
-                    <div className="text-xs text-gray-600">Blood Pressure</div>
-                  </div>
+                  {(() => {
+                    const latestVitals = vitalSigns?.[0]; // Most recent vital signs
+                    
+                    const getVitalStatus = (type: string, value: any) => {
+                      if (!value) return { status: 'no data', color: 'text-gray-400' };
+                      
+                      switch (type) {
+                        case 'bloodPressure':
+                          const systolic = latestVitals?.bloodPressureSystolic;
+                          if (systolic < 90) return { status: 'low', color: 'text-blue-600' };
+                          if (systolic > 140) return { status: 'high', color: 'text-red-600' };
+                          return { status: 'normal', color: 'text-green-600' };
+                        case 'heartRate':
+                          if (value < 60) return { status: 'low', color: 'text-blue-600' };
+                          if (value > 100) return { status: 'high', color: 'text-red-600' };
+                          return { status: 'normal', color: 'text-green-600' };
+                        case 'temperature':
+                          if (value < 36.1) return { status: 'low', color: 'text-blue-600' };
+                          if (value > 37.2) return { status: 'high', color: 'text-red-600' };
+                          return { status: 'normal', color: 'text-green-600' };
+                        case 'oxygenSat':
+                          if (value < 95) return { status: 'low', color: 'text-red-600' };
+                          return { status: 'normal', color: 'text-green-600' };
+                        default:
+                          return { status: 'normal', color: 'text-gray-600' };
+                      }
+                    };
 
-                  {/* Heart Rate */}
-                  <div className="text-center">
-                    <Heart className="w-6 h-6 mx-auto mb-2 text-blue-500" />
-                    <div className="text-xs text-green-600 font-medium mb-1">normal</div>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">72</div>
-                    <div className="text-xs text-gray-600">Heart Rate (bpm)</div>
-                  </div>
+                    const bpStatus = getVitalStatus('bloodPressure', latestVitals?.bloodPressureSystolic);
+                    const hrStatus = getVitalStatus('heartRate', latestVitals?.heartRate);
+                    const tempStatus = getVitalStatus('temperature', latestVitals?.temperature);
+                    const o2Status = getVitalStatus('oxygenSat', latestVitals?.oxygenSaturation);
 
-                  {/* Temperature */}
-                  <div className="text-center">
-                    <Thermometer className="w-6 h-6 mx-auto mb-2 text-orange-500" />
-                    <div className="text-xs text-green-600 font-medium mb-1">normal</div>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">36.9°C</div>
-                    <div className="text-xs text-gray-600">Temperature</div>
-                  </div>
-
-                  {/* Oxygen Saturation */}
-                  <div className="text-center">
-                    <Activity className="w-6 h-6 mx-auto mb-2 text-green-500" />
-                    <div className="text-xs text-green-600 font-medium mb-1">normal</div>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">99%</div>
-                    <div className="text-xs text-gray-600">Oxygen Saturation</div>
-                  </div>
+                    return (
+                      <>
+                        {/* Blood Pressure */}
+                        <div className="text-center">
+                          <Heart className="w-6 h-6 mx-auto mb-2 text-red-500" />
+                          <div className={`text-xs font-medium mb-1 ${bpStatus.color}`}>
+                            {bpStatus.status}
+                          </div>
+                          <div className="text-2xl font-bold text-gray-900 mb-1">
+                            {latestVitals?.bloodPressureSystolic && latestVitals?.bloodPressureDiastolic 
+                              ? `${latestVitals.bloodPressureSystolic}/${latestVitals.bloodPressureDiastolic}`
+                              : 'N/A'
+                            }
+                          </div>
+                          <div className="text-xs text-gray-600">Blood Pressure</div>
+                        </div>
+                        
+                        {/* Heart Rate */}
+                        <div className="text-center">
+                          <Activity className="w-6 h-6 mx-auto mb-2 text-blue-500" />
+                          <div className={`text-xs font-medium mb-1 ${hrStatus.color}`}>
+                            {hrStatus.status}
+                          </div>
+                          <div className="text-2xl font-bold text-gray-900 mb-1">
+                            {latestVitals?.heartRate || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-600">Heart Rate (bpm)</div>
+                        </div>
+                        
+                        {/* Temperature */}
+                        <div className="text-center">
+                          <Thermometer className="w-6 h-6 mx-auto mb-2 text-orange-500" />
+                          <div className={`text-xs font-medium mb-1 ${tempStatus.color}`}>
+                            {tempStatus.status}
+                          </div>
+                          <div className="text-2xl font-bold text-gray-900 mb-1">
+                            {latestVitals?.temperature ? `${latestVitals.temperature}°C` : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-600">Temperature</div>
+                        </div>
+                        
+                        {/* Oxygen Saturation */}
+                        <div className="text-center">
+                          <Activity className="w-6 h-6 mx-auto mb-2 text-green-500" />
+                          <div className={`text-xs font-medium mb-1 ${o2Status.color}`}>
+                            {o2Status.status}
+                          </div>
+                          <div className="text-2xl font-bold text-gray-900 mb-1">
+                            {latestVitals?.oxygenSaturation ? `${latestVitals.oxygenSaturation}%` : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-600">Oxygen Saturation</div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Trends Chart Section - matching screenshot */}
@@ -1586,6 +1652,16 @@ export default function PatientProfile() {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Standalone Vital Signs Recorder */}
+      {showStandaloneVitals && patient && (
+        <StandaloneVitalSignsRecorder
+          patientId={patientId!}
+          patientName={`${patient.firstName} ${patient.lastName}`}
+          isOpen={showStandaloneVitals}
+          onClose={() => setShowStandaloneVitals(false)}
+        />
       )}
 
       {/* Hidden Printable Patient Summary */}
