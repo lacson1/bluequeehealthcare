@@ -5428,74 +5428,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </html>
       `;
 
-      // Create a simple, reliable HTML template
-      const simpleHtml = `
-<!DOCTYPE html>
+      // Create a minimal test template to identify the issue
+      const simpleHtml = `<!DOCTYPE html>
 <html>
 <head>
-  <title>Medical Prescription</title>
-  <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      margin: 20px; 
-      background: white;
-      color: black;
-      font-size: 16px;
-    }
-    .header { 
-      text-align: center; 
-      border-bottom: 2px solid #22c55e; 
-      padding-bottom: 15px; 
-      margin-bottom: 20px; 
-    }
-    .section { 
-      margin: 20px 0; 
-      padding: 15px; 
-      border: 1px solid #ddd; 
-    }
-    .medication { 
-      font-size: 20px; 
-      font-weight: bold; 
-      color: #16a34a; 
-      margin-bottom: 10px; 
-    }
-  </style>
+  <title>Prescription Test</title>
 </head>
 <body>
-  <div class="header">
-    <h1>${prescriptionData.organizationName || 'Healthcare Facility'}</h1>
-    <p>${prescriptionData.organizationAddress || 'Healthcare Facility Address'}</p>
-    <h2>℞ MEDICAL PRESCRIPTION</h2>
-    <p>Prescription No: RX-${String(prescriptionId).padStart(4, '0')}</p>
-  </div>
-  
-  <div class="section">
-    <h3>Patient Information</h3>
-    <p><strong>Name:</strong> ${(prescriptionData.patientTitle || '') + ' ' + (prescriptionData.patientFirstName || '') + ' ' + (prescriptionData.patientLastName || '')}</p>
-    <p><strong>DOB:</strong> ${prescriptionData.patientDateOfBirth || 'Not specified'}</p>
-    <p><strong>Gender:</strong> ${prescriptionData.patientGender || 'Not specified'}</p>
-    <p><strong>Phone:</strong> ${prescriptionData.patientPhone || 'Not provided'}</p>
-  </div>
-  
-  <div class="section">
-    <h3>Prescribed Medication</h3>
-    <div class="medication">${prescriptionData.medicationName || 'Unknown Medication'}</div>
-    <p><strong>Strength:</strong> ${prescriptionData.dosage || 'Not specified'}</p>
-    <p><strong>Frequency:</strong> ${prescriptionData.frequency || 'Not specified'}</p>
-    <p><strong>Duration:</strong> ${prescriptionData.duration || 'Not specified'}</p>
-    ${prescriptionData.instructions ? `<p><strong>Instructions:</strong> ${prescriptionData.instructions}</p>` : '<p><strong>Instructions:</strong> Take as directed</p>'}
-  </div>
-  
-  <div class="section">
-    <p><strong>Prescribed by:</strong> ${prescriptionData.prescribedBy || 'Healthcare Provider'}</p>
-    <p><strong>Date Prescribed:</strong> ${prescriptionDate || 'Not available'}</p>
-    <p><strong>Date Printed:</strong> ${currentDate || new Date().toLocaleDateString('en-GB')}</p>
-  </div>
-  
-  <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #666;">
-    This prescription is valid for dispensing at any licensed pharmacy<br>
-    For verification, contact ${prescriptionData.organizationPhone || 'the prescribing facility'}
-  </div>
+  <h1>MEDICAL PRESCRIPTION</h1>
+  <h2>Lagos Island Hospital</h2>
+  <p>Patient: Alhaji Mufutau Babalola</p>
+  <p>Medication: Amoxicillin 500mg</p>
+  <p>Frequency: Every 8 hours</p>
+  <p>Duration: 7 days</p>
+  <p>Prescribed by: ade</p>
+  <p>Date: 02/06/2025</p>
 </body>
 </html>`;
 
