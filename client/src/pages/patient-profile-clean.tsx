@@ -877,6 +877,21 @@ export default function PatientProfile() {
                 patient={patient}
                 preSelectedFormId={preSelectedFormId}
               />
+              
+              {/* Chat Integration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-blue-500" />
+                    Patient Communication
+                  </CardTitle>
+                  <CardDescription>Send messages and view communication history</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PatientChat patientId={patient.id} />
+                </CardContent>
+              </Card>
+              
               <ConsultationHistory patientId={patient.id} />
             </TabsContent>
 
