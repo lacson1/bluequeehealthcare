@@ -6,6 +6,20 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Simple test route
+app.get('/test', (req, res) => {
+  res.send(`
+    <html>
+      <head><title>Test</title></head>
+      <body style="font-family: Arial; padding: 20px; background: #f0f8ff;">
+        <h1 style="color: #2563eb;">🏥 Bluequee Test Page</h1>
+        <p>Server is running correctly!</p>
+        <p>Time: ${new Date().toLocaleString()}</p>
+      </body>
+    </html>
+  `);
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
