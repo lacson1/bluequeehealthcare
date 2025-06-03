@@ -19,8 +19,13 @@ import { EditPatientModal } from './edit-patient-modal';
 import { useLocation } from "wouter";
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { MedicalIcons, MedicalContext, getStatusStyling, IconSizes } from '@/lib/medical-icons';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { apiRequest } from '@/lib/queryClient';
 // All icons now imported via MedicalIcons system
 
 interface Patient {
@@ -251,6 +256,81 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     consultations: true,
     prescriptions: true
   });
+
+  // Document upload state
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState('');
+  const [documentDescription, setDocumentDescription] = useState('');
+
+  // Document upload mutation
+  const uploadDocumentMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch(`/api/patients/${patient.id}/documents`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload document');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Document Uploaded",
+        description: "Document has been successfully uploaded and attached to patient record.",
+      });
+      setShowUploadDialog(false);
+      setUploadFile(null);
+      setDocumentType('');
+      setDocumentDescription('');
+      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}/documents`] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload document. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDocumentUpload = () => {
+    if (!uploadFile || !documentType) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a file and document type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', uploadFile);
+    formData.append('documentType', documentType);
+    formData.append('description', documentDescription);
+    formData.append('patientId', patient.id.toString());
+
+    uploadDocumentMutation.mutate(formData);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "File size must be less than 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setUploadFile(file);
+    }
+  };
 
   // Fetch patient prescriptions from the API with proper error handling and caching
   const { data: patientPrescriptions = [], isLoading: prescriptionsLoading, error: prescriptionsError } = useQuery({
@@ -2102,10 +2182,95 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                       <MedicalIcons.medicalRecord className="mx-auto h-16 w-16 text-gray-300 mb-4" />
                       <h3 className="text-lg font-medium text-gray-700 mb-2">Medical Records</h3>
                       <p className="text-sm text-gray-500 mb-4">Upload and manage patient medical documents</p>
-                      <Button className="bg-emerald-600 hover:bg-emerald-700">
-                        <MedicalIcons.upload className="w-4 h-4 mr-2" />
-                        Upload Document
-                      </Button>
+                      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                        <DialogTrigger asChild>
+                          <Button className="bg-emerald-600 hover:bg-emerald-700">
+                            <MedicalIcons.upload className="w-4 h-4 mr-2" />
+                            Upload Document
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <MedicalIcons.upload className="w-5 h-5 text-emerald-600" />
+                              Upload Medical Document
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="document-type">Document Type</Label>
+                              <Select value={documentType} onValueChange={setDocumentType}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select document type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="medical-record">Medical Record</SelectItem>
+                                  <SelectItem value="lab-result">Lab Result</SelectItem>
+                                  <SelectItem value="imaging">Imaging/X-ray</SelectItem>
+                                  <SelectItem value="prescription">Prescription</SelectItem>
+                                  <SelectItem value="discharge-summary">Discharge Summary</SelectItem>
+                                  <SelectItem value="referral">Referral Letter</SelectItem>
+                                  <SelectItem value="insurance">Insurance Document</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="file-upload">Select File</Label>
+                              <Input
+                                id="file-upload"
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                onChange={handleFileSelect}
+                                className="cursor-pointer"
+                              />
+                              {uploadFile && (
+                                <p className="text-sm text-gray-600">
+                                  Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="description">Description (Optional)</Label>
+                              <Input
+                                id="description"
+                                value={documentDescription}
+                                onChange={(e) => setDocumentDescription(e.target.value)}
+                                placeholder="Brief description of the document"
+                              />
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                              <Button
+                                onClick={handleDocumentUpload}
+                                disabled={!uploadFile || !documentType || uploadDocumentMutation.isPending}
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                              >
+                                {uploadDocumentMutation.isPending ? (
+                                  <>
+                                    <MedicalIcons.clock className="w-4 h-4 mr-2 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <MedicalIcons.upload className="w-4 h-4 mr-2" />
+                                    Upload
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => setShowUploadDialog(false)}
+                                disabled={uploadDocumentMutation.isPending}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </TabsContent>
 

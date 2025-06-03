@@ -5203,6 +5203,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload document for specific patient
+  app.post("/api/patients/:patientId/documents", authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const { patientId } = req.params;
+      const { documentType, description } = req.body;
+      
+      if (!documentType) {
+        return res.status(400).json({ message: "Document type is required" });
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const originalExtension = req.file.originalname.split('.').pop();
+      const fileName = `patient_${patientId}_${timestamp}_${Math.random().toString(36).substring(7)}.${originalExtension}`;
+
+      // Store file in uploads directory
+      const fs = require('fs');
+      const path = require('path');
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'medical');
+      
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const filePath = path.join(uploadsDir, fileName);
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      // Save to database
+      const organizationId = req.user?.organizationId || 1;
+      const [document] = await db
+        .insert(medicalDocuments)
+        .values({
+          fileName,
+          originalName: req.file.originalname,
+          category: documentType,
+          patientId: parseInt(patientId),
+          uploadedBy: req.user!.id,
+          size: req.file.size,
+          mimeType: req.file.mimetype,
+          organizationId,
+          description: description || null
+        })
+        .returning();
+
+      // Create audit log
+      const auditLogger = new AuditLogger(req);
+      await auditLogger.logPatientAction('DOCUMENT_UPLOADED', parseInt(patientId), {
+        documentId: document.id,
+        documentType,
+        fileName: req.file.originalname
+      });
+
+      res.json({
+        id: document.id,
+        fileName: document.fileName,
+        originalName: document.originalName,
+        category: document.category,
+        size: document.size,
+        uploadedAt: document.uploadedAt,
+        description: document.description
+      });
+    } catch (error) {
+      console.error('Error uploading patient document:', error);
+      res.status(500).json({ message: "Failed to upload document" });
+    }
+  });
+
+  // Get documents for specific patient
+  app.get("/api/patients/:patientId/documents", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { patientId } = req.params;
+      const organizationId = req.user?.organizationId || 1;
+
+      const documents = await db
+        .select({
+          id: medicalDocuments.id,
+          fileName: medicalDocuments.fileName,
+          originalName: medicalDocuments.originalName,
+          category: medicalDocuments.category,
+          size: medicalDocuments.size,
+          mimeType: medicalDocuments.mimeType,
+          uploadedAt: medicalDocuments.uploadedAt,
+          description: medicalDocuments.description,
+          uploadedBy: medicalDocuments.uploadedBy
+        })
+        .from(medicalDocuments)
+        .where(and(
+          eq(medicalDocuments.patientId, parseInt(patientId)),
+          eq(medicalDocuments.organizationId, organizationId)
+        ))
+        .orderBy(desc(medicalDocuments.uploadedAt));
+
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching patient documents:', error);
+      res.status(500).json({ message: "Failed to fetch patient documents" });
+    }
+  });
+
   // Serve medical document files
   app.get("/api/files/medical/:fileName", authenticateToken, async (req: AuthRequest, res) => {
     try {
