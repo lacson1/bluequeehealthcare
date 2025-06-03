@@ -75,8 +75,8 @@ const quickActions: QuickAction[] = [
     id: 'prescribe',
     label: 'Prescribe',
     icon: <Pill className="h-5 w-5" />,
-    route: '/pharmacy',
-    description: 'Create prescription',
+    route: '/patients',
+    description: 'Create prescription - select patient first',
     roles: ['doctor', 'pharmacist']
   },
   {

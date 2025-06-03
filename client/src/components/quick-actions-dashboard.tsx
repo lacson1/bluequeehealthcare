@@ -112,10 +112,7 @@ export function QuickActionsDashboard() {
       title: "Quick Visit",
       description: "Record patient visit",
       icon: <Stethoscope className="h-5 w-5" />,
-      action: () => {
-        const event = new CustomEvent('open-visit-modal');
-        window.dispatchEvent(event);
-      },
+      action: () => setLocation('/patients'),
       shortcut: "Ctrl+Shift+V",
       visible: (role) => ['doctor', 'nurse'].includes(role)
     }

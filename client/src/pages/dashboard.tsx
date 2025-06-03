@@ -245,7 +245,7 @@ export default function Dashboard() {
                     className="w-full justify-start" 
                     asChild
                   >
-                    <Link href="/visits">View All Visits</Link>
+                    <Link href="/patients">Record Visit</Link>
                   </Button>
                 </CardContent>
               </Card>
