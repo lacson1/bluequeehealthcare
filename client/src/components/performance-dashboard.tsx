@@ -44,11 +44,59 @@ interface HealthcareIntegration {
 
 export function PerformanceDashboard() {
   const [timeframe, setTimeframe] = useState('24h');
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   const { data: stats, isLoading, refetch } = useQuery<PerformanceStats>({
     queryKey: ['/api/performance/stats', timeframe],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
+
+  const getSystemStatus = () => {
+    if (!stats) return { status: 'unknown', message: 'Loading performance data...', color: 'text-gray-500', icon: Activity, label: 'Loading' };
+    
+    if (stats.avgResponseTime > 2000 || stats.errorRate > 5) {
+      return { status: 'critical', message: 'System performance needs immediate attention', color: 'text-red-500', icon: TrendingDown, label: 'Critical' };
+    }
+    if (stats.avgResponseTime > 1000 || stats.errorRate > 2) {
+      return { status: 'warning', message: 'System performance needs optimization', color: 'text-yellow-500', icon: Activity, label: 'Warning' };
+    }
+    return { status: 'good', message: 'System performance is optimal', color: 'text-green-500', icon: TrendingUp, label: 'Excellent' };
+  };
+
+  const getOptimizationRecommendations = () => {
+    if (!stats) return [];
+    
+    const recommendations = [];
+    
+    if (stats.avgResponseTime > 1000) {
+      recommendations.push({
+        title: 'Database Query Optimization',
+        description: 'Add indexes to frequently queried tables',
+        priority: 'high',
+        action: 'optimize-db'
+      });
+    }
+    
+    if (stats.errorRate > 2) {
+      recommendations.push({
+        title: 'Error Rate Investigation',
+        description: 'Review error logs and implement better error handling',
+        priority: 'high',
+        action: 'review-errors'
+      });
+    }
+    
+    if (stats.avgMemoryUsage > 50) {
+      recommendations.push({
+        title: 'Memory Usage Optimization',
+        description: 'Implement caching and optimize memory-intensive operations',
+        priority: 'medium',
+        action: 'optimize-memory'
+      });
+    }
+    
+    return recommendations;
+  };
 
   const healthcareIntegrations: HealthcareIntegration[] = [
     {
@@ -109,7 +157,7 @@ export function PerformanceDashboard() {
     }
   };
 
-  const getPerformanceStatus = (avgResponseTime: number, errorRate: number) => {
+  const getPerformanceIndicator = (avgResponseTime: number, errorRate: number) => {
     if (errorRate > 5 || avgResponseTime > 2000) {
       return { color: 'text-red-500', icon: TrendingDown, label: 'Poor' };
     } else if (errorRate > 2 || avgResponseTime > 1000) {
@@ -141,7 +189,7 @@ export function PerformanceDashboard() {
     );
   }
 
-  const performanceStatus = stats ? getPerformanceStatus(stats.avgResponseTime, stats.errorRate) : null;
+  const performanceStatus = getSystemStatus();
 
   return (
     <div className="space-y-6">
@@ -179,7 +227,7 @@ export function PerformanceDashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">System Status</CardTitle>
-                    {performanceStatus && <performanceStatus.icon className={`h-4 w-4 ${performanceStatus.color}`} />}
+                    {performanceStatus && React.createElement(performanceStatus.icon, { className: `h-4 w-4 ${performanceStatus.color}` })}
                   </CardHeader>
                   <CardContent>
                     <div className={`text-2xl font-bold ${performanceStatus?.color}`}>
