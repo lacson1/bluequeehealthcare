@@ -261,22 +261,28 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="p-0">
-            <div className="relative max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 border-t border-gray-200">
+            <div className="relative max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-400 scrollbar-track-blue-50 hover:scrollbar-thumb-blue-500 border-t border-gray-200">
               {/* Timeline line */}
               <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-purple-500"></div>
               
-              <div className="space-y-3 p-3">
-                {(consultationHistory as any[]).map((consultation: any, index: number) => (
-                  <div key={consultation.id} className="relative flex items-start" data-testid="consultation-record">
-                    {/* Timeline dot - smaller */}
-                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow">
-                      <FileText className="w-4 h-4 text-white" />
-                    </div>
-                    
-                    {/* Consultation content - Very compact version */}
-                    <div className="ml-3 flex-1">
-                      <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
-                        <CardContent className="p-2">
+              <div className="space-y-4 p-4">
+                {(consultationHistory as any[]).length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm">No consultation records match the current filters</p>
+                  </div>
+                ) : (
+                  (consultationHistory as any[]).map((consultation: any, index: number) => (
+                    <div key={consultation.id} className="relative flex items-start" data-testid="consultation-record">
+                      {/* Timeline dot - smaller */}
+                      <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow">
+                        <FileText className="w-4 h-4 text-white" />
+                      </div>
+                      
+                      {/* Consultation content - Very compact version */}
+                      <div className="ml-3 flex-1">
+                        <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
+                          <CardContent className="p-2">
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex flex-col gap-0.5">
                               <h4 className="font-semibold text-sm text-gray-900">
@@ -355,7 +361,8 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
                       </Card>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
                 
                 {/* End of timeline indicator - smaller */}
                 <div className="relative flex items-center mt-4">
