@@ -1055,7 +1055,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">
-                    <Pill className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                    <MedicalIcons.medication className="mx-auto h-16 w-16 text-gray-300 mb-4" />
                     <h3 className="text-lg font-medium text-gray-700 mb-2">No Active Prescriptions</h3>
                     <p className="text-sm text-gray-500 mb-4">Start by adding the first prescription for this patient</p>
                     <Button onClick={onAddPrescription} className="bg-purple-600 hover:bg-purple-700">
@@ -1539,7 +1539,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     onClick={onAddPrescription}
                     className="border-purple-200 text-purple-700 hover:bg-purple-50"
                   >
-                    <Pill className="h-4 w-4 mr-2" />
+                    <MedicalIcons.medication className="h-4 w-4 mr-2" />
                     Add Prescription
                   </Button>
                 </div>
@@ -1594,7 +1594,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center space-x-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
+                    <MedicalIcons.phone className="w-4 h-4 text-gray-400" />
                     <span>{patient.phone}</span>
                   </div>
                   
@@ -1639,7 +1639,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Pill className="w-4 h-4 text-purple-500" />
+                    <MedicalIcons.medication className="w-4 h-4 text-purple-500" />
                     <span className="text-sm">Active Meds</span>
                   </div>
                   <Badge variant="secondary">{displayPrescriptions.length}</Badge>
