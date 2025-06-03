@@ -347,26 +347,33 @@ export default function AppointmentsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Appointments</h1>
-          <p className="text-gray-600">Schedule and manage patient appointments</p>
+    <div className="h-full flex flex-col">
+      {/* Enhanced Fixed Header */}
+      <header className="healthcare-header px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h2 className="text-2xl font-bold text-white drop-shadow-sm">Appointment Management</h2>
+            <p className="text-white/90 font-medium">Schedule and manage patient appointments</p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Schedule Appointment
-          </Button>
-          <Button 
-            onClick={() => setIsSmartScheduling(true)} 
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-          >
-            <Brain className="h-4 w-4" />
-            Smart Schedule
-          </Button>
+      </header>
+
+      <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Schedule Appointment
+            </Button>
+            <Button 
+              onClick={() => setIsSmartScheduling(true)} 
+              className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+            >
+              <Brain className="h-4 w-4" />
+              Smart Schedule
+            </Button>
+          </div>
         </div>
-      </div>
 
       {/* Search and Filters */}
       <Card>
@@ -941,6 +948,7 @@ export default function AppointmentsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
