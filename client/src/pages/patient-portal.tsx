@@ -32,7 +32,10 @@ import {
   Info,
   HelpCircle,
   Zap,
-  Target
+  Target,
+  QrCode,
+  Share,
+  Printer
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';

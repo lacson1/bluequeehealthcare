@@ -7016,6 +7016,39 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
+  // Patient Portal - Get Patient Medications/Prescriptions
+  app.get('/api/patient-portal/medications', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient?.id;
+      if (!patientId) {
+        return res.status(401).json({ error: 'Patient authentication required' });
+      }
+      
+      const patientMedications = await db.select({
+        id: prescriptions.id,
+        medicationName: prescriptions.medicationName,
+        dosage: prescriptions.dosage,
+        frequency: prescriptions.frequency,
+        duration: prescriptions.duration,
+        instructions: prescriptions.instructions,
+        status: prescriptions.status,
+        prescribedBy: prescriptions.prescribedBy,
+        startDate: prescriptions.startDate,
+        endDate: prescriptions.endDate,
+        createdAt: prescriptions.createdAt,
+        organizationId: prescriptions.organizationId
+      })
+        .from(prescriptions)
+        .where(eq(prescriptions.patientId, patientId))
+        .orderBy(desc(prescriptions.createdAt));
+      
+      res.json(patientMedications);
+    } catch (error) {
+      console.error('Error fetching patient medications:', error);
+      res.status(500).json({ message: 'Failed to fetch medications' });
+    }
+  });
+
   // Patient portal appointment endpoints
   app.get('/api/patient-portal/appointments', authenticatePatient, async (req: PatientAuthRequest, res) => {
     try {
