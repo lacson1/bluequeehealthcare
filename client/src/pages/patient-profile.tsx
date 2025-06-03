@@ -37,9 +37,23 @@ export default function PatientProfile() {
     enabled: !!patientId,
   });
 
-  // Fetch lab results
+  // Fetch lab results with explicit queryFn
   const { data: labResults, isLoading: labsLoading, error: labsError } = useQuery<LabResult[]>({
     queryKey: [`/api/patients/${patientId}/labs`],
+    queryFn: async () => {
+      console.log('Lab results queryFn called for patient:', patientId);
+      const response = await fetch(`/api/patients/${patientId}/labs`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('clinic_token') || ''}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch lab results: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Lab results data received:', data);
+      return data;
+    },
     enabled: !!patientId,
   });
 
