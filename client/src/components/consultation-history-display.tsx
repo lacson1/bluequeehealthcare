@@ -316,36 +316,37 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
                               })}
                             </div>
                             
-                            {/* Core consultation information - Very compact display */}
+                            {/* Scrollable consultation content */}
                             {consultation.formData && (
                               <div className="mt-1 p-1.5 bg-gray-50 rounded border">
-                                <div className="space-y-0.5 text-xs">
-                                  {consultation.formData['Chief Complaint'] && (
-                                    <div>
-                                      <span className="font-medium text-gray-700">Complaint:</span> {consultation.formData['Chief Complaint']}
-                                    </div>
-                                  )}
-                                  {consultation.formData['Diagnosis'] && (
-                                    <div>
-                                      <span className="font-medium text-gray-700">Diagnosis:</span> {consultation.formData['Diagnosis']}
-                                    </div>
-                                  )}
-                                  {consultation.formData['Treatment Plan'] && (
-                                    <div>
-                                      <span className="font-medium text-gray-700">Treatment:</span> {consultation.formData['Treatment Plan']}
-                                    </div>
-                                  )}
-                                  {consultation.formData['Vital Signs'] && Object.values(consultation.formData['Vital Signs']).some(v => v) && (
-                                    <div>
-                                      <span className="font-medium text-gray-700">Vitals:</span>
-                                      <span className="ml-1">
-                                        {consultation.formData['Vital Signs']['Blood Pressure'] && `BP: ${consultation.formData['Vital Signs']['Blood Pressure']}`}
-                                        {consultation.formData['Vital Signs']['Temperature'] && `, Temp: ${consultation.formData['Vital Signs']['Temperature']}°C`}
-                                        {consultation.formData['Vital Signs']['Heart Rate'] && `, HR: ${consultation.formData['Vital Signs']['Heart Rate']}`}
-                                        {consultation.formData['Vital Signs']['Weight'] && `, Weight: ${consultation.formData['Vital Signs']['Weight']}kg`}
-                                      </span>
-                                    </div>
-                                  )}
+                                <div className="max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 space-y-0.5 text-xs">
+                                  {/* Display all form data dynamically */}
+                                  {Object.entries(consultation.formData).map(([key, value]) => {
+                                    if (!value || (typeof value === 'object' && !Object.values(value).some(v => v))) return null;
+                                    
+                                    return (
+                                      <div key={key} className="pb-1">
+                                        <span className="font-medium text-gray-700 capitalize">
+                                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
+                                        </span>
+                                        <div className="ml-2 text-gray-600">
+                                          {typeof value === 'object' ? (
+                                            <div className="space-y-0.5">
+                                              {Object.entries(value).map(([subKey, subValue]) => 
+                                                subValue ? (
+                                                  <div key={subKey}>
+                                                    <span className="font-medium">{subKey}:</span> {subValue}
+                                                  </div>
+                                                ) : null
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span>{value}</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}
