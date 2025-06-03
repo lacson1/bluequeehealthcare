@@ -263,10 +263,10 @@ export default function ClinicalActivityCenter() {
                   {recentPrescriptions.length === 0 ? (
                     <p className="text-slate-500 text-sm text-center py-8">No recent prescriptions</p>
                   ) : (
-                    recentPrescriptions.map((prescription) => (
+                    recentPrescriptions.map((prescription: Prescription) => (
                       <div key={prescription.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50">
                         <div className="flex-1">
-                          <p className="font-medium text-slate-900">{prescription.medicationName}</p>
+                          <p className="font-medium text-slate-900">{prescription.medicationName || 'Medication'}</p>
                           <p className="text-sm text-slate-600">Patient ID: {prescription.patientId}</p>
                           <p className="text-xs text-slate-500">{prescription.dosage} - {prescription.frequency}</p>
                         </div>
@@ -301,7 +301,7 @@ export default function ClinicalActivityCenter() {
                   {pendingLabOrders.length === 0 ? (
                     <p className="text-slate-500 text-sm text-center py-8">No pending lab orders</p>
                   ) : (
-                    pendingLabOrders.map((order) => (
+                    pendingLabOrders.map((order: LabOrderData) => (
                       <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50">
                         <div className="flex-1">
                           <p className="font-medium text-slate-900">Lab Order #{order.id}</p>
