@@ -147,12 +147,12 @@ export default function Pharmacy() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Fixed Top Bar */}
-      <header className="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
+      {/* Enhanced Fixed Header */}
+      <header className="healthcare-header px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between relative z-10">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">Pharmacy</h2>
-            <p className="text-sm text-slate-500">Comprehensive pharmacy operations and patient care</p>
+            <h2 className="text-2xl font-bold text-white drop-shadow-sm">Pharmacy Management</h2>
+            <p className="text-white/90 font-medium">Comprehensive pharmacy operations and patient care</p>
           </div>
         </div>
       </header>
@@ -160,12 +160,12 @@ export default function Pharmacy() {
       {/* Pharmacy Tabs */}
       <div className="flex-1 overflow-hidden">
         <Tabs defaultValue="prescriptions" className="h-full flex flex-col">
-          <div className="px-6 py-3 bg-gray-50 border-b">
-            <TabsList className="grid w-full grid-cols-4 max-w-2xl">
-              <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
-              <TabsTrigger value="inventory">Inventory</TabsTrigger>
-              <TabsTrigger value="activities">Activities</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+          <div className="px-6 py-3 bg-gradient-to-r from-background/95 to-muted/30 backdrop-blur-sm border-b border-border/60">
+            <TabsList className="grid w-full grid-cols-4 max-w-2xl bg-muted/60 backdrop-blur-sm border border-border/50">
+              <TabsTrigger value="prescriptions" className="font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">Prescriptions</TabsTrigger>
+              <TabsTrigger value="inventory" className="font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">Inventory</TabsTrigger>
+              <TabsTrigger value="activities" className="font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">Activities</TabsTrigger>
+              <TabsTrigger value="reviews" className="font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">Reviews</TabsTrigger>
             </TabsList>
           </div>
 
