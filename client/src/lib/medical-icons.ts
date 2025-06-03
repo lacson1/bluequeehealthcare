@@ -53,87 +53,111 @@ export const MedicalIcons = {
   medication: Pill,
   prescription: FileText,
   injection: Syringe,
-  dosage: Beaker,
-  labSample: TestTube,
-  laboratory: Microscope,
   pharmacy: Building2,
-  dispense: Package,
+  dosage: Pill,
   
-  // Scheduling & Time
+  // Laboratory & Diagnostics
+  labTest: TestTube,
+  labResults: Beaker,
+  microscope: Microscope,
+  bloodTest: FlaskConical,
+  urinalysis: TestTube,
+  
+  // Appointments & Scheduling
   appointment: Calendar,
   schedule: CalendarDays,
-  time: Clock,
+  clock: Clock,
   timer: Timer,
   confirmed: CalendarCheck,
   cancelled: CalendarX,
   
   // Documentation & Records
-  record: FileText,
-  newRecord: FilePlus,
-  verified: FileCheck,
-  incomplete: FileX,
-  documents: Files,
+  medicalRecord: FileText,
+  document: Files,
   folder: Folder,
+  note: FileText,
+  report: FileCheck,
+  newDocument: FilePlus,
+  deleteDocument: FileX,
   
   // Communication
   message: MessageSquare,
   chat: MessageCircle,
   email: Mail,
   phone: Phone,
-  video: Video,
+  videoCall: Video,
   microphone: Mic,
   
-  // Emergency & Alerts
-  emergency: AlertTriangle,
-  urgent: AlertCircle,
-  critical: AlertOctagon,
-  warning: Warning,
-  normal: CheckCircle,
-  alert: Bell,
+  // Alerts & Notifications
+  alert: AlertTriangle,
+  warning: AlertTriangle,
   notification: BellRing,
+  emergency: AlertOctagon,
   
-  // Security & Access
+  // Security & Access Control
   security: Shield,
   verified: ShieldCheck,
-  locked: Lock,
-  unlocked: Unlock,
-  access: Key,
-  userAccess: UserShield,
+  admin: UserCheck,
+  lock: Lock,
+  unlock: Unlock,
+  key: Key,
+  
+  // Locations & Navigation
+  hospital: Building2,
+  home: Home,
+  location: MapPin,
+  navigation: Navigation,
+  ambulance: Car,
+  transport: Truck,
   
   // Actions & Operations
   add: Plus,
   remove: Minus,
   close: X,
   confirm: Check,
+  info: AlertCircle,
+  
+  // System & Settings
+  settings: Settings,
+  configure: Cog,
   edit: Edit,
   delete: Trash2,
   save: Save,
   download: Download,
   upload: Upload,
   
-  // Navigation & Search
+  // Search & Filtering
   search: Search,
   filter: Filter,
-  sort: SortAsc,
+  sortAsc: SortAsc,
   sortDesc: SortDesc,
-  more: MoreVertical,
-  moreHorizontal: MoreHorizontal,
-  back: ChevronLeft,
-  forward: ChevronRight,
-  up: ChevronUp,
-  down: ChevronDown,
+  menu: MoreVertical,
+  options: MoreHorizontal,
+  
+  // Navigation Controls
+  chevronLeft: ChevronLeft,
+  chevronRight: ChevronRight,
+  chevronUp: ChevronUp,
+  chevronDown: ChevronDown,
   arrowLeft: ArrowLeft,
   arrowRight: ArrowRight,
   
-  // Technology & Devices
-  qrCode: QrCode,
-  barcode: Barcode,
+  // Status & Feedback
+  bell: Bell,
+  notification_active: BellRing,
+  flag: Flag,
+  bookmark: Bookmark,
+  star: Star,
+  
+  // Media & Files
   camera: Camera,
   image: Image,
   attachment: Paperclip,
   link: Link,
+  qrCode: QrCode,
+  barcode: Barcode,
   
-  // Sharing & Printing
+  // Sharing & Export
   print: Printer,
   share: Share,
   copy: Copy,
@@ -141,198 +165,131 @@ export const MedicalIcons = {
   refresh: RefreshCw,
   undo: RotateCcw,
   
-  // Information & Help
-  info: Info,
+  // Help & Information
   help: HelpCircle,
+  information: Info,
   success: CheckCircle,
   error: XCircle,
+  critical: AlertOctagon,
   
-  // System & Infrastructure
+  // Technology & Data
   database: Database,
   server: Server,
   cloud: Cloud,
-  online: Wifi,
+  wifi: Wifi,
   offline: WifiOff,
   signal: Signal,
   
-  // Layout & Interface
+  // Layout & UI
   layout: Layout,
   grid: LayoutGrid,
   list: LayoutList,
   table: Table,
+  gridView: Grid,
+  listView: List,
   
-  // Controls & Media
+  // Focus & View
+  target: Target,
+  crosshair: Crosshair,
+  focus: Focus,
+  maximize: Maximize,
+  minimize: Minimize,
+  move: Move,
+  
+  // Media Controls
   play: PlayCircle,
   pause: PauseCircle,
   stop: StopCircle,
-  next: SkipForward,
-  previous: SkipBack,
+  forward: SkipForward,
+  back: SkipBack,
   
-  // Audio & Voice
+  // Audio
   volume: Volume2,
   mute: VolumeX,
-  mic: MicrophoneIcon,
   micOff: MicOff,
   headphones: Headphones,
   
-  // Financial & Billing
-  billing: CreditCard,
-  payment: DollarSign,
+  // Financial
+  payment: CreditCard,
+  billing: DollarSign,
   receipt: Receipt,
   wallet: Wallet,
   savings: PiggyBank,
-  growth: Growth,
   
-  // Logistics & Transport
-  delivery: Truck,
-  cart: ShoppingCart,
+  // Inventory & Supply
+  inventory: Package,
+  supplies: ShoppingCart,
   tag: Tag,
   tags: Tags,
-  discount: Percent,
-  
-  // Location & Movement
-  location: MapPin,
-  navigation: Navigation,
-  transport: Car,
-  ambulance: Ambulance,
-  home: Home,
-  
-  // Organization & Structure
-  organization: Building2,
-  department: Folder,
-  team: Users,
-  
-  // Status & Flags
-  flag: Flag,
-  bookmark: Bookmark,
-  favorite: Star,
-  
-  // Tools & Utilities
-  settings: Settings,
-  configure: Cog,
-  target: Target,
-  focus: Focus,
-  crosshair: Crosshair,
-  maximize: Maximize,
-  minimize: Minimize,
-  move: Move
-} as const;
+  discount: Percent
+};
 
-// Medical Status Color Mapping
+// Status color mappings for healthcare contexts
 export const StatusColors = {
-  normal: "text-green-600",
-  success: "text-green-600",
-  warning: "text-yellow-600",
-  urgent: "text-orange-600",
   critical: "text-red-600",
-  error: "text-red-600",
-  info: "text-blue-600",
+  urgent: "text-orange-600", 
+  normal: "text-blue-600",
+  stable: "text-green-600",
   pending: "text-yellow-600",
-  completed: "text-green-600",
-  cancelled: "text-gray-600",
-  active: "text-green-600",
-  inactive: "text-gray-600",
-  discontinued: "text-orange-600"
-} as const;
+  inactive: "text-gray-400"
+};
 
-// Medical Background Color Mapping
+// Background color mappings
 export const StatusBackgrounds = {
-  normal: "bg-green-100 text-green-800 border-green-200",
-  success: "bg-green-100 text-green-800 border-green-200",
-  warning: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  urgent: "bg-orange-100 text-orange-800 border-orange-200",
-  critical: "bg-red-100 text-red-800 border-red-200",
-  error: "bg-red-100 text-red-800 border-red-200",
-  info: "bg-blue-100 text-blue-800 border-blue-200",
-  pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  completed: "bg-green-100 text-green-800 border-green-200",
-  cancelled: "bg-gray-100 text-gray-800 border-gray-200",
-  active: "bg-green-100 text-green-800 border-green-200",
-  inactive: "bg-gray-100 text-gray-800 border-gray-200",
-  discontinued: "bg-orange-100 text-orange-800 border-orange-200"
-} as const;
+  critical: "bg-red-50 border-red-200",
+  urgent: "bg-orange-50 border-orange-200",
+  normal: "bg-blue-50 border-blue-200", 
+  stable: "bg-green-50 border-green-200",
+  pending: "bg-yellow-50 border-yellow-200",
+  inactive: "bg-gray-50 border-gray-200"
+};
 
-// Icon Size Mapping for Healthcare UI
+// Icon size mappings
 export const IconSizes = {
-  xs: "w-3 h-3",
-  sm: "w-4 h-4",
-  md: "w-5 h-5",
-  lg: "w-6 h-6",
-  xl: "w-8 h-8",
-  "2xl": "w-10 h-10",
-  "3xl": "w-12 h-12"
-} as const;
+  xs: "h-3 w-3",
+  sm: "h-4 w-4", 
+  md: "h-5 w-5",
+  lg: "h-6 w-6",
+  xl: "h-8 w-8"
+};
 
-// Medical Icon Context Mapping
+// Medical context mappings
 export const MedicalContext = {
-  // Tab Icons
-  tabs: {
-    overview: MedicalIcons.patient,
-    medications: MedicalIcons.medication,
-    timeline: MedicalIcons.vitals,
-    safety: MedicalIcons.security,
-    vitals: MedicalIcons.monitor,
-    visit: MedicalIcons.appointment,
-    consultation: MedicalIcons.record,
-    communication: MedicalIcons.message
+  vitals: {
+    bloodPressure: MedicalIcons.bloodPressure,
+    heartRate: MedicalIcons.heartRate,
+    temperature: MedicalIcons.temperature,
+    weight: MedicalIcons.weight
   },
-  
-  // Action Icons
-  actions: {
-    add: MedicalIcons.add,
-    edit: MedicalIcons.edit,
-    delete: MedicalIcons.delete,
-    save: MedicalIcons.save,
-    cancel: MedicalIcons.close,
-    confirm: MedicalIcons.confirm,
-    print: MedicalIcons.print,
-    share: MedicalIcons.share,
-    refresh: MedicalIcons.refresh
+  appointments: {
+    scheduled: MedicalIcons.confirmed,
+    pending: MedicalIcons.appointment,
+    cancelled: MedicalIcons.cancelled
   },
-  
-  // Status Icons
-  status: {
-    active: MedicalIcons.success,
-    inactive: MedicalIcons.error,
-    pending: MedicalIcons.timer,
-    completed: MedicalIcons.verified,
-    cancelled: MedicalIcons.close,
-    urgent: MedicalIcons.urgent,
-    critical: MedicalIcons.critical,
-    normal: MedicalIcons.normal
-  },
-  
-  // Medication Icons
-  medication: {
-    current: MedicalIcons.medication,
-    past: MedicalIcons.time,
-    repeat: MedicalIcons.refresh,
-    summary: MedicalIcons.record,
-    verified: MedicalIcons.verified,
-    dispense: MedicalIcons.dispense,
-    pharmacy: MedicalIcons.pharmacy
+  patient: {
+    profile: MedicalIcons.patientProfile,
+    record: MedicalIcons.medicalRecord,
+    edit: MedicalIcons.edit
   }
-} as const;
+};
 
-// Helper function to get icon with consistent styling
+// Utility function to get medical icon
 export const getMedicalIcon = (
-  iconName: keyof typeof MedicalIcons,
-  size: keyof typeof IconSizes = "md",
-  className?: string
+  iconName: keyof typeof MedicalIcons, 
+  size: keyof typeof IconSizes = 'md'
 ) => {
   const IconComponent = MedicalIcons[iconName];
   const sizeClass = IconSizes[size];
-  const finalClassName = className ? `${sizeClass} ${className}` : sizeClass;
-  
-  return { Icon: IconComponent, className: finalClassName };
+  return { IconComponent, className: sizeClass };
 };
 
-// Helper function to get status styling
+// Utility function to get status styling
 export const getStatusStyling = (status: keyof typeof StatusColors) => ({
-  iconColor: StatusColors[status],
-  badgeClass: StatusBackgrounds[status]
+  textColor: StatusColors[status],
+  background: StatusBackgrounds[status]
 });
 
+// Type exports
 export type MedicalIconName = keyof typeof MedicalIcons;
 export type IconSize = keyof typeof IconSizes;
 export type StatusType = keyof typeof StatusColors;

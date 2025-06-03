@@ -842,19 +842,19 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
       <Tabs defaultValue="overview" className="w-full h-full">
         <TabsList className="grid w-full grid-cols-9 mb-6 h-16 bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-300 rounded-xl p-2 shadow-lg backdrop-blur-sm">
           <TabsTrigger value="overview" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <User className="w-5 h-5" />
+            <MedicalIcons.patient className="w-5 h-5" />
             Overview
           </TabsTrigger>
           <TabsTrigger value="medications" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <Pill className="w-5 h-5" />
+            <MedicalIcons.medication className="w-5 h-5" />
             Medications
           </TabsTrigger>
           <TabsTrigger value="timeline" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <Activity className="w-5 h-5" />
+            <MedicalIcons.vitals className="w-5 h-5" />
             Timeline
           </TabsTrigger>
           <TabsTrigger value="safety" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <Heart className="w-5 h-5" />
+            <MedicalIcons.heartRate className="w-5 h-5" />
             Safety
           </TabsTrigger>
           <TabsTrigger value="vitals" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
@@ -1249,7 +1249,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                     className="text-blue-600 hover:text-blue-800 border-blue-200"
                                     onClick={() => handleScheduleReview(prescription.id, prescription.medicationName)}
                                   >
-                                    <UserCheck className="w-3 h-3 mr-1" />
+                                    <MedicalIcons.patientProfile className="w-3 h-3 mr-1" />
                                     Schedule Review
                                   </Button>
                                   <Button 
