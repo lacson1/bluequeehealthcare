@@ -1379,13 +1379,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           id: labOrderItems.id,
           patientId: labOrders.patientId,
           testName: labTests.name,
-          testDate: labOrderItems.resultDate,
+          testDate: labOrderItems.completedAt,
           result: labOrderItems.result,
           normalRange: labTests.referenceRange,
           status: labOrderItems.status,
-          notes: labOrderItems.notes,
+          notes: labOrderItems.remarks,
           organizationId: labOrders.organizationId,
-          createdAt: labOrderItems.createdAt
+          createdAt: labOrders.createdAt
         })
         .from(labOrderItems)
         .innerJoin(labOrders, eq(labOrderItems.labOrderId, labOrders.id))
@@ -1397,7 +1397,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
             isNotNull(labOrderItems.result) // Only get items with actual results
           )
         )
-        .orderBy(desc(labOrderItems.resultDate));
+        .orderBy(desc(labOrderItems.completedAt));
 
       res.json(labResults);
     } catch (error) {
