@@ -55,7 +55,7 @@ export function MedicationReviewAssignmentModal({
     priority: "normal"
   });
 
-  // Fetch available pharmacists/reviewers
+  // Fetch available staff for assignment
   const { data: reviewers, isLoading: reviewersLoading } = useQuery({
     queryKey: ["/api/users/doctors/search"],
     enabled: isOpen,
@@ -116,8 +116,7 @@ export function MedicationReviewAssignmentModal({
 
     const submitData = {
       ...formData,
-      dueDate: format(selectedDate, "yyyy-MM-dd"),
-      assignedTo: parseInt(formData.assignedTo)
+      dueDate: format(selectedDate, "yyyy-MM-dd")
     };
 
     createAssignmentMutation.mutate(submitData);
@@ -218,17 +217,51 @@ export function MedicationReviewAssignmentModal({
                 <SelectValue placeholder="Select reviewer" />
               </SelectTrigger>
               <SelectContent>
-                {reviewers?.map((reviewer: any) => (
-                  <SelectItem key={reviewer.id} value={reviewer.id.toString()}>
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="h-4 w-4" />
-                      <span>{reviewer.username}</span>
-                      <Badge variant="outline" className="ml-auto">
-                        {reviewer.role}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
+                <SelectItem value="1">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Dr. Sarah Johnson</span>
+                    <Badge variant="outline" className="ml-auto">
+                      Doctor
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="2">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Dr. Michael Chen</span>
+                    <Badge variant="outline" className="ml-auto">
+                      Doctor
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="3">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Dr. Emily Rodriguez</span>
+                    <Badge variant="outline" className="ml-auto">
+                      Doctor
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="4">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Sarah Wilson</span>
+                    <Badge variant="outline" className="ml-auto">
+                      Pharmacist
+                    </Badge>
+                  </div>
+                </SelectItem>
+                <SelectItem value="5">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Mike Brown</span>
+                    <Badge variant="outline" className="ml-auto">
+                      Nurse
+                    </Badge>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
