@@ -1222,7 +1222,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                               {prescription.instructions && (
                                 <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
                                   <span className="font-medium text-gray-700 flex items-center gap-2">
-                                    <FileText className="w-4 h-4" />
+                                    <MedicalIcons.medicalRecord className="w-4 h-4" />
                                     Instructions
                                   </span>
                                   <p className="text-gray-800 mt-2">{prescription.instructions}</p>
@@ -1671,7 +1671,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                 <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-gray-600" />
+                      <MedicalIcons.medicalRecord className="h-5 w-5 text-gray-600" />
                       Recent Visits & Consultations
                       <Badge variant="secondary" className="ml-2">
                         {combinedVisits.length}
@@ -1834,7 +1834,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                       />
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-orange-100 rounded-full flex items-center justify-center">
-                          <FileText className="w-2 h-2 text-orange-600" />
+                          <MedicalIcons.medicalRecord className="w-2 h-2 text-orange-600" />
                         </div>
                         <label htmlFor="filter-consultations" className="text-xs cursor-pointer">Consultations</label>
                       </div>
