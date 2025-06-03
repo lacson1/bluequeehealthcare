@@ -48,32 +48,39 @@ export default function PatientProfile() {
     queryKey: ["/api/organizations/current"],
   });
 
-  // Fetch lab results using React Query (fixed approach)
-  const labResultsQuery = useQuery<LabResult[]>({
-    queryKey: [`/api/patients/${patientId}/labs`],
-    enabled: !!patientId,
-    staleTime: 0,
-    gcTime: 0,
-    retry: false,
-  });
+  // Fetch lab results with direct fetch (bypassing React Query)
+  const [labResults, setLabResults] = useState<LabResult[]>([]);
+  const [labsLoading, setLabsLoading] = useState(true);
+  const [labsError, setLabsError] = useState<Error | null>(null);
 
-  // Debug logging for lab results query
   useEffect(() => {
-    console.log('Lab Results Query State:', {
-      patientId,
-      queryKey: [`/api/patients/${patientId}/labs`],
-      enabled: !!patientId,
-      data: labResultsQuery.data,
-      isLoading: labResultsQuery.isLoading,
-      error: labResultsQuery.error,
-      status: labResultsQuery.status,
-      fetchStatus: labResultsQuery.fetchStatus,
-    });
-  }, [patientId, labResultsQuery.data, labResultsQuery.isLoading, labResultsQuery.error, labResultsQuery.status, labResultsQuery.fetchStatus]);
+    if (patientId) {
+      const fetchLabResults = async () => {
+        try {
+          setLabsLoading(true);
+          const response = await fetch(`/api/patients/${patientId}/labs`, {
+            credentials: 'include',
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch lab results: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          setLabResults(data);
+          setLabsError(null);
+        } catch (error) {
+          console.error('Lab results fetch error:', error);
+          setLabsError(error as Error);
+          setLabResults([]);
+        } finally {
+          setLabsLoading(false);
+        }
+      };
 
-  const labResults = labResultsQuery.data;
-  const labsLoading = labResultsQuery.isLoading;
-  const labsError = labResultsQuery.error;
+      fetchLabResults();
+    }
+  }, [patientId]);
 
   if (!patientId) {
     return (
