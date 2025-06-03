@@ -125,13 +125,19 @@ interface LabOrderCardProps {
 }
 
 function LabOrderCard({ order, isExpanded, onToggle }: LabOrderCardProps) {
-  const { data: orderItems = [], isLoading: itemsLoading } = useQuery<LabOrderItem[]>({
+  const { data: orderItems = [], isLoading: itemsLoading, error } = useQuery<LabOrderItem[]>({
     queryKey: ['/api/lab-orders', order.id, 'items'],
-    enabled: isExpanded
+    enabled: isExpanded,
+    retry: false
   });
 
   const completedTests = orderItems.filter(item => item.completedAt);
   const pendingTests = orderItems.filter(item => !item.completedAt);
+
+  // Handle error state for lab order items
+  if (error && isExpanded) {
+    console.warn(`Could not load items for lab order ${order.id}:`, error);
+  }
 
   const getOrderStatus = () => {
     if (orderItems.length === 0) return 'pending';
