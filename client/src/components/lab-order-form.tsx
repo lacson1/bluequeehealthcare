@@ -257,79 +257,95 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
 
       {/* Lab Tests by Category */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TestTube className="h-5 w-5" />
-            Available Laboratory Tests
-          </CardTitle>
-          {selectedTests.length > 0 && (
-            <Badge variant="secondary" className="w-fit">
-              {selectedTests.length} test{selectedTests.length > 1 ? 's' : ''} selected
-            </Badge>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {Object.entries(categorizedTests).map(([category, tests]) => (
-            <Collapsible
-              key={category}
-              open={expandedCategories.includes(category)}
-              onOpenChange={() => toggleCategory(category)}
-            >
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-between p-4 h-auto border border-gray-200 dark:border-gray-700"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">{getCategoryIcon(category)}</span>
-                    <div className="text-left">
-                      <div className="font-medium">{category}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {tests.length} test{tests.length > 1 ? 's' : ''} available
-                      </div>
-                    </div>
-                  </div>
-                  {expandedCategories.includes(category) ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
+        <Collapsible 
+          open={expandedCategories.includes('main')} 
+          onOpenChange={() => toggleCategory('main')}
+        >
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TestTube className="h-5 w-5" />
+                  Available Laboratory Tests
+                  {selectedTests.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {selectedTests.length} test{selectedTests.length > 1 ? 's' : ''} selected
+                    </Badge>
                   )}
-                </Button>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent className="mt-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  {tests.map(test => (
-                    <div
-                      key={test.id}
-                      className="flex items-start space-x-3 p-3 bg-white dark:bg-gray-700 rounded border cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                      onClick={() => handleTestToggle(test.id)}
-                    >
-                      <Checkbox
-                        id={`test-${test.id}`}
-                        checked={selectedTests.includes(test.id)}
-                        onCheckedChange={() => handleTestToggle(test.id)}
-                      />
-                      <div className="flex-1">
-                        <label
-                          htmlFor={`test-${test.id}`}
-                          className="text-sm font-medium cursor-pointer"
-                        >
-                          {test.name}
-                        </label>
-                        {test.referenceRange && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Normal: {test.referenceRange}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-        </CardContent>
+                {expandedCategories.includes('main') ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              {Object.entries(categorizedTests).map(([category, tests]) => (
+                <Collapsible
+                  key={category}
+                  open={expandedCategories.includes(category)}
+                  onOpenChange={() => toggleCategory(category)}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between p-4 h-auto border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{getCategoryIcon(category)}</span>
+                        <div className="text-left">
+                          <div className="font-medium">{category}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {tests.length} test{tests.length > 1 ? 's' : ''} available
+                          </div>
+                        </div>
+                      </div>
+                      {expandedCategories.includes(category) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent className="mt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      {tests.map(test => (
+                        <div
+                          key={test.id}
+                          className="flex items-start space-x-3 p-3 bg-white dark:bg-gray-700 rounded border cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                          onClick={() => handleTestToggle(test.id)}
+                        >
+                          <Checkbox
+                            id={`test-${test.id}`}
+                            checked={selectedTests.includes(test.id)}
+                            onCheckedChange={() => handleTestToggle(test.id)}
+                          />
+                          <div className="flex-1">
+                            <label
+                              htmlFor={`test-${test.id}`}
+                              className="text-sm font-medium cursor-pointer"
+                            >
+                              {test.name}
+                            </label>
+                            {test.referenceRange && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Normal: {test.referenceRange}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       {/* Submit Button */}
