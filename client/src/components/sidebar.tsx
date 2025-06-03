@@ -331,7 +331,7 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
                           <Link
                             key={item.name}
                             href={item.href}
-                            className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`group relative flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                               isActive(item.href)
                                 ? "bg-primary/10 text-primary"
                                 : "text-slate-600 hover:bg-slate-100"
@@ -339,7 +339,16 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
                             onClick={handleMobileLinkClick}
                           >
                             <Icon className="w-4 h-4 flex-shrink-0" />
-                            <span>{item.name}</span>
+                            <span className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+                              {item.name}
+                            </span>
+                            
+                            {/* Tooltip for collapsed state */}
+                            {isCollapsed && (
+                              <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none">
+                                {item.name}
+                              </div>
+                            )}
                           </Link>
                         );
                       })}
