@@ -282,88 +282,83 @@ export default function PatientProfile() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="w-full px-2 py-2">
-          {/* Quick Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-shadow">
-              <CardContent className="p-3">
-                <div className="flex items-center space-x-2">
-                  <div className="p-1.5 bg-blue-100 rounded-lg">
-                    <Activity className="h-5 w-5 text-blue-600" />
+        <div className="w-full px-1 py-1">
+          {/* Compact Stats Row */}
+          <div className="grid grid-cols-4 gap-1 mb-2">
+            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-all duration-200">
+              <CardContent className="p-2">
+                <div className="text-center">
+                  <div className="p-1 bg-blue-100 rounded-full mx-auto w-fit mb-1">
+                    <Activity className="h-4 w-4 text-blue-600" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Total Visits</p>
-                    <p className="text-2xl font-bold text-gray-900">{visits?.length || 0}</p>
-                  </div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Visits</p>
+                  <p className="text-xl font-bold text-gray-900">{visits?.length || 0}</p>
                 </div>
               </CardContent>
             </Card>
             
-            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-shadow">
-              <CardContent className="p-3">
-                <div className="flex items-center space-x-2">
-                  <div className="p-1.5 bg-green-100 rounded-lg">
-                    <Pill className="h-5 w-5 text-green-600" />
+            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-all duration-200">
+              <CardContent className="p-2">
+                <div className="text-center">
+                  <div className="p-1 bg-green-100 rounded-full mx-auto w-fit mb-1">
+                    <Pill className="h-4 w-4 text-green-600" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Active Prescriptions</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {prescriptions?.filter(p => p.status === 'active').length || 0}
-                    </p>
-                  </div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Active Rx</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {prescriptions?.filter(p => p.status === 'active').length || 0}
+                  </p>
                 </div>
               </CardContent>
             </Card>
             
-            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-shadow">
-              <CardContent className="p-3">
-                <div className="flex items-center space-x-2">
-                  <div className="p-1.5 bg-orange-100 rounded-lg">
-                    <FlaskRound className="h-5 w-5 text-orange-600" />
+            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-all duration-200">
+              <CardContent className="p-2">
+                <div className="text-center">
+                  <div className="p-1 bg-orange-100 rounded-full mx-auto w-fit mb-1">
+                    <FlaskRound className="h-4 w-4 text-orange-600" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Lab Orders</p>
-                    <p className="text-2xl font-bold text-gray-900">{labResults?.length || 0}</p>
-                  </div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Lab Tests</p>
+                  <p className="text-xl font-bold text-gray-900">{labResults?.length || 0}</p>
                 </div>
               </CardContent>
             </Card>
             
-            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Heart className="h-5 w-5 text-purple-600" />
+            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-all duration-200">
+              <CardContent className="p-2">
+                <div className="text-center">
+                  <div className="p-1 bg-purple-100 rounded-full mx-auto w-fit mb-1">
+                    <Heart className="h-4 w-4 text-purple-600" />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Last Visit</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {visits && visits.length > 0 
-                        ? new Date(visits[0].visitDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        : 'None'
-                      }
-                    </p>
-                  </div>
+                  <p className="text-xs font-medium text-gray-500 mb-0.5">Last Visit</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {visits && visits.length > 0 
+                      ? new Date(visits[0].visitDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : 'None'
+                    }
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Enhanced Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-            {/* Left Column - Main Patient Overview */}
-            <div className="lg:col-span-3 space-y-3">
-              {/* Vital Signs Chart */}
-              <PatientVitalsChart 
-                vitals={visits?.map(visit => ({
-                  date: visit.visitDate.toString(),
-                  bloodPressure: visit.bloodPressure || undefined,
-                  heartRate: visit.heartRate || undefined,
-                  temperature: visit.temperature ? parseFloat(visit.temperature) : undefined,
-                  weight: visit.weight ? parseFloat(visit.weight) : undefined
-                })) || []}
-              />
+          {/* Optimized Content Layout */}
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-2">
+            {/* Main Content Area - Takes more space */}
+            <div className="xl:col-span-4 space-y-2">
+              {/* Vital Signs Chart - Reduced height */}
+              <div className="h-64">
+                <PatientVitalsChart 
+                  vitals={visits?.map(visit => ({
+                    date: visit.visitDate.toString(),
+                    bloodPressure: visit.bloodPressure || undefined,
+                    heartRate: visit.heartRate || undefined,
+                    temperature: visit.temperature ? parseFloat(visit.temperature) : undefined,
+                    weight: visit.weight ? parseFloat(visit.weight) : undefined
+                  })) || []}
+                />
+              </div>
               
+              {/* Patient Overview - Optimized spacing */}
               <ModernPatientOverview
                 patient={patient as Patient}
                 visits={visits || []}
@@ -373,123 +368,121 @@ export default function PatientProfile() {
               />
             </div>
 
-            {/* Right Column - Quick Actions & Summary */}
-            <div className="space-y-3">
-              {/* Quick Actions Card */}
+            {/* Compact Sidebar - Actions & Summary */}
+            <div className="space-y-2">
+              {/* Compact Quick Actions */}
               <Card className="bg-white shadow-sm border-0">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-semibold text-gray-900 flex items-center">
-                    <Plus className="h-4 w-4 mr-2 text-blue-600" />
+                <CardHeader className="pb-1 px-3 pt-3">
+                  <CardTitle className="text-sm font-semibold text-gray-900 flex items-center">
+                    <Plus className="h-3 w-3 mr-1 text-blue-600" />
                     Quick Actions
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-1 px-3 pb-3">
                   <Button 
                     onClick={() => setShowVisitModal(true)}
-                    className="w-full justify-start bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    className="w-full justify-start h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                     variant="outline"
                   >
-                    <Monitor className="h-4 w-4 mr-2" />
-                    Record New Visit
+                    <Monitor className="h-3 w-3 mr-1" />
+                    New Visit
                   </Button>
-                  
-
                   
                   <Button 
                     onClick={() => navigate(`/lab-orders?patientId=${patientId}`)}
-                    className="w-full justify-start bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+                    className="w-full justify-start h-8 text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
                     variant="outline"
                   >
-                    <FlaskRound className="h-4 w-4 mr-2" />
-                    Order Lab Tests
+                    <FlaskRound className="h-3 w-3 mr-1" />
+                    Lab Order
                   </Button>
                   
                   <Button 
                     onClick={() => setShowPrescriptionModal(true)}
-                    className="w-full justify-start bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                    className="w-full justify-start h-8 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
                     variant="outline"
                   >
-                    <Pill className="h-4 w-4 mr-2" />
-                    Prescribe Medication
+                    <Pill className="h-3 w-3 mr-1" />
+                    Prescribe
                   </Button>
                   
                   <Button 
                     onClick={() => navigate(`/documents?patientId=${patientId}`)}
-                    className="w-full justify-start bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                    className="w-full justify-start h-8 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
                     variant="outline"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Generate Report
+                    <Plus className="h-3 w-3 mr-1" />
+                    Report
                   </Button>
                   
                   <Button 
                     onClick={() => navigate(`/referral-letters?patientId=${patientId}`)}
-                    className="w-full justify-start bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200"
+                    className="w-full justify-start h-8 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200"
                     variant="outline"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Referral
+                    <Plus className="h-3 w-3 mr-1" />
+                    Referral
                   </Button>
                   
                   <Button 
                     onClick={() => navigate(`/appointments?action=schedule&patientId=${patientId}`)}
-                    className="w-full justify-start bg-teal-50 hover:bg-teal-100 text-teal-700 border-teal-200"
+                    className="w-full justify-start h-8 text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 border-teal-200"
                     variant="outline"
                   >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Follow-up
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Follow-up
                   </Button>
                 </CardContent>
               </Card>
 
-              {/* Patient Summary Card */}
+              {/* Compact Patient Summary */}
               <Card className="bg-white shadow-sm border-0">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-                    <User className="h-5 w-5 mr-2 text-gray-600" />
-                    Patient Summary
+                <CardHeader className="pb-1 px-3 pt-3">
+                  <CardTitle className="text-sm font-semibold text-gray-900 flex items-center">
+                    <User className="h-3 w-3 mr-1 text-gray-600" />
+                    Summary
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                <CardContent className="space-y-2 px-3 pb-3">
+                  <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Registration Date</span>
-                      <span className="text-sm font-medium">
-                        {new Date(patient?.createdAt || '').toLocaleDateString()}
+                      <span className="text-xs text-gray-500">Registration</span>
+                      <span className="text-xs font-medium">
+                        {new Date(patient?.createdAt || '').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
                       </span>
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Blood Type</span>
-                      <Badge variant="outline" className="text-red-600 border-red-200">
+                      <span className="text-xs text-gray-500">Blood Type</span>
+                      <Badge variant="outline" className="text-xs text-red-600 border-red-200 h-5">
                         A+
                       </Badge>
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Emergency Contact</span>
-                      <span className="text-sm font-medium">
-                        {patient?.phone || 'Not provided'}
+                      <span className="text-xs text-gray-500">Phone</span>
+                      <span className="text-xs font-medium truncate max-w-20">
+                        {patient?.phone || 'N/A'}
                       </span>
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Insurance</span>
-                      <Badge variant="outline" className="text-green-600 border-green-200">
+                      <span className="text-xs text-gray-500">Insurance</span>
+                      <Badge variant="outline" className="text-xs text-green-600 border-green-200 h-5">
                         Active
                       </Badge>
                     </div>
                   </div>
                   
-                  <div className="pt-3 border-t border-gray-100">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Allergies</h4>
+                  <div className="pt-2 border-t border-gray-100">
+                    <h4 className="text-xs font-medium text-gray-900 mb-1">Allergies</h4>
                     <div className="flex flex-wrap gap-1">
                       {patient?.allergies ? (
-                        <Badge variant="secondary" className="text-xs bg-red-50 text-red-700">
-                          {patient.allergies}
+                        <Badge variant="secondary" className="text-xs bg-red-50 text-red-700 h-5">
+                          {patient.allergies.length > 12 ? patient.allergies.substring(0, 12) + '...' : patient.allergies}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-gray-500">No known allergies</span>
+                        <span className="text-xs text-gray-500">None</span>
                       )}
                     </div>
                   </div>
