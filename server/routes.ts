@@ -5381,11 +5381,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Document not found" });
       }
 
-      const fs = require('fs');
-      const path = require('path');
-      const filePath = path.join(process.cwd(), 'uploads', 'medical', fileName);
+      const fs = await import('fs');
+      const path = await import('path');
+      const filePath = path.default.join(process.cwd(), 'uploads', fileName);
 
-      if (!fs.existsSync(filePath)) {
+      if (!fs.default.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found" });
       }
 
@@ -5393,7 +5393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', document.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
       
-      const fileStream = fs.createReadStream(filePath);
+      const fileStream = fs.default.createReadStream(filePath);
       fileStream.pipe(res);
     } catch (error) {
       console.error('Error serving medical document:', error);
