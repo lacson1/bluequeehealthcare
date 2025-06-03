@@ -126,7 +126,7 @@ interface LabOrderCardProps {
 
 function LabOrderCard({ order, isExpanded, onToggle }: LabOrderCardProps) {
   const { data: orderItems = [], isLoading: itemsLoading, error } = useQuery<LabOrderItem[]>({
-    queryKey: ['/api/lab-orders', order.id, 'items'],
+    queryKey: [`/api/lab-orders/${order.id}/items`],
     enabled: isExpanded,
     retry: false
   });
