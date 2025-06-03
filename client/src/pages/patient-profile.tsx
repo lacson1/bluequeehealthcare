@@ -48,51 +48,13 @@ export default function PatientProfile() {
     queryKey: ["/api/organizations/current"],
   });
 
-  // Fetch lab results - force immediate execution (moved before early returns)
-  const [labResults, setLabResults] = useState<LabResult[]>([]);
-  const [labsLoading, setLabsLoading] = useState(true);
-  const [labsError, setLabsError] = useState<Error | null>(null);
-
-  // Manual fetch for debugging with useEffect
-  useEffect(() => {
-    console.log('useEffect triggered, patientId:', patientId);
-    if (patientId) {
-      console.log('Manual lab results fetch for patient:', patientId);
-      const fetchLabResults = async () => {
-        try {
-          console.log('Starting lab results fetch...');
-          setLabsLoading(true);
-          setLabsError(null);
-          
-          const response = await fetch(`/api/patients/${patientId}/labs`, {
-            method: 'GET',
-            credentials: 'include',
-          });
-          
-          console.log('Lab results response status:', response.status);
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Lab results fetch error:', errorText);
-            throw new Error(`Failed to fetch lab results: ${response.status} - ${errorText}`);
-          }
-          const data = await response.json();
-          console.log('Lab results data received:', data);
-          setLabResults(data);
-        } catch (error) {
-          console.error('Lab results fetch error:', error);
-          setLabsError(error as Error);
-          setLabResults([]);
-        } finally {
-          setLabsLoading(false);
-        }
-      };
-
-      fetchLabResults();
-    } else {
-      console.log('No patientId, skipping lab results fetch');
-      setLabsLoading(false);
-    }
-  }, [patientId]);
+  // Fetch lab results using React Query (fixed approach)
+  const { data: labResults, isLoading: labsLoading, error: labsError } = useQuery<LabResult[]>({
+    queryKey: [`/api/patients/${patientId}/labs`],
+    enabled: !!patientId,
+    staleTime: 0,
+    gcTime: 0,
+  });
 
   if (!patientId) {
     return (
