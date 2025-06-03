@@ -261,7 +261,7 @@ function PatientReviewedResults({ patientId }: { patientId: number }) {
                       View Full Details
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handlePrintResult(result)}>
-                      <MedicalIcons.print className="mr-2 h-4 w-4" />
+                      <Printer className="mr-2 h-4 w-4" />
                       Print Result
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleExportResult(result)}>
