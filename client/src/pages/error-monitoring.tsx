@@ -9,7 +9,7 @@ import { AlertTriangle, CheckCircle, Clock, TrendingUp, Activity, Shield, Brain 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import AIErrorInsights from "@/components/ai-error-insights";
+import AIErrorInsights from "@/components/ai-error-insights-simplified";
 
 interface ErrorLog {
   id: number;
