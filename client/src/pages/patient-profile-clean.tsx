@@ -45,6 +45,7 @@ import MedicalHistoryManagement from "@/components/medical-history-management";
 import { PatientSummaryPrintable } from "@/components/patient-summary-printable";
 import { ModernPatientOverview } from "@/components/modern-patient-overview";
 import { FloatingActionMenu } from "@/components/floating-action-menu";
+import { PatientVitalsChart } from "@/components/patient-vitals-chart";
 import { useRole } from "@/components/role-guard";
 import { formatPatientName, getPatientInitials } from "@/lib/patient-utils";
 import type { Patient, Visit, LabResult, Prescription } from "@shared/schema";
@@ -278,15 +279,200 @@ export default function PatientProfile() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 max-w-full">
-        <div className="w-full max-w-none">
-          <ModernPatientOverview
-            patient={patient as Patient}
-            visits={visits || []}
-            recentLabs={labResults || []}
-            activePrescriptions={prescriptions || []}
-            onAddPrescription={() => setShowPrescriptionModal(true)}
-          />
+      <main className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          {/* Quick Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Activity className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Total Visits</p>
+                    <p className="text-2xl font-bold text-gray-900">{visits?.length || 0}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Pill className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Active Prescriptions</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {prescriptions?.filter(p => p.status === 'active').length || 0}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <FlaskRound className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Lab Orders</p>
+                    <p className="text-2xl font-bold text-gray-900">{labResults?.length || 0}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-white shadow-sm border-0 hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <Heart className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Last Visit</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {visits && visits.length > 0 
+                        ? new Date(visits[0].visitDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : 'None'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Enhanced Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Main Patient Overview */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Vital Signs Chart */}
+              <PatientVitalsChart 
+                vitals={visits?.map(visit => ({
+                  date: visit.visitDate.toString(),
+                  bloodPressure: visit.bloodPressure || undefined,
+                  heartRate: visit.heartRate || undefined,
+                  temperature: visit.temperature ? parseFloat(visit.temperature) : undefined,
+                  weight: visit.weight ? parseFloat(visit.weight) : undefined
+                })) || []}
+              />
+              
+              <ModernPatientOverview
+                patient={patient as Patient}
+                visits={visits || []}
+                recentLabs={labResults || []}
+                activePrescriptions={prescriptions || []}
+                onAddPrescription={() => setShowPrescriptionModal(true)}
+              />
+            </div>
+
+            {/* Right Column - Quick Actions & Summary */}
+            <div className="space-y-6">
+              {/* Quick Actions Card */}
+              <Card className="bg-white shadow-sm border-0">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Plus className="h-5 w-5 mr-2 text-blue-600" />
+                    Quick Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    onClick={() => setShowVisitModal(true)}
+                    className="w-full justify-start bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    variant="outline"
+                  >
+                    <Monitor className="h-4 w-4 mr-2" />
+                    Record New Visit
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => setShowPrescriptionModal(true)}
+                    className="w-full justify-start bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                    variant="outline"
+                  >
+                    <Pill className="h-4 w-4 mr-2" />
+                    Add Prescription
+                  </Button>
+                  
+                  <Button 
+                    className="w-full justify-start bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+                    variant="outline"
+                  >
+                    <FlaskRound className="h-4 w-4 mr-2" />
+                    Order Lab Tests
+                  </Button>
+                  
+                  <Button 
+                    className="w-full justify-start bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                    variant="outline"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Generate Report
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Patient Summary Card */}
+              <Card className="bg-white shadow-sm border-0">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
+                    <User className="h-5 w-5 mr-2 text-gray-600" />
+                    Patient Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Registration Date</span>
+                      <span className="text-sm font-medium">
+                        {new Date(patient?.createdAt || '').toLocaleDateString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Blood Type</span>
+                      <Badge variant="outline" className="text-red-600 border-red-200">
+                        A+
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Emergency Contact</span>
+                      <span className="text-sm font-medium">
+                        {patient?.phone || 'Not provided'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Insurance</span>
+                      <Badge variant="outline" className="text-green-600 border-green-200">
+                        Active
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-gray-100">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Allergies</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {patient?.allergies ? (
+                        <Badge variant="secondary" className="text-xs bg-red-50 text-red-700">
+                          {patient.allergies}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-gray-500">No known allergies</span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
         
         {/* Floating Action Menu */}
