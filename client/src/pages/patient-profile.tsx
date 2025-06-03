@@ -43,7 +43,7 @@ import { ModernPatientOverview } from "@/components/modern-patient-overview";
 import { FloatingActionMenu } from "@/components/floating-action-menu";
 import { useRole } from "@/components/role-guard";
 import { formatPatientName, getPatientInitials } from "@/lib/patient-utils";
-import type { Patient, Visit, LabResult, Prescription } from "@shared/schema";
+import type { Patient, Visit, LabResult, Prescription, Organization } from "@shared/schema";
 
 export default function PatientProfile() {
   const [, params] = useRoute("/patients/:id");
@@ -80,6 +80,20 @@ export default function PatientProfile() {
 
   // Get current user's organization
   const currentOrganization = organizations.find(org => org.id === user?.organizationId);
+
+  // Helper function to render status badges for lab results
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'normal':
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">Normal</Badge>;
+      case 'abnormal':
+        return <Badge variant="destructive" className="bg-red-100 text-red-800">Abnormal</Badge>;
+      case 'critical':
+        return <Badge variant="destructive" className="bg-red-500 text-white">Critical</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
 
   if (patientLoading) {
     return (
