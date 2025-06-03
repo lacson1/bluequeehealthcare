@@ -543,6 +543,9 @@ export function PerformanceDashboard() {
                 <CardContent>
                   {optimizationTasks?.tasks && optimizationTasks.tasks.length > 0 ? (
                     <div className="space-y-4">
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">Standard Optimization Tasks</h4>
+                      </div>
                       {optimizationTasks.tasks.map((task: any) => (
                         <div key={task.id} className="border rounded-lg p-4">
                           <div className="flex items-start justify-between">
@@ -596,6 +599,100 @@ export function PerformanceDashboard() {
                           </div>
                         </div>
                       ))}
+                      
+                      {/* AI-Powered Optimization Section */}
+                      {aiOptimizationTasks?.tasks && aiOptimizationTasks.tasks.length > 0 && (
+                        <div className="mt-8 pt-6 border-t">
+                          <div className="mb-4 flex items-center gap-2">
+                            <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+                            <h4 className="text-sm font-medium text-blue-900">AI-Powered Optimization Tasks</h4>
+                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                              Confidence: {aiOptimizationTasks.summary?.avgConfidence || 75}%
+                            </span>
+                          </div>
+                          {aiOptimizationTasks.tasks.map((task: any) => (
+                            <div key={task.id} className="border border-blue-200 rounded-lg p-4 bg-blue-50 mb-4">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-2 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      task.priority === 'critical' ? 'bg-red-100 text-red-800' :
+                                      task.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                                      task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-green-100 text-green-800'
+                                    }`}>
+                                      {task.priority}
+                                    </span>
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      task.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
+                                      task.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-green-100 text-green-800'
+                                    }`}>
+                                      Risk: {task.riskLevel}
+                                    </span>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                      AI Confidence: {task.aiConfidence}%
+                                    </span>
+                                  </div>
+                                  <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
+                                  <p className="text-sm text-gray-600">{task.description}</p>
+                                  <p className="text-xs text-blue-700 italic">{task.aiReasoning}</p>
+                                  <div className="text-xs text-gray-500">
+                                    <strong>Impact:</strong> {task.estimatedImpact}
+                                  </div>
+                                  {task.expectedBenefits && task.expectedBenefits.length > 0 && (
+                                    <div className="text-xs">
+                                      <strong className="text-green-700">Benefits:</strong>
+                                      <ul className="list-disc list-inside ml-2 text-green-600">
+                                        {task.expectedBenefits.map((benefit: string, idx: number) => (
+                                          <li key={idx}>{benefit}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                  {task.potentialRisks && task.potentialRisks.length > 0 && (
+                                    <div className="text-xs">
+                                      <strong className="text-orange-700">Risks:</strong>
+                                      <ul className="list-disc list-inside ml-2 text-orange-600">
+                                        {task.potentialRisks.map((risk: string, idx: number) => (
+                                          <li key={idx}>{risk}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="ml-4">
+                                  <Button
+                                    onClick={() => implementAIOptimization.mutate(task.id)}
+                                    disabled={implementAIOptimization.isPending}
+                                    size="sm"
+                                    variant="outline"
+                                    className="min-w-[120px] border-blue-300 text-blue-700 hover:bg-blue-100"
+                                  >
+                                    {implementAIOptimization.isPending ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                                        AI Implementing
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Zap className="h-3 w-3 mr-1" />
+                                        AI Implement
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {aiOptimizationTasks.aiInsights && (
+                            <div className="mt-4 p-3 bg-blue-100 rounded-lg border border-blue-200">
+                              <h5 className="text-xs font-medium text-blue-900 mb-1">AI System Analysis</h5>
+                              <p className="text-xs text-blue-800">{aiOptimizationTasks.aiInsights}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8">

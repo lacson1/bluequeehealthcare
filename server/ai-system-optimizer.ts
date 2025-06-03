@@ -68,42 +68,44 @@ export class AISystemOptimizer {
   private async gatherSystemAnalysisData(organizationId: number, timeframe: string): Promise<SystemAnalysisData> {
     const timeFilter = this.getTimeFilter(timeframe);
     
-    const [metrics, errors, health] = await Promise.all([
-      db.select()
-        .from(performanceMetrics)
-        .where(and(
-          eq(performanceMetrics.organizationId, organizationId),
-          gte(performanceMetrics.timestamp, timeFilter)
-        ))
-        .orderBy(desc(performanceMetrics.timestamp))
-        .limit(1000),
-        
-      db.select()
-        .from(errorLogs)
-        .where(and(
-          eq(errorLogs.organizationId, organizationId),
-          gte(errorLogs.timestamp, timeFilter)
-        ))
-        .orderBy(desc(errorLogs.timestamp))
-        .limit(500),
-        
-      db.select()
-        .from(systemHealth)
-        .where(and(
-          eq(systemHealth.organizationId, organizationId),
-          gte(systemHealth.timestamp, timeFilter)
-        ))
-        .orderBy(desc(systemHealth.timestamp))
-        .limit(100)
-    ]);
+    try {
+      const [metrics, errors, health] = await Promise.all([
+        db.select()
+          .from(performanceMetrics)
+          .where(gte(performanceMetrics.timestamp, timeFilter))
+          .orderBy(desc(performanceMetrics.timestamp))
+          .limit(1000),
+          
+        db.select()
+          .from(errorLogs)
+          .where(gte(errorLogs.timestamp, timeFilter))
+          .orderBy(desc(errorLogs.timestamp))
+          .limit(500),
+          
+        db.select()
+          .from(systemHealth)
+          .where(gte(systemHealth.timestamp, timeFilter))
+          .orderBy(desc(systemHealth.timestamp))
+          .limit(100)
+      ]);
 
-    return {
-      performanceMetrics: metrics,
-      errorLogs: errors,
-      systemHealth: health,
-      organizationId,
-      timeframe
-    };
+      return {
+        performanceMetrics: metrics,
+        errorLogs: errors,
+        systemHealth: health,
+        organizationId,
+        timeframe
+      };
+    } catch (error) {
+      console.error('Error gathering system data:', error);
+      return {
+        performanceMetrics: [],
+        errorLogs: [],
+        systemHealth: [],
+        organizationId,
+        timeframe
+      };
+    }
   }
 
   private async generateAIAnalysis(systemData: SystemAnalysisData) {
