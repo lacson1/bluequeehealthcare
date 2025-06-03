@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useQuery } from '@tanstack/react-query';
-import { FileText, Download, Printer, Search, User, Building, Phone, Mail, Globe, UserCheck, Stethoscope, Clock } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FileText, Download, Printer, Search, User, Building, Phone, Mail, Globe, UserCheck, Stethoscope, Clock, Save } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Patient {
   id: number;
@@ -28,6 +30,8 @@ export default function ReferralLettersPage() {
   const [specialistHospital, setSpecialistHospital] = useState('');
   const [specialistAddress, setSpecialistAddress] = useState('');
   const [urgency, setUrgency] = useState('routine');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [clinicalHistory, setClinicalHistory] = useState('');
   const [currentFindings, setCurrentFindings] = useState('');
   const [reasonForReferral, setReasonForReferral] = useState('');
@@ -47,6 +51,115 @@ export default function ReferralLettersPage() {
     queryFn: () => fetch(`/api/organizations/${user?.organizationId}`).then(res => res.json()),
     enabled: !!user?.organizationId
   });
+
+  // Save referral letter as document mutation
+  const saveReferralMutation = useMutation({
+    mutationFn: async (documentData: any) => {
+      return await apiRequest('/api/patient-documents', {
+        method: 'POST',
+        body: JSON.stringify(documentData),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Referral Letter Saved",
+        description: "The referral letter has been saved to the patient's documents.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/patients/${selectedPatient?.id}/documents`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to save referral letter. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Save error:', error);
+    },
+  });
+
+  // Function to save referral letter as document
+  const saveReferralLetter = () => {
+    if (!selectedPatient || !referralType || !reasonForReferral) {
+      toast({
+        title: "Missing Information",
+        description: "Please complete all required fields before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const referralLetterContent = generateReferralLetterContent();
+    
+    const documentData = {
+      patientId: selectedPatient.id,
+      title: `Referral Letter - ${referralTypes.find(t => t.value === referralType)?.label}`,
+      description: `Referral to ${referralTypes.find(t => t.value === referralType)?.label} specialist`,
+      content: referralLetterContent,
+      documentType: 'referral_letter',
+      createdBy: user?.username || 'System',
+      organizationId: user?.organizationId,
+    };
+
+    saveReferralMutation.mutate(documentData);
+  };
+
+  // Function to generate referral letter content for saving
+  const generateReferralLetterContent = () => {
+    const specialtyLabel = referralTypes.find(t => t.value === referralType)?.label;
+    const urgencyLabel = urgencyLevels.find(l => l.value === urgency)?.label;
+    
+    let content = `REFERRAL LETTER\n\n`;
+    content += `Date: ${new Date().toLocaleDateString()}\n`;
+    content += `Urgency: ${urgencyLabel}\n\n`;
+    
+    if (specialistName || specialistHospital) {
+      content += `To: ${specialistName ? specialistName : 'Dear Colleague'}\n`;
+      if (specialistHospital) content += `${specialistHospital}\n`;
+      if (specialistAddress) content += `${specialistAddress}\n`;
+      content += `\n`;
+    }
+    
+    content += `Re: ${selectedPatient?.title || ''} ${selectedPatient?.firstName} ${selectedPatient?.lastName}\n`;
+    content += `DOB: ${selectedPatient?.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'N/A'}\n`;
+    content += `Gender: ${selectedPatient?.gender || 'Not specified'}\n`;
+    content += `Phone: ${selectedPatient?.phone}\n`;
+    content += `Specialty Required: ${specialtyLabel}\n\n`;
+    
+    if (urgency === 'urgent') {
+      content += `URGENT REFERRAL - Please see within 48 hours\n\n`;
+    }
+    
+    content += `I would be grateful if you could see this patient for ${specialtyLabel?.toLowerCase()} consultation. ${reasonForReferral}\n\n`;
+    
+    if (clinicalHistory) {
+      content += `Clinical History:\n${clinicalHistory}\n\n`;
+    }
+    
+    if (currentFindings) {
+      content += `Current Findings:\n${currentFindings}\n\n`;
+    }
+    
+    if (currentMedications) {
+      content += `Current Medications:\n${currentMedications}\n\n`;
+    }
+    
+    if (relevantInvestigations) {
+      content += `Relevant Investigations:\n${relevantInvestigations}\n\n`;
+    }
+    
+    if (specificQuestions) {
+      content += `Specific Questions:\n${specificQuestions}\n\n`;
+    }
+    
+    content += `I would appreciate your expert opinion and recommendations for further management. Please feel free to contact me if you require any additional information.\n\n`;
+    content += `Thank you for your assistance in the care of this patient.\n\n`;
+    content += `Yours sincerely,\n`;
+    content += `${user?.username}\n`;
+    content += `${user?.role}\n`;
+    if (organizationData) content += `${organizationData.name}\n`;
+    
+    return content;
+  };
 
   const filteredPatients = patients?.filter(patient => 
     `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -523,6 +636,14 @@ export default function ReferralLettersPage() {
                 </div>
                 
                 <div className="flex justify-end gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={saveReferralLetter}
+                    disabled={saveReferralMutation.isPending || !selectedPatient || !referralType || !reasonForReferral}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {saveReferralMutation.isPending ? 'Saving...' : 'Save to Patient Documents'}
+                  </Button>
                   <Button variant="outline" onClick={() => window.print()}>
                     <Printer className="w-4 h-4 mr-2" />
                     Print Letter
