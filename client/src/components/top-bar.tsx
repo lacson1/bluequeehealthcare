@@ -94,12 +94,7 @@ export default function TopBar() {
                 </div>
               </div>
               
-              {/* Page Title */}
-              <div className="hidden md:block">
-                <h1 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                  Dashboard
-                </h1>
-              </div>
+
             </div>
 
             {/* Center Section: Organization Context */}
