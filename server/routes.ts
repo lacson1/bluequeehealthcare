@@ -844,15 +844,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/patients", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
+      const userOrgId = req.user?.organizationId;
+      if (!userOrgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+      
       const search = req.query.search as string | undefined;
-      const patients = await storage.getPatients(search);
+      
+      // Organization-filtered patients
+      let whereClause = eq(patients.organizationId, userOrgId);
+      
+      if (search) {
+        const searchConditions = [
+          ilike(patients.firstName, `%${search}%`),
+          ilike(patients.lastName, `%${search}%`),
+          ilike(patients.phone, `%${search}%`)
+        ];
+        whereClause = and(
+          eq(patients.organizationId, userOrgId),
+          or(...searchConditions)
+        );
+      }
+      
+      const patientsResult = await db.select()
+        .from(patients)
+        .where(whereClause)
+        .orderBy(desc(patients.createdAt));
       
       // Prevent caching to ensure fresh data
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
       
-      res.json(patients);
+      res.json(patientsResult);
     } catch (error) {
       console.error('Error fetching patients:', error);
       res.status(500).json({ message: "Failed to fetch patients" });
@@ -1357,8 +1381,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Prescription routes
   app.get("/api/prescriptions", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const prescriptions = await storage.getAllPrescriptions();
-      res.json(prescriptions);
+      const userOrgId = req.user?.organizationId;
+      if (!userOrgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+      
+      // Organization-filtered prescriptions
+      const prescriptionsResult = await db.select()
+        .from(prescriptions)
+        .where(eq(prescriptions.organizationId, userOrgId))
+        .orderBy(desc(prescriptions.createdAt));
+      
+      res.json(prescriptionsResult);
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
       res.status(500).json({ message: "Failed to fetch prescriptions" });
