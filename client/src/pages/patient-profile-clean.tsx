@@ -42,6 +42,7 @@ import { PatientSummaryPrintable } from "@/components/patient-summary-printable"
 import { ModernPatientOverview } from "@/components/modern-patient-overview";
 import { FloatingActionMenu } from "@/components/floating-action-menu";
 import { useRole } from "@/components/role-guard";
+import { formatPatientName, getPatientInitials } from "@/lib/patient-utils";
 import type { Patient, Visit, LabResult, Prescription } from "@shared/schema";
 
 interface Organization {
@@ -119,12 +120,12 @@ export default function PatientProfile() {
           <div className="flex items-center space-x-4">
             <Avatar className="w-12 h-12">
               <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
-                {patient.firstName?.[0]?.toUpperCase()}{patient.lastName?.[0]?.toUpperCase()}
+                {getPatientInitials(patient)}
               </AvatarFallback>
             </Avatar>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {patient.firstName} {patient.lastName}
+                {formatPatientName(patient)}
               </h1>
               <p className="text-sm text-gray-500">
                 Patient ID: HC{patient.id?.toString().padStart(6, "0")} • 
