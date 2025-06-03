@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Bell, Globe, Moon, Sun, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, Download, MapPin, MessageSquare, Plus, UserPlus, CalendarPlus, TestTube, Clipboard, ClipboardList, HeartHandshake } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Bell, Globe, Moon, Sun, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, Download, MapPin, MessageSquare, Plus, UserPlus, CalendarPlus, TestTube, Clipboard, ClipboardList, HeartHandshake, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -69,6 +69,31 @@ export default function TopBar() {
 
   const notifications = notificationsData?.notifications || [];
   const unreadCount = notificationsData?.unreadCount || 0;
+  const queryClient = useQueryClient();
+
+  // Clear all notifications mutation
+  const clearNotificationsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/notifications/clear', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to clear notifications');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // Refresh notifications data
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+    },
+  });
+
+  const handleClearNotifications = () => {
+    clearNotificationsMutation.mutate();
+  };
 
   const navigation = getNavigationForRole(user?.role || '');
 
@@ -275,49 +300,50 @@ export default function TopBar() {
                 <DropdownMenuContent align="end" className="w-80">
                   <DropdownMenuLabel className="flex items-center justify-between">
                     <span className="font-semibold">Notifications</span>
-                    <Badge variant="secondary" className="h-5 text-xs">3</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="h-5 text-xs">{notifications.length}</Badge>
+                      {notifications.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearNotifications}
+                          disabled={clearNotificationsMutation.isPending}
+                          className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          title="Clear all notifications"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <div className="max-h-64 overflow-y-auto">
-                    <div className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
-                      <div className="flex gap-3">
-                        <div className="h-2 w-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            New appointment scheduled
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Patient: John Doe - 2:30 PM today
-                          </p>
-                        </div>
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                        No notifications
                       </div>
-                    </div>
-                    <div className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
-                      <div className="flex gap-3">
-                        <div className="h-2 w-2 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            Lab results available
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Patient: Mary Smith - CBC Test completed
-                          </p>
+                    ) : (
+                      notifications.map((notification, index) => (
+                        <div 
+                          key={notification.id} 
+                          className={`p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                            index < notifications.length - 1 ? 'border-b border-slate-100 dark:border-slate-700' : ''
+                          }`}
+                        >
+                          <div className="flex gap-3">
+                            <div className={`h-2 w-2 rounded-full mt-2 flex-shrink-0 ${notification.color || 'bg-blue-500'}`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                {notification.title}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {notification.description}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                      <div className="flex gap-3">
-                        <div className="h-2 w-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            Prescription expiring soon
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Patient: Robert Johnson - Review needed
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      ))
+                    )}
                   </div>
                   <DropdownMenuSeparator />
                   <div className="p-2">
