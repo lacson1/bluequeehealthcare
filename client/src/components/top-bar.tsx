@@ -20,7 +20,7 @@ const getNavigationForRole = (role: string) => {
     { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
     { name: "Clinical Activity", href: "/clinical-activity", icon: Heart, roles: ["superadmin", "admin", "doctor", "nurse"] },
     { name: "Patients", href: "/patients", icon: Users, roles: ["superadmin", "admin", "doctor", "nurse"] },
-    { name: "Visits", href: "/visits", icon: Stethoscope, roles: ["superadmin", "admin", "doctor", "nurse"] },
+    { name: "Visits", href: "/patients", icon: Stethoscope, roles: ["superadmin", "admin", "doctor", "nurse"] },
     { name: "Lab Results", href: "/lab-results", icon: FlaskRound, roles: ["superadmin", "admin", "doctor", "nurse"] },
     { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["superadmin", "admin", "pharmacist"] },
     { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
