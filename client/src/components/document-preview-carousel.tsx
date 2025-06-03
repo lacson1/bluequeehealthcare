@@ -127,13 +127,27 @@ export function DocumentPreviewCarousel({
       );
     } else if (doc.mimeType === 'application/pdf') {
       return (
-        <div className="flex items-center justify-center h-full bg-gray-50 rounded-lg">
-          <iframe
-            src={fileUrl}
-            className="w-full rounded-lg shadow-lg"
-            style={{ height: isFullscreen ? '80vh' : '400px' }}
-            title={doc.originalName}
-          />
+        <div className="flex flex-col h-full bg-gray-50 rounded-lg">
+          <div className="flex justify-between items-center p-3 border-b bg-white rounded-t-lg">
+            <span className="text-sm font-medium text-gray-700">{doc.originalName}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open(fileUrl, '_blank')}
+              className="text-xs"
+            >
+              Open in New Tab
+            </Button>
+          </div>
+          <div className="flex-1 p-2">
+            <iframe
+              src={`${fileUrl}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+              className="w-full h-full rounded border-0"
+              style={{ minHeight: isFullscreen ? '70vh' : '350px' }}
+              title={doc.originalName}
+              allowFullScreen
+            />
+          </div>
         </div>
       );
     } else {
