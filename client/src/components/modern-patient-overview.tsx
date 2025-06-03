@@ -323,7 +323,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   const handleEditPrescription = (prescription: any) => {
     toast({
-      title: "MedicalIcons.edit Prescription",
+      title: "Edit Prescription",
       description: `Opening edit form for ${prescription.medicationName}`,
     });
     // Open prescription add modal which can be used for editing
@@ -1016,7 +1016,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                     <DropdownMenuContent align="end" className="w-[180px]">
                                       <DropdownMenuItem onClick={() => handleEditPrescription(prescription)}>
                                         <MedicalIcons.edit className="w-3 h-3 mr-2" />
-                                        MedicalIcons.edit Details
+                                        Edit Details
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handlePrintPrescription(prescription)}>
                                         <MedicalIcons.print className="w-3 h-3 mr-2" />
@@ -1274,7 +1274,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                     <DropdownMenuContent align="end" className="w-[180px]">
                                       <DropdownMenuItem onClick={() => handleEditPrescription(prescription)}>
                                         <MedicalIcons.edit className="w-3 h-3 mr-2" />
-                                        MedicalIcons.edit Repeat
+                                        Edit Repeat
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handlePrintPrescription(prescription)}>
                                         <MedicalIcons.print className="w-3 h-3 mr-2" />
@@ -1739,7 +1739,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleEditVisit(item.id)}>
                                       <MedicalIcons.edit className="mr-2 h-4 w-4" />
-                                      MedicalIcons.edit Visit
+                                      Edit Visit
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleCopyVisit(item)}>
                                       <MedicalIcons.copy className="mr-2 h-4 w-4" />
@@ -2249,7 +2249,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
           </TabsContent>
         </Tabs>
         
-        {/* MedicalIcons.edit Patient Modal */}
+        {/* Edit Patient Modal */}
         <EditPatientModal
           open={showEditPatientModal}
           onOpenChange={setShowEditPatientModal}
