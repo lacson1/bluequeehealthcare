@@ -23,7 +23,6 @@ export default function Dashboard() {
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useRole();
-  const isAdmin = user?.role === 'admin';
   const [, setLocation] = useLocation();
 
   // Initialize global keyboard shortcuts
@@ -39,208 +38,195 @@ export default function Dashboard() {
 
   if (statsLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">Loading dashboard...</p>
+      <div className="min-h-screen bg-background">
+        <div className="healthcare-header px-6 py-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="animate-pulse">
+              <div className="h-8 bg-white/20 rounded-lg w-64 mb-4"></div>
+              <div className="h-4 bg-white/20 rounded-lg w-96"></div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="metric-card animate-pulse">
+                <div className="h-4 bg-muted rounded w-24 mb-4"></div>
+                <div className="h-8 bg-muted rounded w-16 mb-2"></div>
+                <div className="h-3 bg-muted rounded w-20"></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Enhanced Healthcare Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg border-b border-blue-800/20 px-6 py-5 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="text-white">
-            <h1 className="text-3xl font-bold tracking-tight">Clinical Dashboard</h1>
-            <p className="text-blue-100 mt-1 text-lg">Comprehensive healthcare management & patient care overview</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
+    <div className="min-h-screen bg-background">
+      {/* Premium Healthcare Header */}
+      <div className="healthcare-header px-6 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                Clinical Dashboard
+              </h1>
+              <p className="text-white/80 text-lg">
+                Welcome back, Dr. {user?.username || 'User'} • Lagos Island Hospital
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
+                <Input
+                  placeholder="Search patients, orders..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-80 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/20"
+                />
+              </div>
               <Button 
-                onClick={() => setShowPatientModal(true)} 
-                className="bg-white text-blue-700 hover:bg-blue-50 font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                onClick={() => setShowPatientModal(true)}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
               >
-                <UserPlus className="mr-2 h-4 w-4" />
-                New Patient
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Patient
               </Button>
-            )}
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Scrollable Main Content */}
-      <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* Enhanced Healthcare Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card 
-              className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-600 text-white cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0"
-              onClick={() => setLocation('/patients')}
-            >
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-emerald-100 text-sm font-medium uppercase tracking-wider mb-2">Total Patients</p>
-                    <div className="text-4xl font-bold text-white mb-1">{stats?.totalPatients || 1}</div>
-                    <p className="text-emerald-100 text-xs">Registered in system</p>
-                  </div>
-                  <div className="w-16 h-16 bg-white/15 rounded-2xl flex items-center justify-center group-hover:bg-white/25 transition-colors">
-                    <Users className="h-8 w-8 text-white" />
-                  </div>
-                </div>
-                <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mb-12"></div>
-              </CardHeader>
-            </Card>
-
-            <Card 
-              className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0"
-              onClick={() => setLocation('/appointments')}
-            >
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-blue-100 text-sm font-medium uppercase tracking-wider mb-2">Today's Visits</p>
-                    <div className="text-4xl font-bold text-white mb-1">{stats?.todayVisits || 1}</div>
-                    <p className="text-blue-100 text-xs">Scheduled appointments</p>
-                  </div>
-                  <div className="w-16 h-16 bg-white/15 rounded-2xl flex items-center justify-center group-hover:bg-white/25 transition-colors">
-                    <Calendar className="h-8 w-8 text-white" />
-                  </div>
-                </div>
-                <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mb-12"></div>
-              </CardHeader>
-            </Card>
-
-            <Card 
-              className="group relative overflow-hidden bg-gradient-to-br from-amber-500 to-amber-600 text-white cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0"
-              onClick={() => setLocation('/lab-orders')}
-            >
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-amber-100 text-sm font-medium uppercase tracking-wider mb-2">Pending Labs</p>
-                    <div className="text-4xl font-bold text-white mb-1">{stats?.pendingLabs || 11}</div>
-                    <p className="text-amber-100 text-xs">Awaiting results</p>
-                  </div>
-                  <div className="w-16 h-16 bg-white/15 rounded-2xl flex items-center justify-center group-hover:bg-white/25 transition-colors">
-                    <Activity className="h-8 w-8 text-white" />
-                  </div>
-                </div>
-                <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mb-12"></div>
-              </CardHeader>
-            </Card>
-
-            <Card 
-              className="group relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0"
-              onClick={() => setLocation('/pharmacy')}
-            >
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-purple-100 text-sm font-medium uppercase tracking-wider mb-2">Pharmacy Stock</p>
-                    <div className="text-4xl font-bold text-white mb-1">{stats?.lowStockItems || 0}</div>
-                    <p className="text-purple-100 text-xs">Inventory items</p>
-                  </div>
-                  <div className="w-16 h-16 bg-white/15 rounded-2xl flex items-center justify-center group-hover:bg-white/25 transition-colors">
-                    <Settings className="h-8 w-8 text-white" />
-                  </div>
-                </div>
-                <div className="absolute bottom-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mb-12"></div>
-              </CardHeader>
-            </Card>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Premium Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="metric-card group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <span className="status-badge info text-xs">Today</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-foreground">{stats?.totalPatients || 0}</p>
+              <p className="text-sm text-muted-foreground">Total Patients</p>
+              <p className="text-xs text-success">+12% from last month</p>
+            </div>
           </div>
 
-          {/* Quick Actions & Patient Search */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Patient Search */}
-            <Card className="bg-white border-0 shadow-lg">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-semibold text-slate-800 flex items-center">
-                  <Search className="mr-3 h-5 w-5 text-blue-600" />
-                  Patient Search
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search patients by name, phone, or ID..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-12 bg-slate-50 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                {searchQuery && allPatients && (
-                  <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
-                    {(allPatients as any[])
-                      .filter((patient: any) => 
-                        `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        patient.phone?.includes(searchQuery)
-                      )
-                      .slice(0, 5)
-                      .map((patient: any) => (
-                        <div
-                          key={patient.id}
-                          className="p-3 bg-slate-50 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
-                          onClick={() => setLocation(`/patients/${patient.id}`)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium text-slate-900">
-                                {patient.title} {patient.firstName} {patient.lastName}
-                              </p>
-                              <p className="text-sm text-slate-600">{patient.phone}</p>
-                            </div>
-                            <Eye className="h-4 w-4 text-blue-600" />
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <div className="metric-card group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-accent/10 rounded-lg">
+                <Calendar className="h-6 w-6 text-accent" />
+              </div>
+              <span className="status-badge success text-xs">Active</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-foreground">{stats?.todayVisits || 0}</p>
+              <p className="text-sm text-muted-foreground">Today's Visits</p>
+              <p className="text-xs text-info">3 scheduled next</p>
+            </div>
+          </div>
 
-            {/* Quick Actions */}
-            <Card className="bg-white border-0 shadow-lg">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-semibold text-slate-800 flex items-center">
-                  <Plus className="mr-3 h-5 w-5 text-blue-600" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Link href="/appointments" className="block">
-                  <Button className="w-full justify-start h-12 bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                    <Calendar className="mr-3 h-4 w-4" />
-                    Schedule Appointment
-                  </Button>
-                </Link>
-                <Link href="/lab-orders" className="block">
-                  <Button variant="outline" className="w-full justify-start h-12 border-slate-200 hover:bg-slate-50">
-                    <Activity className="mr-3 h-4 w-4 text-amber-600" />
-                    Order Lab Test
-                  </Button>
-                </Link>
-                <Link href="/prescriptions" className="block">
-                  <Button variant="outline" className="w-full justify-start h-12 border-slate-200 hover:bg-slate-50">
-                    <Plus className="mr-3 h-4 w-4 text-green-600" />
-                    Write Prescription
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+          <div className="metric-card group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-warning/10 rounded-lg">
+                <Activity className="h-6 w-6 text-warning" />
+              </div>
+              <span className="status-badge warning text-xs">Pending</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-foreground">{stats?.pendingLabs || 0}</p>
+              <p className="text-sm text-muted-foreground">Lab Orders</p>
+              <p className="text-xs text-muted-foreground">Awaiting results</p>
+            </div>
+          </div>
+
+          <div className="metric-card group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-destructive/10 rounded-lg">
+                <Settings className="h-6 w-6 text-destructive" />
+              </div>
+              <span className="status-badge error text-xs">Alert</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-foreground">{stats?.lowStockItems || 0}</p>
+              <p className="text-sm text-muted-foreground">Low Stock Items</p>
+              <p className="text-xs text-destructive">Needs attention</p>
+            </div>
           </div>
         </div>
-      </main>
+
+        {/* Premium Action Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <Card 
+            className="healthcare-card group cursor-pointer hover:scale-105 transition-all duration-300"
+            onClick={() => setLocation('/patients')}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="gradient-text">Patient Management</span>
+                <Eye className="h-5 w-5 text-primary" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">Comprehensive patient records and care coordination</p>
+              <div className="flex items-center text-sm text-primary">
+                <span>View all patients</span>
+                <Plus className="h-4 w-4 ml-2" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="healthcare-card group cursor-pointer hover:scale-105 transition-all duration-300"
+            onClick={() => setLocation('/lab-orders')}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="gradient-text">Laboratory Orders</span>
+                <Activity className="h-5 w-5 text-accent" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">Create and track lab orders and test results</p>
+              <div className="flex items-center text-sm text-accent">
+                <span>Manage lab orders</span>
+                <Plus className="h-4 w-4 ml-2" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="healthcare-card group cursor-pointer hover:scale-105 transition-all duration-300"
+            onClick={() => setLocation('/appointments')}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="gradient-text">Appointments</span>
+                <Calendar className="h-5 w-5 text-info" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">Schedule and manage patient appointments</p>
+              <div className="flex items-center text-sm text-info">
+                <span>View schedule</span>
+                <Plus className="h-4 w-4 ml-2" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Patient Registration Modal */}
-      <PatientRegistrationModal 
-        open={showPatientModal} 
-        onOpenChange={setShowPatientModal} 
-      />
+      {showPatientModal && (
+        <PatientRegistrationModal 
+          open={showPatientModal}
+          onOpenChange={setShowPatientModal}
+        />
+      )}
     </div>
   );
 }
