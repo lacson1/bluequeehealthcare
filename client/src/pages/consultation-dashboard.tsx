@@ -308,6 +308,15 @@ export default function ConsultationDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => navigate(`/patients/${appointment.patientId}`)}
+                          className="text-blue-600 hover:bg-blue-50"
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="text-yellow-600 hover:bg-yellow-50"
                           onClick={() => updateAppointmentStatus(appointment.id, 'scheduled')}
                         >
