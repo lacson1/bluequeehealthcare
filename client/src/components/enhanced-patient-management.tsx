@@ -22,6 +22,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import type { Patient } from "@shared/schema";
 import PatientRegistrationModal from "./patient-registration-modal";
+import { formatPatientName, getPatientInitials } from "@/lib/patient-utils";
 
 interface PatientWithStats extends Patient {
   lastVisit?: string;
@@ -187,9 +188,7 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
     return age;
   };
 
-  const getPatientInitials = (patient: Patient) => {
-    return `${patient.firstName[0]}${patient.lastName[0]}`.toUpperCase();
-  };
+
 
   const getRiskIndicatorColor = (riskLevel: string) => {
     switch (riskLevel) {
