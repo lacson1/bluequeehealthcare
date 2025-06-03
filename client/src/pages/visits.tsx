@@ -16,11 +16,16 @@ import {
   TestTube,
   ArrowRight,
   Eye,
-  Download
+  Download,
+  Play,
+  User
 } from "lucide-react";
 import { Link } from "wouter";
 import { format, isToday, isYesterday, startOfDay, endOfDay } from "date-fns";
 import type { Appointment, Prescription } from "@shared/schema";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface ExtendedAppointment extends Appointment {
   patientName?: string;
@@ -35,6 +40,9 @@ interface LabOrderData {
 }
 
 export default function ClinicalActivityCenter() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   // Fetch integrated clinical activity dashboard data
   const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
     queryKey: ["/api/clinical-activity/dashboard"],
@@ -56,6 +64,47 @@ export default function ClinicalActivityCenter() {
     completionRate: 0,
     prescriptionsToday: 0,
     pendingLabOrders: 0
+  };
+
+  // Quick action handlers
+  const handleStartConsultation = async (appointmentId: number) => {
+    try {
+      await apiRequest(`/api/appointments/${appointmentId}/start-consultation`, 'POST');
+      
+      toast({
+        title: "Consultation Started",
+        description: "The appointment has been updated to in-progress status.",
+      });
+      
+      // Refresh the dashboard data
+      queryClient.invalidateQueries({ queryKey: ["/api/clinical-activity/dashboard"] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start consultation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCompleteConsultation = async (appointmentId: number, notes?: string) => {
+    try {
+      await apiRequest(`/api/appointments/${appointmentId}/complete-consultation`, 'POST', { notes, followUpRequired: false });
+      
+      toast({
+        title: "Consultation Completed",
+        description: "The appointment has been marked as completed.",
+      });
+      
+      // Refresh the dashboard data
+      queryClient.invalidateQueries({ queryKey: ["/api/clinical-activity/dashboard"] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to complete consultation. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatDate = (date: string | Date) => {
@@ -222,9 +271,31 @@ export default function ClinicalActivityCenter() {
                           >
                             {appointment.status === 'in-progress' ? 'Active' : 'Waiting'}
                           </Badge>
+                          {appointment.status === 'scheduled' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleStartConsultation(appointment.id)}
+                              className="text-blue-700 border-blue-200 hover:bg-blue-50"
+                            >
+                              <Play className="w-4 h-4 mr-1" />
+                              Start
+                            </Button>
+                          )}
+                          {appointment.status === 'in-progress' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleCompleteConsultation(appointment.id)}
+                              className="text-green-700 border-green-200 hover:bg-green-50"
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1" />
+                              Complete
+                            </Button>
+                          )}
                           <Link href={`/patients/${appointment.patientId}`}>
                             <Button variant="ghost" size="sm">
-                              <ArrowRight className="w-4 h-4" />
+                              <User className="w-4 h-4" />
                             </Button>
                           </Link>
                         </div>
