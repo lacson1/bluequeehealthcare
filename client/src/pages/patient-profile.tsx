@@ -67,15 +67,22 @@ export default function PatientProfile() {
       setLabsLoading(true);
       setLabsError(null);
       
-      fetch(`/api/patients/${patientId}/labs`)
+      fetch(`/api/patients/${patientId}/labs`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        })
         .then(response => {
+          console.log('Lab Results Response:', response.status, response.statusText);
           if (!response.ok) {
-            throw new Error(`Failed to fetch lab results: ${response.status}`);
+            throw new Error(`Failed to fetch lab results: ${response.status} ${response.statusText}`);
           }
           return response.json();
         })
         .then(data => {
-          console.log('Lab Results Fetched:', data);
+          console.log('Lab Results Fetched Successfully:', data);
           setLabResults(data || []);
         })
         .catch(error => {
