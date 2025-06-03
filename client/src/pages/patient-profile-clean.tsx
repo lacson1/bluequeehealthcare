@@ -44,6 +44,22 @@ import { FloatingActionMenu } from "@/components/floating-action-menu";
 import { useRole } from "@/components/role-guard";
 import { formatPatientName, getPatientInitials } from "@/lib/patient-utils";
 import type { Patient, Visit, LabResult, Prescription } from "@shared/schema";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { 
+  CalendarDays,
+  Users,
+  Monitor,
+  Upload,
+  Share,
+  MessageSquare,
+  Archive
+} from 'lucide-react';
 
 interface Organization {
   id: number;
@@ -124,9 +140,41 @@ export default function PatientProfile() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {formatPatientName(patient)}
-              </h1>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <h1 className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors">
+                    {formatPatientName(patient)}
+                  </h1>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <div className="px-3 py-2 border-b">
+                    <p className="text-sm font-medium">{formatPatientName(patient)}</p>
+                    <p className="text-xs text-gray-500">ID: HC{patient.id?.toString().padStart(6, "0")}</p>
+                  </div>
+                  <DropdownMenuItem onClick={() => setShowEditPatientModal(true)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Patient Info
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowVisitModal(true)}>
+                    <Monitor className="mr-2 h-4 w-4" />
+                    Record New Visit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowPrescriptionModal(true)}>
+                    <Pill className="mr-2 h-4 w-4" />
+                    Add Prescription
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FlaskRound className="mr-2 h-4 w-4" />
+                    Order Lab Tests
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Share className="mr-2 h-4 w-4" />
+                    Print/Export Records
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div className="space-y-1">
                 <p className="text-sm text-gray-500">
                   Patient ID: HC{patient.id?.toString().padStart(6, "0")} • 
