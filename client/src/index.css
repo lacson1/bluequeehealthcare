@@ -113,11 +113,11 @@
   
   /* Professional Healthcare Typography */
   h1, .medical-heading-1 {
-    @apply text-3xl font-bold tracking-tight text-foreground leading-tight;
+    @apply text-2xl font-bold tracking-tight text-foreground leading-tight;
   }
   
   h2, .medical-heading-2 {
-    @apply text-2xl font-semibold tracking-tight text-foreground leading-tight;
+    @apply text-xl font-semibold tracking-tight text-foreground leading-tight;
   }
   
   h3, .medical-heading-3 {
@@ -198,6 +198,95 @@
   
   .btn-medical-destructive {
     @apply btn-medical bg-destructive text-destructive-foreground shadow hover:bg-destructive/90;
+  }
+  
+  /* Compact Healthcare Forms */
+  .medical-form-group {
+    @apply space-y-1.5;
+  }
+  
+  .medical-input {
+    @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm;
+    @apply shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium;
+    @apply placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1;
+    @apply focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  .medical-select {
+    @apply medical-input;
+  }
+  
+  .medical-textarea {
+    @apply flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm;
+    @apply shadow-sm placeholder:text-muted-foreground focus-visible:outline-none;
+    @apply focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  /* Healthcare Status Badges */
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2 py-1 text-xs font-medium;
+  }
+  
+  .status-badge-success {
+    @apply status-badge bg-success/10 text-success border border-success/20;
+  }
+  
+  .status-badge-warning {
+    @apply status-badge bg-warning/10 text-warning border border-warning/20;
+  }
+  
+  .status-badge-danger {
+    @apply status-badge bg-destructive/10 text-destructive border border-destructive/20;
+  }
+  
+  .status-badge-info {
+    @apply status-badge bg-info/10 text-info border border-info/20;
+  }
+  
+  .status-badge-neutral {
+    @apply status-badge bg-muted text-muted-foreground border border-border;
+  }
+  
+  /* Healthcare Tables */
+  .medical-table {
+    @apply w-full caption-bottom text-sm;
+  }
+  
+  .medical-table-header {
+    @apply border-b bg-muted/50;
+  }
+  
+  .medical-table-row {
+    @apply border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted;
+  }
+  
+  .medical-table-head {
+    @apply h-10 px-2 text-left align-middle font-medium text-muted-foreground;
+  }
+  
+  .medical-table-cell {
+    @apply p-2 align-middle;
+  }
+  
+  /* Healthcare Spacing System */
+  .medical-section {
+    @apply space-y-4;
+  }
+  
+  .medical-grid {
+    @apply grid gap-4;
+  }
+  
+  .medical-grid-2 {
+    @apply medical-grid grid-cols-1 md:grid-cols-2;
+  }
+  
+  .medical-grid-3 {
+    @apply medical-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .medical-grid-4 {
+    @apply medical-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4;
   }
   
   .btn-medical-ghost {
@@ -415,6 +504,7 @@
 }
 
 /* Beautiful Blue Healthcare Dashboard Styles */
+@layer utilities {
 .stat-card {
   @apply relative overflow-hidden border-0 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105;
   background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%);
@@ -1009,4 +1099,5 @@
   .desktop-medical-layout {
     @apply grid-cols-3 gap-8;
   }
+}
 }
