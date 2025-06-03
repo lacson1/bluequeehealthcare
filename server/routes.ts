@@ -537,6 +537,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to generate predictions' });
     }
   });
+
+  // Test error generation endpoint for debugging
+  app.post('/api/errors/test-generate', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { logServerError } = await import('./error-handler');
+      const organizationId = req.user?.organizationId;
+      
+      // Generate test errors of different types and severities
+      const testErrors = [
+        { type: 'VALIDATION', severity: 'MEDIUM', message: 'Test validation error for debugging' },
+        { type: 'NETWORK', severity: 'HIGH', message: 'Test network connection timeout' },
+        { type: 'AUTHENTICATION', severity: 'LOW', message: 'Test authentication warning' }
+      ];
+
+      for (const testError of testErrors) {
+        await logServerError({
+          error: new Error(testError.message),
+          req: req,
+          severity: testError.severity as any,
+          type: testError.type as any,
+          action: 'TEST_ERROR_GENERATION',
+          component: 'error-monitoring-debug'
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Test errors generated successfully',
+        count: testErrors.length 
+      });
+    } catch (error) {
+      console.error('Error generating test errors:', error);
+      res.status(500).json({ message: 'Failed to generate test errors' });
+    }
+  });
   
   console.log('🔧 Registering lab order item PATCH endpoint...');
 

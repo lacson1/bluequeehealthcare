@@ -74,6 +74,26 @@ export default function ErrorMonitoring() {
     }
   });
 
+  const generateTestErrorsMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("/api/errors/test-generate", "POST");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/errors/dashboard"] });
+      toast({
+        title: "Test Errors Generated",
+        description: "Sample errors have been created for debugging purposes."
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to generate test errors.",
+        variant: "destructive"
+      });
+    }
+  });
+
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -121,6 +141,14 @@ export default function ErrorMonitoring() {
             <p className="text-gray-600 mt-1">System health and error tracking dashboard</p>
           </div>
           <div className="flex items-center gap-4">
+            <Button
+              onClick={() => generateTestErrorsMutation.mutate()}
+              disabled={generateTestErrorsMutation.isPending}
+              variant="outline"
+              size="sm"
+            >
+              {generateTestErrorsMutation.isPending ? "Generating..." : "Generate Test Errors"}
+            </Button>
             <Select value={timeframe} onValueChange={setTimeframe}>
               <SelectTrigger className="w-32">
                 <SelectValue />
