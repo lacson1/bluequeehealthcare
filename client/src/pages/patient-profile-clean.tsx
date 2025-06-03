@@ -341,20 +341,7 @@ export default function PatientProfile() {
             </Card>
           </div>
 
-          {/* Vital Signs Chart - Fixed position above content */}
-          <div className="mb-4">
-            <div className="h-64 min-h-[16rem]">
-              <PatientVitalsChart 
-                vitals={visits?.map(visit => ({
-                  date: visit.visitDate.toString(),
-                  bloodPressure: visit.bloodPressure || undefined,
-                  heartRate: visit.heartRate || undefined,
-                  temperature: visit.temperature ? parseFloat(visit.temperature) : undefined,
-                  weight: visit.weight ? parseFloat(visit.weight) : undefined
-                })) || []}
-              />
-            </div>
-          </div>
+
 
           {/* Optimized Content Layout */}
           <div className="grid grid-cols-1 xl:grid-cols-5 gap-2">
