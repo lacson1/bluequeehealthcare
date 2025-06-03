@@ -83,7 +83,11 @@ export default function LabOrdersPage() {
 
   // Create lab order mutation
   const createLabOrderMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', `/api/patients/${data.patientId}/lab-orders`, data),
+    mutationFn: async (data: any) => {
+      console.log('🔬 Sending lab order request:', data);
+      const response = await apiRequest(`/api/patients/${data.patientId}/lab-orders`, 'POST', data);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/lab-orders/pending'] });
       toast({ title: 'Success', description: 'Lab order created successfully' });
@@ -91,9 +95,10 @@ export default function LabOrdersPage() {
       setIsCreating(false);
     },
     onError: (error: any) => {
+      console.error('Lab order creation error:', error);
       toast({
         title: 'Error',
-        description: error?.response?.data?.error || 'Failed to create lab order',
+        description: error?.message || 'Failed to create lab order',
         variant: 'destructive'
       });
     },

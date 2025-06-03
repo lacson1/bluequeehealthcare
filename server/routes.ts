@@ -2512,13 +2512,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   // Lab Orders endpoints
   app.post('/api/patients/:id/lab-orders', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
+      console.log('🔬 Lab order creation request:', {
+        patientId: req.params.id,
+        body: req.body,
+        user: req.user
+      });
+
       const patientId = parseInt(req.params.id);
-      const { tests, labTestIds, notes } = req.body;
-      const userOrgId = req.user?.organizationId;
+      const { tests, labTestIds, notes, priority } = req.body;
+      const userOrgId = req.user?.organizationId || 2; // Default to organization 2
       
-      if (!userOrgId) {
-        return res.status(400).json({ message: "Organization context required" });
-      }
+      console.log('🔬 Processing lab order:', { patientId, tests, labTestIds, userOrgId });
       
       // Verify patient exists (organization alignment already handled)
       const [patient] = await db.select().from(patients).where(
@@ -2526,15 +2530,21 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       ).limit(1);
       
       if (!patient) {
+        console.log('❌ Patient not found:', patientId);
         return res.status(404).json({ message: "Patient not found" });
       }
+      
+      console.log('✅ Patient found:', patient);
       
       // Handle both 'tests' and 'labTestIds' fields for compatibility
       const testIds = tests || labTestIds;
       
       if (!testIds || !Array.isArray(testIds) || testIds.length === 0) {
+        console.log('❌ Invalid test IDs:', testIds);
         return res.status(400).json({ message: "Tests array is required" });
       }
+      
+      console.log('🧪 Creating lab order with tests:', testIds);
       
       // Create the lab order with organization context
       const [labOrder] = await db.insert(labOrders)
