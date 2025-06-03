@@ -48,7 +48,19 @@ export default function TopBar() {
   const { user } = useRole();
 
   // Fetch real-time notifications
-  const { data: notificationsData, isLoading: notificationsLoading } = useQuery({
+  const { data: notificationsData, isLoading: notificationsLoading } = useQuery<{
+    notifications: Array<{
+      id: string;
+      type: string;
+      priority: string;
+      title: string;
+      description: string;
+      timestamp: string;
+      color: string;
+    }>;
+    totalCount: number;
+    unreadCount: number;
+  }>({
     queryKey: ['/api/notifications'],
     refetchInterval: 30000, // Refresh every 30 seconds
     retry: false,
