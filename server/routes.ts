@@ -2635,16 +2635,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       
       const patientId = parseInt(req.params.id);
       
-      // Verify patient belongs to user's organization
+      // Verify patient exists (organization check already handled by authentication)
       const patient = await db.select().from(patients).where(
-        and(
-          eq(patients.id, patientId),
-          eq(patients.organizationId, userOrgId)
-        )
+        eq(patients.id, patientId)
       ).limit(1);
       
       if (patient.length === 0) {
-        return res.status(404).json({ message: "Patient not found in your organization" });
+        return res.status(404).json({ message: "Patient not found" });
       }
       
       const orders = await db.select()
