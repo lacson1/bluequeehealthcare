@@ -1225,7 +1225,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                         Mark Completed
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'discontinued')}>
-                                        <MedicalIcons.cancel className="w-3 h-3 mr-2 text-orange-600" />
+                                        <MedicalIcons.close className="w-3 h-3 mr-2 text-orange-600" />
                                         Discontinue
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'active')}>

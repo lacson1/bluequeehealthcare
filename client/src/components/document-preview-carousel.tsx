@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MedicalIcons } from '@/lib/medical-icons';
+import { FileText } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 
@@ -159,7 +160,7 @@ export function DocumentPreviewCarousel({
           <div className="flex-1 p-2">
             <div className="w-full h-full flex flex-col items-center justify-center bg-white rounded border-2 border-dashed border-gray-300">
               <div className="text-center p-8">
-                <MedicalIcons.FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">{doc.originalName}</h3>
                 <p className="text-sm text-gray-500 mb-4">
                   PDF Document • {(doc.size / 1024 / 1024).toFixed(2)} MB
