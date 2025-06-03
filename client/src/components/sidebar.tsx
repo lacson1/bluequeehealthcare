@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator, HelpCircle, ChevronDown, ChevronRight, Brain, Calendar, ClipboardList, Activity, Star, Building, CreditCard, Mail, DollarSign, Receipt } from "lucide-react";
+import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator, HelpCircle, ChevronDown, ChevronRight, Brain, Calendar, ClipboardList, Activity, Star, Building, CreditCard, Mail, DollarSign, Receipt, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRole, RoleGuard } from "@/components/role-guard";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,7 @@ const getNavigationGroupsForRole = (role: string) => {
         { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["superadmin", "admin"] },
         { name: "Staff Messages", href: "/staff-messages", icon: Mail, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
         { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["superadmin", "admin"] },
+        { name: "Error Monitoring", href: "/error-monitoring", icon: AlertTriangle, roles: ["superadmin", "admin"] },
       ]
     },
     {
