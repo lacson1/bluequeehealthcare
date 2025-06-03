@@ -2162,96 +2162,20 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   </Button>
                 </div>
 
-                {/* Recent Visits & Consultations Summary */}
+                {/* Visit Recording Quick Access */}
                 <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900">Recent Visits & Consultations</h4>
-                  {combinedVisits.length > 0 ? (
-                    <div className="space-y-2">
-                      {combinedVisits.slice(0, 5).map((item: any) => (
-                        <div key={`${item.type}-${item.id}`} className="border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-xs ${item.type === 'consultation' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}
-                                >
-                                  {item.title}
-                                </Badge>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(item.date).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-700 mb-1">
-                                {item.description}
-                              </p>
-                              {item.type === 'visit' && item.bloodPressure && (
-                                <div className="text-xs text-gray-500">
-                                  BP: {item.bloodPressure}
-                                  {item.heartRate && ` • HR: ${item.heartRate}`}
-                                </div>
-                              )}
-                              {item.type === 'consultation' && (
-                                <div className="text-xs text-gray-500">
-                                  Recorded by: {item.recordedBy}
-                                </div>
-                              )}
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <MedicalIcons.menu className="h-4 w-4" />
-                                  <span className="sr-only">Open menu</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-[200px]">
-                                {item.type === 'visit' ? (
-                                  <>
-                                    <DropdownMenuItem onClick={() => handleViewVisit(item.id)}>
-                                      <MedicalIcons.vision className="mr-2 h-4 w-4" />
-                                      View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleEditVisit(item.id)}>
-                                      <MedicalIcons.edit className="mr-2 h-4 w-4" />
-                                      Edit Visit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleCopyVisit(item)}>
-                                      <MedicalIcons.copy className="mr-2 h-4 w-4" />
-                                      MedicalIcons.copy Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDeleteVisit(item.id)}
-                                      className="text-red-600 focus:text-red-600"
-                                    >
-                                      <MedicalIcons.delete className="mr-2 h-4 w-4" />
-                                      Delete Visit
-                                    </DropdownMenuItem>
-                                  </>
-                                ) : (
-                                  <>
-                                    <DropdownMenuItem onClick={() => handleViewConsultation(item.id)}>
-                                      <MedicalIcons.vision className="mr-2 h-4 w-4" />
-                                      View Consultation
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => navigator.clipboard.writeText(JSON.stringify(item.responses, null, 2))}>
-                                      <MedicalIcons.copy className="mr-2 h-4 w-4" />
-                                      MedicalIcons.copy Responses
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <MedicalIcons.stethoscope className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm">No visits or consultations recorded yet</p>
-                    </div>
-                  )}
+                  <h4 className="font-medium text-gray-900">Quick Visit Access</h4>
+                  <div className="text-center py-4 text-gray-500">
+                    <p className="text-sm mb-3">Start recording a new visit or view previous records in the Timeline tab.</p>
+                    <Button 
+                      onClick={() => navigate(`/patients/${patient.id}/record-visit`)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                      size="sm"
+                    >
+                      <MedicalIcons.add className="w-4 h-4 mr-2" />
+                      Quick Record Visit
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
