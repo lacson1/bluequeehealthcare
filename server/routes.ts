@@ -5289,16 +5289,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileName = `document_${timestamp}_${Math.random().toString(36).substring(2, 15)}.txt`;
 
       // Save text content to file
-      const fs = require('fs');
-      const path = require('path');
-      const uploadsDir = path.join(process.cwd(), 'uploads');
+      const fs = await import('fs');
+      const path = await import('path');
+      const uploadsDir = path.default.join(process.cwd(), 'uploads');
       
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
+      if (!fs.default.existsSync(uploadsDir)) {
+        fs.default.mkdirSync(uploadsDir, { recursive: true });
       }
 
-      const filePath = path.join(uploadsDir, fileName);
-      fs.writeFileSync(filePath, content, 'utf8');
+      const filePath = path.default.join(uploadsDir, fileName);
+      fs.default.writeFileSync(filePath, content, 'utf8');
 
       // Save to database
       const [document] = await db
