@@ -17,56 +17,34 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
   const [isOpen, setIsOpen] = useState(false);
   const [, navigate] = useLocation();
   
-  // Fetch consultation visits (visits with type="consultation")
-  const { data: visitData = [], isLoading: historyLoading } = useQuery({
-    queryKey: [`/api/patients/${patientId}/visits`],
+  // Fetch actual consultation records
+  const { data: consultationRecords = [], isLoading: historyLoading } = useQuery({
+    queryKey: [`/api/patients/${patientId}/consultation-records`],
   });
 
-  // Fetch staff data to get actual doctor names
-  const { data: staffData = [] } = useQuery({
-    queryKey: ['/api/staff'],
-    enabled: visitData.length > 0,
-  });
-
-  // Filter for consultation-type visits and format them with actual doctor names
-  const consultationHistory = visitData.filter((visit: any) => 
-    visit.visitType === 'consultation'
-  ).map((visit: any) => {
-    // Find the doctor who conducted this visit
-    const doctor = staffData.find((staff: any) => staff.id === visit.doctorId);
-    const title = doctor?.title || '';
-    const firstName = doctor?.firstName || doctor?.first_name || '';
-    const lastName = doctor?.lastName || doctor?.last_name || '';
-    const fullName = `${title} ${firstName} ${lastName}`.trim() || doctor?.username || 'Healthcare Staff';
+  // Map consultation records to display format
+  const consultationHistory = consultationRecords.map((record: any) => {
+    const title = record.conductedByTitle || '';
+    const firstName = record.conductedByFirstName || '';
+    const lastName = record.conductedByLastName || '';
+    const fullName = `${title} ${firstName} ${lastName}`.trim() || record.conductedByUsername || 'Healthcare Staff';
     
     return {
-      id: visit.id,
-      patientId: visit.patientId,
-      formName: 'General Consultation',
-      formDescription: 'Patient consultation visit',
-      conductedByUsername: doctor?.username || 'healthcare-staff',
+      id: record.id,
+      patientId: record.patientId,
+      formName: record.formName || 'General Consultation',
+      formDescription: record.formDescription || 'Patient consultation record',
+      conductedByUsername: record.conductedByUsername || 'healthcare-staff',
       conductedByFirstName: firstName,
       conductedByLastName: lastName,
       conductedByTitle: title,
       conductedByFullName: fullName,
-      conductedByRole: doctor?.role || 'doctor',
-      roleDisplayName: doctor?.role ? doctor.role.charAt(0).toUpperCase() + doctor.role.slice(1) : 'Doctor',
-      specialistRole: 'General',
+      conductedByRole: record.conductedByRole || 'doctor',
+      roleDisplayName: record.conductedByRole ? record.conductedByRole.charAt(0).toUpperCase() + record.conductedByRole.slice(1) : 'Doctor',
+      specialistRole: record.specialistRole || 'General',
       specialistRoleDisplay: 'General Medicine',
-      createdAt: visit.visitDate || visit.createdAt,
-      formData: {
-        'Chief Complaint': visit.complaint,
-        'Diagnosis': visit.diagnosis,
-        'Treatment Plan': visit.treatment,
-        'Vital Signs': {
-          'Blood Pressure': visit.bloodPressure,
-          'Heart Rate': visit.heartRate,
-          'Temperature': visit.temperature,
-          'Weight': visit.weight
-        },
-        'Visit Type': visit.visitType,
-        'Status': visit.status
-      }
+      createdAt: record.createdAt,
+      formData: record.formData || {}
     };
   });
 
