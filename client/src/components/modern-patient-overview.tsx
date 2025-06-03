@@ -31,7 +31,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { DocumentPreviewCarousel } from './document-preview-carousel';
 import CustomPrescriptionPrint from './custom-prescription-print';
 import CustomLabOrderPrint from './custom-lab-order-print';
-import { CheckCircle, MoreVertical, Eye, Download, Share, FileText, Printer } from 'lucide-react';
+import { CheckCircle, MoreVertical, Eye, Download, Share, FileText, Printer, X } from 'lucide-react';
 // All icons now imported via MedicalIcons system
 
 // CompletedLabResult interface for reviewed results
@@ -1777,7 +1777,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'discontinued')}>
-                                        <MedicalIcons.cancel className="w-3 h-3 mr-2 text-red-600" />
+                                        <X className="w-3 h-3 mr-2 text-red-600" />
                                         Stop Repeat
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>

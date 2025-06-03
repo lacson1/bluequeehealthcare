@@ -117,6 +117,7 @@ export const MedicalIcons = {
   add: Plus,
   remove: Minus,
   close: X,
+  cancel: X,
   confirm: Check,
   info: AlertCircle,
   
