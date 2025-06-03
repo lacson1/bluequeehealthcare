@@ -98,6 +98,20 @@ export default function PatientProfile() {
   const labsLoading = false;
   const labsError = null;
 
+  // Status badge helper function
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'normal':
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">Normal</Badge>;
+      case 'abnormal':
+        return <Badge variant="destructive" className="bg-red-100 text-red-800">Abnormal</Badge>;
+      case 'critical':
+        return <Badge variant="destructive" className="bg-red-500 text-white">Critical</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
   if (!patientId) {
     return (
       <div className="flex-1 flex items-center justify-center">
