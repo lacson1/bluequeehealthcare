@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { AIInsightsDisplay } from "@/components/ai-insights-display";
+import { ErrorChatbot } from "@/components/error-chatbot";
 
 interface ErrorLog {
   id: number;
@@ -389,6 +390,9 @@ export default function ErrorMonitoring() {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* AI Error Chatbot - Floating Assistant */}
+      <ErrorChatbot />
     </div>
   );
 }

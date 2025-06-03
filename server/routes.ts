@@ -467,9 +467,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Error Insights endpoints (direct registration to fix 404s)
   const { generateAIInsights } = await import('./ai-insights-endpoint');
   const { testAIAnalysisWorking } = await import('./ai-analysis-working');
+  const { handleErrorChatbot } = await import('./error-chatbot-endpoint');
   
   app.get('/api/errors/ai-insights', authenticateToken, generateAIInsights);
   app.get('/api/ai-analysis', testAIAnalysisWorking);
+  app.post('/api/error-chatbot', handleErrorChatbot);
   
   // Direct AI test endpoint
   app.get('/api/ai-test', async (req, res) => {
