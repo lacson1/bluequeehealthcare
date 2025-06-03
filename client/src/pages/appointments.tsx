@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -85,6 +85,70 @@ export default function AppointmentsPage() {
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ['/api/appointments'],
   });
+
+  // Filtered and sorted appointments
+  const filteredAndSortedAppointments = useMemo(() => {
+    let filtered = appointments.filter((appointment: Appointment) => {
+      // Search filter
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        appointment.patientName.toLowerCase().includes(searchLower) ||
+        appointment.doctorName.toLowerCase().includes(searchLower) ||
+        appointment.type.toLowerCase().includes(searchLower);
+
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
+
+      // Provider filter
+      const matchesProvider = providerFilter === 'all' || appointment.doctorId.toString() === providerFilter;
+
+      // Date filter
+      const appointmentDate = new Date(appointment.appointmentDate);
+      const now = new Date();
+      let matchesDate = true;
+
+      switch (dateFilter) {
+        case 'today':
+          matchesDate = appointmentDate.toDateString() === now.toDateString();
+          break;
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          matchesDate = appointmentDate >= weekAgo;
+          break;
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          matchesDate = appointmentDate >= monthAgo;
+          break;
+        default:
+          matchesDate = true;
+      }
+
+      return matchesSearch && matchesStatus && matchesProvider && matchesDate;
+    });
+
+    // Sort appointments
+    return filtered.sort((a: Appointment, b: Appointment) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'patientName':
+          comparison = a.patientName.localeCompare(b.patientName);
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case 'dateCreated':
+          comparison = new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime();
+          break;
+        case 'appointmentDate':
+        default:
+          comparison = new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime();
+          break;
+      }
+
+      return sortOrder === 'desc' ? comparison : -comparison;
+    });
+  }, [appointments, searchTerm, statusFilter, providerFilter, dateFilter, sortBy, sortOrder]);
 
   // Fetch patients for selection
   const { data: patients = [] } = useQuery({
@@ -288,20 +352,6 @@ export default function AppointmentsPage() {
     updateAppointmentMutation.mutate({ id: appointmentId, status });
   };
 
-  // Enhanced filtering logic
-  const filteredAppointments = appointments.filter((appointment: Appointment) => {
-    const matchesSearch = !searchTerm || (
-      appointment.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.doctorName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.type?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    
-    const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
-    const matchesProvider = providerFilter === 'all' || appointment.doctorId.toString() === providerFilter;
-    
-    return matchesSearch && matchesStatus && matchesProvider;
-  });
-
   // Get status badge variant
   const getStatusVariant = (status: string): any => {
     switch (status) {
@@ -314,8 +364,8 @@ export default function AppointmentsPage() {
     }
   };
 
-  // Group appointments by date for calendar view
-  const appointmentsByDate = filteredAppointments.reduce((acc: any, appointment: Appointment) => {
+  // Group filtered appointments by date for calendar view
+  const appointmentsByDate = filteredAndSortedAppointments.reduce((acc: any, appointment: Appointment) => {
     const date = appointment.appointmentDate;
     if (!acc[date]) acc[date] = [];
     acc[date].push(appointment);
@@ -783,19 +833,19 @@ export default function AppointmentsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <List className="h-5 w-5" />
-                Appointments ({filteredAppointments.length})
+                Appointments ({filteredAndSortedAppointments.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               {appointmentsLoading ? (
                 <div className="text-center py-8">Loading appointments...</div>
-              ) : filteredAppointments.length === 0 ? (
+              ) : filteredAndSortedAppointments.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   No appointments found matching your filters
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredAppointments.map((appointment: Appointment) => (
+                  {filteredAndSortedAppointments.map((appointment: Appointment) => (
                     <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-wrap">
