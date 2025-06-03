@@ -837,39 +837,46 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
     <div className="space-y-4 min-h-screen w-full">
       {/* Enhanced Tabbed Interface - Full Width */}
       <Tabs defaultValue="overview" className="w-full h-full">
-        <TabsList className="grid w-full grid-cols-9 mb-6 h-16 bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-300 rounded-xl p-2 shadow-lg backdrop-blur-sm">
-          <TabsTrigger value="overview" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <MedicalIcons.patient className="w-5 h-5" />
-            Overview
+        <TabsList className="grid w-full grid-cols-10 mb-8 h-20 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 border-2 border-blue-200/60 rounded-2xl p-3 shadow-2xl backdrop-blur-lg ring-1 ring-blue-100/50">
+          <TabsTrigger value="overview" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.patient className="w-6 h-6 group-data-[state=active]:text-blue-600" />
+            <span className="font-semibold">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="medications" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <MedicalIcons.medication className="w-5 h-5" />
-            Medications
+          <TabsTrigger value="medications" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.medication className="w-6 h-6 group-data-[state=active]:text-purple-600" />
+            <span className="font-semibold">Medications</span>
           </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <MedicalIcons.vitals className="w-5 h-5" />
-            Timeline
+          <TabsTrigger value="documents" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.medicalRecord className="w-6 h-6 group-data-[state=active]:text-emerald-600" />
+            <span className="font-semibold">Documents</span>
           </TabsTrigger>
-          <TabsTrigger value="safety" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <MedicalIcons.heartRate className="w-5 h-5" />
-            Safety
+          <TabsTrigger value="labs" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.bloodTest className="w-6 h-6 group-data-[state=active]:text-red-600" />
+            <span className="font-semibold">Labs</span>
           </TabsTrigger>
-          <TabsTrigger value="vitals" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <MedicalIcons.monitor className="w-5 h-5" />
-            Vitals
+          <TabsTrigger value="timeline" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.vitals className="w-6 h-6 group-data-[state=active]:text-teal-600" />
+            <span className="font-semibold">Timeline</span>
           </TabsTrigger>
-          <TabsTrigger value="record-visit" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <MedicalIcons.calendar className="w-5 h-5" />
-            Visit
+          <TabsTrigger value="safety" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.heartRate className="w-6 h-6 group-data-[state=active]:text-rose-600" />
+            <span className="font-semibold">Safety</span>
           </TabsTrigger>
-          <TabsTrigger value="consultation" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <MedicalIcons.consultation className="w-5 h-5" />
-            Specialty Assessment
+          <TabsTrigger value="vitals" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.monitor className="w-6 h-6 group-data-[state=active]:text-amber-600" />
+            <span className="font-semibold">Vitals</span>
           </TabsTrigger>
-
-          <TabsTrigger value="communication" className="flex items-center gap-2 text-sm font-semibold px-4 py-3 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-blue-800 data-[state=active]:border data-[state=active]:border-blue-200 hover:bg-white/70 hover:shadow-sm text-blue-700">
-            <MedicalIcons.message className="w-5 h-5" />
-            Chat
+          <TabsTrigger value="record-visit" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.calendar className="w-6 h-6 group-data-[state=active]:text-indigo-600" />
+            <span className="font-semibold">Visit</span>
+          </TabsTrigger>
+          <TabsTrigger value="consultation" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.consultation className="w-6 h-6 group-data-[state=active]:text-cyan-600" />
+            <span className="font-semibold">Specialty</span>
+          </TabsTrigger>
+          <TabsTrigger value="communication" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalIcons.message className="w-6 h-6 group-data-[state=active]:text-violet-600" />
+            <span className="font-semibold">Chat</span>
           </TabsTrigger>
         </TabsList>
 
@@ -2056,6 +2063,170 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     Open Comprehensive Visit Recording
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Documents Tab */}
+          <TabsContent value="documents" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MedicalIcons.medicalRecord className="h-5 w-5 text-emerald-600" />
+                  Patient Documents & Medical Records
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="medical-records" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 max-w-2xl mb-6">
+                    <TabsTrigger value="medical-records" className="flex items-center gap-2">
+                      <MedicalIcons.medicalRecord className="w-4 h-4" />
+                      Medical Records
+                    </TabsTrigger>
+                    <TabsTrigger value="consent-forms" className="flex items-center gap-2">
+                      <MedicalIcons.document className="w-4 h-4" />
+                      Consent Forms
+                    </TabsTrigger>
+                    <TabsTrigger value="insurance" className="flex items-center gap-2">
+                      <MedicalIcons.billing className="w-4 h-4" />
+                      Insurance
+                    </TabsTrigger>
+                    <TabsTrigger value="referrals" className="flex items-center gap-2">
+                      <MedicalIcons.referral className="w-4 h-4" />
+                      Referrals
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="medical-records" className="space-y-4">
+                    <div className="text-center py-12 text-gray-500">
+                      <MedicalIcons.medicalRecord className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Medical Records</h3>
+                      <p className="text-sm text-gray-500 mb-4">Upload and manage patient medical documents</p>
+                      <Button className="bg-emerald-600 hover:bg-emerald-700">
+                        <MedicalIcons.upload className="w-4 h-4 mr-2" />
+                        Upload Document
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="consent-forms" className="space-y-4">
+                    <div className="text-center py-12 text-gray-500">
+                      <MedicalIcons.document className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Consent Forms</h3>
+                      <p className="text-sm text-gray-500 mb-4">Manage patient consent and authorization forms</p>
+                      <Button className="bg-blue-600 hover:bg-blue-700">
+                        <MedicalIcons.add className="w-4 h-4 mr-2" />
+                        New Consent Form
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="insurance" className="space-y-4">
+                    <div className="text-center py-12 text-gray-500">
+                      <MedicalIcons.billing className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Insurance Information</h3>
+                      <p className="text-sm text-gray-500 mb-4">Manage patient insurance details and claims</p>
+                      <Button className="bg-purple-600 hover:bg-purple-700">
+                        <MedicalIcons.add className="w-4 h-4 mr-2" />
+                        Add Insurance
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="referrals" className="space-y-4">
+                    <div className="text-center py-12 text-gray-500">
+                      <MedicalIcons.referral className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Referrals</h3>
+                      <p className="text-sm text-gray-500 mb-4">Patient referrals to specialists and other providers</p>
+                      <Button className="bg-cyan-600 hover:bg-cyan-700">
+                        <MedicalIcons.add className="w-4 h-4 mr-2" />
+                        New Referral
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Labs Tab */}
+          <TabsContent value="labs" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MedicalIcons.bloodTest className="h-5 w-5 text-red-600" />
+                  Laboratory Tests & Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="orders" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 max-w-2xl mb-6">
+                    <TabsTrigger value="orders" className="flex items-center gap-2">
+                      <MedicalIcons.labOrder className="w-4 h-4" />
+                      Lab Orders
+                    </TabsTrigger>
+                    <TabsTrigger value="results" className="flex items-center gap-2">
+                      <MedicalIcons.bloodTest className="w-4 h-4" />
+                      Results
+                    </TabsTrigger>
+                    <TabsTrigger value="pending" className="flex items-center gap-2">
+                      <MedicalIcons.clock className="w-4 h-4" />
+                      Pending
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="flex items-center gap-2">
+                      <MedicalIcons.history className="w-4 h-4" />
+                      History
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="orders" className="space-y-4">
+                    <div className="text-center py-12 text-gray-500">
+                      <MedicalIcons.labOrder className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Lab Orders</h3>
+                      <p className="text-sm text-gray-500 mb-4">Create and manage laboratory test orders</p>
+                      <Button className="bg-red-600 hover:bg-red-700">
+                        <MedicalIcons.add className="w-4 h-4 mr-2" />
+                        New Lab Order
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="results" className="space-y-4">
+                    <div className="text-center py-12 text-gray-500">
+                      <MedicalIcons.bloodTest className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Lab Results</h3>
+                      <p className="text-sm text-gray-500 mb-4">View and review completed laboratory results</p>
+                      <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+                        <MedicalIcons.refresh className="w-4 h-4 mr-2" />
+                        Refresh Results
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="pending" className="space-y-4">
+                    <div className="text-center py-12 text-gray-500">
+                      <MedicalIcons.clock className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Pending Tests</h3>
+                      <p className="text-sm text-gray-500 mb-4">Laboratory tests awaiting results</p>
+                      <Button variant="outline" className="border-amber-200 text-amber-600 hover:bg-amber-50">
+                        <MedicalIcons.search className="w-4 h-4 mr-2" />
+                        Check Status
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="history" className="space-y-4">
+                    <div className="text-center py-12 text-gray-500">
+                      <MedicalIcons.history className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-700 mb-2">Lab History</h3>
+                      <p className="text-sm text-gray-500 mb-4">Complete history of all laboratory tests</p>
+                      <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                        <MedicalIcons.print className="w-4 h-4 mr-2" />
+                        Print History
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>
