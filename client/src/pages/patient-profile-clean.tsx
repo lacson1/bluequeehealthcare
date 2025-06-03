@@ -414,7 +414,7 @@ export default function PatientProfile() {
                   </Button>
                   
                   <Button 
-                    onClick={() => navigate('/documents')}
+                    onClick={() => navigate(`/documents?patientId=${patientId}`)}
                     className="w-full justify-start bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
                     variant="outline"
                   >
@@ -423,7 +423,7 @@ export default function PatientProfile() {
                   </Button>
                   
                   <Button 
-                    onClick={() => navigate('/referral-letters')}
+                    onClick={() => navigate(`/referral-letters?patientId=${patientId}`)}
                     className="w-full justify-start bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200"
                     variant="outline"
                   >
@@ -432,7 +432,7 @@ export default function PatientProfile() {
                   </Button>
                   
                   <Button 
-                    onClick={() => navigate(`/patients/${patientId}/record-visit`)}
+                    onClick={() => navigate(`/appointments?action=schedule&patientId=${patientId}`)}
                     className="w-full justify-start bg-teal-50 hover:bg-teal-100 text-teal-700 border-teal-200"
                     variant="outline"
                   >
