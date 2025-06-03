@@ -2500,12 +2500,44 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         username: users.username,
         firstName: users.firstName,
         lastName: users.lastName,
+        title: users.title,
         role: users.role
       }).from(users).where(inArray(users.role, healthcareRoles));
       
       res.json(staff);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch healthcare staff" });
+    }
+  });
+
+  // Get all staff members (for consultation history)
+  app.get('/api/staff', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userOrgId = req.user?.organizationId;
+      const healthcareRoles = ['doctor', 'nurse', 'physiotherapist', 'pharmacist', 'admin'];
+      
+      let query = db.select({
+        id: users.id,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        first_name: users.firstName, // Alias for compatibility
+        last_name: users.lastName,   // Alias for compatibility
+        title: users.title,
+        role: users.role,
+        organizationId: users.organizationId
+      }).from(users).where(
+        and(
+          inArray(users.role, healthcareRoles),
+          userOrgId ? eq(users.organizationId, userOrgId) : undefined
+        )
+      );
+      
+      const staff = await query;
+      res.json(staff);
+    } catch (error) {
+      console.error("Error fetching staff:", error);
+      res.status(500).json({ message: "Failed to fetch staff" });
     }
   });
 
@@ -3298,6 +3330,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           conductedByUsername: users.username,
           conductedByRole: users.role,
           conductedByEmail: users.email,
+          conductedByTitle: users.title,
           // Form information
           formName: consultationForms.name,
           formDescription: consultationForms.description,

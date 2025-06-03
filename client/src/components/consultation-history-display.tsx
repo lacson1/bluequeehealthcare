@@ -34,7 +34,10 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
   ).map((visit: any) => {
     // Find the doctor who conducted this visit
     const doctor = staffData.find((staff: any) => staff.id === visit.doctorId);
-    const doctorName = doctor ? formatStaffName(doctor) : 'Healthcare Staff';
+    const title = doctor?.title || '';
+    const firstName = doctor?.firstName || doctor?.first_name || '';
+    const lastName = doctor?.lastName || doctor?.last_name || '';
+    const fullName = `${title} ${firstName} ${lastName}`.trim() || doctor?.username || 'Healthcare Staff';
     
     return {
       id: visit.id,
@@ -42,9 +45,10 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
       formName: 'General Consultation',
       formDescription: 'Patient consultation visit',
       conductedByUsername: doctor?.username || 'healthcare-staff',
-      conductedByFirstName: doctor?.firstName,
-      conductedByLastName: doctor?.lastName,
-      conductedByFullName: doctorName,
+      conductedByFirstName: firstName,
+      conductedByLastName: lastName,
+      conductedByTitle: title,
+      conductedByFullName: fullName,
       conductedByRole: doctor?.role || 'doctor',
       roleDisplayName: doctor?.role ? doctor.role.charAt(0).toUpperCase() + doctor.role.slice(1) : 'Doctor',
       specialistRole: 'General',
