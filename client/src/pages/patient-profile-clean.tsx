@@ -371,17 +371,17 @@ export default function PatientProfile() {
             {/* Compact Sidebar - Actions & Summary */}
             <div className="space-y-2">
               {/* Compact Quick Actions */}
-              <Card className="bg-white shadow-sm border-0">
+              <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 ring-1 ring-gray-200/50">
                 <CardHeader className="pb-1 px-3 pt-3">
                   <CardTitle className="text-sm font-semibold text-gray-900 flex items-center">
-                    <Plus className="h-3 w-3 mr-1 text-blue-600" />
+                    <Plus className="h-3 w-3 mr-1" style={{ color: '#0051CC' }} />
                     Quick Actions
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-1 px-3 pb-3">
                   <Button 
                     onClick={() => setShowVisitModal(true)}
-                    className="w-full justify-start h-8 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    className="w-full justify-start h-8 text-xs bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-700 border-emerald-200/60 transition-all duration-200"
                     variant="outline"
                   >
                     <Monitor className="h-3 w-3 mr-1" />
@@ -390,7 +390,7 @@ export default function PatientProfile() {
                   
                   <Button 
                     onClick={() => navigate(`/lab-orders?patientId=${patientId}`)}
-                    className="w-full justify-start h-8 text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+                    className="w-full justify-start h-8 text-xs bg-amber-50/80 hover:bg-amber-100/90 text-amber-700 border-amber-200/60 transition-all duration-200"
                     variant="outline"
                   >
                     <FlaskRound className="h-3 w-3 mr-1" />
@@ -399,7 +399,12 @@ export default function PatientProfile() {
                   
                   <Button 
                     onClick={() => setShowPrescriptionModal(true)}
-                    className="w-full justify-start h-8 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                    className="w-full justify-start h-8 text-xs transition-all duration-200"
+                    style={{ 
+                      backgroundColor: 'rgba(0, 81, 204, 0.08)', 
+                      borderColor: 'rgba(0, 81, 204, 0.3)', 
+                      color: '#0051CC' 
+                    }}
                     variant="outline"
                   >
                     <Pill className="h-3 w-3 mr-1" />
@@ -408,7 +413,7 @@ export default function PatientProfile() {
                   
                   <Button 
                     onClick={() => navigate(`/documents?patientId=${patientId}`)}
-                    className="w-full justify-start h-8 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                    className="w-full justify-start h-8 text-xs bg-violet-50/80 hover:bg-violet-100/90 text-violet-700 border-violet-200/60 transition-all duration-200"
                     variant="outline"
                   >
                     <Plus className="h-3 w-3 mr-1" />
@@ -417,7 +422,7 @@ export default function PatientProfile() {
                   
                   <Button 
                     onClick={() => navigate(`/referral-letters?patientId=${patientId}`)}
-                    className="w-full justify-start h-8 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200"
+                    className="w-full justify-start h-8 text-xs bg-indigo-50/80 hover:bg-indigo-100/90 text-indigo-700 border-indigo-200/60 transition-all duration-200"
                     variant="outline"
                   >
                     <Plus className="h-3 w-3 mr-1" />
@@ -426,7 +431,7 @@ export default function PatientProfile() {
                   
                   <Button 
                     onClick={() => navigate(`/appointments?action=schedule&patientId=${patientId}`)}
-                    className="w-full justify-start h-8 text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 border-teal-200"
+                    className="w-full justify-start h-8 text-xs bg-cyan-50/80 hover:bg-cyan-100/90 text-cyan-700 border-cyan-200/60 transition-all duration-200"
                     variant="outline"
                   >
                     <Calendar className="h-3 w-3 mr-1" />
@@ -436,49 +441,49 @@ export default function PatientProfile() {
               </Card>
 
               {/* Compact Patient Summary */}
-              <Card className="bg-white shadow-sm border-0">
+              <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 ring-1 ring-gray-200/50">
                 <CardHeader className="pb-1 px-3 pt-3">
                   <CardTitle className="text-sm font-semibold text-gray-900 flex items-center">
-                    <User className="h-3 w-3 mr-1 text-gray-600" />
+                    <User className="h-3 w-3 mr-1" style={{ color: '#0051CC' }} />
                     Summary
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 px-3 pb-3">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Registration</span>
-                      <span className="text-xs font-medium">
+                      <span className="text-xs text-gray-600">Registration</span>
+                      <span className="text-xs font-medium text-gray-800">
                         {new Date(patient?.createdAt || '').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
                       </span>
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Blood Type</span>
-                      <Badge variant="outline" className="text-xs text-red-600 border-red-200 h-5">
+                      <span className="text-xs text-gray-600">Blood Type</span>
+                      <Badge variant="outline" className="text-xs text-red-600 border-red-300/60 h-5 bg-red-50/80">
                         A+
                       </Badge>
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Phone</span>
-                      <span className="text-xs font-medium truncate max-w-20">
+                      <span className="text-xs text-gray-600">Phone</span>
+                      <span className="text-xs font-medium text-gray-800 truncate max-w-20">
                         {patient?.phone || 'N/A'}
                       </span>
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">Insurance</span>
-                      <Badge variant="outline" className="text-xs text-green-600 border-green-200 h-5">
+                      <span className="text-xs text-gray-600">Insurance</span>
+                      <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-300/60 h-5 bg-emerald-50/80">
                         Active
                       </Badge>
                     </div>
                   </div>
                   
-                  <div className="pt-2 border-t border-gray-100">
+                  <div className="pt-2 border-t border-gray-200/60">
                     <h4 className="text-xs font-medium text-gray-900 mb-1">Allergies</h4>
                     <div className="flex flex-wrap gap-1">
                       {patient?.allergies ? (
-                        <Badge variant="secondary" className="text-xs bg-red-50 text-red-700 h-5">
+                        <Badge variant="secondary" className="text-xs bg-red-50/90 text-red-700 border border-red-200/60 h-5">
                           {patient.allergies.length > 12 ? patient.allergies.substring(0, 12) + '...' : patient.allergies}
                         </Badge>
                       ) : (
