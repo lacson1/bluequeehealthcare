@@ -1991,7 +1991,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleEditVisit(item.id)}>
                                       <MedicalIcons.edit className="mr-2 h-4 w-4" />
-                                      MedicalIcons.edit Visit
+                                      Edit Visit
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleCopyVisit(item)}>
                                       <MedicalIcons.copy className="mr-2 h-4 w-4" />
