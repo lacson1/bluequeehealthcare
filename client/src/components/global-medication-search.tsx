@@ -46,15 +46,8 @@ export function GlobalMedicationSearch({
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
-  // Use the filtered medications directly from the API
-  const filteredMedications = medications.filter((medication: Medication) => {
-    return (
-      medication.name.toLowerCase().includes(searchLower) ||
-      (medication.genericName && medication.genericName.toLowerCase().includes(searchLower)) ||
-      (medication.description && medication.description.toLowerCase().includes(searchLower)) ||
-      (medication.category && medication.category.toLowerCase().includes(searchLower))
-    );
-  });
+  // Use the medications directly from the API (already filtered server-side)
+  const filteredMedications = medications;
 
   const addMedication = (medicationName: string) => {
     if (medicationName && !selectedMedications.includes(medicationName)) {
@@ -141,30 +134,42 @@ export function GlobalMedicationSearch({
                               : "opacity-0"
                           }`}
                         />
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium truncate">{medication.name}</span>
-                            {medication.strength && (
-                              <Badge variant="secondary" className="text-xs">
-                                {medication.strength}
-                              </Badge>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0">
+                            <Pill className="h-4 w-4 text-blue-500" />
+                          </div>
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900 truncate">{medication.name}</span>
+                              {medication.strength && (
+                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                  {medication.strength}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {medication.genericName && (
+                                <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                                  Generic: {medication.genericName}
+                                </span>
+                              )}
+                              {medication.category && (
+                                <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded">
+                                  {medication.category}
+                                </span>
+                              )}
+                              {medication.form && (
+                                <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded">
+                                  {medication.form}
+                                </span>
+                              )}
+                            </div>
+                            {medication.description && (
+                              <span className="text-xs text-gray-500 mt-1 truncate">
+                                {medication.description}
+                              </span>
                             )}
                           </div>
-                          {medication.genericName && (
-                            <span className="text-sm text-muted-foreground truncate">
-                              Generic: {medication.genericName}
-                            </span>
-                          )}
-                          {medication.description && (
-                            <span className="text-xs text-muted-foreground truncate">
-                              {medication.description}
-                            </span>
-                          )}
-                          {medication.category && (
-                            <span className="text-xs text-muted-foreground">
-                              Category: {medication.category}
-                            </span>
-                          )}
                         </div>
                       </CommandItem>
                     ))}
@@ -205,28 +210,38 @@ export function GlobalMedicationSearch({
 
       {/* Selected medications display */}
       {selectedMedications.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground">
-            Selected medications ({selectedMedications.length}):
-          </Label>
-          <div className="flex flex-wrap gap-2">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-gray-700">
+              Selected Medications
+            </Label>
+            <Badge variant="secondary" className="text-xs">
+              {selectedMedications.length} item{selectedMedications.length !== 1 ? 's' : ''}
+            </Badge>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 space-y-2">
             {selectedMedications.map((medication, index) => (
-              <Badge 
+              <div 
                 key={index} 
-                variant="default" 
-                className="flex items-center gap-1 pr-1"
+                className="flex items-center justify-between bg-white rounded-md p-3 border border-gray-200 hover:border-gray-300 transition-colors"
               >
-                <span className="truncate max-w-[200px]">{medication}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <Pill className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <span className="font-medium text-gray-900">{medication}</span>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                  className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                   onClick={() => removeMedication(medication)}
                   type="button"
+                  title="Remove medication"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-4 w-4" />
                 </Button>
-              </Badge>
+              </div>
             ))}
           </div>
         </div>
