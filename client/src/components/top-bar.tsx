@@ -82,17 +82,7 @@ export default function TopBar() {
                 <Menu className="h-5 w-5" />
               </Button>
               
-              {/* Brand Logo */}
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
-                  <Heart className="text-white h-4 w-4" />
-                </div>
-                <div className="hidden sm:block">
-                  <span className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
-                    HealthCore
-                  </span>
-                </div>
-              </div>
+
               
               {/* Desktop Navigation */}
               <nav className="hidden md:flex items-center space-x-1">
