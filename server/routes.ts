@@ -5368,7 +5368,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { fileName } = req.params;
       const organizationId = req.user?.organizationId || 1;
 
-      console.log(`Serving file: ${fileName} for organization: ${organizationId}`);
+      console.log(`=== SERVING FILE ===`);
+      console.log(`File: ${fileName}`);
+      console.log(`User org: ${organizationId}`);
+      console.log(`User ID: ${req.user?.id}`);
 
       // Verify document belongs to user's organization
       const [document] = await db
@@ -5379,10 +5382,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(medicalDocuments.organizationId, organizationId)
         ));
 
-      console.log(`Document found in DB:`, document ? 'Yes' : 'No');
+      console.log(`Document found:`, document ? `Yes (ID: ${document.id})` : 'No');
+      if (document) {
+        console.log(`Doc org: ${document.organizationId}, Doc patient: ${document.patientId}`);
+      }
 
       if (!document) {
-        return res.status(404).json({ message: "Document not found" });
+        console.log(`No document found for fileName: ${fileName}, orgId: ${organizationId}`);
+        return res.status(404).json({ message: "Document not found in database" });
       }
 
       const fs = await import('fs');
@@ -5390,16 +5397,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const filePath = path.default.join(process.cwd(), 'uploads', fileName);
 
       console.log(`File path: ${filePath}`);
-      console.log(`File exists:`, fs.default.existsSync(filePath));
+      const fileExists = fs.default.existsSync(filePath);
+      console.log(`File exists: ${fileExists}`);
 
-      if (!fs.default.existsSync(filePath)) {
-        return res.status(404).json({ message: "File not found" });
+      if (!fileExists) {
+        console.log(`File not found at path: ${filePath}`);
+        return res.status(404).json({ message: "File not found on filesystem" });
       }
 
-      // Set appropriate headers
-      res.setHeader('Content-Type', document.mimeType);
+      // Set appropriate headers for text files
+      if (document.mimeType === 'text/plain') {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      } else {
+        res.setHeader('Content-Type', document.mimeType);
+      }
       res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
       
+      console.log(`Streaming file: ${fileName}`);
       const fileStream = fs.default.createReadStream(filePath);
       fileStream.pipe(res);
     } catch (error) {
