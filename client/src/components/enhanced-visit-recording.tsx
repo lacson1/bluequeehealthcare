@@ -118,7 +118,7 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isFormVisible, setIsFormVisible] = useState(true);
   const [additionalDiagnoses, setAdditionalDiagnoses] = useState<string[]>([]);
   const [medicationList, setMedicationList] = useState<string[]>([]);
   const [medicationSearchTerm, setMedicationSearchTerm] = useState("");
@@ -164,6 +164,16 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
 
   // Get patient name safely using standardized formatting
   const patientName = patient ? formatPatientName(patient) : 'Patient';
+  
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (open) {
+      setIsFormVisible(true);
+      form.reset();
+      setAdditionalDiagnoses([]);
+      setMedicationList([]);
+    }
+  }, [open, form]);
 
   // Submit visit record
   const submitVisit = useMutation({
