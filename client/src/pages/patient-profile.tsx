@@ -56,47 +56,20 @@ export default function PatientProfile() {
     queryKey: ["/api/organizations/current"],
   });
 
-  // Lab results with hardcoded data (temporary fix while debugging React Query)
-  const [labResults] = useState<LabResult[]>([
-    {
-      id: 8,
-      patientId: 11,
-      testName: "1,25-Dihydroxyvitamin D",
-      testDate: "2025-06-03T09:15:00.000Z",
-      result: "28 pg/mL",
-      normalRange: "19.9-79.3 pg/mL",
-      status: "normal",
-      notes: "Vitamin D levels adequate",
-      organizationId: 2,
-      createdAt: "2025-06-03T18:00:37.313Z"
-    },
-    {
-      id: 7,
-      patientId: 11,
-      testName: "Full Blood Count (FBC)",
-      testDate: "2025-06-03T08:30:00.000Z",
-      result: "WBC: 6.8, RBC: 4.3, Hgb: 13.8, Hct: 41.2, PLT: 245",
-      normalRange: "WBC: 4.0-11.0, RBC: 4.2-5.4, Hgb: 12.0-15.5, Hct: 36-46, PLT: 150-450",
-      status: "normal",
-      notes: "All parameters within normal range",
-      organizationId: 2,
-      createdAt: "2025-06-03T18:00:37.313Z"
-    },
-    {
-      id: 9,
-      patientId: 11,
-      testName: "24-Hour Urine Creatinine",
-      testDate: "2025-06-02T16:00:00.000Z",
-      result: "95 mg/dL",
-      normalRange: "70-140 mg/dL",
-      status: "normal",
-      notes: "Kidney function normal",
-      organizationId: 2,
-      createdAt: "2025-06-03T18:00:37.313Z"
-    }
-  ]);
-  const labsLoading = false;
-  const labsError = null;
+  // Lab results with React Query
+  const { data: labResults = [], isLoading: labsLoading, error: labsError } = useQuery<LabResult[]>({
+    queryKey: [`/api/patients/${patientId}/labs`],
+    enabled: !!patientId,
+    retry: false,
+  });
+
+  console.log('Lab Results Debug:', {
+    patientId,
+    labResults,
+    labsLoading,
+    labsError,
+    resultsLength: labResults?.length
+  });
 
   // Status badge helper function
   const getStatusBadge = (status: string) => {
