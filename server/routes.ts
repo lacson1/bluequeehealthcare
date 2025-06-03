@@ -884,6 +884,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search patients for autocomplete
+  app.get("/api/patients/search", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
+    try {
+      const userOrgId = req.user?.organizationId;
+      if (!userOrgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+      
+      const search = req.query.search as string || "";
+      
+      let query = db.select().from(patients).where(eq(patients.organizationId, userOrgId));
+      
+      if (search) {
+        query = query.where(
+          and(
+            eq(patients.organizationId, userOrgId),
+            or(
+              ilike(patients.firstName, `%${search}%`),
+              ilike(patients.lastName, `%${search}%`),
+              ilike(patients.phone, `%${search}%`),
+              ilike(patients.email, `%${search}%`)
+            )
+          )
+        );
+      }
+      
+      const searchResults = await query.limit(20).orderBy(desc(patients.createdAt));
+      res.json(searchResults);
+    } catch (error) {
+      console.error("Error searching patients:", error);
+      res.status(500).json({ message: "Failed to search patients" });
+    }
+  });
+
   app.get("/api/patients/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -1734,6 +1768,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Search endpoints for autocomplete functionality
+  
+  // Search medicines for autocomplete
+  app.get("/api/medicines/search", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const search = req.query.search as string || "";
+      
+      let query = db.select().from(medicines);
+      
+      if (search) {
+        query = query.where(
+          or(
+            ilike(medicines.name, `%${search}%`),
+            ilike(medicines.genericName, `%${search}%`),
+            ilike(medicines.category, `%${search}%`),
+            ilike(medicines.manufacturer, `%${search}%`)
+          )
+        );
+      }
+      
+      const searchResults = await query.limit(20).orderBy(medicines.name);
+      res.json(searchResults);
+    } catch (error) {
+      console.error("Error searching medicines:", error);
+      res.status(500).json({ message: "Failed to search medicines" });
+    }
+  });
+
+  // Search lab tests for autocomplete
+  app.get("/api/lab-tests/search", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const search = req.query.search as string || "";
+      
+      let query = db.select().from(labTests);
+      
+      if (search) {
+        query = query.where(
+          or(
+            ilike(labTests.name, `%${search}%`),
+            ilike(labTests.category, `%${search}%`),
+            ilike(labTests.description, `%${search}%`)
+          )
+        );
+      }
+      
+      const searchResults = await query.limit(20).orderBy(labTests.name);
+      res.json(searchResults);
+    } catch (error) {
+      console.error("Error searching lab tests:", error);
+      res.status(500).json({ message: "Failed to search lab tests" });
+    }
+  });
+
+  // Search doctors for autocomplete
+  app.get("/api/users/doctors/search", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userOrgId = req.user?.organizationId;
+      const search = req.query.search as string || "";
+      
+      let query = db.select({
+        id: users.id,
+        username: users.username,
+        role: users.role,
+        organizationId: users.organizationId,
+        organization: {
+          id: organizations.id,
+          name: organizations.name
+        }
+      })
+      .from(users)
+      .leftJoin(organizations, eq(users.organizationId, organizations.id))
+      .where(
+        and(
+          inArray(users.role, ['doctor', 'nurse', 'specialist']),
+          userOrgId ? eq(users.organizationId, userOrgId) : undefined
+        )
+      );
+      
+      if (search) {
+        query = query.where(
+          and(
+            inArray(users.role, ['doctor', 'nurse', 'specialist']),
+            userOrgId ? eq(users.organizationId, userOrgId) : undefined,
+            ilike(users.username, `%${search}%`)
+          )
+        );
+      }
+      
+      const searchResults = await query.limit(20).orderBy(users.username);
+      res.json(searchResults);
+    } catch (error) {
+      console.error("Error searching doctors:", error);
+      res.status(500).json({ message: "Failed to search doctors" });
+    }
+  });
+
+  // Search diagnoses for autocomplete
+  app.get("/api/diagnoses/search", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const search = req.query.search as string || "";
+      
+      // Common medical diagnoses for healthcare system
+      const commonDiagnoses = [
+        { id: 1, code: "J00", name: "Acute nasopharyngitis (common cold)", category: "Respiratory" },
+        { id: 2, code: "K59.1", name: "Diarrhea", category: "Digestive" },
+        { id: 3, code: "M79.3", name: "Panniculitis", category: "Musculoskeletal" },
+        { id: 4, code: "R50.9", name: "Fever", category: "General" },
+        { id: 5, code: "M25.50", name: "Pain in joint", category: "Musculoskeletal" },
+        { id: 6, code: "R51", name: "Headache", category: "Neurological" },
+        { id: 7, code: "I10", name: "Essential hypertension", category: "Cardiovascular" },
+        { id: 8, code: "E11.9", name: "Type 2 diabetes mellitus", category: "Endocrine" },
+        { id: 9, code: "J06.9", name: "Acute upper respiratory infection", category: "Respiratory" },
+        { id: 10, code: "K30", name: "Functional dyspepsia", category: "Digestive" }
+      ];
+      
+      const filteredDiagnoses = search 
+        ? commonDiagnoses.filter(diagnosis => 
+            diagnosis.name.toLowerCase().includes(search.toLowerCase()) ||
+            diagnosis.code.toLowerCase().includes(search.toLowerCase()) ||
+            diagnosis.category.toLowerCase().includes(search.toLowerCase())
+          )
+        : commonDiagnoses;
+      
+      res.json(filteredDiagnoses.slice(0, 20));
+    } catch (error) {
+      console.error("Error searching diagnoses:", error);
+      res.status(500).json({ message: "Failed to search diagnoses" });
+    }
+  });
+
+  // Search pharmacies for autocomplete
+  app.get("/api/pharmacies/search", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const search = req.query.search as string || "";
+      
+      // Sample pharmacies data for healthcare system
+      const samplePharmacies = [
+        { id: 1, name: "HealthPlus Pharmacy", address: "123 Victoria Island, Lagos", phone: "+234-1-234-5678" },
+        { id: 2, name: "Medplus Pharmacy", address: "456 Ikeja GRA, Lagos", phone: "+234-1-345-6789" },
+        { id: 3, name: "Alpha Pharmacy", address: "789 Surulere, Lagos", phone: "+234-1-456-7890" },
+        { id: 4, name: "Beta Drugstore", address: "321 Yaba, Lagos", phone: "+234-1-567-8901" },
+        { id: 5, name: "Gamma Pharmaceuticals", address: "654 Lekki, Lagos", phone: "+234-1-678-9012" }
+      ];
+      
+      const filteredPharmacies = search 
+        ? samplePharmacies.filter(pharmacy => 
+            pharmacy.name.toLowerCase().includes(search.toLowerCase()) ||
+            pharmacy.address.toLowerCase().includes(search.toLowerCase())
+          )
+        : samplePharmacies;
+      
+      res.json(filteredPharmacies.slice(0, 20));
+    } catch (error) {
+      console.error("Error searching pharmacies:", error);
+      res.status(500).json({ message: "Failed to search pharmacies" });
     }
   });
 
