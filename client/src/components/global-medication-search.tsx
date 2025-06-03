@@ -39,15 +39,15 @@ export function GlobalMedicationSearch({
   const [searchTerm, setSearchTerm] = useState('');
   const [customMedication, setCustomMedication] = useState('');
 
-  // Fetch all medications from the API
+  // Fetch medications from the search API with intelligent filtering
   const { data: medications = [], isLoading: medicationsLoading } = useQuery({
-    queryKey: ['/api/medicines'],
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    queryKey: ['/api/medicines/search', searchTerm],
+    enabled: searchTerm.length > 0,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
-  // Filter medications based on search term
+  // Use the filtered medications directly from the API
   const filteredMedications = medications.filter((medication: Medication) => {
-    const searchLower = searchTerm.toLowerCase();
     return (
       medication.name.toLowerCase().includes(searchLower) ||
       (medication.genericName && medication.genericName.toLowerCase().includes(searchLower)) ||
