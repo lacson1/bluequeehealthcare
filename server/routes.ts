@@ -5368,6 +5368,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { fileName } = req.params;
       const organizationId = req.user?.organizationId || 1;
 
+      console.log(`Serving file: ${fileName} for organization: ${organizationId}`);
+
       // Verify document belongs to user's organization
       const [document] = await db
         .select()
@@ -5377,6 +5379,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(medicalDocuments.organizationId, organizationId)
         ));
 
+      console.log(`Document found in DB:`, document ? 'Yes' : 'No');
+
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
       }
@@ -5384,6 +5388,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fs = await import('fs');
       const path = await import('path');
       const filePath = path.default.join(process.cwd(), 'uploads', fileName);
+
+      console.log(`File path: ${filePath}`);
+      console.log(`File exists:`, fs.default.existsSync(filePath));
 
       if (!fs.default.existsSync(filePath)) {
         return res.status(404).json({ message: "File not found" });
