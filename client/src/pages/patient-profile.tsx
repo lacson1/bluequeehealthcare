@@ -56,44 +56,11 @@ export default function PatientProfile() {
     queryKey: ["/api/organizations/current"],
   });
 
-  // Lab results state with direct fetch
-  const [labResults, setLabResults] = useState<LabResultFromOrder[]>([]);
-  const [labsLoading, setLabsLoading] = useState(false);
-  const [labsError, setLabsError] = useState<string | null>(null);
-
-  // Direct API call for lab results
-  useEffect(() => {
-    if (patientId) {
-      setLabsLoading(true);
-      setLabsError(null);
-      
-      fetch(`/api/patients/${patientId}/labs`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include'
-        })
-        .then(response => {
-          console.log('Lab Results Response:', response.status, response.statusText);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch lab results: ${response.status} ${response.statusText}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          console.log('Lab Results Fetched Successfully:', data);
-          setLabResults(data || []);
-        })
-        .catch(error => {
-          console.error('Lab Results Error:', error);
-          setLabsError(error.message);
-        })
-        .finally(() => {
-          setLabsLoading(false);
-        });
-    }
-  }, [patientId]);
+  // Lab results using React Query (same pattern as working sidebar)
+  const { data: labResults = [], isLoading: labsLoading } = useQuery<LabResultFromOrder[]>({
+    queryKey: [`/api/patients/${patientId}/labs`],
+    enabled: !!patientId
+  });
 
 
 
