@@ -3283,8 +3283,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
-  // Consultation Records API - Fill and save form responses
-  app.post("/api/consultation-records", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  // Consultation Records API - Fill and save form responses (Allow all healthcare staff)
+  app.post("/api/consultation-records", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist', 'physiotherapist', 'receptionist']), async (req: AuthRequest, res) => {
     try {
       const recordData = insertConsultationRecordSchema.parse({
         ...req.body,

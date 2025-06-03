@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConsultationDropdownMenu } from "./consultation-dropdown-menu";
 import { formatStaffName } from "@/lib/patient-utils";
-import { FileText, Clock, User, Activity, Pill, Calendar, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, Clock, User, Activity, Pill, Calendar, ChevronDown, ChevronRight, Filter, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -16,14 +18,53 @@ interface ConsultationHistoryDisplayProps {
 export default function ConsultationHistoryDisplay({ patientId, patient }: ConsultationHistoryDisplayProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [, navigate] = useLocation();
+  const [filters, setFilters] = useState({
+    role: 'all',
+    dateRange: 'all',
+    formType: 'all'
+  });
   
   // Fetch actual consultation records
   const { data: consultationRecords = [], isLoading: historyLoading } = useQuery({
     queryKey: [`/api/patients/${patientId}/consultation-records`],
   });
 
+  // Apply filters to consultation records
+  const filteredRecords = (consultationRecords as any[]).filter((record: any) => {
+    // Filter by role
+    if (filters.role !== 'all' && record.conductedByRole !== filters.role) {
+      return false;
+    }
+    
+    // Filter by date range
+    if (filters.dateRange !== 'all') {
+      const recordDate = new Date(record.createdAt);
+      const now = new Date();
+      
+      switch (filters.dateRange) {
+        case 'today':
+          return recordDate.toDateString() === now.toDateString();
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return recordDate >= weekAgo;
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return recordDate >= monthAgo;
+        default:
+          return true;
+      }
+    }
+    
+    // Filter by form type
+    if (filters.formType !== 'all' && record.formName !== filters.formType) {
+      return false;
+    }
+    
+    return true;
+  });
+
   // Map consultation records to display format
-  const consultationHistory = consultationRecords.map((record: any) => {
+  const consultationHistory = filteredRecords.map((record: any) => {
     const title = record.conductedByTitle || '';
     const firstName = record.conductedByFirstName || '';
     const lastName = record.conductedByLastName || '';
