@@ -58,6 +58,13 @@ export default function LabOrdersPage() {
   const [notes, setNotes] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
+  
+  // Enhanced filtering and sorting state
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [sortBy, setSortBy] = useState<'dateCreated' | 'patientName' | 'status' | 'priority'>('dateCreated');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
