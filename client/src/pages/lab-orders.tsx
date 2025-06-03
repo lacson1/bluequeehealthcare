@@ -63,7 +63,7 @@ export default function LabOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
-  const [sortBy, setSortBy] = useState<'dateCreated' | 'patientName' | 'status' | 'priority'>('dateCreated');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'patientName' | 'status' | 'priority'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -159,16 +159,95 @@ export default function LabOrdersPage() {
     ? labTests.filter((test: LabTest) => test.category === selectedCategory)
     : labTests;
 
-  // Filter lab orders
-  const filteredOrders = labOrders.filter((order: LabOrder) => {
-    if (!searchTerm) return true;
-    const patient = order.patient;
-    return (
-      patient?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.orderedBy && order.orderedBy.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  });
+  // Enhanced filtering and sorting logic
+  const filteredOrders = React.useMemo(() => {
+    let filtered = [...labOrders];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(order => 
+        order.patient?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.patient?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.orderedBy?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    // Apply priority filter - check items for priority
+    if (priorityFilter !== 'all') {
+      filtered = filtered.filter(order => 
+        order.items?.some(item => item.priority === priorityFilter)
+      );
+    }
+
+    // Apply date filter
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      
+      filtered = filtered.filter(order => {
+        const createdAt = new Date(order.createdAt);
+        switch (dateFilter) {
+          case 'today':
+            return createdAt.toDateString() === now.toDateString();
+          case 'week':
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            return createdAt >= weekAgo;
+          case 'month':
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return createdAt >= monthAgo;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'createdAt':
+          aValue = new Date(a.createdAt);
+          bValue = new Date(b.createdAt);
+          break;
+        case 'patientName':
+          aValue = `${a.patient?.firstName || ''} ${a.patient?.lastName || ''}`.toLowerCase();
+          bValue = `${b.patient?.firstName || ''} ${b.patient?.lastName || ''}`.toLowerCase();
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'priority':
+          // Get highest priority from items
+          const getPriorityWeight = (priority: string) => {
+            switch (priority) {
+              case 'stat': return 3;
+              case 'urgent': return 2;
+              case 'routine': return 1;
+              default: return 0;
+            }
+          };
+          aValue = Math.max(...(a.items?.map(item => getPriorityWeight(item.priority)) || [0]));
+          bValue = Math.max(...(b.items?.map(item => getPriorityWeight(item.priority)) || [0]));
+          break;
+        default:
+          aValue = new Date(a.createdAt);
+          bValue = new Date(b.createdAt);
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [labOrders, searchTerm, statusFilter, priorityFilter, dateFilter, sortBy, sortOrder]);
 
   // Pre-fill patient if coming from patient profile
   React.useEffect(() => {
@@ -199,8 +278,8 @@ export default function LabOrdersPage() {
       {/* Search and Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="Search lab orders..."
@@ -208,6 +287,76 @@ export default function LabOrdersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
+            </div>
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="routine">Routine</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+                <SelectItem value="stat">STAT</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={dateFilter} onValueChange={setDateFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by date" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Sort by:</label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="createdAt">Order Date</SelectItem>
+                    <SelectItem value="patientName">Patient Name</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="priority">Priority</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="flex items-center gap-2"
+              >
+                {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </Button>
+            </div>
+            
+            <div className="text-sm text-gray-600">
+              Showing {filteredOrders.length} of {labOrders.length} lab orders
             </div>
           </div>
         </CardContent>
