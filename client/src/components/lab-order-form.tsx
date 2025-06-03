@@ -51,7 +51,7 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
       if (!selectedPatientId) {
         throw new Error('Please select a patient');
       }
-      return apiRequest("POST", `/api/patients/${selectedPatientId}/lab-orders`, { tests });
+      return apiRequest(`/api/patients/${selectedPatientId}/lab-orders`, "POST", { tests });
     },
     onSuccess: () => {
       toast({
