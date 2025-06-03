@@ -80,7 +80,7 @@ export default function Dashboard() {
                 Clinical Dashboard
               </h1>
               <p className="text-white/80 text-lg">
-                Welcome back, Dr. {user?.username || 'User'} • Lagos Island Hospital
+                Welcome back, {user?.role === 'doctor' ? 'Dr.' : user?.role === 'nurse' ? 'Nurse' : user?.role === 'pharmacist' ? 'Pharmacist' : user?.role === 'admin' ? 'Admin' : ''} {user?.username || 'User'} • {user?.organization?.name || 'Healthcare Facility'}
               </p>
             </div>
             <div className="flex items-center space-x-4">
