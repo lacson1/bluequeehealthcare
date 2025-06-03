@@ -1030,7 +1030,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'completed')}>
-                                        <CheckCircle className="w-3 h-3 mr-2 text-blue-600" />
+                                        <MedicalIcons.success className="w-3 h-3 mr-2 text-blue-600" />
                                         Mark Completed
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'discontinued')}>
@@ -1743,7 +1743,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                       onClick={() => handleDeleteVisit(item.id)}
                                       className="text-red-600 focus:text-red-600"
                                     >
-                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      <MedicalIcons.delete className="mr-2 h-4 w-4" />
                                       Delete Visit
                                     </DropdownMenuItem>
                                   </>
@@ -1995,7 +1995,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                       onClick={() => handleDeleteVisit(item.id)}
                                       className="text-red-600 focus:text-red-600"
                                     >
-                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      <MedicalIcons.delete className="mr-2 h-4 w-4" />
                                       Delete Visit
                                     </DropdownMenuItem>
                                   </>
