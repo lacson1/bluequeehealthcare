@@ -2707,7 +2707,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         normalRange: labTests.referenceRange,
         status: labOrderItems.status,
         completedDate: labOrderItems.completedAt,
-        reviewedBy: users.username,
+        reviewedBy: sql<string>`'Lab Staff'`, // Remove reference to reviewedBy field that doesn't exist
         category: labTests.category,
         units: labTests.units,
         remarks: labOrderItems.remarks
@@ -2716,7 +2716,6 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       .innerJoin(labOrders, eq(labOrderItems.labOrderId, labOrders.id))
       .innerJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
       .innerJoin(patients, eq(labOrders.patientId, patients.id))
-      .leftJoin(users, eq(labOrderItems.reviewedBy, users.id))
       .where(
         and(
           eq(labOrders.organizationId, userOrgId),
