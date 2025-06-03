@@ -22,37 +22,32 @@ const getNavigationGroupsForRole = (role: string) => {
 
   const navigationGroups = [
     {
-      name: "Overview",
+      name: "Dashboard",
       icon: BarChart3,
       items: [
-        { name: "Dashboard", href: "/dashboard", icon: BarChart3, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Overview", href: "/dashboard", icon: BarChart3, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Clinical Activity Center", href: "/visits", icon: Activity, roles: ["superadmin", "admin", "doctor", "nurse"] },
       ]
     },
     {
-      name: "Patient Care",
+      name: "Patient Management",
       icon: Users,
       items: [
-        { name: "Patients", href: "/patients", icon: Users, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Patient Registry", href: "/patients", icon: Users, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { name: "Appointments", href: "/appointments", icon: Calendar, roles: ["superadmin", "admin", "doctor", "nurse"] },
-        { name: "Consultation Dashboard", href: "/consultation-dashboard", icon: Activity, roles: ["superadmin", "admin", "doctor", "nurse"] },
-        { name: "Clinical Activity Center", href: "/visits", icon: Activity, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Consultation Dashboard", href: "/consultation-dashboard", icon: Stethoscope, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Patient Access Cards", href: "/patient-access-cards", icon: CreditCard, roles: ["superadmin", "admin", "nurse"] },
+      ]
+    },
+    {
+      name: "Clinical Services",
+      icon: Stethoscope,
+      items: [
+        { name: "Lab Orders", href: "/lab-orders", icon: FlaskRound, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Lab Results", href: "/lab-results", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Pharmacy Management", href: "/pharmacy", icon: Pill, roles: ["superadmin", "admin", "pharmacist"] },
         { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
-      ]
-    },
-    {
-      name: "Laboratory & Diagnostics",
-      icon: FlaskRound,
-      items: [
-        { name: "Lab Orders", href: "/lab-orders", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
-        { name: "Lab Results", href: "/lab-results", icon: FlaskRound, roles: ["superadmin", "admin", "doctor", "nurse"] },
-      ]
-    },
-    {
-      name: "Pharmacy & Inventory",
-      icon: Pill,
-      items: [
-        { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["superadmin", "admin", "pharmacist"] },
-        { name: "Inventory", href: "/inventory", icon: Building2, roles: ["superadmin", "admin", "pharmacist"] },
+        { name: "Procedural Reports", href: "/procedural-reports", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
       ]
     },
     {
@@ -60,28 +55,28 @@ const getNavigationGroupsForRole = (role: string) => {
       icon: Heart,
       items: [
         { name: "Physiotherapy", href: "/physiotherapy", icon: Heart, roles: ["superadmin", "admin", "physiotherapist"] },
-        { name: "Procedural Reports", href: "/procedural-reports", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { name: "Telemedicine", href: "/telemedicine", icon: Heart, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Exercise Leaflets", href: "/exercise-leaflets", icon: FileText, roles: ["superadmin", "admin", "doctor", "physiotherapist"] },
       ]
     },
     {
-      name: "Medical Documents",
+      name: "Document Management",
       icon: FileText,
       items: [
-        { name: "Exercise Leaflets", href: "/exercise-leaflets", icon: FileText, roles: ["superadmin", "admin", "doctor", "physiotherapist"] },
+        { name: "Medical Documents", href: "/documents", icon: FileText, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { name: "Medical Certificates", href: "/medical-certificates", icon: Shield, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { name: "Referral Letters", href: "/referral-letters", icon: UserCheck, roles: ["superadmin", "admin", "doctor", "nurse"] },
-        { name: "Documents", href: "/documents", icon: FileText, roles: ["superadmin", "admin", "doctor", "nurse"] },
         { name: "Consent Management", href: "/consent-management", icon: Shield, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["superadmin", "admin", "doctor", "nurse"] },
       ]
     },
     {
-      name: "Tools & Utilities",
-      icon: Calculator,
+      name: "Inventory & Operations",
+      icon: Building2,
       items: [
+        { name: "Inventory Management", href: "/inventory", icon: Building2, roles: ["superadmin", "admin", "pharmacist"] },
         { name: "Medical Tools", href: "/medical-tools", icon: Calculator, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
         { name: "Clinical Protocols", href: "/protocols", icon: ClipboardList, roles: ["superadmin", "admin", "doctor", "nurse"] },
-        { name: "Export Compliance", href: "/compliance", icon: Shield, roles: ["superadmin", "admin"] },
       ]
     },
     {
@@ -97,25 +92,24 @@ const getNavigationGroupsForRole = (role: string) => {
       icon: TrendingUp,
       items: [
         { name: "Clinical Performance", href: "/clinical-performance", icon: TrendingUp, roles: ["superadmin", "admin", "doctor"] },
-        { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["superadmin", "admin", "doctor", "nurse"] },
+        { name: "Export Compliance", href: "/compliance", icon: Shield, roles: ["superadmin", "admin"] },
       ]
     },
     {
-      name: "Administration",
+      name: "System Administration",
       icon: Settings,
       items: [
         { name: "User Management", href: "/user-management", icon: UserCog, roles: ["superadmin", "admin"] },
         { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["superadmin", "admin"] },
-        { name: "Patient Access Cards", href: "/patient-access-cards", icon: CreditCard, roles: ["superadmin", "admin", "nurse"] },
         { name: "Staff Messages", href: "/staff-messages", icon: Mail, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
         { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["superadmin", "admin"] },
       ]
     },
     {
-      name: "Account",
+      name: "Personal",
       icon: User,
       items: [
-        { name: "Profile", href: "/profile", icon: User, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "My Profile", href: "/profile", icon: User, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
         { name: "Settings", href: "/settings", icon: Settings, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
       ]
     }
@@ -137,7 +131,7 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
   const { user } = useRole();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['Overview', 'Patient Care']));
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['Dashboard', 'Patient Management']));
 
   const navigationGroups = getNavigationGroupsForRole(user?.role || '');
 
