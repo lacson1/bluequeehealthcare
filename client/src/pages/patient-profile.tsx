@@ -38,10 +38,13 @@ export default function PatientProfile() {
   });
 
   // Fetch lab results
-  const { data: labResults, isLoading: labsLoading } = useQuery<LabResult[]>({
+  const { data: labResults, isLoading: labsLoading, error: labsError } = useQuery<LabResult[]>({
     queryKey: [`/api/patients/${patientId}/labs`],
     enabled: !!patientId,
   });
+
+  // Debug logging
+  console.log('Lab results query:', { patientId, labResults, labsLoading, labsError });
 
   // Fetch prescriptions
   const { data: prescriptions, isLoading: prescriptionsLoading } = useQuery<Prescription[]>({
