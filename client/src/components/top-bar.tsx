@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Bell, Globe, Moon, Sun, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, Download, MapPin, MessageSquare, Plus, UserPlus, CalendarPlus, TestTube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

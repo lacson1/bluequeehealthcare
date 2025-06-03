@@ -6491,6 +6491,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real-time notifications API
+  app.get('/api/notifications', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const organizationId = req.user!.organizationId!;
+      const userId = req.user!.id;
+      
+      // Get recent appointments (today and upcoming)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const upcomingAppointments = await db
+        .select({
+          id: appointments.id,
+          patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
+          appointmentDate: appointments.appointmentDate,
+          appointmentTime: appointments.appointmentTime,
+          status: appointments.status,
+          type: appointments.type
+        })
+        .from(appointments)
+        .leftJoin(patients, eq(appointments.patientId, patients.id))
+        .where(and(
+          eq(appointments.organizationId, organizationId),
+          gte(appointments.appointmentDate, today),
+          inArray(appointments.status, ['scheduled', 'confirmed'])
+        ))
+        .orderBy(appointments.appointmentDate, appointments.appointmentTime)
+        .limit(5);
+
+      // Get recent lab results that are ready
+      const recentLabResults = await db
+        .select({
+          id: labOrders.id,
+          patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
+          testName: labTests.name,
+          status: labOrders.status,
+          completedAt: labOrders.completedAt,
+          urgency: labOrders.urgency
+        })
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .leftJoin(labOrderItems, eq(labOrderItems.labOrderId, labOrders.id))
+        .leftJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
+        .where(and(
+          eq(labOrders.organizationId, organizationId),
+          eq(labOrders.status, 'completed'),
+          isNotNull(labOrders.completedAt)
+        ))
+        .orderBy(desc(labOrders.completedAt))
+        .limit(5);
+
+      // Get expiring prescriptions (ending within 7 days)
+      const expiringPrescriptions = await db
+        .select({
+          id: prescriptions.id,
+          patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
+          medicationName: prescriptions.medicationName,
+          endDate: prescriptions.endDate,
+          status: prescriptions.status
+        })
+        .from(prescriptions)
+        .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+        .where(and(
+          eq(prescriptions.organizationId, organizationId),
+          eq(prescriptions.status, 'active'),
+          lte(prescriptions.endDate, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
+        ))
+        .orderBy(prescriptions.endDate)
+        .limit(5);
+
+      // Get pending pharmacy activities
+      const pendingPharmacyActivities = await db
+        .select({
+          id: pharmacyActivities.id,
+          title: pharmacyActivities.title,
+          description: pharmacyActivities.description,
+          activityType: pharmacyActivities.activityType,
+          priority: pharmacyActivities.priority,
+          status: pharmacyActivities.status,
+          createdAt: pharmacyActivities.createdAt,
+          patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`
+        })
+        .from(pharmacyActivities)
+        .leftJoin(patients, eq(pharmacyActivities.patientId, patients.id))
+        .where(and(
+          eq(pharmacyActivities.organizationId, organizationId),
+          inArray(pharmacyActivities.status, ['pending', 'in_progress'])
+        ))
+        .orderBy(desc(pharmacyActivities.createdAt))
+        .limit(3);
+
+      // Get recent safety alerts
+      const recentSafetyAlerts = await db
+        .select({
+          id: safetyAlerts.id,
+          title: safetyAlerts.title,
+          description: safetyAlerts.description,
+          type: safetyAlerts.type,
+          priority: safetyAlerts.priority,
+          patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
+          dateAdded: safetyAlerts.dateAdded
+        })
+        .from(safetyAlerts)
+        .leftJoin(patients, eq(safetyAlerts.patientId, patients.id))
+        .where(and(
+          eq(safetyAlerts.organizationId, organizationId),
+          eq(safetyAlerts.isActive, true)
+        ))
+        .orderBy(desc(safetyAlerts.dateAdded))
+        .limit(3);
+
+      // Format notifications
+      const notifications = [];
+
+      // Add appointment notifications
+      upcomingAppointments.forEach(appointment => {
+        const appointmentDate = new Date(appointment.appointmentDate);
+        const isToday = appointmentDate.toDateString() === today.toDateString();
+        
+        notifications.push({
+          id: `appointment-${appointment.id}`,
+          type: 'appointment',
+          priority: isToday ? 'high' : 'medium',
+          title: isToday ? 'Appointment Today' : 'Upcoming Appointment',
+          description: `${appointment.patientName} - ${appointment.appointmentTime}`,
+          timestamp: appointment.appointmentDate,
+          color: 'blue',
+          metadata: { appointmentId: appointment.id, patientName: appointment.patientName }
+        });
+      });
+
+      // Add lab result notifications
+      recentLabResults.forEach(result => {
+        notifications.push({
+          id: `lab-${result.id}`,
+          type: 'lab_result',
+          priority: result.urgency === 'urgent' ? 'high' : 'medium',
+          title: 'Lab Results Available',
+          description: `${result.patientName} - ${result.testName}`,
+          timestamp: result.completedAt,
+          color: 'green',
+          metadata: { labOrderId: result.id, patientName: result.patientName }
+        });
+      });
+
+      // Add prescription expiry notifications
+      expiringPrescriptions.forEach(prescription => {
+        const daysUntilExpiry = Math.ceil((new Date(prescription.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        
+        notifications.push({
+          id: `prescription-${prescription.id}`,
+          type: 'prescription_expiry',
+          priority: daysUntilExpiry <= 2 ? 'high' : 'medium',
+          title: 'Prescription Expiring Soon',
+          description: `${prescription.patientName} - ${prescription.medicationName}`,
+          timestamp: prescription.endDate,
+          color: 'orange',
+          metadata: { prescriptionId: prescription.id, daysUntilExpiry, patientName: prescription.patientName }
+        });
+      });
+
+      // Add pharmacy activity notifications
+      pendingPharmacyActivities.forEach(activity => {
+        notifications.push({
+          id: `pharmacy-${activity.id}`,
+          type: 'pharmacy_activity',
+          priority: activity.priority || 'medium',
+          title: activity.title,
+          description: activity.description,
+          timestamp: activity.createdAt,
+          color: 'purple',
+          metadata: { activityId: activity.id, activityType: activity.activityType }
+        });
+      });
+
+      // Add safety alert notifications
+      recentSafetyAlerts.forEach(alert => {
+        notifications.push({
+          id: `safety-${alert.id}`,
+          type: 'safety_alert',
+          priority: alert.priority || 'high',
+          title: alert.title,
+          description: `${alert.patientName} - ${alert.description}`,
+          timestamp: alert.dateAdded,
+          color: 'red',
+          metadata: { alertId: alert.id, alertType: alert.type, patientName: alert.patientName }
+        });
+      });
+
+      // Sort notifications by priority and timestamp
+      notifications.sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+        if (priorityDiff !== 0) return priorityDiff;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+
+      res.json({
+        notifications: notifications.slice(0, 10), // Return top 10 notifications
+        totalCount: notifications.length,
+        unreadCount: notifications.filter(n => n.priority === 'high').length
+      });
+
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
   // Send patient portal access information via email/SMS
   app.post('/api/patient-portal/send-access-info', authenticateToken, async (req: AuthRequest, res) => {
     try {
