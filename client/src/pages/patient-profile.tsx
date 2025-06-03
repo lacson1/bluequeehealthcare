@@ -20,6 +20,14 @@ export default function PatientProfile() {
   const [, params] = useRoute("/patients/:id");
   const patientId = params?.id ? parseInt(params.id) : undefined;
   const { role: user } = useRole();
+  
+  // Debug logging for patientId
+  console.log('Patient Profile Debug:', { 
+    params, 
+    patientId, 
+    urlPath: window.location.pathname,
+    patientIdType: typeof patientId 
+  });
 
   const [showVisitModal, setShowVisitModal] = useState(false);
   const [showLabModal, setShowLabModal] = useState(false);
@@ -54,19 +62,24 @@ export default function PatientProfile() {
   const [labsError, setLabsError] = useState<Error | null>(null);
 
   useEffect(() => {
+    console.log('Lab results useEffect triggered with patientId:', patientId);
     if (patientId) {
+      console.log('Starting lab results fetch for patient:', patientId);
       const fetchLabResults = async () => {
         try {
           setLabsLoading(true);
+          console.log('Making API call to:', `/api/patients/${patientId}/labs`);
           const response = await fetch(`/api/patients/${patientId}/labs`, {
             credentials: 'include',
           });
           
+          console.log('Lab results response status:', response.status);
           if (!response.ok) {
             throw new Error(`Failed to fetch lab results: ${response.status}`);
           }
           
           const data = await response.json();
+          console.log('Lab results data received:', data);
           setLabResults(data);
           setLabsError(null);
         } catch (error) {
@@ -79,6 +92,9 @@ export default function PatientProfile() {
       };
 
       fetchLabResults();
+    } else {
+      console.log('No patientId provided, skipping lab results fetch');
+      setLabsLoading(false);
     }
   }, [patientId]);
 
