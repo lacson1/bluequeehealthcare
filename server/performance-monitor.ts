@@ -88,11 +88,11 @@ class PerformanceMonitor {
           method: metric.method,
           responseTime: metric.responseTime,
           statusCode: metric.statusCode,
-          memoryUsage: metric.memoryUsage,
-          cpuUsage: metric.cpuUsage,
+          memoryUsage: metric.memoryUsage.toString(),
+          cpuUsage: metric.cpuUsage.toString(),
           timestamp: metric.timestamp,
-          userId: metric.userId,
-          organizationId: metric.organizationId
+          userId: metric.userId || null,
+          organizationId: metric.organizationId || null
         }))
       );
 
@@ -192,8 +192,8 @@ class PerformanceMonitor {
       // Calculate statistics
       const totalRequests = metrics.length;
       const avgResponseTime = metrics.reduce((sum, m) => sum + m.responseTime, 0) / totalRequests || 0;
-      const avgMemoryUsage = metrics.reduce((sum, m) => sum + m.memoryUsage, 0) / totalRequests || 0;
-      const avgCpuUsage = metrics.reduce((sum, m) => sum + m.cpuUsage, 0) / totalRequests || 0;
+      const avgMemoryUsage = metrics.reduce((sum, m) => sum + parseFloat(m.memoryUsage as string), 0) / totalRequests || 0;
+      const avgCpuUsage = metrics.reduce((sum, m) => sum + parseFloat(m.cpuUsage as string), 0) / totalRequests || 0;
 
       // Get slowest endpoints
       const endpointStats = metrics.reduce((acc, metric) => {
