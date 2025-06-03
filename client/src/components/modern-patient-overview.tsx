@@ -1808,7 +1808,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                       />
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Activity className="w-2 h-2 text-blue-600" />
+                          <MedicalIcons.vitals className="w-2 h-2 text-blue-600" />
                         </div>
                         <label htmlFor="filter-visits" className="text-xs cursor-pointer">Visits</label>
                       </div>
@@ -2022,7 +2022,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     </div>
                   ) : (
                     <div className="text-center py-6 text-gray-500">
-                      <Stethoscope className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <MedicalIcons.stethoscope className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                       <p className="text-sm">No visits or consultations recorded yet</p>
                     </div>
                   )}
@@ -2042,7 +2042,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Stethoscope className="h-5 w-5" />
+                  <MedicalIcons.stethoscope className="h-5 w-5" />
                   Record Patient Visit
                 </CardTitle>
               </CardHeader>
@@ -2055,7 +2055,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     onClick={() => navigate(`/patients/${patient.id}/record-visit`)}
                     className="w-full"
                   >
-                    <Stethoscope className="h-4 w-4 mr-2" />
+                    <MedicalIcons.stethoscope className="h-4 w-4 mr-2" />
                     Open Comprehensive Visit Recording
                   </Button>
                 </div>
