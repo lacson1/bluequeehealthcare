@@ -480,6 +480,19 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     return [];
   }, [patientPrescriptions, activePrescriptions, prescriptionsLoading, prescriptionsError]);
 
+  // Fetch patient lab orders from the API for printing functionality
+  const { data: patientLabOrders = [], isLoading: labOrdersLoading } = useQuery({
+    queryKey: ['lab-orders', patient.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/patients/${patient.id}/lab-orders`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch lab orders');
+      }
+      return response.json();
+    },
+    enabled: !!patient.id
+  });
+
   // Filter prescriptions by status for better organization
   const activeMedications = React.useMemo(() => {
     return displayPrescriptions.filter((p: any) => 
@@ -686,18 +699,37 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   const handlePrintPrescription = async (prescription: any) => {
     try {
-      const { printPrescription } = await import('../services/print-utils');
-      await printPrescription(prescription, patient);
+      // Use the custom prescription print component with active organization branding
+      setShowPrescriptionPrint(true);
       
       toast({
-        title: "Printing Prescription",
-        description: "Prescription document is being generated for printing.",
+        title: "Opening Print Preview",
+        description: "Prescription print preview is being prepared with organization branding.",
       });
     } catch (error) {
-      console.error('Failed to print prescription:', error);
+      console.error('Failed to open print preview:', error);
       toast({
         title: "Print Failed",
-        description: "Unable to generate prescription. Please try again.",
+        description: "Unable to open print preview. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  const handlePrintLabOrders = async () => {
+    try {
+      // Use the custom lab order print component with active organization branding
+      setShowLabOrderPrint(true);
+      
+      toast({
+        title: "Opening Lab Orders Print",
+        description: "Lab order print preview is being prepared with organization branding.",
+      });
+    } catch (error) {
+      console.error('Failed to open lab orders print:', error);
+      toast({
+        title: "Print Failed",
+        description: "Unable to open lab orders print preview. Please try again.",
         variant: "destructive",
       });
     }
@@ -2550,6 +2582,24 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
           onClose={() => setShowDocumentCarousel(false)}
           initialDocumentIndex={selectedDocumentIndex}
         />
+
+        {/* Custom Prescription Print Dialog */}
+        {showPrescriptionPrint && (
+          <CustomPrescriptionPrint
+            prescriptions={displayPrescriptions}
+            patient={patient}
+            onClose={() => setShowPrescriptionPrint(false)}
+          />
+        )}
+
+        {/* Custom Lab Order Print Dialog */}
+        {showLabOrderPrint && (
+          <CustomLabOrderPrint
+            labOrders={patientLabOrders}
+            patient={patient}
+            onClose={() => setShowLabOrderPrint(false)}
+          />
+        )}
     </div>
   );
 }
