@@ -153,6 +153,7 @@ function AuthenticatedApp() {
                   <Route path="/consent-management" component={ConsentManagement} />
                   <Route path="/staff-messages" component={StaffMessages} />
                   <Route path="/global-analytics" component={SuperAdminAnalytics} />
+                  <Route path="/superadmin/analytics" component={SuperAdminAnalytics} />
                   <Route path="/super-admin-control" component={SuperAdminControlPanel} />
                   <Route component={NotFound} />
                 </Switch>

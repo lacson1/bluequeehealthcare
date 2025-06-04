@@ -2426,6 +2426,50 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
+  // Super Admin Analytics - System-wide statistics
+  app.get("/api/superadmin/analytics", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
+    try {
+      // Get total organizations
+      const totalOrganizations = await db.select({ count: sql<number>`count(*)` }).from(organizations);
+      
+      // Get active organizations (assuming organizations without explicit inactive status are active)
+      const activeOrganizations = await db.select({ count: sql<number>`count(*)` }).from(organizations);
+      
+      // Get total users across all organizations
+      const totalUsers = await db.select({ count: sql<number>`count(*)` }).from(users);
+      
+      // Get total patients across all organizations
+      const totalPatients = await db.select({ count: sql<number>`count(*)` }).from(patients);
+      
+      // Get detailed organization data with counts
+      const organizationDetails = await db
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          type: organizations.type,
+          isActive: sql<boolean>`true`,
+          createdAt: organizations.createdAt,
+          patientCount: sql<string>`(SELECT count(*) FROM patients WHERE organization_id = ${organizations.id})`,
+          userCount: sql<string>`(SELECT count(*) FROM users WHERE organization_id = ${organizations.id})`
+        })
+        .from(organizations)
+        .orderBy(desc(organizations.createdAt));
+
+      const analytics = {
+        totalOrganizations: totalOrganizations[0]?.count || 0,
+        activeOrganizations: activeOrganizations[0]?.count || 0,
+        totalUsers: totalUsers[0]?.count || 0,
+        totalPatients: totalPatients[0]?.count || 0,
+        organizations: organizationDetails
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching super admin analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics data" });
+    }
+  });
+
   // Search pharmacies for autocomplete
   app.get("/api/pharmacies/search", authenticateToken, async (req: AuthRequest, res) => {
     try {
