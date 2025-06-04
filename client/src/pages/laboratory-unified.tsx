@@ -1374,26 +1374,46 @@ export default function LaboratoryUnified() {
                         />
                       </div>
                       
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant={selectedCategories.length === 0 ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedCategories([])}
-                        >
-                          All Categories
-                        </Button>
-                        {testCategories.slice(0, 6).map((category) => (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
-                            key={category}
                             type="button"
-                            variant={selectedCategories.includes(category) ? "default" : "outline"}
+                            variant={selectedCategories.length === 0 ? "default" : "outline"}
                             size="sm"
-                            onClick={() => toggleCategory(category)}
+                            onClick={() => setSelectedCategories([])}
                           >
-                            {category}
+                            All Categories
                           </Button>
-                        ))}
+                          {testCategories.slice(0, 8).map((category) => (
+                            <Button
+                              key={category}
+                              type="button"
+                              variant={selectedCategories.includes(category) ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => toggleCategory(category)}
+                            >
+                              {category}
+                            </Button>
+                          ))}
+                        </div>
+                        {testCategories.length > 8 && (
+                          <div className="flex flex-wrap gap-2">
+                            {testCategories.slice(8).map((category) => (
+                              <Button
+                                key={category}
+                                type="button"
+                                variant={selectedCategories.includes(category) ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => toggleCategory(category)}
+                              >
+                                {category}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500">
+                          {testCategories.length} categories available • {labTests.length} total tests
+                        </div>
                       </div>
                     </div>
 
