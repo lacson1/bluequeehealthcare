@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
+import LetterheadService from "@/services/letterhead-service";
 
 // Form schemas
 const labOrderSchema = z.object({
@@ -359,154 +360,20 @@ export default function LaboratoryUnified() {
   };
 
   const generateLabResultPrintContent = (result: any) => {
-    const patient = result.orderItem?.labOrder?.patient;
-    // Use the issuing staff member's organization for letterhead branding
-    const org = organizationData || (userProfile as any)?.organization || {};
-    const orgName = (org as any).name || '';
-    const orgType = (org as any).type || '';
-    const orgEmail = (org as any).email || '';
-    const orgPhone = (org as any).phone || '';
-    const orgAddress = (org as any).address || '';
-    const orgWebsite = (org as any).website || '';
-    const themeColor = org.themeColor || '#1e40af';
-    
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Lab Result - ${result.orderItem?.labTest?.name}</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
-            .letterhead { background: linear-gradient(135deg, ${themeColor} 0%, #3b82f6 100%); color: white; padding: 30px; margin: -20px -20px 30px -20px; }
-            .org-name { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
-            .org-tagline { font-size: 14px; opacity: 0.9; margin-bottom: 15px; }
-            .org-contact { font-size: 12px; opacity: 0.8; display: flex; justify-content: space-between; }
-            .document-title { text-align: center; font-size: 24px; font-weight: bold; color: ${themeColor}; margin: 30px 0 20px 0; border-bottom: 3px solid ${themeColor}; padding-bottom: 10px; }
-            .result-header { background: #f8fafc; border-left: 4px solid ${themeColor}; padding: 20px; margin-bottom: 25px; }
-            .patient-section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
-            .result-main { background: #ffffff; border: 2px solid ${themeColor}; border-radius: 12px; padding: 30px; margin: 25px 0; text-align: center; }
-            .result-value { font-size: 36px; font-weight: bold; color: ${themeColor}; margin: 20px 0; }
-            .result-normal { border-color: #16a34a; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); }
-            .result-abnormal { border-color: #dc2626; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
-            .result-critical { border-color: #dc2626; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); animation: pulse 2s infinite; }
-            .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 12px; }
-            .status-normal { background: #16a34a; color: white; }
-            .status-abnormal { background: #dc2626; color: white; }
-            .status-critical { background: #dc2626; color: white; }
-            .reference-info { background: #f1f5f9; padding: 15px; border-radius: 8px; margin: 15px 0; }
-            .clinical-notes { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 20px 0; }
-            .footer { border-top: 2px solid #e2e8f0; padding-top: 20px; margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
-            .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
-            .signature-box { text-align: center; width: 200px; }
-            .signature-line { border-top: 1px solid #000; margin-top: 40px; padding-top: 5px; }
-            @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); } }
-            @media print { 
-              .no-print { display: none; }
-              body { margin: 0; }
-              .letterhead { margin: -20px -20px 20px -20px; }
-              .result-critical { animation: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="letterhead">
-            <div class="org-name">${orgName}</div>
-            <div class="org-tagline">${orgType.charAt(0).toUpperCase() + orgType.slice(1)} Laboratory Services</div>
-            <div class="org-contact">
-              <span>📧 ${orgEmail} | 📞 ${orgPhone}</span>
-              <span>🏥 ${orgAddress} | 🌐 ${orgWebsite}</span>
-            </div>
-          </div>
-          
-          <div class="document-title">LABORATORY RESULT REPORT</div>
-          
-          <div class="result-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="font-size: 16px;">Test: ${result.orderItem?.labTest?.name || 'Unknown Test'}</strong><br>
-                <span style="color: #6b7280;">Order #${result.orderItem?.labOrder?.id} | Report Date: ${result.createdAt ? format(new Date(result.createdAt), 'PPPP') : 'N/A'}</span>
-              </div>
-              <div style="text-align: right;">
-                <span class="status-badge status-${result.status}">${result.status.toUpperCase()}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="patient-section">
-            <h3 style="color: #1e40af; margin-bottom: 15px;">👤 Patient Information</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-              <div>
-                <p><strong>Full Name:</strong> ${patient?.firstName} ${patient?.lastName}</p>
-                <p><strong>Phone:</strong> ${patient?.phone || 'Not provided'}</p>
-                <p><strong>Email:</strong> ${patient?.email || 'Not provided'}</p>
-              </div>
-              <div>
-                <p><strong>Date of Birth:</strong> ${patient?.dateOfBirth ? format(new Date(patient.dateOfBirth), 'PP') : 'Not provided'}</p>
-                <p><strong>Gender:</strong> ${patient?.gender || 'Not specified'}</p>
-                <p><strong>Test Category:</strong> ${result.orderItem?.labTest?.category || 'Not specified'}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="result-main result-${result.status}">
-            <h2 style="color: #1e40af; margin-bottom: 10px;">🧪 TEST RESULT</h2>
-            <div class="result-value">${result.value} ${result.units}</div>
-            <div class="reference-info">
-              <strong>Reference Range:</strong> ${result.referenceRange || 'Not specified'}<br>
-              <strong>Test Method:</strong> ${result.orderItem?.labTest?.method || 'Standard Laboratory Method'}<br>
-              <strong>Sample Type:</strong> ${result.orderItem?.labTest?.sampleType || 'Blood/Serum'}
-            </div>
-          </div>
-          
-          ${result.notes ? `
-            <div class="clinical-notes">
-              <h4 style="color: #92400e; margin-bottom: 10px;">📋 Clinical Notes & Interpretation</h4>
-              <p style="margin: 0;">${result.notes}</p>
-            </div>
-          ` : ''}
-          
-          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <h4 style="color: #1e40af; margin-bottom: 15px;">📊 Result Summary</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
-              <div>
-                <strong>Status</strong><br>
-                <span style="color: ${result.status === 'normal' ? '#16a34a' : result.status === 'abnormal' ? '#dc2626' : '#dc2626'}; font-weight: bold;">
-                  ${result.status.toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <strong>Reviewed By</strong><br>
-                <span>${result.reviewedBy || 'Pending Review'}</span>
-              </div>
-              <div>
-                <strong>Report Date</strong><br>
-                <span>${format(new Date(), 'MMM dd, yyyy')}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="signatures">
-            <div class="signature-box">
-              <div class="signature-line">Laboratory Director</div>
-              <small>Medical Laboratory Scientist</small>
-            </div>
-            <div class="signature-box">
-              <div class="signature-line">Quality Assurance</div>
-              <small>Date: ${format(new Date(), 'MM/dd/yyyy')}</small>
-            </div>
-          </div>
-          
-          <div class="footer">
-            <p><strong>${orgName} Laboratory Services</strong></p>
-            <p>This result report was generated electronically on ${format(new Date(), 'PPPP')} at ${format(new Date(), 'p')}</p>
-            <p style="font-size: 10px; margin-top: 10px;">
-              ⚕️ Licensed Healthcare Facility | Professional Laboratory Services<br>
-              🔒 This report contains confidential medical information. Handle with appropriate care.
-            </p>
-          </div>
-        </body>
-      </html>
-    `;
+    // Use the organization data for enhanced letterhead
+    const organization = organizationData || (userProfile as any)?.organization || {
+      id: 4,
+      name: 'Enugu Health Center',
+      type: 'health_center',
+      themeColor: '#3B82F6',
+      address: 'Enugu State, Nigeria',
+      phone: '+234-XXX-XXX-XXXX',
+      email: 'info@enuguhealth.ng',
+      website: 'www.enuguhealth.ng'
+    };
+
+    // Use the professional letterhead service
+    return LetterheadService.generateLabResultHTML(organization, result);
   };
 
   // Data queries
