@@ -95,18 +95,20 @@ export class LetterheadService {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-          line-height: 1.6; 
+          line-height: 1.4; 
           color: #1f2937;
           background: white;
-          font-size: 14px;
+          font-size: 12px;
+          margin: 10mm 15mm;
         }
         
         .letterhead-header {
           background: linear-gradient(135deg, ${config.primaryColor} 0%, ${config.secondaryColor} 100%);
           color: white;
-          padding: 25px 30px;
+          padding: 15px 20px;
           position: relative;
           overflow: hidden;
+          margin: -10mm -15mm 15px -15mm;
         }
         
         .letterhead-header::before {
@@ -133,116 +135,116 @@ export class LetterheadService {
         }
         
         .org-logo {
-          width: 55px;
-          height: 55px;
+          width: 40px;
+          height: 40px;
           background: rgba(255, 255, 255, 0.25);
-          border-radius: 10px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
+          font-size: 16px;
           font-weight: bold;
-          margin-bottom: 10px;
+          margin-bottom: 6px;
           border: 2px solid rgba(255, 255, 255, 0.4);
         }
         
         .org-name {
-          font-size: 26px;
+          font-size: 20px;
           font-weight: 700;
-          margin-bottom: 3px;
+          margin-bottom: 2px;
           text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         .org-type {
-          font-size: 13px;
+          font-size: 11px;
           opacity: 0.9;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
           text-transform: uppercase;
-          letter-spacing: 0.8px;
+          letter-spacing: 0.6px;
         }
         
         .org-tagline {
-          font-size: 12px;
+          font-size: 10px;
           font-style: italic;
           opacity: 0.85;
-          margin-bottom: 8px;
+          margin-bottom: 5px;
         }
         
         .org-accreditation {
-          font-size: 10px;
+          font-size: 9px;
           background: rgba(255, 255, 255, 0.2);
-          padding: 3px 6px;
+          padding: 2px 4px;
           border-radius: 3px;
           display: inline-block;
         }
         
         .contact-info {
           text-align: right;
-          font-size: 11px;
+          font-size: 9px;
           opacity: 0.9;
         }
         
         .contact-item {
-          margin: 2px 0;
+          margin: 1px 0;
           display: flex;
           align-items: center;
           justify-content: flex-end;
-          gap: 4px;
+          gap: 3px;
         }
         
         .document-header {
           background: #f8fafc;
-          border-left: 4px solid ${config.primaryColor};
-          padding: 18px 30px;
-          margin: 0;
+          border-left: 3px solid ${config.primaryColor};
+          padding: 10px 15px;
+          margin: 0 0 8px 0;
         }
         
         .document-title {
-          font-size: 22px;
+          font-size: 16px;
           font-weight: 700;
           color: ${config.primaryColor};
-          margin-bottom: 6px;
+          margin-bottom: 3px;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.3px;
         }
         
         .document-meta {
           display: flex;
           justify-content: space-between;
-          font-size: 11px;
+          font-size: 9px;
           color: #6b7280;
         }
         
         .document-body {
-          padding: 25px 30px;
-          min-height: 300px;
+          padding: 12px 0;
+          min-height: auto;
         }
         
         .section {
-          margin: 20px 0;
+          margin: 8px 0;
           page-break-inside: avoid;
         }
         
         .section-title {
-          font-size: 15px;
+          font-size: 12px;
           font-weight: 700;
           color: ${config.primaryColor};
-          margin-bottom: 10px;
-          padding-bottom: 3px;
-          border-bottom: 2px solid #e5e7eb;
+          margin-bottom: 5px;
+          padding-bottom: 2px;
+          border-bottom: 1px solid #e5e7eb;
           text-transform: uppercase;
-          letter-spacing: 0.3px;
+          letter-spacing: 0.2px;
         }
         
         .info-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 15px;
-          margin: 12px 0;
+          gap: 8px;
+          margin: 5px 0;
         }
         
         .info-item {
-          margin: 6px 0;
+          margin: 2px 0;
           display: flex;
           align-items: center;
         }
@@ -250,26 +252,28 @@ export class LetterheadService {
         .info-label {
           font-weight: 600;
           color: #374151;
-          margin-right: 8px;
-          min-width: 100px;
+          margin-right: 5px;
+          min-width: 80px;
+          font-size: 10px;
         }
         
         .info-value {
           color: #1f2937;
           flex: 1;
+          font-size: 10px;
         }
         
         .lab-result-table {
           width: 100%;
           border-collapse: collapse;
-          margin: 15px 0;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          margin: 6px 0;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
         
         .lab-result-table th,
         .lab-result-table td {
           border: 1px solid #e5e7eb;
-          padding: 10px;
+          padding: 6px 8px;
           text-align: left;
         }
         
@@ -277,11 +281,11 @@ export class LetterheadService {
           background: ${config.primaryColor};
           color: white;
           font-weight: 600;
-          font-size: 13px;
+          font-size: 10px;
         }
         
         .lab-result-table td {
-          font-size: 13px;
+          font-size: 10px;
         }
         
         .result-value {
@@ -294,40 +298,42 @@ export class LetterheadService {
         .status-critical { color: #dc2626; font-weight: 600; }
         
         .clinical-notes {
-          margin-top: 15px;
-          padding: 12px;
+          margin-top: 6px;
+          padding: 6px 8px;
           background: #f8fafc;
-          border-left: 4px solid ${config.primaryColor};
-          border-radius: 4px;
+          border-left: 2px solid ${config.primaryColor};
+          border-radius: 3px;
+          font-size: 10px;
         }
         
         .interpretation-box {
-          padding: 12px;
+          padding: 6px 8px;
           background: #f1f5f9;
-          border-radius: 6px;
-          margin: 15px 0;
+          border-radius: 4px;
+          margin: 6px 0;
+          font-size: 10px;
         }
         
         .letterhead-footer {
           background: #f8fafc;
-          padding: 20px 30px;
-          border-top: 2px solid ${config.primaryColor};
-          margin-top: 30px;
+          padding: 8px 12px;
+          border-top: 1px solid ${config.primaryColor};
+          margin-top: 12px;
         }
         
         .certifications {
           display: flex;
           flex-wrap: wrap;
-          gap: 6px;
-          margin-bottom: 10px;
+          gap: 3px;
+          margin-bottom: 4px;
         }
         
         .certification-badge {
           background: ${config.primaryColor};
           color: white;
-          padding: 2px 6px;
-          border-radius: 3px;
-          font-size: 9px;
+          padding: 1px 3px;
+          border-radius: 2px;
+          font-size: 7px;
           font-weight: 500;
         }
         
@@ -335,24 +341,24 @@ export class LetterheadService {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 10px;
+          font-size: 8px;
           color: #6b7280;
         }
         
         .footer-note {
           font-style: italic;
-          margin-bottom: 8px;
-          font-size: 11px;
+          margin-bottom: 3px;
+          font-size: 8px;
         }
         
         .disclaimer {
-          font-size: 9px;
+          font-size: 7px;
           color: #9ca3af;
           text-align: center;
-          margin-top: 10px;
-          padding-top: 10px;
+          margin-top: 4px;
+          padding-top: 4px;
           border-top: 1px solid #e5e7eb;
-          line-height: 1.4;
+          line-height: 1.2;
         }
         
         @media print {
