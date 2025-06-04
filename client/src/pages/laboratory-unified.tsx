@@ -475,10 +475,7 @@ export default function LaboratoryUnified() {
       const { orderItemId, ...resultData } = data;
       return apiRequest(`/api/lab-order-items/${orderItemId}`, 'PATCH', {
         result: resultData.result || resultData.value,
-        status: resultData.status,
-        units: resultData.units,
-        referenceRange: resultData.referenceRange,
-        notes: resultData.notes || resultData.interpretation || resultData.recommendations
+        remarks: resultData.notes || resultData.interpretation || resultData.recommendations || ''
       });
     },
     onSuccess: () => {
