@@ -297,15 +297,31 @@ export default function Login() {
                       <Activity className="w-3 h-3 mr-2" />
                       Pharmacist
                     </span>
-                    <span className="text-green-100 font-mono">akin / pharmacy123</span>
+                    <span className="text-green-100 font-mono">akin / password123</span>
                   </div>
                   
-                  <div className="flex justify-between items-center bg-slate-700/40 p-3 rounded-lg backdrop-blur-sm">
+                  <div className="flex justify-between items-center bg-gradient-to-r from-green-700/40 to-emerald-700/40 p-3 rounded-lg backdrop-blur-sm border border-green-400/20">
+                    <span className="text-green-300 font-medium flex items-center">
+                      <Activity className="w-3 h-3 mr-2" />
+                      Pharmacist - Mike
+                    </span>
+                    <span className="text-green-100 font-mono">pharmacist_mike / password123</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center bg-gradient-to-r from-orange-700/40 to-amber-700/40 p-3 rounded-lg backdrop-blur-sm border border-orange-400/20">
                     <span className="text-orange-300 font-medium flex items-center">
                       <Zap className="w-3 h-3 mr-2" />
                       Physiotherapist
                     </span>
-                    <span className="text-orange-100 font-mono">Mr Seye / physio123</span>
+                    <span className="text-orange-100 font-mono">Mr Seye / password123</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center bg-gradient-to-r from-orange-700/40 to-amber-700/40 p-3 rounded-lg backdrop-blur-sm border border-orange-400/20">
+                    <span className="text-orange-300 font-medium flex items-center">
+                      <Zap className="w-3 h-3 mr-2" />
+                      Physiotherapist - Lisa
+                    </span>
+                    <span className="text-orange-100 font-mono">physio_lisa / password123</span>
                   </div>
                   
                   <div className="flex justify-between items-center bg-slate-700/40 p-3 rounded-lg backdrop-blur-sm">
