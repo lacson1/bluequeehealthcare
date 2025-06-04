@@ -6739,7 +6739,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       const fs = await import('fs');
       const path = await import('path');
-      const filePath = path.default.join(process.cwd(), 'uploads', fileName);
+      const filePath = path.default.join(process.cwd(), 'uploads', 'medical', fileName);
 
       console.log(`File path: ${filePath}`);
       const fileExists = fs.default.existsSync(filePath);

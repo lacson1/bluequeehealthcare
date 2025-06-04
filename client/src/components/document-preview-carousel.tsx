@@ -223,6 +223,9 @@ export function DocumentPreviewCarousel({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Loading Documents</DialogTitle>
+          </DialogHeader>
           <div className="flex items-center justify-center h-full">
             <MedicalIcons.clock className="w-8 h-8 animate-spin text-blue-600" />
             <span className="ml-2 text-gray-600">Loading documents...</span>
@@ -251,6 +254,9 @@ export function DocumentPreviewCarousel({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={`${isFullscreen ? 'max-w-[95vw] h-[95vh]' : 'max-w-6xl h-[80vh]'} p-0`}>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Document Preview - {currentDocument.originalName}</DialogTitle>
+        </DialogHeader>
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-white rounded-t-lg">
