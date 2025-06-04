@@ -15,36 +15,47 @@ export interface AuthRequest extends Request {
 
 // Performance monitoring middleware
 export const performanceMonitor = (req: Request, res: Response, next: NextFunction) => {
-  const startTime = Date.now();
-  
-  res.on('finish', async () => {
-    const responseTime = Date.now() - startTime;
-    const organizationId = (req as AuthRequest).user?.organizationId;
+  try {
+    const startTime = Date.now();
     
-    try {
-      // Log response time metric
-      await db.insert(systemHealth).values({
-        metric: 'response_time',
-        value: responseTime.toString(),
-        unit: 'ms',
-        organizationId: organizationId || null
+    res.on('finish', () => {
+      // Perform logging asynchronously without blocking
+      setImmediate(async () => {
+        try {
+          const responseTime = Date.now() - startTime;
+          const organizationId = (req as AuthRequest).user?.organizationId;
+          
+          // Only log performance metrics for valid requests
+          if (responseTime > 0 && responseTime < 60000) {
+            await db.insert(systemHealth).values({
+              metric: 'response_time',
+              value: responseTime.toString(),
+              unit: 'ms',
+              organizationId: organizationId || null
+            });
+            
+            // Log error rate if it's an error response
+            if (res.statusCode >= 400) {
+              await db.insert(systemHealth).values({
+                metric: 'error_rate',
+                value: '1',
+                unit: 'count',
+                organizationId: organizationId || null
+              });
+            }
+          }
+        } catch (error) {
+          // Silently handle logging errors
+          console.error('Performance logging failed:', error instanceof Error ? error.message : 'Unknown error');
+        }
       });
-      
-      // Log error rate if it's an error response
-      if (res.statusCode >= 400) {
-        await db.insert(systemHealth).values({
-          metric: 'error_rate',
-          value: '1',
-          unit: 'count',
-          organizationId: organizationId || null
-        });
-      }
-    } catch (error) {
-      console.error('Failed to log performance metrics:', error);
-    }
-  });
-  
-  next();
+    });
+    
+    next();
+  } catch (error) {
+    // If middleware setup fails, continue without performance monitoring
+    next();
+  }
 };
 
 // Global error handling middleware
