@@ -222,6 +222,255 @@ function PatientReviewedResults({ patientId }: { patientId: number }) {
     return LetterheadService.generateLabResultHTML(organization, labResult);
   };
 
+// PendingLabOrders component for managing pending lab orders
+function PendingLabOrders({ labOrders, labOrdersLoading, onProcessResult }: {
+  labOrders: any[];
+  labOrdersLoading: boolean;
+  onProcessResult: (orderItem: any) => void;
+}) {
+  const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
+  
+  // Fetch lab order items for expanded orders
+  const { data: labOrderItems = {} } = useQuery({
+    queryKey: ['lab-order-items', Array.from(expandedOrders)],
+    queryFn: async () => {
+      const items: any = {};
+      for (const orderId of expandedOrders) {
+        const response = await fetch(`/api/lab-orders/${orderId}/items`);
+        if (response.ok) {
+          items[orderId] = await response.json();
+        }
+      }
+      return items;
+    },
+    enabled: expandedOrders.size > 0,
+  });
+
+  const toggleOrder = (orderId: number) => {
+    const newExpanded = new Set(expandedOrders);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+    }
+    setExpandedOrders(newExpanded);
+  };
+
+  if (labOrdersLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="h-4 bg-slate-200 rounded w-1/4 mb-2"></div>
+            <div className="h-3 bg-slate-200 rounded w-1/2 mb-1"></div>
+            <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!labOrders || labOrders.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <History className="mx-auto h-12 w-12 text-slate-400" />
+        <h3 className="mt-4 text-sm font-medium text-slate-900">No pending orders</h3>
+        <p className="mt-2 text-sm text-slate-500">All lab orders have been completed.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {labOrders.map((order) => {
+        const isExpanded = expandedOrders.has(order.id);
+        const orderItems = labOrderItems[order.id] || [];
+        
+        return (
+          <div key={order.id} className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-slate-800">Lab Order #{order.id}</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleOrder(order.id)}
+                    className="ml-2"
+                  >
+                    {isExpanded ? 'Hide Tests' : 'Show Tests'}
+                  </Button>
+                </div>
+                <p className="text-sm text-slate-600 mt-1">
+                  <strong>Ordered:</strong> {new Date(order.createdAt).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-slate-600">
+                  <strong>Status:</strong> {order.status}
+                </p>
+              </div>
+              <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                Pending
+              </Badge>
+            </div>
+            
+            {isExpanded && (
+              <div className="mt-4 border-t border-amber-200 pt-4">
+                <h5 className="font-medium text-slate-700 mb-3">Ordered Tests</h5>
+                {orderItems.length > 0 ? (
+                  <div className="space-y-3">
+                    {orderItems.map((item: any) => (
+                      <div key={item.id} className="bg-white rounded-lg p-3 border border-slate-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h6 className="font-medium text-slate-800">{item.testName}</h6>
+                            <p className="text-sm text-slate-600">Category: {item.category}</p>
+                            <p className="text-sm text-slate-500">Test ID: {item.labTestId}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                              Awaiting Results
+                            </Badge>
+                            <Button
+                              size="sm"
+                              onClick={() => onProcessResult(item)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              <ClipboardCheck className="mr-1 h-3 w-3" />
+                              Add Result
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">No test items found</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Lab Result Input Modal
+const resultSchema = z.object({
+  result: z.string().min(1, "Result value is required"),
+  status: z.enum(["normal", "abnormal", "critical"]),
+  remarks: z.string().optional(),
+});
+
+function LabResultModal({ 
+  isOpen, 
+  onClose, 
+  orderItem, 
+  onSubmit 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  orderItem: any;
+  onSubmit: (data: any) => void;
+}) {
+  const form = useForm({
+    resolver: zodResolver(resultSchema),
+    defaultValues: {
+      result: "",
+      status: "normal" as const,
+      remarks: "",
+    },
+  });
+
+  const handleSubmit = (data: any) => {
+    onSubmit({
+      itemId: orderItem?.id,
+      ...data,
+    });
+  };
+
+  if (!orderItem) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Lab Result</DialogTitle>
+        </DialogHeader>
+        
+        <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+          <p className="font-medium text-slate-800">{orderItem.testName}</p>
+          <p className="text-sm text-slate-600">Category: {orderItem.category}</p>
+        </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="result"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Result Value</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Enter result value" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal">Normal</SelectItem>
+                        <SelectItem value="abnormal">Abnormal</SelectItem>
+                        <SelectItem value="critical">Critical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Clinical Remarks (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} placeholder="Add any clinical notes" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                Save Result
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
   // Fetch patient data
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
     queryKey: [`/api/patients/${patientId}`],
@@ -760,6 +1009,16 @@ function PatientReviewedResults({ patientId }: { patientId: number }) {
         open={showPrescriptionModal}
         onOpenChange={setShowPrescriptionModal}
         patientId={patientId}
+      />
+
+      <LabResultModal
+        isOpen={showResultModal}
+        onClose={() => {
+          setShowResultModal(false);
+          setSelectedOrderItem(null);
+        }}
+        orderItem={selectedOrderItem}
+        onSubmit={(data) => addResultMutation.mutate(data)}
       />
 
       {/* Hidden Printable Patient Summary */}
