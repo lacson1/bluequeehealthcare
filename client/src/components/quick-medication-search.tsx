@@ -16,6 +16,8 @@ interface Medication {
   strength?: string | null;
   manufacturer?: string | null;
   description?: string | null;
+  dosageAdult?: string | null;
+  frequency?: string | null;
   isActive?: boolean | null;
 }
 
@@ -210,6 +212,26 @@ export function QuickMedicationSearch({
                           {highlightText(medication.name, query)}
                         </span>
                         <Database className="h-3 w-3 text-green-500" />
+                      </div>
+                      
+                      {/* Always show dosage and frequency information */}
+                      <div className="mb-2">
+                        {(medication.dosageAdult || medication.frequency) && (
+                          <div className="flex items-center gap-3 bg-slate-50 p-2 rounded text-xs">
+                            {medication.dosageAdult && (
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold text-blue-700">Dose:</span>
+                                <span className="font-medium text-slate-800">{medication.dosageAdult}</span>
+                              </div>
+                            )}
+                            {medication.frequency && (
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold text-green-700">Frequency:</span>
+                                <span className="font-medium text-slate-800">{medication.frequency}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       {showDetails && (
