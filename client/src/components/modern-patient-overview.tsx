@@ -2627,6 +2627,25 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
 
                   <TabsContent value="results" className="space-y-4">
                     <LabOrdersList patientId={patient.id} />
+                    
+                    {/* AI-Powered Lab Result Integration */}
+                    <LabResultPersonalityIntegration
+                      patientId={patient.id}
+                      labResults={[]} // This will be populated with actual lab results
+                      patientData={{
+                        firstName: patient.firstName,
+                        lastName: patient.lastName,
+                        age: patient.dateOfBirth ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear() : undefined,
+                        gender: patient.gender,
+                        medicalHistory: patient.medicalHistory || undefined,
+                        allergies: patient.allergies || undefined
+                      }}
+                      onIntegrationComplete={() => {
+                        queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}`] });
+                        queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}/visits`] });
+                        queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}/lab-orders`] });
+                      }}
+                    />
                   </TabsContent>
 
                   <TabsContent value="reviewed" className="space-y-4">
