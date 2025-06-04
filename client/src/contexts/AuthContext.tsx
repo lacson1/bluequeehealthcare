@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useLocation } from 'wouter';
 
 interface User {
   id: number;
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     // Check if user is already logged in on app start
@@ -74,6 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('clinic_token', data.token);
       localStorage.setItem('clinic_user', JSON.stringify(data.user));
       setUser(data.user);
+      
+      // Automatically redirect to dashboard after successful login
+      setLocation('/dashboard');
     } catch (error) {
       throw error;
     } finally {
