@@ -136,6 +136,8 @@ export default function LaboratoryUnified() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [selectedOrderItem, setSelectedOrderItem] = useState<LabOrderItem | null>(null);
   const [showCustomViewDialog, setShowCustomViewDialog] = useState(false);
@@ -1086,9 +1088,8 @@ export default function LaboratoryUnified() {
                           variant="outline" 
                           size="sm"
                           onClick={() => {
-                            // View detailed analytics for this order
-                            const orderDetails = `Order #${order.id} Analytics\n\nPatient: ${order.patient.firstName} ${order.patient.lastName}\nTests: ${order.items?.length || 0}\nStatus: ${order.status}\nCreated: ${format(new Date(order.createdAt), 'PPP')}`;
-                            alert(orderDetails);
+                            setSelectedOrder(order);
+                            setShowViewDialog(true);
                           }}
                         >
                           <Eye className="w-4 h-4 mr-1" />
@@ -1878,6 +1879,196 @@ export default function LaboratoryUnified() {
               Apply Changes
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lab Order View Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TestTube className="w-5 h-5" />
+              Lab Order #{selectedOrder?.id} Details
+            </DialogTitle>
+            <DialogDescription>
+              Complete information for this laboratory order
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Patient Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    Patient Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Patient Name</p>
+                      <p className="text-lg font-semibold">
+                        {selectedOrder.patient?.firstName} {selectedOrder.patient?.lastName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Date of Birth</p>
+                      <p className="text-lg">
+                        {selectedOrder.patient?.dateOfBirth ? 
+                          format(new Date(selectedOrder.patient.dateOfBirth), 'MMM dd, yyyy') : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Phone</p>
+                      <p className="text-lg">{selectedOrder.patient?.phone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Gender</p>
+                      <p className="text-lg capitalize">{selectedOrder.patient?.gender || 'N/A'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Order Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Order Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Order ID</p>
+                      <p className="text-lg font-semibold">#{selectedOrder.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Status</p>
+                      <Badge className={
+                        selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        selectedOrder.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                        selectedOrder.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }>
+                        {selectedOrder.status?.charAt(0).toUpperCase() + selectedOrder.status?.slice(1)}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Priority</p>
+                      <Badge variant={
+                        selectedOrder.priority === 'stat' ? 'destructive' :
+                        selectedOrder.priority === 'urgent' ? 'default' :
+                        'secondary'
+                      }>
+                        {selectedOrder.priority?.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Ordered By</p>
+                      <p className="text-lg">
+                        {selectedOrder.orderedByUser?.firstName} {selectedOrder.orderedByUser?.lastName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Created</p>
+                      <p className="text-lg">
+                        {format(new Date(selectedOrder.createdAt), 'MMM dd, yyyy HH:mm')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Tests</p>
+                      <p className="text-lg font-semibold">{selectedOrder.itemCount || 0}</p>
+                    </div>
+                  </div>
+                  
+                  {selectedOrder.clinicalNotes && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-600 mb-1">Clinical Notes</p>
+                      <p className="text-sm text-gray-700">{selectedOrder.clinicalNotes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Tests Information */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TestTube className="w-5 h-5" />
+                    Ordered Tests
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    <div className="space-y-3">
+                      {selectedOrder.items.map((item: any, index: number) => (
+                        <div key={item.id || index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium">{item.labTest?.name || 'Unknown Test'}</p>
+                            <p className="text-sm text-gray-600">{item.labTest?.category || 'Unknown Category'}</p>
+                            {item.labTest?.description && (
+                              <p className="text-xs text-gray-500 mt-1">{item.labTest.description}</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <Badge className={
+                              item.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              item.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }>
+                              {item.status?.charAt(0).toUpperCase() + item.status?.slice(1) || 'Pending'}
+                            </Badge>
+                            {item.result && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                Result: {item.result} {item.labTest?.units}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <TestTube className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No test details available</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between pt-4 border-t">
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowViewDialog(false)}
+                >
+                  Close
+                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => handlePrintOrderWithLetterhead(selectedOrder)}
+                  >
+                    <Printer className="w-4 h-4 mr-1" />
+                    Print Order
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setShowViewDialog(false);
+                      // Could open edit dialog here if needed
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit Order
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
