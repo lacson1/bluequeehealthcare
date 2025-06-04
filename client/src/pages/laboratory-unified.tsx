@@ -474,7 +474,7 @@ export default function LaboratoryUnified() {
                           <Badge className={getStatusColor(order.status)} variant="outline">
                             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                           </Badge>
-                          {order.items[0] && (
+                          {order.items && order.items.length > 0 && order.items[0] && (
                             <Badge className={getPriorityColor(order.items[0].priority)} variant="outline">
                               {order.items[0].priority.charAt(0).toUpperCase() + order.items[0].priority.slice(1)}
                             </Badge>
