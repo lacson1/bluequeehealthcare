@@ -29,6 +29,7 @@ import { getOptimizationTasks, implementOptimizationTask } from "./system-optimi
 import { setupNetworkValidationRoutes } from "./network-validator";
 import { setupAuthValidationRoutes } from "./auth-validator";
 import { setupSystemHealthRoutes } from "./system-health-dashboard";
+import Anthropic from '@anthropic-ai/sdk';
 
 // Helper function to generate prescription HTML for printing
 function generatePrescriptionHTML(prescriptionResult: any): string {
@@ -9430,6 +9431,218 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     } catch (error) {
       console.error(`Error fetching autocomplete suggestions for ${req.params.fieldType}:`, error);
       res.status(500).json({ message: "Failed to fetch suggestions" });
+    }
+  });
+
+  // AI Lab Results Analysis Endpoint
+  app.post('/api/lab-results/ai-analysis', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { patientId, labResults, patientData, clinicalContext } = req.body;
+      const organizationId = req.user!.organizationId;
+
+      // Verify patient belongs to organization
+      const [patient] = await db
+        .select()
+        .from(patients)
+        .where(and(
+          eq(patients.id, Number(patientId)),
+          eq(patients.organizationId, organizationId)
+        ));
+
+      if (!patient) {
+        return res.status(404).json({ error: 'Patient not found' });
+      }
+
+      // Initialize Anthropic client
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+      });
+
+      // Prepare clinical context for AI analysis
+      const labResultsSummary = labResults.map((result: any) => 
+        `${result.testName || 'Test'}: ${result.value} ${result.units} (Ref: ${result.referenceRange}) - Status: ${result.status}`
+      ).join('\n');
+
+      const clinicalPrompt = `
+You are a clinical AI assistant analyzing laboratory results for a patient. Please provide a comprehensive clinical analysis.
+
+PATIENT INFORMATION:
+- Name: ${patientData.firstName} ${patientData.lastName}
+- Age: ${clinicalContext.age || 'Not specified'}
+- Gender: ${clinicalContext.gender}
+- Medical History: ${clinicalContext.medicalHistory || 'None provided'}
+- Allergies: ${clinicalContext.allergies || 'None known'}
+
+LABORATORY RESULTS:
+${labResultsSummary}
+
+Please provide a detailed analysis including:
+1. Clinical summary of findings
+2. Clinical significance of abnormal values
+3. Specific recommendations for patient care
+4. Risk factors identified
+5. Trends analysis (if applicable)
+6. Urgency level (low, medium, high, critical)
+7. Follow-up actions needed
+
+Format your response as a JSON object with the following structure:
+{
+  "summary": "Brief clinical summary",
+  "clinicalSignificance": "Detailed explanation of clinical significance",
+  "recommendations": ["recommendation1", "recommendation2", ...],
+  "riskFactors": ["risk1", "risk2", ...],
+  "trends": "Analysis of trends in results",
+  "urgencyLevel": "low|medium|high|critical",
+  "followUpActions": ["action1", "action2", ...]
+}
+
+Ensure all recommendations are evidence-based and appropriate for the clinical context provided.
+      `;
+
+      // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [
+          {
+            role: 'user',
+            content: clinicalPrompt
+          }
+        ]
+      });
+
+      // Parse AI response
+      const aiAnalysis = JSON.parse(response.content[0].text);
+
+      // Log the AI analysis request for audit purposes
+      await AuditLogger.log(
+        organizationId,
+        req.user!.id,
+        AuditActions.AI_ANALYSIS,
+        'lab_results',
+        patientId,
+        { 
+          analysisType: 'lab_results_clinical_analysis',
+          resultsCount: labResults.length,
+          urgencyLevel: aiAnalysis.urgencyLevel
+        }
+      );
+
+      res.json(aiAnalysis);
+    } catch (error) {
+      console.error('Error performing AI analysis:', error);
+      res.status(500).json({ error: 'Failed to perform AI analysis' });
+    }
+  });
+
+  // Patient Record Integration Endpoint
+  app.post('/api/patients/integrate-lab-results', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { patientId, labResults, aiAnalysis, additionalNotes, priorityLevel, clinicalAssessment } = req.body;
+      const organizationId = req.user!.organizationId;
+      const userId = req.user!.id;
+
+      // Verify patient belongs to organization
+      const [patient] = await db
+        .select()
+        .from(patients)
+        .where(and(
+          eq(patients.id, Number(patientId)),
+          eq(patients.organizationId, organizationId)
+        ));
+
+      if (!patient) {
+        return res.status(404).json({ error: 'Patient not found' });
+      }
+
+      // Create a new visit record for the lab results integration
+      const visitData = {
+        patientId: Number(patientId),
+        organizationId,
+        doctorId: userId,
+        visitDate: new Date(),
+        visitType: 'lab_results_review',
+        chiefComplaint: 'Laboratory Results Review with AI Analysis',
+        presentIllness: clinicalAssessment.summary,
+        assessment: `AI Clinical Analysis: ${aiAnalysis.summary}`,
+        plan: aiAnalysis.recommendations.join('; '),
+        notes: `
+AI-POWERED LAB RESULTS ANALYSIS
+
+CLINICAL SUMMARY:
+${aiAnalysis.summary}
+
+CLINICAL SIGNIFICANCE:
+${aiAnalysis.clinicalSignificance}
+
+RECOMMENDATIONS:
+${aiAnalysis.recommendations.map((rec: string, index: number) => `${index + 1}. ${rec}`).join('\n')}
+
+RISK FACTORS IDENTIFIED:
+${aiAnalysis.riskFactors.map((risk: string, index: number) => `${index + 1}. ${risk}`).join('\n')}
+
+URGENCY LEVEL: ${aiAnalysis.urgencyLevel.toUpperCase()}
+
+FOLLOW-UP ACTIONS:
+${aiAnalysis.followUpActions.map((action: string, index: number) => `${index + 1}. ${action}`).join('\n')}
+
+ADDITIONAL CLINICAL NOTES:
+${additionalNotes || 'None provided'}
+
+PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
+        `.trim(),
+        status: 'completed'
+      };
+
+      const [newVisit] = await db.insert(visits).values(visitData).returning();
+
+      // Update lab results status to indicate they've been reviewed and integrated
+      if (labResults.length > 0) {
+        for (const result of labResults) {
+          await db
+            .update(labResults)
+            .set({ 
+              status: 'reviewed',
+              notes: result.notes ? `${result.notes}\n\nAI Analysis: Integrated to patient record on ${format(new Date(), 'PPP')}` 
+                                  : `AI Analysis: Integrated to patient record on ${format(new Date(), 'PPP')}`
+            })
+            .where(eq(labResults.id, result.id));
+        }
+      }
+
+      // Send notification if urgency level is high or critical
+      if (aiAnalysis.urgencyLevel === 'high' || aiAnalysis.urgencyLevel === 'critical') {
+        await sendUrgentNotification(
+          organizationId,
+          `URGENT: Lab Results Analysis - ${patient.firstName} ${patient.lastName}`,
+          `AI analysis indicates ${aiAnalysis.urgencyLevel} urgency level. Immediate review recommended.`,
+          NotificationTypes.LAB_RESULTS_CRITICAL
+        );
+      }
+
+      // Log the integration for audit purposes
+      await AuditLogger.log(
+        organizationId,
+        userId,
+        AuditActions.UPDATE,
+        'patient_record',
+        patientId,
+        { 
+          action: 'lab_results_ai_integration',
+          visitId: newVisit.id,
+          urgencyLevel: aiAnalysis.urgencyLevel,
+          resultsCount: labResults.length
+        }
+      );
+
+      res.json({ 
+        message: 'Lab results successfully integrated to patient record',
+        visitId: newVisit.id,
+        urgencyLevel: aiAnalysis.urgencyLevel
+      });
+    } catch (error) {
+      console.error('Error integrating lab results to patient record:', error);
+      res.status(500).json({ error: 'Failed to integrate lab results to patient record' });
     }
   });
 

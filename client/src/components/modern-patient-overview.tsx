@@ -36,6 +36,7 @@ import { MedicationReviewAssignmentsList } from './medication-review-assignments
 import VaccinationManagement from './vaccination-management';
 import { useAuth } from '@/contexts/AuthContext';
 import { CheckCircle, MoreVertical, Eye, Download, Share, FileText, Printer, X, Heart } from 'lucide-react';
+import { LabResultPersonalityIntegration } from './LabResultPersonalityIntegration';
 // All icons now imported via MedicalIcons system
 
 // CompletedLabResult interface for reviewed results
