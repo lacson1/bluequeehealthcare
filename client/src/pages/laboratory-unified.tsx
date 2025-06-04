@@ -539,8 +539,8 @@ export default function LaboratoryUnified() {
   });
 
   const { data: organizationData } = useQuery({
-    queryKey: ['/api/organizations', userProfile?.organizationId],
-    enabled: !!userProfile?.organizationId
+    queryKey: ['/api/organizations', (userProfile as any)?.organizationId],
+    enabled: !!(userProfile as any)?.organizationId
   });
 
   // Forms
@@ -748,7 +748,7 @@ export default function LaboratoryUnified() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">{analytics.metrics?.totalOrders || '0'}</p>
+                  <p className="text-2xl font-bold text-gray-900">{(analytics as any).metrics?.totalOrders || ''}</p>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-full">
                   <TestTube className="w-6 h-6 text-blue-600" />
@@ -762,7 +762,7 @@ export default function LaboratoryUnified() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold text-green-600">{analytics.metrics?.completedOrders || '0'}</p>
+                  <p className="text-2xl font-bold text-green-600">{(analytics as any).metrics?.completedOrders || ''}</p>
                 </div>
                 <div className="p-3 bg-green-100 rounded-full">
                   <CheckCircle className="w-6 h-6 text-green-600" />
@@ -776,7 +776,7 @@ export default function LaboratoryUnified() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pending</p>
-                  <p className="text-2xl font-bold text-yellow-600">{analytics.metrics?.pendingOrders || '0'}</p>
+                  <p className="text-2xl font-bold text-yellow-600">{(analytics as any).metrics?.pendingOrders || ''}</p>
                 </div>
                 <div className="p-3 bg-yellow-100 rounded-full">
                   <Clock className="w-6 h-6 text-yellow-600" />
@@ -790,7 +790,7 @@ export default function LaboratoryUnified() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Critical Results</p>
-                  <p className="text-2xl font-bold text-red-600">{analytics.metrics?.criticalResults || '0'}</p>
+                  <p className="text-2xl font-bold text-red-600">{(analytics as any).metrics?.criticalResults || ''}</p>
                 </div>
                 <div className="p-3 bg-red-100 rounded-full">
                   <AlertTriangle className="w-6 h-6 text-red-600" />
