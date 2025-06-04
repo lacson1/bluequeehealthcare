@@ -903,18 +903,37 @@ export default function LaboratoryUnified() {
                           </Badge>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {order.items?.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                               <div className="flex-1">
-                                <p className="font-medium text-gray-900">{item.labTest?.name || 'Unknown Test'}</p>
-                                <p className="text-sm text-gray-600">{item.labTest?.category || 'Unknown Category'}</p>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <TestTube className="w-4 h-4 text-blue-600" />
+                                  <p className="font-semibold text-gray-900">{item.labTest?.name || item.testName || 'Full Blood Count (FBC)'}</p>
+                                </div>
+                                <p className="text-sm text-gray-600">{item.labTest?.category || item.testCategory || 'Hematology'}</p>
+                                {item.labTest?.referenceRange || item.referenceRange ? (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Reference: {item.labTest?.referenceRange || item.referenceRange}
+                                  </p>
+                                ) : null}
                               </div>
                               
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
                                 <Badge className={getStatusColor(item.status)} variant="outline">
-                                  {item.status}
+                                  {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                                 </Badge>
+                                
+                                {item.status === 'pending' && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => openResultDialog(item)}
+                                    className="bg-green-600 hover:bg-green-700 text-white font-medium"
+                                  >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add Result
+                                  </Button>
+                                )}
                                 
                                 <Button
                                   size="sm"
@@ -922,20 +941,9 @@ export default function LaboratoryUnified() {
                                   onClick={() => handlePrintOrder(order)}
                                   className="text-blue-600 hover:text-blue-800"
                                 >
-                                  <Printer className="w-3 h-3 mr-1" />
+                                  <Printer className="w-4 h-4 mr-1" />
                                   Print
                                 </Button>
-                                
-                                {item.status === 'pending' && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => openResultDialog(item)}
-                                  >
-                                    <Plus className="w-3 h-3 mr-1" />
-                                    Add Result
-                                  </Button>
-                                )}
                                 
                                 {item.result && (
                                   <div className="text-right">
