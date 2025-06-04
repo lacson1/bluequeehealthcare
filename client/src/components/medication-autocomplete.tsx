@@ -166,22 +166,25 @@ export default function MedicationAutocomplete({
                     
                     {/* Medication Details */}
                     <div className="w-full text-xs text-slate-600 space-y-1">
+                      {/* Highlight dosage and frequency prominently */}
+                      <div className="flex items-center gap-3 bg-slate-50 p-2 rounded">
+                        {medication.dosageAdult && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold text-blue-700">Dose:</span>
+                            <span className="font-medium text-slate-800">{medication.dosageAdult}</span>
+                          </div>
+                        )}
+                        {medication.frequency && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold text-green-700">Frequency:</span>
+                            <span className="font-medium text-slate-800">{medication.frequency}</span>
+                          </div>
+                        )}
+                      </div>
                       {medication.dosageForm && (
                         <div className="flex items-center gap-1">
                           <span className="font-medium">Form:</span>
                           <span>{medication.dosageForm}</span>
-                        </div>
-                      )}
-                      {medication.dosageAdult && (
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium">Adult Dose:</span>
-                          <span>{medication.dosageAdult}</span>
-                        </div>
-                      )}
-                      {medication.frequency && (
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium">Frequency:</span>
-                          <span>{medication.frequency}</span>
                         </div>
                       )}
                       {medication.indications && (
