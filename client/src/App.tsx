@@ -25,6 +25,7 @@ import Referrals from "@/pages/referrals";
 import ProfilePage from "@/pages/profile";
 import UserManagementEnhanced from "@/pages/user-management-enhanced";
 import UserManagementSimple from "@/pages/user-management-simple";
+import AIClinicalInsights from "@/pages/ai-clinical-insights";
 import AuditLogs from "@/pages/audit-logs";
 import FormBuilder from "@/pages/form-builder";
 import ClinicalPerformance from "@/pages/clinical-performance";
@@ -142,6 +143,7 @@ function AuthenticatedApp() {
                   <Route path="/my-profile" component={Profile} />
                   <Route path="/settings" component={Settings} />
                   <Route path="/user-management" component={UserManagementSimple} />
+                  <Route path="/ai-clinical-insights" component={AIClinicalInsights} />
                   <Route path="/audit-logs" component={AuditLogs} />
                   <Route path="/error-monitoring" component={ErrorMonitoring} />
                   <Route path="/performance" component={PerformancePage} />
