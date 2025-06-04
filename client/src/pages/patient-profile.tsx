@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { AlertCircle, Edit, Stethoscope, Pill, FlaskRound, Plus, History, Printer } from "lucide-react";
+import { AlertCircle, Edit, Stethoscope, Pill, FlaskRound, Plus, History, Printer, CheckCircle, Download, Eye, TestTube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VisitRecordingModal } from "@/components/visit-recording-modal";
-import { LabResultModal } from "@/components/lab-result-modal";
-import { PrescriptionModal } from "@/components/prescription-modal";
+import VisitRecordingModal from "@/components/visit-recording-modal";
+import LabResultModal from "@/components/lab-result-modal";
+import PrescriptionModal from "@/components/prescription-modal";
 import { PatientSummaryPrintable } from "@/components/patient-summary-printable";
 import { ModernPatientOverview } from "@/components/modern-patient-overview";
 import { AdvancedPatientCare } from "@/components/advanced-patient-care";
 import { FloatingActionMenu } from "@/components/floating-action-menu";
 import { useRole } from "@/components/role-guard";
 import { formatPatientName, getPatientInitials } from "@/lib/patient-utils";
+import { LetterheadService } from "@/services/letterhead-service";
 import type { Patient, Visit, LabResultFromOrder, Prescription, Organization } from "@shared/schema";
 
 export default function PatientProfile() {
@@ -102,42 +103,85 @@ function PatientReviewedResults({ patientId }: { patientId: number }) {
               key={result.id}
               className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-4 mb-2">
-                    <h4 className="font-medium text-lg">{result.testName}</h4>
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="p-2 bg-green-50 rounded-lg">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-lg">{result.testName}</h4>
+                      <p className="text-sm text-gray-600">{result.category}</p>
+                    </div>
                     {getStatusBadge(result.status)}
                   </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <span className="font-medium text-muted-foreground">Result:</span>
-                      <p className="font-semibold">{result.result} {result.units || ''}</p>
+                      <p className="font-semibold text-lg">{result.result} {result.units || ''}</p>
                     </div>
                     <div>
                       <span className="font-medium text-muted-foreground">Normal Range:</span>
-                      <p>{result.normalRange}</p>
-                    </div>
-                    <div>
-                      <span className="font-medium text-muted-foreground">Category:</span>
-                      <p>{result.category}</p>
+                      <p className="text-sm text-gray-700">{result.normalRange}</p>
                     </div>
                     <div>
                       <span className="font-medium text-muted-foreground">Completed:</span>
                       <p>{new Date(result.completedDate).toLocaleDateString()}</p>
                     </div>
+                    <div>
+                      <span className="font-medium text-muted-foreground">Reviewed By:</span>
+                      <p className="text-sm">{result.reviewedBy}</p>
+                    </div>
                   </div>
                   
                   {result.remarks && (
-                    <div className="mt-3 text-sm">
-                      <span className="font-medium text-muted-foreground">Remarks:</span>
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                      <span className="font-medium text-gray-700">Remarks:</span>
                       <p className="mt-1 text-gray-700">{result.remarks}</p>
                     </div>
                   )}
                   
                   <div className="mt-2 text-xs text-muted-foreground">
-                    Reviewed by: {result.reviewedBy} • Order #{result.orderId}
+                    Order #{result.orderId} • Completed {new Date(result.completedDate).toLocaleDateString()}
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // Generate lab result print content with organization letterhead
+                      const printContent = generateLabResultPrintContent(result, patient);
+                      const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes');
+                      if (printWindow) {
+                        printWindow.document.write(printContent);
+                        printWindow.document.close();
+                        printWindow.focus();
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    Preview & Print
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // View result details
+                      const printContent = generateLabResultPrintContent(result, patient);
+                      const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes');
+                      if (printWindow) {
+                        printWindow.document.write(printContent);
+                        printWindow.document.close();
+                        printWindow.focus();
+                      }
+                    }}
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    View Details
+                  </Button>
                 </div>
               </div>
             </div>
@@ -147,6 +191,32 @@ function PatientReviewedResults({ patientId }: { patientId: number }) {
     </div>
   );
 }
+
+  // Generate lab result print content with organization letterhead
+  const generateLabResultPrintContent = (result: CompletedLabResult, patient: Patient | undefined) => {
+    if (!patient) return '';
+    
+    // Use the organization data from the system
+    const organization = {
+      id: 4,
+      name: 'Enugu Health Center',
+      type: 'health_center',
+      themeColor: '#3B82F6',
+      address: 'Enugu State, Nigeria',
+      phone: '+234-XXX-XXX-XXXX',
+      email: 'info@enuguhealth.ng',
+      website: 'www.enuguhealth.ng'
+    };
+
+    // Transform result to match expected format
+    const labResult = {
+      ...result,
+      patientName: `${patient.title} ${patient.firstName} ${patient.lastName}`,
+      notes: result.remarks
+    };
+    
+    return LetterheadService.generateLabResultHTML(organization, labResult);
+  };
 
   // Fetch patient data
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
