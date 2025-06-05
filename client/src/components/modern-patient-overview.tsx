@@ -729,20 +729,8 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   // Fetch patient prescriptions from the API with proper error handling and caching
   const { data: patientPrescriptions = [], isLoading: prescriptionsLoading, error: prescriptionsError } = useQuery({
-    queryKey: ['prescriptions', patient.id],
-    queryFn: async () => {
-      console.log('Fetching prescriptions for patient:', patient.id);
-      const response = await fetch(`/api/patients/${patient.id}/prescriptions`);
-      console.log('Prescription response status:', response.status);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Prescription fetch error:', errorText);
-        throw new Error(`Failed to fetch prescriptions: ${errorText}`);
-      }
-      const data = await response.json();
-      console.log('Prescription data:', data);
-      return data;
-    },
+    queryKey: ['/api/patients', patient.id, 'prescriptions'],
+    retry: 3,
     staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
     gcTime: 10 * 60 * 1000, // Cache for 10 minutes (updated from cacheTime)
     retry: 3,
@@ -767,14 +755,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   // Fetch patient lab orders from the API for printing functionality
   const { data: patientLabOrders = [], isLoading: labOrdersLoading } = useQuery({
-    queryKey: ['lab-orders', patient.id],
-    queryFn: async () => {
-      const response = await fetch(`/api/patients/${patient.id}/lab-orders`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch lab orders');
-      }
-      return response.json();
-    },
+    queryKey: ['/api/patients', patient.id, 'lab-orders'],
     enabled: !!patient.id
   });
 
@@ -842,7 +823,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
       if (response.ok) {
         const reviewData = await response.json();
-        queryClient.invalidateQueries(['/api/patients', patient.id, 'prescriptions']);
+        queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] });
         
         // Notify relevant staff about the review assignment
         try {
@@ -920,7 +901,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
       if (response.ok) {
         const repeatData = await response.json();
-        queryClient.invalidateQueries(['/api/patients', patient.id, 'prescriptions']);
+        queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] });
         
         // Notify pharmacy about new repeat prescription
         try {
@@ -1057,7 +1038,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
       if (response.ok) {
         // Refresh prescriptions data
-        queryClient.invalidateQueries(['/api/patients', patient.id, 'prescriptions']);
+        queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] });
         toast({
           title: "Medication Reordered",
           description: `${prescription.medicationName} has been reordered successfully.`,
@@ -1449,7 +1430,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     <div className="flex flex-col items-center justify-center py-8 space-y-4">
                       <div className="text-red-500">Failed to load prescriptions</div>
                       <Button 
-                        onClick={() => queryClient.invalidateQueries(['/api/patients', patient.id, 'prescriptions'])}
+                        onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] })}
                         variant="outline"
                         size="sm"
                       >
