@@ -657,6 +657,8 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
   // Custom print dialog states
   const [showPrescriptionPrint, setShowPrescriptionPrint] = useState(false);
   const [showLabOrderPrint, setShowLabOrderPrint] = useState(false);
+  
+
 
   // Document upload mutation
   const uploadDocumentMutation = useMutation({
@@ -1294,6 +1296,8 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
     }
     return age;
   };
+
+
 
 
 
@@ -2759,14 +2763,11 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
 
         {/* Medication Review Assignment Modal */}
         <MedicationReviewAssignmentModal
-          open={showMedicationReviewAssignmentModal}
+          isOpen={showMedicationReviewAssignmentModal}
           onClose={handleCloseMedicationReviewAssignment}
           patientId={patient.id}
           patient={patient}
           selectedPrescription={selectedPrescriptionForReview}
-          onAssignmentCreated={() => {
-            queryClient.invalidateQueries({ queryKey: ["/api/patients", patient.id, "medication-review-assignments"] });
-          }}
         />
     </div>
   );
