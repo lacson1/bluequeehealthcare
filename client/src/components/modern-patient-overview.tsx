@@ -424,7 +424,6 @@ interface ModernPatientOverviewProps {
   visits: Visit[];
   recentLabs?: any[];
   activePrescriptions?: any[];
-  activityTrail?: any[];
   onAddPrescription?: () => void;
   onRecordVisit?: () => void;
   onEditPatient?: () => void;
@@ -1325,11 +1324,15 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
 
 
 
-  // Fetch activity trail using React Query
-  const { data: activityTrail = [] } = useQuery({
+  // Fetch activity trail using React Query with proper error handling
+  const { data: fetchedActivityTrail = [], error: activityTrailError } = useQuery({
     queryKey: ['/api/patients', patient.id, 'activity-trail'],
-    queryFn: () => fetch(`/api/patients/${patient.id}/activity-trail`).then(res => res.json())
+    queryFn: () => fetch(`/api/patients/${patient.id}/activity-trail`).then(res => res.json()),
+    retry: false
   });
+
+  // Use fetched activity trail or fallback to empty array
+  const activityTrail = Array.isArray(fetchedActivityTrail) ? fetchedActivityTrail : [];
 
   // Filter activity trail based on selected filters - ensure activityTrail is an array
   const filteredActivityTrail = Array.isArray(activityTrail) ? activityTrail.filter((event: any) => {
