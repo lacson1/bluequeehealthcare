@@ -2368,7 +2368,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(403).json({ message: "Organization context required" });
       }
 
-      const validatedData = insertMedicationReviewAssignmentSchema.parse(req.body);
+      // Prepare data with proper type conversion
+      const requestData = {
+        ...req.body,
+        assignedTo: parseInt(req.body.assignedTo),
+        assignedBy: req.user!.id,
+        organizationId: userOrgId
+      };
+
+      // Remove undefined assignedBy from req.body if it exists
+      delete requestData.assignedBy;
+      
+      const validatedData = insertMedicationReviewAssignmentSchema.parse(requestData);
       
       const [assignment] = await db.insert(medicationReviewAssignments).values({
         ...validatedData,
