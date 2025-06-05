@@ -282,11 +282,13 @@ export function MedicationReviewAssignmentsList({
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
-                            Assigned to: <span className="font-medium">{assignment.assignedToUser.username}</span>
+                            Assigned to: <span className="font-medium">{assignment.assignedToUser?.username || 'Unknown User'}</span>
                           </span>
-                          <Badge variant="outline" className="text-xs">
-                            {assignment.assignedToUser.role}
-                          </Badge>
+                          {assignment.assignedToUser?.role && (
+                            <Badge variant="outline" className="text-xs">
+                              {assignment.assignedToUser.role}
+                            </Badge>
+                          )}
                         </div>
 
                         {/* Due Date */}
