@@ -895,6 +895,8 @@ export const insertMedicationReviewAssignmentSchema = createInsertSchema(medicat
   assignedAt: true,
   startedAt: true,
   completedAt: true,
+  assignedBy: true,
+  organizationId: true,
 });
 
 
