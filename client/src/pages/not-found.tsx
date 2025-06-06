@@ -100,19 +100,22 @@ export default function NotFound() {
   ];
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-white p-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 p-4">
       <div className="w-full max-w-4xl space-y-6">
         {/* Main 404 Card */}
-        <Card className="shadow-lg border-blue-200">
-          <CardHeader className="text-center bg-blue-50 rounded-t-lg">
-            <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="h-8 w-8 text-red-500" />
+        <Card className="shadow-xl border-0 overflow-hidden">
+          <CardHeader className="text-center bg-gradient-to-r from-blue-600 to-green-600 text-white">
+            <div className="mx-auto mb-4 w-20 h-20 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+              <AlertCircle className="h-10 w-10 text-white" />
             </div>
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-3xl font-bold">
               Page Not Found
             </CardTitle>
-            <p className="text-gray-600 mt-2">
-              Looking for <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">{location}</span>
+            <p className="text-blue-100 mt-2">
+              The healthcare page you're looking for doesn't exist
+            </p>
+            <p className="text-white/80 text-sm mt-1">
+              Path: <span className="font-mono bg-white/20 px-2 py-1 rounded text-sm">{location}</span>
             </p>
           </CardHeader>
           
@@ -225,9 +228,16 @@ export default function NotFound() {
               </div>
             </details>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg text-center">
-              <p className="text-xs text-blue-700 font-medium">
-                Bluequee - Healthcare Management System
+            <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg text-center border border-blue-200">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <p className="text-sm text-blue-700 font-semibold">
+                  Bluequee Healthcare Management System
+                </p>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              </div>
+              <p className="text-xs text-gray-600">
+                Comprehensive digital health platform for rural healthcare delivery
               </p>
             </div>
           </CardContent>
