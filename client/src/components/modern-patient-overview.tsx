@@ -595,6 +595,7 @@ export function ModernPatientOverview({
         // Refresh patient data
         queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}`] });
         queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}/visits`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}/consultation-records`] });
       } else {
         throw new Error("Failed to record visit");
       }

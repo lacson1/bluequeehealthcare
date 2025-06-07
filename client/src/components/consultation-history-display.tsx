@@ -1,15 +1,15 @@
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConsultationDropdownMenu } from "./consultation-dropdown-menu";
 import { formatStaffName } from "@/lib/patient-utils";
 import { FileText, Clock, User, Activity, Pill, Calendar, ChevronDown, ChevronRight, Filter, X, Search } from "lucide-react";
-import { useState } from "react";
-import { useLocation } from "wouter";
-import { Input } from "@/components/ui/input";
 
 interface ConsultationHistoryDisplayProps {
   patientId: number;
@@ -32,14 +32,55 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
     queryKey: [`/api/patients/${patientId}/consultation-records`],
   });
 
-  // Apply filters to consultation records
-  const filteredRecords = (consultationRecords as any[]).filter((record: any) => {
+  // Fetch visits to include in consultation history
+  const { data: visits = [], isLoading: visitsLoading } = useQuery({
+    queryKey: [`/api/patients/${patientId}/visits`],
+  });
+
+  // Combine consultation records and visits into unified timeline
+  const combinedRecords = React.useMemo(() => {
+    const records = [
+      // Transform consultation records
+      ...(consultationRecords as any[]).map((record: any) => ({
+        ...record,
+        type: 'consultation',
+        date: record.createdAt,
+        title: record.formName || 'Consultation',
+        conductedBy: record.conductedByFullName || 'Healthcare Staff',
+        role: record.conductedByRole || 'staff'
+      })),
+      // Transform visits
+      ...(visits as any[]).map((visit: any) => ({
+        ...visit,
+        type: 'visit',
+        date: visit.visitDate || visit.createdAt,
+        title: `${visit.visitType?.charAt(0).toUpperCase() + visit.visitType?.slice(1) || 'Visit'}`,
+        conductedBy: 'Healthcare Staff', // Would need to join with users table for actual name
+        role: 'doctor', // Default role for visits
+        formName: visit.visitType,
+        complaint: visit.complaint,
+        diagnosis: visit.diagnosis,
+        treatment: visit.treatment
+      }))
+    ];
+    
+    // Sort by date descending (newest first)
+    return records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [consultationRecords, visits]);
+
+  // Apply filters to combined records
+  const filteredRecords = combinedRecords.filter((record: any) => {
     // Filter by search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       const staffName = formatStaffName(record.conductedByRole, record.conductedByName).toLowerCase();
       const formName = (record.formName || '').toLowerCase();
-      if (!staffName.includes(searchLower) && !formName.includes(searchLower)) {
+      const title = (record.title || '').toLowerCase();
+      const complaint = (record.complaint || '').toLowerCase();
+      const diagnosis = (record.diagnosis || '').toLowerCase();
+      if (!staffName.includes(searchLower) && !formName.includes(searchLower) && 
+          !title.includes(searchLower) && !complaint.includes(searchLower) && 
+          !diagnosis.includes(searchLower)) {
         return false;
       }
     }
