@@ -7670,16 +7670,78 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.patientId);
       
-      const reviews = await db
+      const assignments = await db
         .select()
-        .from(medicationReviews)
+        .from(medicationReviewAssignments)
         .where(and(
-          eq(medicationReviews.patientId, patientId),
-          eq(medicationReviews.organizationId, req.user!.organizationId)
+          eq(medicationReviewAssignments.patientId, patientId),
+          eq(medicationReviewAssignments.organizationId, req.user!.organizationId)
         ))
-        .orderBy(desc(medicationReviews.createdAt));
+        .orderBy(desc(medicationReviewAssignments.createdAt));
 
-      res.json(reviews);
+      // Enrich with prescription and user data
+      const enrichedAssignments = await Promise.all(assignments.map(async (assignment) => {
+        let prescription = null;
+        let assignedByUser = null;
+        let assignedToUser = null;
+
+        // Get prescription if exists
+        if (assignment.prescriptionId) {
+          const prescriptionResult = await db
+            .select()
+            .from(prescriptions)
+            .where(eq(prescriptions.id, assignment.prescriptionId))
+            .limit(1);
+          prescription = prescriptionResult[0] || null;
+        }
+
+        // Get assigned by user
+        const assignedByResult = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, assignment.assignedBy))
+          .limit(1);
+        assignedByUser = assignedByResult[0] || null;
+
+        // Get assigned to user if exists
+        if (assignment.assignedTo) {
+          const assignedToResult = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, assignment.assignedTo))
+            .limit(1);
+          assignedToUser = assignedToResult[0] || null;
+        }
+
+        return {
+          ...assignment,
+          prescription: prescription ? {
+            id: prescription.id,
+            medicationName: prescription.medicationName,
+            dosage: prescription.dosage,
+            frequency: prescription.frequency,
+            instructions: prescription.instructions,
+            prescribedDate: prescription.createdAt,
+            duration: prescription.duration,
+            status: prescription.status
+          } : null,
+          assignedByUser: assignedByUser ? {
+            id: assignedByUser.id,
+            username: assignedByUser.username,
+            firstName: assignedByUser.firstName,
+            lastName: assignedByUser.lastName
+          } : null,
+          assignedToUser: assignedToUser ? {
+            id: assignedToUser.id,
+            username: assignedToUser.username,
+            firstName: assignedToUser.firstName,
+            lastName: assignedToUser.lastName,
+            role: assignedToUser.role
+          } : null
+        };
+      }));
+
+      res.json(enrichedAssignments);
     } catch (error) {
       console.error('Error fetching medication reviews:', error);
       res.status(500).json({ error: 'Failed to fetch medication reviews' });
@@ -7713,6 +7775,45 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     } catch (error) {
       console.error('Error creating medication review:', error);
       res.status(500).json({ error: 'Failed to create medication review' });
+    }
+  });
+
+  // Update medication review assignment status
+  app.patch("/api/medication-reviews/:reviewId", authenticateToken, requireAnyRole(['pharmacist', 'doctor', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const reviewId = parseInt(req.params.reviewId);
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: 'Status is required' });
+      }
+
+      const updateData: any = { status };
+      
+      // Add timestamps based on status
+      if (status === 'in_progress' && !req.body.startedAt) {
+        updateData.startedAt = new Date();
+      } else if (status === 'completed' && !req.body.completedAt) {
+        updateData.completedAt = new Date();
+      }
+
+      const [updatedAssignment] = await db
+        .update(medicationReviewAssignments)
+        .set(updateData)
+        .where(and(
+          eq(medicationReviewAssignments.id, reviewId),
+          eq(medicationReviewAssignments.organizationId, req.user!.organizationId)
+        ))
+        .returning();
+
+      if (!updatedAssignment) {
+        return res.status(404).json({ error: 'Medication review assignment not found' });
+      }
+
+      res.json(updatedAssignment);
+    } catch (error) {
+      console.error('Error updating medication review:', error);
+      res.status(500).json({ error: 'Failed to update medication review' });
     }
   });
 
