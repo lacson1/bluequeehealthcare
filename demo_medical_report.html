@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Medical Report PDF Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .patient-info { margin: 20px 0; }
+        .results { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Medical Laboratory Report</h1>
+        <p>Enugu General Hospital</p>
+        <p>Date: June 7, 2025</p>
+    </div>
+    
+    <div class="patient-info">
+        <h2>Patient Information</h2>
+        <p><strong>Name:</strong> Mufutau Ibrahim</p>
+        <p><strong>Patient ID:</strong> 11</p>
+        <p><strong>Date of Birth:</strong> January 15, 1980</p>
+        <p><strong>Gender:</strong> Male</p>
+    </div>
+    
+    <div class="results">
+        <h2>Laboratory Results</h2>
+        <table>
+            <tr>
+                <th>Test</th>
+                <th>Result</th>
+                <th>Reference Range</th>
+                <th>Status</th>
+            </tr>
+            <tr>
+                <td>Hemoglobin</td>
+                <td>14.2 g/dL</td>
+                <td>13.5-17.5 g/dL</td>
+                <td>Normal</td>
+            </tr>
+            <tr>
+                <td>White Blood Cell Count</td>
+                <td>7,200 /μL</td>
+                <td>4,500-11,000 /μL</td>
+                <td>Normal</td>
+            </tr>
+            <tr>
+                <td>Blood Glucose</td>
+                <td>95 mg/dL</td>
+                <td>70-99 mg/dL</td>
+                <td>Normal</td>
+            </tr>
+            <tr>
+                <td>Total Cholesterol</td>
+                <td>180 mg/dL</td>
+                <td>&lt;200 mg/dL</td>
+                <td>Normal</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div style="margin-top: 40px;">
+        <p><strong>Physician:</strong> Dr. Chinedu Okoro</p>
+        <p><strong>Report Date:</strong> June 7, 2025</p>
+        <p><strong>Signature:</strong> ______________________</p>
+    </div>
+    
+    <script>
+        // This demonstrates the PDF viewing functionality
+        // The actual PDF viewer component handles:
+        // 1. Authentication with JWT tokens
+        // 2. Blob URL creation for secure viewing
+        // 3. Fallback options for download/external viewing
+        // 4. Loading states and error handling
+        
+        window.onload = function() {
+            document.body.style.backgroundColor = '#f8f9fa';
+            console.log('Medical report loaded - this would be displayed in the PDF viewer');
+        };
+    </script>
+</body>
+</html>
