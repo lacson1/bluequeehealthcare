@@ -91,7 +91,7 @@ export default function DocumentsPage() {
 
   // Delete document mutation
   const deleteDocumentMutation = useMutation({
-    mutationFn: (fileName: string) => apiRequest('DELETE', `/api/files/medical/${fileName}`),
+    mutationFn: (fileName: string) => apiRequest(`/api/files/medical/${fileName}`, 'DELETE'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/files/medical'] });
       toast({ title: 'Success', description: 'Document deleted successfully' });
