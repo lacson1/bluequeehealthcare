@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  UserCheck, 
+  Stethoscope, 
   Clock, 
   AlertTriangle, 
   CheckCircle, 
@@ -15,7 +15,8 @@ import {
   Pill,
   FileText,
   User,
-  Plus
+  Plus,
+  Eye
 } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -24,37 +25,49 @@ import type { Patient } from "@shared/schema";
 interface MedicationReviewAssignmentsListProps {
   patientId: number;
   patient?: Patient;
-  onCreateAssignment: () => void;
+  onCreateAssignment?: () => void;
 }
 
-interface Assignment {
-  assignment: {
-    id: number;
-    patientId: number;
-    prescriptionId?: number;
-    assignedBy: number;
-    assignedTo: number;
-    reviewType: string;
-    dueDate: string;
-    notes?: string;
-    status: string;
-    priority: string;
-    organizationId?: number;
-    createdAt: string;
-    assignedAt: string;
-    startedAt?: string;
-    completedAt?: string;
-  };
-  assignedToUser: {
+interface Prescription {
+  id: number;
+  medicationName: string;
+  dosage: string;
+  frequency: string;
+  instructions?: string;
+  prescribedDate: string;
+  duration?: string;
+  status: string;
+}
+
+interface MedicationReview {
+  id: number;
+  patientId: number;
+  prescriptionId: number;
+  reviewType: 'general' | 'safety' | 'efficacy' | 'adherence' | 'interaction';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  assignedBy: number;
+  assignedTo?: number;
+  dueDate: string;
+  notes?: string;
+  findings?: string;
+  recommendations?: string;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  prescription: Prescription;
+  assignedByUser: {
     id: number;
     username: string;
-    role: string;
+    firstName?: string;
+    lastName?: string;
   };
-  prescription?: {
+  assignedToUser?: {
     id: number;
-    medicationName: string;
-    dosage: string;
-    frequency: string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
+    role: string;
   };
 }
 
@@ -63,121 +76,117 @@ export function MedicationReviewAssignmentsList({
   patient,
   onCreateAssignment
 }: MedicationReviewAssignmentsListProps) {
+  const [statusFilter, setStatusFilter] = useState("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const { data: assignments, isLoading } = useQuery({
-    queryKey: ["/api/patients", patientId, "medication-review-assignments"],
+  // Fetch medication reviews for the patient
+  const { data: reviews = [], isLoading } = useQuery({
+    queryKey: [`/api/patients/${patientId}/medication-reviews`],
+    enabled: !!patientId
   });
 
-  const updateAssignmentMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: number; updates: any }) => 
-      apiRequest(`/api/medication-review-assignments/${id}`, "PATCH", updates),
+  // Update review status mutation
+  const updateReviewMutation = useMutation({
+    mutationFn: ({ reviewId, status }: { reviewId: number; status: string }) =>
+      apiRequest(`/api/medication-reviews/${reviewId}`, 'PATCH', { status }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/medication-reviews`] });
       toast({
-        title: "Assignment Updated",
-        description: "Assignment status has been updated successfully",
+        title: "Success",
+        description: "Review status updated successfully"
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/patients", patientId, "medication-review-assignments"] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
-        title: "Update Failed",
-        description: "Failed to update assignment status",
-        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update review status",
+        variant: "destructive"
       });
-      console.error("Assignment update error:", error);
-    },
+    }
   });
 
+  // Filter reviews based on status
+  const filteredReviews = Array.isArray(reviews) ? reviews.filter((review: MedicationReview) => {
+    if (statusFilter === "all") return true;
+    return review.status === statusFilter;
+  }) : [];
+
+  // Helper functions
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "pending":
-        return <Clock className="h-4 w-4 text-yellow-600" />;
-      case "in_progress":
-        return <UserCheck className="h-4 w-4 text-blue-600" />;
-      case "completed":
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case "cancelled":
-        return <AlertTriangle className="h-4 w-4 text-red-600" />;
+      case 'pending':
+        return <Clock className="h-4 w-4 text-orange-500" />;
+      case 'in_progress':
+        return <Stethoscope className="h-4 w-4 text-blue-500" />;
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'cancelled':
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-600" />;
+        return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "pending":
-        return "secondary" as const;
-      case "in_progress":
-        return "default" as const;
-      case "completed":
-        return "default" as const;
-      case "cancelled":
-        return "destructive" as const;
+      case 'pending':
+        return 'secondary' as const;
+      case 'in_progress':
+        return 'default' as const;
+      case 'completed':
+        return 'secondary' as const;
+      case 'cancelled':
+        return 'destructive' as const;
       default:
-        return "secondary" as const;
+        return 'secondary' as const;
     }
   };
 
   const getPriorityVariant = (priority: string) => {
     switch (priority) {
-      case "low":
-        return "secondary" as const;
-      case "normal":
-        return "outline" as const;
-      case "high":
-        return "destructive" as const;
-      case "urgent":
-        return "destructive" as const;
+      case 'urgent':
+        return 'destructive' as const;
+      case 'high':
+        return 'destructive' as const;
+      case 'medium':
+        return 'default' as const;
+      case 'low':
+        return 'secondary' as const;
       default:
-        return "outline" as const;
+        return 'secondary' as const;
     }
   };
 
   const getReviewTypeLabel = (reviewType: string) => {
     switch (reviewType) {
-      case "routine":
-        return "Routine Review";
-      case "urgent":
-        return "Urgent Review";
-      case "medication_safety":
-        return "Safety Review";
-      case "dosage_adjustment":
-        return "Dosage Review";
+      case 'general':
+        return 'General Review';
+      case 'safety':
+        return 'Safety Assessment';
+      case 'efficacy':
+        return 'Efficacy Review';
+      case 'adherence':
+        return 'Adherence Check';
+      case 'interaction':
+        return 'Drug Interaction Review';
       default:
-        return reviewType;
+        return 'Medication Review';
     }
   };
 
-  const handleStatusChange = (assignment: Assignment, newStatus: string) => {
-    updateAssignmentMutation.mutate({
-      id: assignment.assignment.id,
-      updates: { status: newStatus }
+  const handleStatusChange = (review: MedicationReview, newStatus: string) => {
+    updateReviewMutation.mutate({
+      reviewId: review.id,
+      status: newStatus
     });
   };
-
-  const filteredAssignments = Array.isArray(assignments) ? assignments.filter((assignment: Assignment) => {
-    if (statusFilter === "all") return true;
-    const status = assignment.assignment?.status || 'pending';
-    return status === statusFilter;
-  }) : [];
 
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5" />
-            Medication Review Assignments
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Clock className="h-6 w-6 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">Loading assignments...</span>
-          </div>
+        <CardContent className="p-6">
+          <div className="text-center">Loading medication reviews...</div>
         </CardContent>
       </Card>
     );
@@ -188,23 +197,25 @@ export function MedicationReviewAssignmentsList({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-blue-600" />
+            <Stethoscope className="h-5 w-5 text-blue-600" />
             Medication Review Assignments
           </CardTitle>
-          <Button onClick={onCreateAssignment} size="sm" className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Assign Review
-          </Button>
+          {onCreateAssignment && (
+            <Button onClick={onCreateAssignment} size="sm" className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Assign Review
+            </Button>
+          )}
         </div>
         
-        {assignments && Array.isArray(assignments) && assignments.length > 0 && (
+        {filteredReviews.length > 0 && (
           <div className="flex items-center gap-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Assignments</SelectItem>
+                <SelectItem value="all">All Reviews</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
@@ -212,21 +223,27 @@ export function MedicationReviewAssignmentsList({
               </SelectContent>
             </Select>
             <Badge variant="outline" className="text-xs">
-              {filteredAssignments.length} assignment{filteredAssignments.length !== 1 ? 's' : ''}
+              {filteredReviews.length} review{filteredReviews.length !== 1 ? 's' : ''}
             </Badge>
           </div>
         )}
       </CardHeader>
 
       <CardContent>
-        {filteredAssignments.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
-            No medication review assignments found.
+        {filteredReviews.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Pill className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <h3 className="font-medium text-gray-600 mb-1">No medication reviews found</h3>
+            <p className="text-sm">
+              {statusFilter === "all" 
+                ? "No medication review assignments have been created for this patient yet." 
+                : `No ${statusFilter.replace('_', ' ')} reviews found.`}
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredAssignments.map((assignment: Assignment, index: number) => (
-              <div key={assignment.assignment?.id || index}>
+            {filteredReviews.map((review: MedicationReview, index: number) => (
+              <div key={review.id}>
                 <Card className="border-l-4 border-l-blue-500">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
@@ -235,17 +252,17 @@ export function MedicationReviewAssignmentsList({
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">
-                              {getStatusIcon(assignment.assignment?.status || 'pending')}
-                              <Badge variant={getStatusVariant(assignment.assignment?.status || 'pending')}>
-                                {(assignment.assignment?.status || 'pending').replace('_', ' ')}
+                              {getStatusIcon(review.status)}
+                              <Badge variant={getStatusVariant(review.status)}>
+                                {review.status.replace('_', ' ')}
                               </Badge>
                             </div>
-                            <Badge variant={getPriorityVariant(assignment.assignment?.priority || 'medium')}>
-                              {assignment.assignment?.priority || 'medium'}
+                            <Badge variant={getPriorityVariant(review.priority)}>
+                              {review.priority}
                             </Badge>
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            #{assignment.assignment?.id || 'N/A'}
+                            #{review.id}
                           </div>
                         </div>
 
@@ -253,59 +270,80 @@ export function MedicationReviewAssignmentsList({
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">
-                            {getReviewTypeLabel(assignment.assignment?.reviewType || 'general')}
+                            {getReviewTypeLabel(review.reviewType)}
                           </span>
                         </div>
 
-                        {/* Prescription */}
-                        {assignment.prescription && (
+                        {/* Prescription Details */}
+                        <div className="flex items-center gap-2">
+                          <Pill className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {review.prescription.medicationName} - {review.prescription.dosage}
+                            {review.prescription.frequency && ` (${review.prescription.frequency})`}
+                          </span>
+                        </div>
+
+                        {/* Assigned To */}
+                        {review.assignedToUser && (
                           <div className="flex items-center gap-2">
-                            <Pill className="h-4 w-4 text-muted-foreground" />
+                            <User className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">
-                              {assignment.prescription.medicationName} - {assignment.prescription.dosage}
+                              Assigned to: {review.assignedToUser.firstName && review.assignedToUser.lastName 
+                                ? `${review.assignedToUser.firstName} ${review.assignedToUser.lastName}`
+                                : review.assignedToUser.username} ({review.assignedToUser.role})
                             </span>
                           </div>
                         )}
-
-
 
                         {/* Due Date */}
-                        {(assignment.assignment?.dueDate || assignment.dueDate) && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">
-                              Due: <span className="font-medium">
-                                {format(new Date(assignment.assignment?.dueDate || assignment.dueDate), "MMM dd, yyyy")}
-                              </span>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            Due: <span className="font-medium">
+                              {format(new Date(review.dueDate), "MMM dd, yyyy")}
                             </span>
+                          </span>
+                        </div>
+
+                        {/* Notes */}
+                        {review.notes && (
+                          <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                            <strong>Notes:</strong> {review.notes}
                           </div>
                         )}
 
-                        {/* Notes */}
-                        {(assignment.assignment?.notes || assignment.notes) && (
-                          <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                            {assignment.assignment?.notes || assignment.notes}
+                        {/* Findings */}
+                        {review.findings && (
+                          <div className="text-sm text-muted-foreground bg-green-50 p-3 rounded-md">
+                            <strong>Findings:</strong> {review.findings}
+                          </div>
+                        )}
+
+                        {/* Recommendations */}
+                        {review.recommendations && (
+                          <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-md">
+                            <strong>Recommendations:</strong> {review.recommendations}
                           </div>
                         )}
 
                         {/* Status Actions */}
-                        {(assignment.assignment?.status || assignment.status) !== "completed" && (assignment.assignment?.status || assignment.status) !== "cancelled" && (
+                        {review.status !== "completed" && review.status !== "cancelled" && (
                           <div className="flex items-center gap-2 pt-2">
-                            {(assignment.assignment?.status || assignment.status) === "pending" && (
+                            {review.status === "pending" && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleStatusChange(assignment, "in_progress")}
-                                disabled={updateAssignmentMutation.isPending}
+                                onClick={() => handleStatusChange(review, "in_progress")}
+                                disabled={updateReviewMutation.isPending}
                               >
                                 Start Review
                               </Button>
                             )}
-                            {(assignment.assignment?.status || assignment.status) === "in_progress" && (
+                            {review.status === "in_progress" && (
                               <Button
                                 size="sm"
-                                onClick={() => handleStatusChange(assignment, "completed")}
-                                disabled={updateAssignmentMutation.isPending}
+                                onClick={() => handleStatusChange(review, "completed")}
+                                disabled={updateReviewMutation.isPending}
                                 className="bg-green-600 hover:bg-green-700"
                               >
                                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -315,8 +353,8 @@ export function MedicationReviewAssignmentsList({
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => handleStatusChange(assignment, "cancelled")}
-                              disabled={updateAssignmentMutation.isPending}
+                              onClick={() => handleStatusChange(review, "cancelled")}
+                              disabled={updateReviewMutation.isPending}
                             >
                               Cancel
                             </Button>
@@ -324,22 +362,20 @@ export function MedicationReviewAssignmentsList({
                         )}
 
                         {/* Timestamps */}
-                        {assignment.assignment?.createdAt && (
-                          <div className="text-xs text-muted-foreground space-y-1">
-                            <div>Created: {format(new Date(assignment.assignment.createdAt), "MMM dd, yyyy 'at' HH:mm")}</div>
-                            {assignment.assignment.startedAt && (
-                              <div>Started: {format(new Date(assignment.assignment.startedAt), "MMM dd, yyyy 'at' HH:mm")}</div>
-                            )}
-                            {assignment.assignment.completedAt && (
-                              <div>Completed: {format(new Date(assignment.assignment.completedAt), "MMM dd, yyyy 'at' HH:mm")}</div>
-                            )}
-                          </div>
-                        )}
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <div>Created: {format(new Date(review.createdAt), "MMM dd, yyyy 'at' HH:mm")}</div>
+                          {review.startedAt && (
+                            <div>Started: {format(new Date(review.startedAt), "MMM dd, yyyy 'at' HH:mm")}</div>
+                          )}
+                          {review.completedAt && (
+                            <div>Completed: {format(new Date(review.completedAt), "MMM dd, yyyy 'at' HH:mm")}</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-                {index < filteredAssignments.length - 1 && <Separator className="my-4" />}
+                {index < filteredReviews.length - 1 && <Separator className="my-4" />}
               </div>
             ))}
           </div>
