@@ -56,6 +56,7 @@ import { PerformancePage } from "@/pages/performance-page";
 import Profile from "@/pages/profile";
 import SuperAdminAnalytics from "@/pages/superadmin-analytics";
 import SuperAdminControlPanel from "@/pages/super-admin-control-panel";
+import SuperAdminControl from "@/pages/super-admin-control";
 import ProceduralReports from "@/pages/procedural-reports";
 import ConsentManagement from "@/pages/consent-management";
 import StaffMessages from "@/pages/staff-messages";
@@ -156,6 +157,7 @@ function AuthenticatedApp() {
                   <Route path="/global-analytics" component={SuperAdminAnalytics} />
                   <Route path="/superadmin/analytics" component={SuperAdminAnalytics} />
                   <Route path="/super-admin-control-panel" component={SuperAdminControlPanel} />
+                  <Route path="/super-admin-control" component={SuperAdminControl} />
                   <Route component={NotFound} />
                 </Switch>
               </div>
