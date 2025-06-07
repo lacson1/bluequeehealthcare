@@ -1948,7 +1948,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                     className="text-blue-600 hover:text-blue-800 border-blue-200"
                                     onClick={() => handleScheduleReview(prescription.id, prescription.medicationName)}
                                   >
-                                    <PatientProfile className="w-3 h-3 mr-1" />
+                                    <User className="w-3 h-3 mr-1" />
                                     Schedule Review
                                   </Button>
                                   <Button 
@@ -2090,7 +2090,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                         className="bg-blue-600 hover:bg-blue-700"
                         onClick={() => setShowMedicationReviewAssignmentModal(true)}
                       >
-                        <PatientProfile className="w-4 h-4 mr-2" />
+                        <User className="w-4 h-4 mr-2" />
                         Assign Review
                       </Button>
                       <Button 
