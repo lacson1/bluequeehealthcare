@@ -65,7 +65,7 @@ export function DocumentPreviewCarousel({
 
   const downloadDocument = async (doc: Document) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('clinic_token');
       const response = await fetch(`/api/files/medical/${doc.fileName}?download=true`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -188,7 +188,7 @@ export function DocumentPreviewCarousel({
                 variant="default"
                 onClick={async () => {
                   try {
-                    const token = localStorage.getItem('authToken');
+                    const token = localStorage.getItem('clinic_token');
                     const response = await fetch(`/api/files/medical/${doc.fileName}`, {
                       headers: {
                         'Authorization': `Bearer ${token}`
@@ -226,7 +226,7 @@ export function DocumentPreviewCarousel({
                   <Button
                     onClick={async () => {
                       try {
-                        const token = localStorage.getItem('authToken');
+                        const token = localStorage.getItem('clinic_token');
                         const response = await fetch(`/api/files/medical/${doc.fileName}`, {
                           headers: {
                             'Authorization': `Bearer ${token}`
