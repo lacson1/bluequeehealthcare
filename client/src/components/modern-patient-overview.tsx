@@ -2329,25 +2329,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
           </div>
         </TabsContent>
 
-        {/* Record Visit Tab - Dedicated */}
-        <TabsContent value="record-visit" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MedicalIcons.stethoscope className="h-5 w-5 text-blue-500" />
-                Record Patient Visit
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Visit Recording Quick Access */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900">Quick Visit Access</h4>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+
 
           {/* Vital Signs Tab */}
           <TabsContent value="vitals" className="space-y-6">
