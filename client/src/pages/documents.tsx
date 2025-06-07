@@ -761,28 +761,7 @@ export default function DocumentsPage() {
             </div>
             
             <div className="flex-1 p-4">
-              {previewDocument.mimeType === 'application/pdf' ? (
-                <AuthenticatedDocumentViewer document={previewDocument} onDownload={handleDownload} />
-              ) : previewDocument.mimeType.startsWith('image/') ? (
-                <div className="text-center">
-                  <img
-                    src={`/api/files/medical/${previewDocument.fileName}`}
-                    alt={previewDocument.originalName}
-                    className="max-w-full max-h-[500px] mx-auto rounded"
-                  />
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <File className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-600 mb-4">This file type cannot be previewed</p>
-                  <Button
-                    onClick={() => handleDownload(previewDocument.fileName, previewDocument.originalName)}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download to View
-                  </Button>
-                </div>
-              )}
+              <AuthenticatedDocumentViewer document={previewDocument} onDownload={handleDownload} />
             </div>
           </div>
         </div>
