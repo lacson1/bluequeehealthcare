@@ -52,6 +52,7 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
       // Transform visits
       ...(visits as any[]).map((visit: any) => ({
         ...visit,
+        id: `visit-${visit.id}`, // Prefix to avoid ID conflicts
         type: 'visit',
         date: visit.visitDate || visit.createdAt,
         title: `${visit.visitType?.charAt(0).toUpperCase() + visit.visitType?.slice(1) || 'Visit'}`,
@@ -151,7 +152,7 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
     navigate(`/patients/${patientId}/visits/${consultation.id}/edit`);
   };
 
-  if (historyLoading) {
+  if (historyLoading || visitsLoading) {
     return (
       <Card>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -188,7 +189,7 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
     );
   }
 
-  if (!consultationHistory || (consultationHistory as any[]).length === 0) {
+  if (!consultationHistory || consultationHistory.length === 0) {
     return (
       <Card>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -225,7 +226,7 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Consultation History ({(consultationHistory as any[]).length})
+                Consultation History ({combinedRecords.length})
               </div>
               <div className="flex items-center gap-2">
                 <Button
