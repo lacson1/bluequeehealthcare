@@ -62,7 +62,7 @@ export default function PhysiotherapyTreatmentIntegration({ patientId, currentUs
 
   // Mutations for treatment integration
   const createPrescriptionMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/prescriptions', data),
+    mutationFn: (data: any) => apiRequest('/api/prescriptions', 'POST', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/prescriptions'] });
       toast({ title: "Exercise prescription created successfully" });
@@ -70,14 +70,14 @@ export default function PhysiotherapyTreatmentIntegration({ patientId, currentUs
   });
 
   const createEquipmentRequestMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/equipment-requests', data),
+    mutationFn: (data: any) => apiRequest('/api/equipment-requests', 'POST', data),
     onSuccess: () => {
       toast({ title: "Equipment request submitted successfully" });
     },
   });
 
   const createInsuranceClaimMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/insurance-claims', data),
+    mutationFn: (data: any) => apiRequest('/api/insurance-claims', 'POST', data),
     onSuccess: () => {
       toast({ title: "Insurance documentation submitted" });
     },

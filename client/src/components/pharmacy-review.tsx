@@ -44,7 +44,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', `/api/patients/${patientId}/pharmacy-review`, data),
+    mutationFn: (data: any) => apiRequest(`/api/patients/${patientId}/pharmacy-review`, 'POST', data),
     onSuccess: () => {
       toast({
         title: "Success",

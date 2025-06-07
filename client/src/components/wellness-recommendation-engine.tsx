@@ -201,14 +201,14 @@ export default function WellnessRecommendationEngine({ patientId, currentUser }:
 
   // Mutations for recommendation actions
   const createWellnessPlanMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/wellness-plans', data),
+    mutationFn: (data: any) => apiRequest('/api/wellness-plans', 'POST', data),
     onSuccess: () => {
       toast({ title: "Wellness plan created successfully" });
     },
   });
 
   const trackProgressMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/wellness-progress', data),
+    mutationFn: (data: any) => apiRequest('/api/wellness-progress', 'POST', data),
     onSuccess: () => {
       toast({ title: "Progress tracked successfully" });
     },

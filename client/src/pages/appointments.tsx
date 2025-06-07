@@ -176,7 +176,7 @@ export default function AppointmentsPage() {
   const createAppointmentMutation = useMutation({
     mutationFn: (data: any) => {
       console.log('Sending appointment data:', data);
-      return apiRequest('POST', '/api/appointments', data);
+      return apiRequest('/api/appointments', 'POST', data);
     },
     onSuccess: (data) => {
       console.log('Appointment created successfully:', data);
