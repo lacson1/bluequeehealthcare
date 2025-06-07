@@ -4176,11 +4176,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
-
+  // Optimized lab results endpoint with caching and pagination
+  app.get('/api/lab-results/reviewed', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const userOrgId = req.user?.organizationId;
+      if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
       
-      const { patientId } = req.query;
+      const { patientId, page = '1', limit = '25' } = req.query;
+      const pageNum = parseInt(page as string);
+      const limitNum = Math.min(parseInt(limit as string), 100);
+      const offset = (pageNum - 1) * limitNum;
       
       // Build where conditions for lab_results table
       let whereConditions = [eq(labResults.organizationId, userOrgId)];
@@ -4190,7 +4197,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         whereConditions.push(eq(labResults.patientId, parseInt(patientId as string)));
       }
       
-      // Optimized query with indexed columns
+      // Execute queries with proper optimization
       const reviewedResults = await db.select({
         id: labResults.id,
         patientId: labResults.patientId,
@@ -4208,14 +4215,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       .where(and(...whereConditions))
       .orderBy(desc(labResults.createdAt))
       .limit(limitNum)
-      .offset(offset),
-        
-        db.select({ count: sql<number>`count(*)` })
+      .offset(offset);
+
+      const countResult = await db.select({ count: sql<number>`count(*)` })
         .from(labResults)
         .innerJoin(patients, eq(labResults.patientId, patients.id))
-        .where(and(...whereConditions))
-        .then(result => result[0]?.count || 0)
-      ]);
+        .where(and(...whereConditions));
+      
+      const totalCount = countResult[0]?.count || 0;
 
     // Transform data efficiently
     const transformedResults = reviewedResults.map(result => ({
