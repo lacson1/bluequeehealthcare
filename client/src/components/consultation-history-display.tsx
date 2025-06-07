@@ -82,7 +82,11 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
     // Filter by search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      const staffName = formatStaffName(record.conductedByRole, record.conductedByName).toLowerCase();
+      const staffName = formatStaffName({
+        role: record.conductedByRole || 'staff',
+        firstName: record.conductedByName || record.conductedBy || 'Healthcare',
+        lastName: 'Staff'
+      }).toLowerCase();
       const formName = (record.formName || '').toLowerCase();
       const title = (record.title || '').toLowerCase();
       const complaint = (record.complaint || '').toLowerCase();
