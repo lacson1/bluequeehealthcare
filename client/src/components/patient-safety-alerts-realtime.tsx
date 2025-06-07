@@ -33,7 +33,7 @@ export function PatientSafetyAlertsRealtime({
 
   // Fetch real-time safety alerts from backend
   const { data: alertsData, isLoading, refetch } = useQuery({
-    queryKey: ['/api/patients', patientId, 'safety-alerts'],
+    queryKey: [`/api/patients/${patientId}/safety-alerts`],
     enabled: !!patientId,
     refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
     retry: 1, // Reduce retries to prevent excessive errors
@@ -231,7 +231,7 @@ export function QuickSafetyIndicator({
 }) {
   // Fetch real-time safety alerts for indicator
   const { data: alerts = [] } = useQuery({
-    queryKey: ['/api/patients', patientId, 'safety-alerts'],
+    queryKey: [`/api/patients/${patientId}/safety-alerts`],
     enabled: !!patientId,
     refetchInterval: 60000, // Refresh every minute
   });
