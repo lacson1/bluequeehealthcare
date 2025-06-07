@@ -130,10 +130,7 @@ export default function ProceduralReports() {
 
   const createReportMutation = useMutation({
     mutationFn: (data: ProceduralReportForm) => 
-      apiRequest("/api/procedural-reports", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("/api/procedural-reports", "POST", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/procedural-reports"] });
       toast({
