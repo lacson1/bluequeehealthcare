@@ -20,15 +20,15 @@ function getAuthHeaders(): Record<string, string> {
 
 export async function apiRequest(
   url: string,
-  method: string,
+  method: string = 'GET',
   data?: unknown | undefined,
 ): Promise<Response> {
   // Validate HTTP method
   const validMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
-  const upperMethod = method?.toUpperCase();
+  const upperMethod = (method || 'GET').toUpperCase();
   
-  if (!upperMethod || !validMethods.includes(upperMethod)) {
-    throw new Error(`Invalid HTTP method: ${method}. Must be one of: ${validMethods.join(', ')}`);
+  if (!validMethods.includes(upperMethod)) {
+    throw new Error(`Invalid HTTP method: ${method || 'undefined'}. Must be one of: ${validMethods.join(', ')}`);
   }
 
   const headers = {

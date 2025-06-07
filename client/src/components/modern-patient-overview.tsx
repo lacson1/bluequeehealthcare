@@ -1507,7 +1507,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                                 <div className="flex items-center space-x-4 text-xs text-slate-500">
                                   <div className="flex items-center gap-1">
                                     <MedicalIcons.calendar className="w-3 h-3" />
-                                    <span>Started: {new Date(prescription.startDate).toLocaleDateString()}</span>
+                                    <span>Started: {prescription.startDate ? new Date(prescription.startDate).toLocaleDateString() : 'Not specified'}</span>
                                   </div>
                                   {prescription.endDate && (
                                     <div className="flex items-center gap-1">
@@ -1626,7 +1626,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                               
                               <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200">
                                 <div className="text-xs text-gray-500">
-                                  Started: {new Date(prescription.startDate).toLocaleDateString()}
+                                  Started: {prescription.startDate ? new Date(prescription.startDate).toLocaleDateString() : 'Not specified'}
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Button 
