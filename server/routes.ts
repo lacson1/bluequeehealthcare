@@ -8177,7 +8177,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   });
 
   // Update medication review assignment status
-  app.patch("/api/medication-reviews/:reviewId", authenticateToken, requireAnyRole(['pharmacist', 'doctor', 'admin']), async (req: AuthRequest, res) => {
+  app.patch("/api/medication-reviews/:reviewId", authenticateToken, requireAnyRole(['pharmacist', 'doctor', 'admin', 'nurse']), async (req: AuthRequest, res) => {
     try {
       const reviewId = parseInt(req.params.reviewId);
       const { status } = req.body;

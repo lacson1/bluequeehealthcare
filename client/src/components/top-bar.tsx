@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bell, Globe, Moon, Sun, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, Download, MapPin, MessageSquare, Plus, UserPlus, CalendarPlus, TestTube, Clipboard, ClipboardList, HeartHandshake, Trash2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -74,15 +75,7 @@ export default function TopBar() {
   // Clear all notifications mutation
   const clearNotificationsMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/notifications/clear', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to clear notifications');
-      }
+      const response = await apiRequest('/api/notifications/clear', 'POST');
       return response.json();
     },
     onSuccess: () => {
@@ -94,15 +87,7 @@ export default function TopBar() {
   // Delete individual notification mutation
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete notification');
-      }
+      const response = await apiRequest(`/api/notifications/${notificationId}`, 'DELETE');
       return response.json();
     },
     onSuccess: () => {
