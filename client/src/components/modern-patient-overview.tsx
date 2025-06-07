@@ -1369,7 +1369,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
             <span className="font-semibold">Vitals</span>
           </TabsTrigger>
           <TabsTrigger value="vaccinations" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
-            <Heart className="w-6 h-6 group-data-[state=active]:text-green-600" />
+            <MedicalIcons.injection className="w-6 h-6 group-data-[state=active]:text-green-600" />
             <span className="font-semibold">Vaccines</span>
           </TabsTrigger>
           <TabsTrigger value="record-visit" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
