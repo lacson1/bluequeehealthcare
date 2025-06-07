@@ -4209,13 +4209,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       .orderBy(desc(labResults.createdAt))
       .limit(limitNum)
       .offset(offset),
-      
-      db.select({ count: sql<number>`count(*)` })
-      .from(labResults)
-      .innerJoin(patients, eq(labResults.patientId, patients.id))
-      .where(and(...whereConditions))
-      .then(result => result[0]?.count || 0)
-    ]);
+        
+        db.select({ count: sql<number>`count(*)` })
+        .from(labResults)
+        .innerJoin(patients, eq(labResults.patientId, patients.id))
+        .where(and(...whereConditions))
+        .then(result => result[0]?.count || 0)
+      ]);
 
     // Transform data efficiently
     const transformedResults = reviewedResults.map(result => ({
@@ -4255,7 +4255,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     console.error("Error fetching reviewed lab results:", error);
     res.status(500).json({ message: "Failed to fetch reviewed lab results" });
   }
-});
+  });
 
   app.get('/api/patients/:id/lab-orders', authenticateToken, async (req: AuthRequest, res) => {
     try {
