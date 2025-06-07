@@ -220,19 +220,8 @@ export function MedicationReviewAssignmentsList({
 
       <CardContent>
         {filteredAssignments.length === 0 ? (
-          <div className="text-center py-8">
-            <UserCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Review Assignments</h3>
-            <p className="text-muted-foreground mb-4">
-              {statusFilter === "all" 
-                ? "No medication review assignments found for this patient."
-                : `No ${statusFilter} assignments found.`
-              }
-            </p>
-            <Button onClick={onCreateAssignment} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Create First Assignment
-            </Button>
+          <div className="text-center py-6 text-muted-foreground">
+            No medication review assignments found.
           </div>
         ) : (
           <div className="space-y-4">
