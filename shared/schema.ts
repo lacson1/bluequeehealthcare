@@ -537,6 +537,15 @@ export const medicationReviews = pgTable('medication_reviews', {
   updatedAt: timestamp('updated_at').defaultNow().notNull()
 });
 
+// Pinned Consultation Forms
+export const pinnedConsultationForms = pgTable('pinned_consultation_forms', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  consultationFormId: integer('consultation_form_id').references(() => consultationForms.id).notNull(),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
 // Error Tracking Tables
 export const errorLogs = pgTable('error_logs', {
   id: serial('id').primaryKey(),
@@ -580,6 +589,8 @@ export type ErrorLog = typeof errorLogs.$inferSelect;
 export type InsertErrorLog = typeof errorLogs.$inferInsert;
 export type SystemHealth = typeof systemHealth.$inferSelect;
 export type InsertSystemHealth = typeof systemHealth.$inferInsert;
+export type PinnedConsultationForm = typeof pinnedConsultationForms.$inferSelect;
+export type InsertPinnedConsultationForm = typeof pinnedConsultationForms.$inferInsert;
 
 // Insert schemas for forms
 export const insertPharmacySchema = createInsertSchema(pharmacies);
@@ -587,6 +598,10 @@ export const insertPharmacyActivitySchema = createInsertSchema(pharmacyActivitie
 export const insertMedicationReviewSchema = createInsertSchema(medicationReviews);
 export const insertErrorLogSchema = createInsertSchema(errorLogs);
 export const insertSystemHealthSchema = createInsertSchema(systemHealth);
+export const insertPinnedConsultationFormSchema = createInsertSchema(pinnedConsultationForms).omit({
+  id: true,
+  createdAt: true
+});
 
 // Relations
 export const patientsRelations = relations(patients, ({ many }) => ({
@@ -668,6 +683,18 @@ export const consultationFormsRelations = relations(consultationForms, ({ one, m
     references: [users.id],
   }),
   consultationRecords: many(consultationRecords),
+  pinnedByUsers: many(pinnedConsultationForms),
+}));
+
+export const pinnedConsultationFormsRelations = relations(pinnedConsultationForms, ({ one }) => ({
+  user: one(users, {
+    fields: [pinnedConsultationForms.userId],
+    references: [users.id],
+  }),
+  consultationForm: one(consultationForms, {
+    fields: [pinnedConsultationForms.consultationFormId],
+    references: [consultationForms.id],
+  }),
 }));
 
 export const consultationRecordsRelations = relations(consultationRecords, ({ one }) => ({
