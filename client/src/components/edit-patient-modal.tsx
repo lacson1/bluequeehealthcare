@@ -87,7 +87,7 @@ export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated
         ...data,
         organizationId: data.organizationId ? parseInt(data.organizationId) : null
       };
-      return apiRequest("PATCH", `/api/patients/${patient.id}`, payload);
+      return apiRequest(`/api/patients/${patient.id}`, "PATCH", payload);
     },
     onSuccess: async () => {
       toast({

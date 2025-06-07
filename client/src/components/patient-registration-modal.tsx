@@ -70,7 +70,7 @@ export default function PatientRegistrationModal({
 
   const registerPatientMutation = useMutation({
     mutationFn: async (data: InsertPatient) => {
-      const response = await apiRequest("POST", "/api/patients", data);
+      const response = await apiRequest("/api/patients", "POST", data);
       return response.json();
     },
     onSuccess: () => {
