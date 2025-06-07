@@ -48,33 +48,57 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
   // Combine consultation records and visits into unified timeline
   const combinedRecords = React.useMemo(() => {
     const records = [
-      // Transform consultation records
-      ...(consultationRecords as any[]).map((record: any) => ({
-        ...record,
-        type: 'consultation',
-        date: record.createdAt,
-        title: record.formName || 'Consultation',
-        conductedBy: record.conductedByFullName || 'Healthcare Staff',
-        role: record.conductedByRole || 'staff'
-      })),
-      // Transform visits
-      ...(visits as any[]).map((visit: any) => ({
-        ...visit,
-        id: `visit-${visit.id}`, // Prefix to avoid ID conflicts
-        type: 'visit',
-        date: visit.visitDate || visit.createdAt,
-        title: `${visit.visitType?.charAt(0).toUpperCase() + visit.visitType?.slice(1) || 'Visit'}`,
-        conductedBy: 'Healthcare Staff', // Would need to join with users table for actual name
-        role: 'doctor', // Default role for visits
-        formName: visit.visitType,
-        complaint: visit.complaint,
-        diagnosis: visit.diagnosis,
-        treatment: visit.treatment
-      }))
+      // Transform consultation records - only include those with meaningful data
+      ...(consultationRecords as any[])
+        .filter((record: any) => 
+          record.formData && 
+          Object.keys(record.formData).length > 0 &&
+          Object.values(record.formData).some(value => value && value !== '')
+        )
+        .map((record: any) => ({
+          ...record,
+          type: 'consultation',
+          date: record.createdAt,
+          title: record.formName || 'Consultation',
+          conductedBy: record.conductedByFullName || 'Healthcare Staff',
+          role: record.conductedByRole || 'staff',
+          uniqueKey: `consultation-${record.id}-${record.createdAt}`
+        })),
+      // Transform visits - only include those with meaningful content
+      ...(visits as any[])
+        .filter((visit: any) => 
+          visit.complaint || visit.diagnosis || visit.treatment || 
+          visit.bloodPressure || visit.heartRate || visit.temperature || visit.weight
+        )
+        .map((visit: any) => ({
+          ...visit,
+          id: `visit-${visit.id}`,
+          type: 'visit',
+          date: visit.visitDate || visit.createdAt,
+          title: `${visit.visitType?.charAt(0).toUpperCase() + visit.visitType?.slice(1) || 'Medical Visit'}`,
+          conductedBy: visit.doctorName || 'Healthcare Staff',
+          role: 'doctor',
+          formName: visit.visitType,
+          complaint: visit.complaint,
+          diagnosis: visit.diagnosis,
+          treatment: visit.treatment,
+          uniqueKey: `visit-${visit.id}-${visit.visitDate || visit.createdAt}`
+        }))
     ];
     
+    // Remove duplicates based on date and content similarity
+    const uniqueRecords = records.filter((record, index, arr) => {
+      const isDuplicate = arr.findIndex(r => 
+        r.uniqueKey !== record.uniqueKey &&
+        Math.abs(new Date(r.date).getTime() - new Date(record.date).getTime()) < 60000 && // Within 1 minute
+        r.title === record.title &&
+        r.conductedBy === record.conductedBy
+      ) < index;
+      return !isDuplicate;
+    });
+    
     // Sort by date descending (newest first)
-    return records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return uniqueRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [consultationRecords, visits]);
 
   // Apply filters to combined records
@@ -502,14 +526,21 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
                               <div className="flex-1">
                                 <div className="flex items-center space-x-3 mb-2">
                                   <h4 className="font-bold text-lg text-gray-900 flex items-center">
-                                    🩺 {consultation.formName || 'Consultation'}
+                                    {consultation.type === 'consultation' ? '🩺' : '📋'} {consultation.title}
                                   </h4>
-                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                    {new Date(consultation.createdAt).toLocaleDateString('en-US', {
+                                  <Badge variant="outline" className={`${
+                                    consultation.type === 'consultation' 
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                      : 'bg-green-50 text-green-700 border-green-200'
+                                  }`}>
+                                    {new Date(consultation.date).toLocaleDateString('en-US', {
                                       month: 'short',
                                       day: 'numeric',
                                       year: 'numeric'
                                     })}
+                                  </Badge>
+                                  <Badge variant={consultation.type === 'consultation' ? 'default' : 'secondary'} className="text-xs">
+                                    {consultation.type === 'consultation' ? 'Consultation' : 'Visit'}
                                   </Badge>
                                 </div>
                                 
@@ -518,14 +549,14 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
                                   <div className="flex items-center space-x-2">
                                     <Calendar className="h-4 w-4 text-blue-500" />
                                     <div>
-                                      <span className="font-medium text-gray-700">📅 {new Date(consultation.createdAt).toLocaleDateString('en-US', {
+                                      <span className="font-medium text-gray-700">📅 {new Date(consultation.date).toLocaleDateString('en-US', {
                                         weekday: 'short',
                                         year: 'numeric',
                                         month: 'short',
                                         day: 'numeric'
                                       })}</span>
                                       <div className="text-xs text-gray-500">
-                                        🕐 {new Date(consultation.createdAt).toLocaleTimeString('en-US', { 
+                                        🕐 {new Date(consultation.date).toLocaleTimeString('en-US', { 
                                           hour: '2-digit', 
                                           minute: '2-digit' 
                                         })}
@@ -571,39 +602,75 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
                             {/* Consultation content with View Full Note expandable */}
                             {consultation.formData && (
                               <div className="space-y-3">
-                                {/* Preview of key consultation data */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {Object.entries(consultation.formData).slice(0, 4).map(([key, value]) => {
-                                    if (!value || (typeof value === 'object' && !Object.values(value).some(v => v))) return null;
-                                    
-                                    return (
-                                      <div key={key} className="bg-gray-50 p-3 rounded-lg border">
-                                        <span className="font-medium text-gray-700 capitalize text-sm block mb-1">
-                                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
-                                        </span>
-                                        <div className="text-gray-600 text-sm">
-                                          {typeof value === 'object' ? (
-                                            <div className="space-y-1">
-                                              {Object.entries(value).slice(0, 2).map(([subKey, subValue]) => 
-                                                subValue ? (
-                                                  <div key={subKey} className="text-xs">
-                                                    <span className="font-medium">{subKey}:</span> {String(subValue).substring(0, 50)}
-                                                    {String(subValue).length > 50 && '...'}
-                                                  </div>
-                                                ) : null
-                                              )}
-                                            </div>
-                                          ) : (
-                                            <span>
-                                              {String(value).substring(0, 100)}
-                                              {String(value).length > 100 && '...'}
-                                            </span>
-                                          )}
+                                {/* Preview of key data - different display for consultations vs visits */}
+                                {consultation.type === 'consultation' && consultation.formData ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {Object.entries(consultation.formData).slice(0, 4).map(([key, value]) => {
+                                      if (!value || (typeof value === 'object' && !Object.values(value).some(v => v))) return null;
+                                      
+                                      return (
+                                        <div key={key} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                          <span className="font-medium text-blue-800 capitalize text-sm block mb-1">
+                                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
+                                          </span>
+                                          <div className="text-blue-700 text-sm">
+                                            {typeof value === 'object' ? (
+                                              <div className="space-y-1">
+                                                {Object.entries(value).slice(0, 2).map(([subKey, subValue]) => 
+                                                  subValue ? (
+                                                    <div key={subKey} className="text-xs">
+                                                      <span className="font-medium">{subKey}:</span> {String(subValue).substring(0, 50)}
+                                                      {String(subValue).length > 50 && '...'}
+                                                    </div>
+                                                  ) : null
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span>
+                                                {String(value).substring(0, 100)}
+                                                {String(value).length > 100 && '...'}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : consultation.type === 'visit' ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {/* Visit-specific data display */}
+                                    {consultation.complaint && (
+                                      <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                                        <span className="font-medium text-red-800 text-sm block mb-1">Chief Complaint:</span>
+                                        <div className="text-red-700 text-sm">{consultation.complaint}</div>
+                                      </div>
+                                    )}
+                                    {consultation.diagnosis && (
+                                      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                        <span className="font-medium text-blue-800 text-sm block mb-1">Diagnosis:</span>
+                                        <div className="text-blue-700 text-sm">{consultation.diagnosis}</div>
+                                      </div>
+                                    )}
+                                    {consultation.treatment && (
+                                      <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                        <span className="font-medium text-green-800 text-sm block mb-1">Treatment:</span>
+                                        <div className="text-green-700 text-sm">{consultation.treatment}</div>
+                                      </div>
+                                    )}
+                                    {/* Vital signs if available */}
+                                    {(consultation.bloodPressure || consultation.heartRate || consultation.temperature || consultation.weight) && (
+                                      <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                                        <span className="font-medium text-purple-800 text-sm block mb-1">Vital Signs:</span>
+                                        <div className="text-purple-700 text-xs space-y-1">
+                                          {consultation.bloodPressure && <div>BP: {consultation.bloodPressure}</div>}
+                                          {consultation.heartRate && <div>HR: {consultation.heartRate} bpm</div>}
+                                          {consultation.temperature && <div>Temp: {consultation.temperature}°C</div>}
+                                          {consultation.weight && <div>Weight: {consultation.weight} kg</div>}
                                         </div>
                                       </div>
-                                    );
-                                  })}
-                                </div>
+                                    )}
+                                  </div>
+                                ) : null}
                                 
                                 {/* View Full Note expandable section */}
                                 <Collapsible>
