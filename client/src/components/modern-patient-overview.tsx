@@ -929,6 +929,12 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     enabled: !!patient.id
   });
 
+  // Fetch patient safety alerts for the sidebar summary
+  const { data: safetyAlerts = [], isLoading: safetyAlertsLoading } = useQuery({
+    queryKey: ['/api/patients', patient.id, 'safety-alerts'],
+    enabled: !!patient.id
+  });
+
   // Filter prescriptions by status for better organization
   const activeMedications = React.useMemo(() => {
     return Array.isArray(displayPrescriptions) ? displayPrescriptions.filter((p: any) => 
