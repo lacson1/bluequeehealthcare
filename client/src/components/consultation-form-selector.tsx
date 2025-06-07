@@ -69,13 +69,26 @@ export default function ConsultationFormSelector({
     queryKey: ['/api/consultation-forms'],
   });
 
+  // Separate pinned and regular forms, then filter
+  const pinnedForms = forms.filter(form => form.isPinned);
+  const regularForms = forms.filter(form => !form.isPinned);
+  
   // Filter forms based on search and role filter
-  const filteredForms = forms.filter(form => {
+  const filteredPinnedForms = pinnedForms.filter(form => {
     const matchesSearch = form.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          form.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = !filterByRole || filterByRole === "all" || form.specialistRole.toLowerCase().includes(filterByRole.toLowerCase());
     return matchesSearch && matchesRole;
   });
+
+  const filteredRegularForms = regularForms.filter(form => {
+    const matchesSearch = form.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         form.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = !filterByRole || filterByRole === "all" || form.specialistRole.toLowerCase().includes(filterByRole.toLowerCase());
+    return matchesSearch && matchesRole;
+  });
+
+  const filteredForms = [...filteredPinnedForms, ...filteredRegularForms];
 
   // Get unique specialist roles for filter dropdown
   const uniqueRoles = Array.from(new Set(forms.map(form => form.specialistRole))).sort();
@@ -148,6 +161,14 @@ export default function ConsultationFormSelector({
       ...prev,
       [fieldId]: value
     }));
+  };
+
+  const handlePinToggle = (formId: number, isPinned: boolean) => {
+    if (isPinned) {
+      unpinFormMutation.mutate(formId);
+    } else {
+      pinFormMutation.mutate(formId);
+    }
   };
 
   const handleSubmit = () => {
@@ -406,37 +427,124 @@ export default function ConsultationFormSelector({
                   )}
                 </div>
               ) : (
-                <div className="grid gap-3 max-h-80 overflow-y-auto">
-                  {filteredForms.map((form) => (
-                    <div
-                      key={form.id}
-                      data-testid="form-card"
-                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                        selectedFormId === form.id
-                          ? 'border-blue-500 bg-blue-50 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
-                      onClick={() => {
-                        setSelectedFormId(form.id);
-                        setIsFormSelectorOpen(false); // Collapse after selection
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">{form.name}</h3>
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{form.description}</p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800" data-testid="specialist-role">
-                            {form.specialistRole}
-                          </Badge>
-                          <Badge variant="outline">
-                            {form.formStructure?.fields?.length || 0} fields
-                          </Badge>
-                        </div>
+                <div className="space-y-4">
+                  {/* Pinned Forms Section */}
+                  {filteredPinnedForms.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        <h4 className="font-medium text-gray-900">Pinned Forms</h4>
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                          {filteredPinnedForms.length}
+                        </Badge>
+                      </div>
+                      <div className="grid gap-3 mb-4">
+                        {filteredPinnedForms.map((form) => (
+                          <div
+                            key={form.id}
+                            data-testid="form-card"
+                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                              selectedFormId === form.id
+                                ? 'border-blue-500 bg-blue-50 shadow-md'
+                                : 'border-yellow-200 bg-yellow-50 hover:border-yellow-300 hover:bg-yellow-100'
+                            }`}
+                            onClick={() => {
+                              setSelectedFormId(form.id);
+                              setIsFormSelectorOpen(false);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-gray-900">{form.name}</h3>
+                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{form.description}</p>
+                              </div>
+                              <div className="flex items-center gap-2 ml-4">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePinToggle(form.id, form.isPinned || false);
+                                  }}
+                                  disabled={pinFormMutation.isPending || unpinFormMutation.isPending}
+                                  className="h-8 w-8 p-0 hover:bg-yellow-200"
+                                  title="Unpin form"
+                                >
+                                  <Star className="h-4 w-4 text-yellow-600 fill-yellow-600" />
+                                </Button>
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800" data-testid="specialist-role">
+                                  {form.specialistRole}
+                                </Badge>
+                                <Badge variant="outline">
+                                  {form.formStructure?.fields?.length || 0} fields
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Regular Forms Section */}
+                  {filteredRegularForms.length > 0 && (
+                    <div>
+                      {filteredPinnedForms.length > 0 && (
+                        <div className="flex items-center gap-2 mb-3">
+                          <FileText className="h-4 w-4 text-gray-500" />
+                          <h4 className="font-medium text-gray-900">All Forms</h4>
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                            {filteredRegularForms.length}
+                          </Badge>
+                        </div>
+                      )}
+                      <div className="grid gap-3 max-h-60 overflow-y-auto">
+                        {filteredRegularForms.map((form) => (
+                          <div
+                            key={form.id}
+                            data-testid="form-card"
+                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                              selectedFormId === form.id
+                                ? 'border-blue-500 bg-blue-50 shadow-md'
+                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                            onClick={() => {
+                              setSelectedFormId(form.id);
+                              setIsFormSelectorOpen(false);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-gray-900">{form.name}</h3>
+                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{form.description}</p>
+                              </div>
+                              <div className="flex items-center gap-2 ml-4">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePinToggle(form.id, form.isPinned || false);
+                                  }}
+                                  disabled={pinFormMutation.isPending || unpinFormMutation.isPending}
+                                  className="h-8 w-8 p-0 hover:bg-gray-100"
+                                  title="Pin form"
+                                >
+                                  <Star className="h-4 w-4 text-gray-400 hover:text-yellow-500" />
+                                </Button>
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800" data-testid="specialist-role">
+                                  {form.specialistRole}
+                                </Badge>
+                                <Badge variant="outline">
+                                  {form.formStructure?.fields?.length || 0} fields
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

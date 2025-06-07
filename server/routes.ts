@@ -4862,14 +4862,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         eq(pinnedConsultationForms.userId, userId!)
       ))
       .where(and(
-        userOrgId ? eq(consultationForms.organizationId, userOrgId) : undefined,
-        specialistRole ? eq(consultationForms.specialistRole, specialistRole as string) : undefined
+        userOrgId ? eq(consultationForms.organizationId, userOrgId) : sql`1=1`,
+        specialistRole ? eq(consultationForms.specialistRole, specialistRole as string) : sql`1=1`
       ))
       .orderBy(desc(consultationForms.createdAt));
       
       res.json(forms);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch specialty assessments" });
+      console.error('Error fetching consultation forms:', error);
+      res.status(500).json({ message: "Failed to fetch consultation forms" });
     }
   });
 
