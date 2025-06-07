@@ -202,15 +202,20 @@ export default function AppointmentsPage() {
 
   // Update appointment mutation
   const updateAppointmentMutation = useMutation({
-    mutationFn: ({ id, ...data }: any) => apiRequest('PATCH', `/api/appointments/${id}`, data),
-    onSuccess: () => {
+    mutationFn: ({ id, ...data }: any) => {
+      console.log('Updating appointment:', id, data);
+      return apiRequest(`/api/appointments/${id}`, 'PATCH', data);
+    },
+    onSuccess: (data) => {
+      console.log('Appointment updated successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
       toast({ title: 'Success', description: 'Appointment updated successfully' });
     },
     onError: (error: any) => {
+      console.error('Appointment update error:', error);
       toast({
         title: 'Error',
-        description: error?.response?.data?.error || 'Failed to update appointment',
+        description: error?.message || 'Failed to update appointment',
         variant: 'destructive'
       });
     },
