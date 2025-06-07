@@ -164,6 +164,12 @@ export default function AppointmentsPage() {
   // Fetch healthcare staff for selection  
   const { data: healthcareStaff = [] } = useQuery({
     queryKey: ['/api/users/healthcare-staff'],
+    onSuccess: (data) => {
+      console.log('Healthcare staff loaded:', data);
+    },
+    onError: (error) => {
+      console.error('Failed to load healthcare staff:', error);
+    }
   });
 
   // Create appointment mutation
