@@ -2359,17 +2359,6 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                 {/* Visit Recording Quick Access */}
                 <div className="space-y-3">
                   <h4 className="font-medium text-gray-900">Quick Visit Access</h4>
-                  <div className="text-center py-4 text-gray-500">
-                    <p className="text-sm mb-3">Start recording a new visit or view previous records in the Timeline tab.</p>
-                    <Button 
-                      onClick={() => navigate(`/patients/${patient.id}/record-visit`)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                      size="sm"
-                    >
-                      <MedicalIcons.add className="w-4 h-4 mr-2" />
-                      Quick Record Visit
-                    </Button>
-                  </div>
                 </div>
               </div>
             </CardContent>
