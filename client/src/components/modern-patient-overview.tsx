@@ -578,13 +578,7 @@ export function ModernPatientOverview({
         doctorId: user?.id,
       };
 
-      const response = await fetch(`/api/patients/${patient.id}/visits`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(visitData),
-      });
+      const response = await apiRequest(`/api/patients/${patient.id}/visits`, "POST", visitData);
 
       if (response.ok) {
         toast({
