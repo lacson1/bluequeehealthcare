@@ -84,7 +84,7 @@ export default function ConsultationFormSelector({
 
   // Create consultation record mutation
   const createConsultationMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/consultation-records', data),
+    mutationFn: (data: any) => apiRequest('/api/consultation-records', 'POST', data),
     onSuccess: () => {
       toast({
         title: "Success",

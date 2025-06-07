@@ -77,7 +77,7 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: (messageData: any) => apiRequest('POST', '/api/messages', messageData),
+    mutationFn: (messageData: any) => apiRequest('/api/messages', 'POST', messageData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/messages', selectedPatient] });
       setNewMessage('');
@@ -97,7 +97,7 @@ export function PatientCommunicationHub({ patientId }: { patientId?: number }) {
 
   // Send appointment reminder mutation
   const sendReminderMutation = useMutation({
-    mutationFn: (reminderData: any) => apiRequest('POST', '/api/appointment-reminders', reminderData),
+    mutationFn: (reminderData: any) => apiRequest('/api/appointment-reminders', 'POST', reminderData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/appointment-reminders', selectedPatient] });
       toast({
