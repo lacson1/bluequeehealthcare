@@ -466,6 +466,189 @@ export default function LaboratoryUnified() {
     return LetterheadService.generateLabResultHTML(organization, result);
   };
 
+  // Combined print functions for multiple selections
+  const generateCombinedResultsPrintContent = (results: any[]) => {
+    const organization = organizationData || (userProfile as any)?.organization || {
+      id: 4,
+      name: 'Enugu Health Center',
+      type: 'health_center',
+      themeColor: '#3B82F6',
+      address: 'Enugu State, Nigeria',
+      phone: '+234-XXX-XXX-XXXX',
+      email: 'info@enuguhealth.ng',
+      website: 'www.enuguhealth.ng'
+    };
+
+    const themeColor = organization.themeColor || '#1e40af';
+    const orgName = organization.name || 'Healthcare Organization';
+    const orgType = organization.type || 'clinic';
+    const orgEmail = organization.email || 'info@healthcare.com';
+    const orgPhone = organization.phone || '+234-XXX-XXX-XXXX';
+    const orgAddress = organization.address || 'Healthcare Address';
+    const orgWebsite = organization.website || 'www.healthcare.com';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Laboratory Results Report</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+            .letterhead { background: linear-gradient(135deg, ${themeColor} 0%, #3b82f6 100%); color: white; padding: 30px; margin: -20px -20px 30px -20px; }
+            .org-name { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
+            .org-tagline { font-size: 14px; opacity: 0.9; margin-bottom: 15px; }
+            .org-contact { font-size: 12px; opacity: 0.8; display: flex; justify-content: space-between; }
+            .document-title { text-align: center; font-size: 24px; font-weight: bold; color: ${themeColor}; margin: 30px 0 20px 0; border-bottom: 3px solid ${themeColor}; padding-bottom: 10px; }
+            .result-section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 25px; page-break-inside: avoid; }
+            .patient-info { background: #f8fafc; border-left: 4px solid ${themeColor}; padding: 15px; margin-bottom: 20px; }
+            .result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 15px 0; }
+            .result-item { background: #fafafa; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; }
+            .test-name { font-weight: bold; color: #1f2937; margin-bottom: 5px; }
+            .result-value { font-size: 18px; font-weight: bold; color: ${themeColor}; margin: 8px 0; }
+            .reference-range { color: #6b7280; font-size: 12px; }
+            .status-normal { color: #065f46; background: #d1fae5; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+            .status-abnormal { color: #92400e; background: #fef3c7; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+            .status-critical { color: #991b1b; background: #fee2e2; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+            .footer { border-top: 2px solid #e2e8f0; padding-top: 20px; margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
+            @media print { 
+              .no-print { display: none; }
+              body { margin: 0; }
+              .letterhead { margin: -20px -20px 20px -20px; }
+              .result-section { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="letterhead">
+            <div class="org-name">${orgName}</div>
+            <div class="org-tagline">${orgType.charAt(0).toUpperCase() + orgType.slice(1)} Laboratory Services</div>
+            <div class="org-contact">
+              <span>📧 ${orgEmail} | 📞 ${orgPhone}</span>
+              <span>🏥 ${orgAddress} | 🌐 ${orgWebsite}</span>
+            </div>
+          </div>
+          
+          <div class="document-title">LABORATORY RESULTS REPORT</div>
+          <div style="text-align: center; margin-bottom: 30px; color: #6b7280;">
+            Generated on ${format(new Date(), 'PPPP')} | ${results.length} Result${results.length !== 1 ? 's' : ''}
+          </div>
+          
+          ${results.map((result, index) => `
+            <div class="result-section">
+              <div class="patient-info">
+                <strong style="font-size: 16px;">${result.patientName || 'Unknown Patient'}</strong><br>
+                <span style="color: #6b7280;">Test: ${result.testName || 'Unknown Test'} | Category: ${result.category || 'General'}</span>
+                ${result.reviewedAt ? `<br><span style="color: #6b7280; font-size: 12px;">Reviewed: ${format(new Date(result.reviewedAt), 'PPP')}</span>` : ''}
+              </div>
+              
+              <div class="result-grid">
+                <div class="result-item">
+                  <div class="test-name">Result Value</div>
+                  <div class="result-value">${result.result || result.value || 'N/A'}</div>
+                  ${result.units ? `<div style="color: #6b7280; font-size: 12px;">${result.units}</div>` : ''}
+                </div>
+                
+                <div class="result-item">
+                  <div class="test-name">Reference Range</div>
+                  <div class="reference-range">${result.normalRange || result.referenceRange || 'N/A'}</div>
+                </div>
+                
+                <div class="result-item">
+                  <div class="test-name">Status</div>
+                  <div class="status-${result.status || 'normal'}">${(result.status || 'normal').toUpperCase()}</div>
+                </div>
+              </div>
+              
+              ${result.notes ? `
+                <div style="background: #f8fafc; border-left: 3px solid ${themeColor}; padding: 10px; margin-top: 15px;">
+                  <strong>Notes:</strong> ${result.notes}
+                </div>
+              ` : ''}
+              
+              ${result.reviewedBy ? `
+                <div style="margin-top: 15px; text-align: right; color: #6b7280; font-size: 12px;">
+                  Reviewed by: ${result.reviewedBy}
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+          
+          <div class="footer">
+            <p>This report contains ${results.length} laboratory result${results.length !== 1 ? 's' : ''}.</p>
+            <p>For questions about these results, please contact ${orgName} at ${orgPhone}</p>
+            <p style="margin-top: 15px; font-size: 10px;">Generated by ${orgName} Laboratory Information System</p>
+          </div>
+        </body>
+      </html>
+    `;
+  };
+
+  const generateCombinedOrdersPrintContent = (orders: LabOrder[]) => {
+    const organization = organizationData || (userProfile as any)?.organization || {
+      id: 4,
+      name: 'Enugu Health Center',
+      type: 'health_center',
+      themeColor: '#3B82F6',
+      address: 'Enugu State, Nigeria',
+      phone: '+234-XXX-XXX-XXXX',
+      email: 'info@enuguhealth.ng',
+      website: 'www.enuguhealth.ng'
+    };
+
+    const themeColor = organization.themeColor || '#1e40af';
+    const orgName = organization.name || 'Healthcare Organization';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Laboratory Orders Report</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+            .letterhead { background: linear-gradient(135deg, ${themeColor} 0%, #3b82f6 100%); color: white; padding: 30px; margin: -20px -20px 30px -20px; }
+            .org-name { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
+            .document-title { text-align: center; font-size: 24px; font-weight: bold; color: ${themeColor}; margin: 30px 0 20px 0; }
+            .order-section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 25px; page-break-inside: avoid; }
+            .patient-info { background: #f8fafc; border-left: 4px solid ${themeColor}; padding: 15px; margin-bottom: 15px; }
+            .tests-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+            .test-item { background: #fafafa; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px; }
+            @media print { 
+              .order-section { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="letterhead">
+            <div class="org-name">${orgName}</div>
+          </div>
+          
+          <div class="document-title">LABORATORY ORDERS SUMMARY</div>
+          <div style="text-align: center; margin-bottom: 30px; color: #6b7280;">
+            Generated on ${format(new Date(), 'PPPP')} | ${orders.length} Order${orders.length !== 1 ? 's' : ''}
+          </div>
+          
+          ${orders.map(order => `
+            <div class="order-section">
+              <div class="patient-info">
+                <strong>Order #${order.id}</strong> | ${order.patient.firstName} ${order.patient.lastName}<br>
+                <span style="color: #6b7280;">Date: ${format(new Date(order.createdAt), 'PPP')} | Status: ${order.status.toUpperCase()}</span>
+              </div>
+              
+              <div class="tests-grid">
+                ${(order.items || []).map(item => `
+                  <div class="test-item">
+                    <strong>${item.labTest?.name || 'Unknown Test'}</strong><br>
+                    <small style="color: #6b7280;">${item.labTest?.category || 'General'}</small>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </body>
+      </html>
+    `;
+  };
+
   // Data queries
   const { data: labOrders = [], isLoading: ordersLoading } = useQuery<LabOrder[]>({
     queryKey: ['/api/lab-orders/enhanced']
@@ -1024,16 +1207,74 @@ export default function LaboratoryUnified() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4">
-              {filteredOrders.map((order) => (
-                <Card key={order.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="p-2 bg-blue-50 rounded-lg">
-                            <User className="w-5 h-5 text-blue-600" />
-                          </div>
+            <div className="space-y-4">
+              {/* Selection Toolbar */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              selectAllOrders();
+                            } else {
+                              clearOrderSelection();
+                            }
+                          }}
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          Select All ({filteredOrders.length})
+                        </span>
+                      </div>
+                      {selectedOrders.size > 0 && (
+                        <Badge variant="secondary">
+                          {selectedOrders.size} selected
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {selectedOrders.size > 0 && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={printSelectedOrders}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Printer className="w-4 h-4 mr-2" />
+                            Print Selected ({selectedOrders.size})
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={clearOrderSelection}
+                          >
+                            Clear Selection
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-4">
+                {filteredOrders.map((order) => (
+                  <Card key={order.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={selectedOrders.has(order.id)}
+                            onCheckedChange={() => toggleOrderSelection(order.id)}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="p-2 bg-blue-50 rounded-lg">
+                                <User className="w-5 h-5 text-blue-600" />
+                              </div>
                           <div>
                             <h3 className="font-semibold text-gray-900">
                               {order.patient.title} {order.patient.firstName} {order.patient.lastName}
@@ -1126,9 +1367,10 @@ export default function LaboratoryUnified() {
                             </p>
                           </div>
                         )}
-                      </div>
+                          </div>
+                        </div>
 
-                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                         <Button 
                           variant="outline" 
                           size="sm"
