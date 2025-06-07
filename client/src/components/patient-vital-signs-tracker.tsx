@@ -254,6 +254,7 @@ export default function PatientVitalSignsTracker({ patientId }: PatientVitalSign
                     <Line type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} name="Systolic BP" />
                     <Line type="monotone" dataKey="heartRate" stroke="#3b82f6" strokeWidth={2} name="Heart Rate" />
                     <Line type="monotone" dataKey="temperature" stroke="#f97316" strokeWidth={2} name="Temperature" />
+                    <Line type="monotone" dataKey="oxygenSaturation" stroke="#10b981" strokeWidth={2} name="Oxygen Saturation" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
