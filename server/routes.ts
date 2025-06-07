@@ -7236,10 +7236,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Failed to update appointment" });
       }
 
-      // Create audit log
-      const auditLogger = new AuditLogger(req);
-      await auditLogger.logPatientAction('APPOINTMENT_UPDATED', updatedAppointment.patientId, {
+      // Log appointment update
+      console.log('Appointment updated:', {
         appointmentId: updatedAppointment.id,
+        patientId: updatedAppointment.patientId,
         changes: updateData
       });
 
