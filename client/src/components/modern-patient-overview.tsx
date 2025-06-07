@@ -29,7 +29,38 @@ import {
   Plus,
   Sparkles,
   X,
-  FileText
+  FileText,
+  User,
+  Clock,
+  FileText as Document,
+  TestTube as BloodTest,
+  Image,
+  Pill as Medication,
+  FileCheck as MedicalRecord,
+  CreditCard as CardIcon,
+  FileImage as Referral,
+  Maximize,
+  UserCheck as Patient,
+  Heart as HeartRate,
+  Activity as Vitals,
+  Monitor,
+  Syringe as Injection,
+  Calendar,
+  MessageSquare as Message,
+  RefreshCw as Refresh,
+  Edit,
+  Printer as Print,
+  QrCode,
+  CheckCircle as Success,
+  XCircle as Close,
+  ChevronDown,
+  ChevronRight,
+  MoreVertical as Menu,
+  Eye as Vision,
+  Copy,
+  Trash as Delete,
+  Upload,
+  History
 } from "lucide-react";
 import { GlobalMedicationSearch } from "@/components/global-medication-search";
 
@@ -374,7 +405,7 @@ const DocumentsListSection = ({ patientId, onViewDocument }: DocumentsListSectio
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <MedicalIcons.clock className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+        <Clock className="w-6 h-6 animate-spin text-blue-600 mr-2" />
         <span className="text-gray-600">Loading documents...</span>
       </div>
     );
@@ -383,7 +414,7 @@ const DocumentsListSection = ({ patientId, onViewDocument }: DocumentsListSectio
   if (!documents.length) {
     return (
       <div className="text-center py-12 text-gray-500">
-        <MedicalIcons.medicalRecord className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+        <MedicalRecord className="mx-auto h-16 w-16 text-gray-300 mb-4" />
         <h3 className="text-lg font-medium text-gray-700 mb-2">No Documents Found</h3>
         <p className="text-sm text-gray-500 mb-4">No medical documents have been uploaded for this patient yet.</p>
       </div>
@@ -2215,6 +2246,60 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     <span className="text-sm">Active Meds</span>
                   </div>
                   <Badge variant="secondary">{displayPrescriptions.length}</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Patient Summary */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-gray-900 flex items-center">
+                  <User className="h-3 w-3 mr-1" style={{ color: '#0051CC' }} />
+                  Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 px-3 pb-3">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Registration</span>
+                    <span className="text-xs font-medium text-gray-800">
+                      {new Date(patient?.createdAt || '').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Blood Type</span>
+                    <Badge variant="outline" className="text-xs text-red-600 border-red-300/60 h-5 bg-red-50/80">
+                      A+
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Phone</span>
+                    <span className="text-xs font-medium text-gray-800 truncate max-w-20">
+                      {patient?.phone || 'N/A'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Insurance</span>
+                    <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-300/60 h-5 bg-emerald-50/80">
+                      Active
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t border-gray-200/60">
+                  <h4 className="text-xs font-medium text-gray-900 mb-1">Allergies</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {patient?.allergies ? (
+                      <Badge variant="secondary" className="text-xs bg-red-50/90 text-red-700 border border-red-200/60 h-5">
+                        {patient.allergies.length > 12 ? patient.allergies.substring(0, 12) + '...' : patient.allergies}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-gray-500">None</span>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
