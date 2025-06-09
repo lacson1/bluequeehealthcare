@@ -89,8 +89,17 @@ export default function BloodTestDashboard({
     const loadData = async () => {
       setLoading(true);
       try {
-        // Fetch from patient portal lab results API
-        const response = await fetch('/api/patient-portal/lab-results');
+        // Get token from localStorage for authenticated request
+        const token = localStorage.getItem('patientToken');
+        
+        // Fetch from patient portal lab results API with authentication
+        const response = await fetch('/api/patient-portal/lab-results', {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+          },
+        });
+        
         if (response.ok) {
           const labResults = await response.json();
           
@@ -98,7 +107,7 @@ export default function BloodTestDashboard({
           const transformedData = transformLabResultsToDashboard(labResults);
           setBloodTestData(transformedData);
         } else {
-          console.error('Failed to load lab results');
+          console.error('Failed to load lab results:', response.status);
         }
       } catch (error) {
         console.error('Error loading blood test data:', error);
