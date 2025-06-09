@@ -7689,33 +7689,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
-  // Patient Portal - Get Patient Lab Results
-  app.get('/api/patient-portal/lab-results', async (req, res) => {
-    try {
-      const token = req.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
-        return res.status(401).json({ message: 'No token provided' });
-      }
-      
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret') as any;
-      if (decoded.type !== 'patient') {
-        return res.status(401).json({ message: 'Invalid token type' });
-      }
-      
-      const patientLabResults = await db.select({
-        id: labOrders.id,
-        status: labOrders.status
-      })
-      .from(labOrders)
-      .where(eq(labOrders.patientId, decoded.patientId))
-      .orderBy(desc(labOrders.createdAt));
-      
-      res.json(patientLabResults);
-    } catch (error) {
-      console.error('Error fetching patient lab results:', error);
-      res.status(500).json({ message: 'Failed to fetch lab results' });
-    }
-  });
+
 
   // Antenatal Consultation Template
   app.get('/api/templates/antenatal', async (req, res) => {
