@@ -207,7 +207,7 @@ const PatientLogin = ({ onLogin }: { onLogin: (data: any) => void }) => {
                         <Input
                           {...field}
                           placeholder="Enter your registered phone number"
-                          className="h-12"
+                          className="h-10 sm:h-12 text-base"
                         />
                       </FormControl>
                       <FormMessage />
@@ -228,7 +228,7 @@ const PatientLogin = ({ onLogin }: { onLogin: (data: any) => void }) => {
                         <Input
                           {...field}
                           type="date"
-                          className="h-12"
+                          className="h-10 sm:h-12 text-base"
                         />
                       </FormControl>
                       <FormMessage />
@@ -238,7 +238,7 @@ const PatientLogin = ({ onLogin }: { onLogin: (data: any) => void }) => {
 
                 <Button
                   type="submit"
-                  className="w-full h-12"
+                  className="w-full h-10 sm:h-12 text-sm sm:text-base"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Signing in...' : 'Sign In'}
@@ -377,22 +377,22 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <User className="h-8 w-8 text-blue-600" />
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <User className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
             Patient Portal
           </h1>
-          <p className="text-gray-600 mt-1">Access your health information and communicate with your care team</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Access your health information and communicate with your care team</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline">
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Send Message
+              <Button variant="outline" className="text-xs sm:text-sm px-3 sm:px-4 py-2">
+                <MessageCircle className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Send </span>Message
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -460,9 +460,9 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
 
           <Dialog open={isAppointmentDialogOpen} onOpenChange={setIsAppointmentDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Calendar className="h-4 w-4 mr-2" />
-                Request Appointment
+              <Button className="text-xs sm:text-sm px-3 sm:px-4 py-2">
+                <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Request </span>Appointment
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -571,30 +571,36 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 gap-1 h-auto p-1">
+          <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
             <Activity className="h-4 w-4" />
-            Overview
+            <span className="hidden sm:inline">Overview</span>
+            <span className="sm:hidden">Home</span>
           </TabsTrigger>
-          <TabsTrigger value="appointments" className="flex items-center gap-2">
+          <TabsTrigger value="appointments" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
             <Calendar className="h-4 w-4" />
-            Appointments
+            <span className="hidden sm:inline">Appointments</span>
+            <span className="sm:hidden">Appts</span>
           </TabsTrigger>
-          <TabsTrigger value="prescriptions" className="flex items-center gap-2">
+          <TabsTrigger value="prescriptions" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
             <Pill className="h-4 w-4" />
-            Prescriptions
+            <span className="hidden sm:inline">Prescriptions</span>
+            <span className="sm:hidden">Meds</span>
           </TabsTrigger>
-          <TabsTrigger value="lab-results" className="flex items-center gap-2">
+          <TabsTrigger value="lab-results" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
             <TestTube className="h-4 w-4" />
-            Lab Results
+            <span className="hidden sm:inline">Lab Results</span>
+            <span className="sm:hidden">Labs</span>
           </TabsTrigger>
-          <TabsTrigger value="records" className="flex items-center gap-2">
+          <TabsTrigger value="records" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
             <FileText className="h-4 w-4" />
-            Medical Records
+            <span className="hidden sm:inline">Medical Records</span>
+            <span className="sm:hidden">Records</span>
           </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center gap-2">
+          <TabsTrigger value="messages" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
             <MessageCircle className="h-4 w-4" />
-            Messages
+            <span className="hidden sm:inline">Messages</span>
+            <span className="sm:hidden">Chat</span>
           </TabsTrigger>
         </TabsList>
 
