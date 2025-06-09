@@ -339,9 +339,14 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: z.infer<typeof messageSchema>) => {
+      // Add target organization ID (default to 2 for Lagos Island Hospital)
+      const messageData = {
+        ...data,
+        targetOrganizationId: 2
+      };
       return authenticatedFetch("/api/patient-portal/messages", {
         method: "POST",
-        body: JSON.stringify(data)
+        body: JSON.stringify(messageData)
       });
     },
     onSuccess: () => {
@@ -349,6 +354,13 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
       setIsMessageDialogOpen(false);
       messageForm.reset();
       queryClient.invalidateQueries({ queryKey: ["/api/patient-portal/messages"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error?.message || "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
     }
   });
 
