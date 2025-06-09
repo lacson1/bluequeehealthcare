@@ -35,7 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import BloodTestDashboard from "@/components/BloodTestDashboard";
+import EnhancedBloodTestResults from "@/components/EnhancedBloodTestResults";
 import {
   User,
   Calendar,
@@ -855,12 +855,24 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
 
         {/* Lab Results Tab - Enhanced Blood Test Dashboard */}
         <TabsContent value="lab-results" className="space-y-4">
-          <BloodTestDashboard 
-            patientId={patient?.id?.toString() || ''}
-            onActionClick={handleLabAction}
-            className="min-h-screen"
-            showHeader={true}
-          />
+          {labResults && labResults.length > 0 ? (
+            <EnhancedBloodTestResults 
+              labResults={labResults}
+              className="w-full"
+            />
+          ) : (
+            <Card>
+              <CardContent className="text-center py-16">
+                <TestTube className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Lab Results Available</h3>
+                <p className="text-gray-500 mb-6">Your test results will appear here once they're ready</p>
+                <Button variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Schedule Lab Test
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Medical Records Tab */}
