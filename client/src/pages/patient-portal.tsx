@@ -294,7 +294,6 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
   };
 
   // Queries with authentication
-  const { data: patientProfile } = authenticatedQuery("/api/patient-portal/profile");
   const { data: appointments = [] } = authenticatedQuery("/api/patient-portal/appointments");
   const { data: prescriptions = [] } = authenticatedQuery("/api/patient-portal/prescriptions");
   const { data: labResults = [] } = authenticatedQuery("/api/patient-portal/lab-results");

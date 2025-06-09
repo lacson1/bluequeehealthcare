@@ -9343,6 +9343,104 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
+  // Patient Portal - Get Patient Profile
+  app.get('/api/patient-portal/profile', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient?.id;
+      if (!patientId) {
+        return res.status(401).json({ error: 'Patient authentication required' });
+      }
+      
+      // Return the patient data from the authentication middleware
+      res.json(req.patient);
+    } catch (error) {
+      console.error('Error fetching patient profile:', error);
+      res.status(500).json({ error: 'Failed to fetch patient profile' });
+    }
+  });
+
+  // Patient Portal - Get Patient Prescriptions
+  app.get('/api/patient-portal/prescriptions', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient?.id;
+      if (!patientId) {
+        return res.status(401).json({ error: 'Patient authentication required' });
+      }
+      
+      const patientPrescriptions = await db.select({
+        id: prescriptions.id,
+        medicationName: prescriptions.medicationName,
+        dosage: prescriptions.dosage,
+        frequency: prescriptions.frequency,
+        duration: prescriptions.duration,
+        instructions: prescriptions.instructions,
+        status: prescriptions.status,
+        prescribedBy: prescriptions.prescribedBy,
+        startDate: prescriptions.startDate,
+        endDate: prescriptions.endDate,
+        createdAt: prescriptions.createdAt
+      })
+        .from(prescriptions)
+        .where(eq(prescriptions.patientId, patientId))
+        .orderBy(desc(prescriptions.createdAt));
+      
+      res.json(patientPrescriptions);
+    } catch (error) {
+      console.error('Error fetching patient prescriptions:', error);
+      res.status(500).json({ error: 'Failed to fetch prescriptions' });
+    }
+  });
+
+  // Patient Portal - Get Patient Medical Records
+  app.get('/api/patient-portal/medical-records', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient?.id;
+      if (!patientId) {
+        return res.status(401).json({ error: 'Patient authentication required' });
+      }
+      
+      const patientRecords = await db.select()
+        .from(visits)
+        .where(eq(visits.patientId, patientId))
+        .orderBy(desc(visits.visitDate));
+      
+      res.json(patientRecords);
+    } catch (error) {
+      console.error('Error fetching patient medical records:', error);
+      res.status(500).json({ error: 'Failed to fetch medical records' });
+    }
+  });
+
+  // Patient Portal - Get Patient Lab Results
+  app.get('/api/patient-portal/lab-results', authenticatePatient, async (req: PatientAuthRequest, res) => {
+    try {
+      const patientId = req.patient?.id;
+      if (!patientId) {
+        return res.status(401).json({ error: 'Patient authentication required' });
+      }
+      
+      const patientLabResults = await db.select({
+        id: labOrders.id,
+        testName: labOrders.testName,
+        status: labOrders.status,
+        result: labOrders.result,
+        units: labOrders.units,
+        referenceRange: labOrders.referenceRange,
+        orderedDate: labOrders.orderedDate,
+        resultDate: labOrders.resultDate,
+        orderedBy: labOrders.orderedBy
+      })
+        .from(labOrders)
+        .where(eq(labOrders.patientId, patientId))
+        .orderBy(desc(labOrders.orderedDate));
+      
+      res.json(patientLabResults);
+    } catch (error) {
+      console.error('Error fetching patient lab results:', error);
+      res.status(500).json({ error: 'Failed to fetch lab results' });
+    }
+  });
+
   // Patient Portal - Get Patient Medications/Prescriptions
   app.get('/api/patient-portal/medications', authenticatePatient, async (req: PatientAuthRequest, res) => {
     try {
