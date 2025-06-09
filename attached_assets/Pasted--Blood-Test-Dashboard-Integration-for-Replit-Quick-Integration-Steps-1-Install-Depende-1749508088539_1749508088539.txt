@@ -1,0 +1,121 @@
+# Blood Test Dashboard Integration for Replit
+
+## 🚀 Quick Integration Steps
+
+### 1. Install Dependencies
+Add these to your existing `package.json` or run:
+```bash
+npm install recharts lucide-react
+```
+
+**Required dependencies:**
+- `recharts` - For interactive charts
+- `lucide-react` - For modern icons
+- `react` - (you already have this)
+
+### 2. Add Tailwind CSS (if not already added)
+Add to your `public/index.html` in the `<head>` section:
+```html
+<script src="https://cdn.tailwindcss.com"></script>
+```
+
+### 3. Copy the Component
+Save the `BloodTestDashboard.jsx` file to your `components/` folder.
+
+### 4. Use in Your App
+```javascript
+// In your existing app component
+import BloodTestDashboard from './components/BloodTestDashboard';
+
+function YourApp() {
+  const handleBloodTestAction = (action, data) => {
+    switch (action) {
+      case 'download':
+        // Your PDF generation logic
+        console.log('Generate PDF for:', data);
+        break;
+      case 'share':
+        // Your sharing logic
+        console.log('Share results:', data);
+        break;
+      case 'alerts':
+        // Your notification logic
+        console.log('Show alerts');
+        break;
+    }
+  };
+
+  return (
+    <div className="your-app">
+      {/* Your existing components */}
+      
+      {/* Blood Test Section */}
+      <BloodTestDashboard
+        patientId="your-patient-id"
+        onActionClick={handleBloodTestAction}
+        className="min-h-screen"
+        showHeader={true}
+      />
+      
+      {/* Your other components */}
+    </div>
+  );
+}
+```
+
+## 🎛️ Component Props
+
+### `BloodTestDashboard` Props:
+- **`patientId`** (string) - Unique patient identifier
+- **`onActionClick`** (function) - Handle button clicks (download, share, alerts)
+- **`className`** (string) - Additional CSS classes
+- **`showHeader`** (boolean) - Show/hide the header section
+
+### Example with all props:
+```javascript
+<BloodTestDashboard
+  patientId="patient-123"
+  onActionClick={handleActions}
+  className="w-full h-full bg-gray-100"
+  showHeader={true}
+/>
+```
+
+## 🔌 API Integration
+
+### Replace Sample Data with Your API:
+In the `BloodTestDashboard.jsx` file, find this section and replace with your API:
+
+```javascript
+// Replace this section in the useEffect:
+const loadData = async () => {
+  setLoading(true);
+  try {
+    // YOUR API CALL HERE:
+    const response = await fetch(`/api/patients/${patientId}/blood-tests`);
+    const data = await response.json();
+    
+    setBloodTestData(data);
+  } catch (error) {
+    console.error('Error loading blood test data:', error);
+    setBloodTestData(sampleData); // Fallback
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+### Expected Data Format:
+Your API should return data in this format:
+```javascript
+{
+  overview: {
+    testDate: "2025-06-05",
+    nextTest: "2025-09-05",
+    overallStatus: "Good",
+    criticalAlerts: 0
+  },
+  categories: {
+    cbc: {
+      title: "Complete Blood Count",
+      icon: "Droplets", // or "Activity", "Heart", "Shield", "Thermometer"
