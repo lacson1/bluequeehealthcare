@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
 import { db } from "./db";
 import { eq, desc, or, ilike, gte, lte, lt, and, isNotNull, isNull, inArray, sql, notExists } from "drizzle-orm";
 import { authenticateToken, requireRole, requireAnyRole, requireSuperOrOrgAdmin, hashPassword, comparePassword, generateToken, type AuthRequest } from "./middleware/auth";
+import { authenticateSession, type SessionRequest } from "./middleware/session";
 import { tenantMiddleware, type TenantRequest } from "./middleware/tenant";
 
 // Extend AuthRequest interface to include patient authentication
@@ -2145,15 +2146,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         const validPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'receptionist123', 'password123', 'pharmacy123', 'physio123'];
         if (validPasswords.includes(password)) {
           const org = user.organizationId ? await getOrganizationDetails(user.organizationId) : null;
-          const token = generateToken({ 
-            id: user.id, 
-            username: user.username, 
-            role: user.role, 
-            organizationId: user.organizationId 
-          });
+          
+          // Set user session
+          (req.session as any).user = {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            organizationId: user.organizationId
+          };
           
           return res.json({
-            token,
             user: {
               id: user.id,
               username: user.username,
@@ -2172,9 +2174,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       // Fallback Super Admin - Global access across all organizations
       if (username === 'superadmin' && password === 'super123') {
-        const token = generateToken({ id: 999, username: 'superadmin', role: 'superadmin', organizationId: null });
+        (req.session as any).user = {
+          id: 999,
+          username: 'superadmin',
+          role: 'superadmin',
+          organizationId: null
+        };
+        
         return res.json({
-          token,
           user: {
             id: 999,
             username: 'superadmin',
@@ -2192,9 +2199,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       
       if (username === 'ade' && password === 'doctor123') {
         const org = await getOrganizationDetails(1);
-        const token = generateToken({ id: 10, username: 'ade', role: 'doctor', organizationId: 1 });
+        
+        (req.session as any).user = {
+          id: 10,
+          username: 'ade',
+          role: 'doctor',
+          organizationId: 1
+        };
+        
         return res.json({
-          token,
           user: {
             id: 10,
             username: 'ade',
@@ -2212,9 +2225,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       
       if (username === 'syb' && password === 'nurse123') {
         const org = await getOrganizationDetails(1);
-        const token = generateToken({ id: 11, username: 'syb', role: 'nurse', organizationId: 1 });
+        
+        (req.session as any).user = {
+          id: 11,
+          username: 'syb',
+          role: 'nurse',
+          organizationId: 1
+        };
+        
         return res.json({
-          token,
           user: {
             id: 11,
             username: 'syb',
@@ -2232,9 +2251,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       
       if (username === 'akin' && password === 'pharmacist123') {
         const org = await getOrganizationDetails(1);
-        const token = generateToken({ id: 12, username: 'akin', role: 'pharmacist', organizationId: 1 });
+        
+        (req.session as any).user = {
+          id: 12,
+          username: 'akin',
+          role: 'pharmacist',
+          organizationId: 1
+        };
+        
         return res.json({
-          token,
           user: {
             id: 12,
             username: 'akin',

@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { sessionConfig } from "./middleware/session";
 
 const app = express();
 
@@ -19,6 +20,9 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session middleware
+app.use(sessionConfig);
 
 app.use((req, res, next) => {
   const start = Date.now();

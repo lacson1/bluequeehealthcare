@@ -1,14 +1,14 @@
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
-import { db } from '../db';
+import { Request, Response, NextFunction } from 'express';
 
 const PgSession = connectPgSimple(session);
 
-// Session-based authentication middleware
-export const sessionConfig = {
+// Session configuration
+export const sessionConfig = session({
   store: new PgSession({
-    pool: db, // Use your existing database connection
-    tableName: 'session', // Will be created automatically
+    conString: process.env.DATABASE_URL,
+    tableName: 'user_sessions',
     createTableIfMissing: true,
   }),
   secret: process.env.SESSION_SECRET || 'clinic-session-secret-2024',
@@ -20,12 +20,21 @@ export const sessionConfig = {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   },
   name: 'clinic.session.id',
-};
+});
 
-// Enhanced authentication middleware for sessions
-export const authenticateSession = (req: any, res: any, next: any) => {
-  if (req.session && req.session.user) {
-    req.user = req.session.user;
+// Session-based authentication middleware
+export interface SessionRequest extends Request {
+  user?: {
+    id: number;
+    username: string;
+    role: string;
+    organizationId?: number;
+  };
+}
+
+export const authenticateSession = (req: SessionRequest, res: Response, next: NextFunction) => {
+  if (req.session && (req.session as any).user) {
+    req.user = (req.session as any).user;
     next();
   } else {
     res.status(401).json({ message: 'Authentication required' });
