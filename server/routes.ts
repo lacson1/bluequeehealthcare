@@ -462,6 +462,15 @@ function generateLabOrderHTML(orderResult: any, orderItems: any[]): string {
 </html>`;
 }
 
+// Helper function to get organization details
+const getOrganizationDetails = async (orgId: number) => {
+  const [org] = await db.select()
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1);
+  return org;
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Firebase for push notifications
   initializeFirebase();
@@ -2126,14 +2135,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(400).json({ message: "Username and password required" });
       }
       
-      // Helper function to get organization details
-      const getOrganizationDetails = async (orgId: number) => {
-        const [org] = await db.select()
-          .from(organizations)
-          .where(eq(organizations.id, orgId))
-          .limit(1);
-        return org;
-      };
+
       
       // Try to find user in database first
       const [user] = await db.select()
@@ -2321,7 +2323,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   });
 
   // Get current user profile with session authentication
-  app.get("/api/profile", authenticateSession, async (req: SessionRequest, res) => {
+  app.get("/api/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Not authenticated" });
