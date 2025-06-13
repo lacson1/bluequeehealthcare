@@ -101,7 +101,7 @@ export default function UserManagementEnhanced() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: InsertUser) => {
-      return apiRequest("POST", "/api/users", userData);
+      return apiRequest("/api/users", "POST", userData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -124,7 +124,7 @@ export default function UserManagementEnhanced() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, userData }: { id: number; userData: any }) => {
-      return apiRequest("PATCH", `/api/users/${id}`, userData);
+      return apiRequest(`/api/users/${id}`, "PATCH", userData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });

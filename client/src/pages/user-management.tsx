@@ -172,14 +172,7 @@ export default function UserManagement() {
   // Mutations
   const createUserMutation = useMutation({
     mutationFn: async (data: z.infer<typeof userSchema>) => {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data)
-      });
-      if (!response.ok) throw new Error("Failed to create user");
-      return response.json();
+      return apiRequest("/api/users", "POST", data);
     },
     onSuccess: () => {
       toast({ title: "User Created", description: "User has been successfully created." });
@@ -198,14 +191,7 @@ export default function UserManagement() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<User> }) => {
-      const response = await fetch(`/api/users/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data)
-      });
-      if (!response.ok) throw new Error("Failed to update user");
-      return response.json();
+      return apiRequest(`/api/users/${id}`, "PATCH", data);
     },
     onSuccess: () => {
       toast({ title: "User Updated", description: "User has been successfully updated." });
@@ -216,14 +202,7 @@ export default function UserManagement() {
 
   const createRoleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof roleSchema>) => {
-      const response = await fetch("/api/roles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data)
-      });
-      if (!response.ok) throw new Error("Failed to create role");
-      return response.json();
+      return apiRequest("/api/roles", "POST", data);
     },
     onSuccess: () => {
       toast({ title: "Role Created", description: "Role has been successfully created." });
@@ -235,14 +214,7 @@ export default function UserManagement() {
 
   const createOrgMutation = useMutation({
     mutationFn: async (data: z.infer<typeof organizationSchema>) => {
-      const response = await fetch("/api/organizations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data)
-      });
-      if (!response.ok) throw new Error("Failed to create organization");
-      return response.json();
+      return apiRequest("/api/organizations", "POST", data);
     },
     onSuccess: () => {
       toast({ title: "Organization Created", description: "Organization has been successfully created." });
