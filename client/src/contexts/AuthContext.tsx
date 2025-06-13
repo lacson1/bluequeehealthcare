@@ -30,21 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // Check if user is already logged in on app start
-    const token = localStorage.getItem('clinic_token');
-    const userData = localStorage.getItem('clinic_user');
-    
-    if (token && userData) {
-      try {
-        setUser(JSON.parse(userData));
-        // Refresh user data to get latest information
-        refreshUser();
-      } catch (error) {
-        localStorage.removeItem('clinic_token');
-        localStorage.removeItem('clinic_user');
-      }
-    }
-    setIsLoading(false);
+    // Check if user is already logged in via session
+    refreshUser();
   }, []);
 
   // Disabled periodic session refresh to prevent stability issues
@@ -64,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include cookies for session
         body: JSON.stringify({ username, password }),
       });
 
@@ -73,8 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
       
-      localStorage.setItem('clinic_token', data.token);
-      localStorage.setItem('clinic_user', JSON.stringify(data.user));
+      // No token storage needed - session is managed by cookies
       setUser(data.user);
       
       // Automatically redirect to dashboard after successful login
@@ -86,9 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('clinic_token');
-    localStorage.removeItem('clinic_user');
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
     setUser(null);
   };
 

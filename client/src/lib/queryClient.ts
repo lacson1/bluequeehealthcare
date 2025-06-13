@@ -8,14 +8,9 @@ async function throwIfResNotOk(res: Response) {
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const token = localStorage.getItem('clinic_token');
-  const headers: Record<string, string> = {};
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
-  return headers;
+  // Session-based authentication - no need for Authorization headers
+  // Cookies are automatically included with credentials: "include"
+  return {};
 }
 
 export async function apiRequest(

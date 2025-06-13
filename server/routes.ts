@@ -2277,9 +2277,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       
       if (username === 'seye' && password === 'physio123') {
         const org = await getOrganizationDetails(1);
-        const token = generateToken({ id: 13, username: 'seye', role: 'physiotherapist', organizationId: 1 });
+        
+        (req.session as any).user = {
+          id: 13,
+          username: 'seye',
+          role: 'physiotherapist',
+          organizationId: 1
+        };
+        
         return res.json({
-          token,
           user: {
             id: 13,
             username: 'seye',
@@ -2300,6 +2306,58 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Logout endpoint
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Could not log out" });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  // Get current user profile with session authentication
+  app.get("/api/profile", authenticateSession, async (req: SessionRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const userId = req.user.id;
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const org = user.organizationId ? await getOrganizationDetails(user.organizationId) : null;
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        organizationId: user.organizationId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        organization: org ? {
+          id: org.id,
+          name: org.name,
+          type: org.type || 'clinic',
+          themeColor: org.themeColor || '#3B82F6'
+        } : null
+      });
+    } catch (error) {
+      console.error('Profile fetch error:', error);
+      res.status(500).json({ message: "Failed to fetch profile" });
     }
   });
 
