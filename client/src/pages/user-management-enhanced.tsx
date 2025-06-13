@@ -147,7 +147,7 @@ export default function UserManagementEnhanced() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("DELETE", `/api/users/${id}`);
+      return apiRequest(`/api/users/${id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
