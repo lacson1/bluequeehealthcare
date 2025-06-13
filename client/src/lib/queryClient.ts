@@ -39,6 +39,8 @@ export async function apiRequest(
     ...(data ? { "Content-Type": "application/json" } : {}),
   };
 
+  console.log(`Making ${upperMethod} request to ${url} with headers:`, headers);
+
   // Ensure fetch is available
   const fetchFn = globalThis.fetch || window.fetch;
   if (!fetchFn) {
@@ -52,6 +54,7 @@ export async function apiRequest(
     credentials: "include",
   });
 
+  console.log(`Response status for ${upperMethod} ${url}:`, res.status);
   await throwIfResNotOk(res);
   return res;
 }

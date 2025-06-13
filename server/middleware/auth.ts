@@ -19,13 +19,21 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
+    console.log(`Auth attempt for ${req.method} ${req.path}:`, {
+      hasAuthHeader: !!authHeader,
+      hasToken: !!token,
+      tokenPreview: token?.substring(0, 20) + '...'
+    });
+
     if (!token) {
+      console.log('No token found, returning 401');
       return res.status(401).json({ message: 'Access token required' });
     }
 
     jwt.verify(token, JWT_SECRET, async (err: any, decoded: any) => {
       if (err) {
         if (err.name === 'TokenExpiredError') {
+          console.log('Token expired');
           return res.status(401).json({ message: 'Token expired' });
         }
         console.error('JWT verification error for token:', token?.substring(0, 20) + '...', 'Error:', err.message);
@@ -35,9 +43,11 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       // Get full user details from database
       const dbUser = await storage.getUser(decoded.id);
       if (!dbUser) {
+        console.log('User not found in database for ID:', decoded.id);
         return res.status(401).json({ message: 'User not found' });
       }
 
+      console.log('Authentication successful for user:', dbUser.username, 'role:', dbUser.role);
       req.user = {
         id: dbUser.id,
         username: dbUser.username,

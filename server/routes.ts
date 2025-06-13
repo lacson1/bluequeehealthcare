@@ -2843,15 +2843,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const currentUser = req.user;
       const targetOrgId = parseInt(organizationId);
       
+      console.log('User creation permission check:', {
+        currentUserRole: currentUser?.role,
+        targetOrgId,
+        currentUserOrgId: currentUser?.organizationId
+      });
+      
       // Check permissions based on user role
-      if (currentUser?.role === 'admin' || currentUser?.role === 'superadmin') {
+      if (currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'super_admin') {
+        console.log('Permission granted: Admin user');
         // Admins can create users in any organization
       } else if (currentUser?.role === 'doctor' && currentUser?.organizationId === targetOrgId) {
+        console.log('Permission check: Doctor creating in own org');
         // Doctors can create users in their own organization
         if (!['nurse', 'pharmacist', 'receptionist', 'lab_technician'].includes(role)) {
+          console.log('Permission denied: Doctor cannot create this role');
           return res.status(403).json({ error: 'Insufficient permissions to create users with this role' });
         }
       } else {
+        console.log('Permission denied: No matching conditions');
         return res.status(403).json({ error: 'Insufficient permissions to create users' });
       }
 
