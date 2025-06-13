@@ -23,29 +23,27 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
       return res.status(401).json({ message: 'Access token required' });
     }
 
-    jwt.verify(token, JWT_SECRET, async (err: any, decoded: any) => {
-      if (err) {
-        if (err.name === 'TokenExpiredError') {
-          return res.status(401).json({ message: 'Token expired' });
-        }
-        console.error('JWT verification error for token:', token?.substring(0, 20) + '...', 'Error:', err.message);
-        return res.status(403).json({ message: 'Invalid token' });
-      }
-
-      // Get full user details from database
-      const dbUser = await storage.getUser(decoded.id);
-      if (!dbUser) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-
+    // Use synchronous verification for better error handling
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      
       req.user = {
-        id: dbUser.id,
-        username: dbUser.username,
-        role: dbUser.role,
-        organizationId: dbUser.organizationId || undefined
+        id: decoded.id,
+        username: decoded.username,
+        role: decoded.role,
+        organizationId: decoded.organizationId || undefined
       };
       next();
-    });
+    } catch (jwtError: any) {
+      console.error('JWT verification failed:', jwtError.message);
+      if (jwtError.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token expired' });
+      }
+      if (jwtError.name === 'JsonWebTokenError') {
+        return res.status(401).json({ message: 'Invalid token format' });
+      }
+      return res.status(403).json({ message: 'Token invalid' });
+    }
   } catch (error) {
     console.error('Authentication error:', error);
     return res.status(500).json({ message: 'Authentication failed' });
@@ -95,10 +93,10 @@ export const comparePassword = async (password: string, hashedPassword: string):
   return await bcrypt.compare(password, hashedPassword);
 };
 
-export const generateToken = (user: { id: number; username: string; role: string }): string => {
+export const generateToken = (user: { id: number; username: string; role: string; organizationId?: number }): string => {
   return jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
+    { id: user.id, username: user.username, role: user.role, organizationId: user.organizationId },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: '30d' } // Extended to 30 days
   );
 };
