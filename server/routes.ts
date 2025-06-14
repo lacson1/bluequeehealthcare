@@ -2886,19 +2886,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(400).json({ message: "Name and email are required" });
       }
 
-      const orgData = {
-        name,
+      const [newOrg] = await db.insert(organizations).values({
+        name: name,
         type: type || 'clinic',
         address: address || null,
         phone: phone || null,
-        email,
+        email: email,
         website: website || null,
         logoUrl: logoUrl || null,
         themeColor: themeColor || '#3B82F6',
         isActive: true
-      };
-
-      const [newOrg] = await db.insert(organizations).values(orgData).returning();
+      }).returning();
 
       res.status(201).json(newOrg);
     } catch (error) {
@@ -2910,14 +2908,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.patch("/api/superadmin/organizations/:id/status", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
       const orgId = parseInt(req.params.id);
-      const { status } = req.body;
+      const { isActive } = req.body;
 
-      if (!['active', 'inactive', 'suspended'].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).json({ message: "isActive must be a boolean value" });
       }
 
       const [updated] = await db.update(organizations)
-        .set({ name: organizations.name })
+        .set({ isActive: isActive, updatedAt: new Date() })
         .where(eq(organizations.id, orgId))
         .returning();
 
@@ -2929,6 +2927,43 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     } catch (error) {
       console.error("Error updating organization status:", error);
       res.status(500).json({ message: "Failed to update organization status" });
+    }
+  });
+
+  app.patch("/api/superadmin/organizations/:id", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
+    try {
+      const orgId = parseInt(req.params.id);
+      const { name, type, address, phone, email, website, logoUrl, themeColor } = req.body;
+      
+      if (!name || !email) {
+        return res.status(400).json({ message: "Name and email are required" });
+      }
+
+      const updateData = {
+        name,
+        type: type || 'clinic',
+        address: address || null,
+        phone: phone || null,
+        email,
+        website: website || null,
+        logoUrl: logoUrl || null,
+        themeColor: themeColor || '#3B82F6',
+        updatedAt: new Date()
+      };
+
+      const [updated] = await db.update(organizations)
+        .set(updateData)
+        .where(eq(organizations.id, orgId))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "Organization not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating organization:", error);
+      res.status(500).json({ message: "Failed to update organization" });
     }
   });
 

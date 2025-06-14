@@ -173,7 +173,7 @@ export default function OrganizationManagement() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: OrganizationFormData }) =>
-      apiRequest("PATCH", `/api/organizations/${id}`, data),
+      apiRequest("PATCH", `/api/superadmin/organizations/${id}`, data),
     onSuccess: () => {
       toast({ title: "Success", description: "Organization updated successfully!" });
       setEditingOrg(null);
@@ -187,7 +187,7 @@ export default function OrganizationManagement() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
-      apiRequest(`/api/organizations/${id}/status`, "PATCH", { isActive }),
+      apiRequest(`/api/superadmin/organizations/${id}/status`, "PATCH", { isActive }),
     onSuccess: () => {
       toast({ title: "Success", description: "Organization status updated!" });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
