@@ -2880,20 +2880,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
   app.post("/api/superadmin/organizations", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
-      const { name, address, phone, email } = req.body;
+      const { name, type, address, phone, email, website, logoUrl, themeColor } = req.body;
       
       if (!name || !email) {
         return res.status(400).json({ message: "Name and email are required" });
       }
 
-      const [newOrg] = await db.insert(organizations).values({
+      const orgData = {
         name,
+        type: type || 'clinic',
         address: address || null,
         phone: phone || null,
         email,
-        type: 'clinic',
-        status: 'active'
-      }).returning();
+        website: website || null,
+        logoUrl: logoUrl || null,
+        themeColor: themeColor || '#3B82F6',
+        isActive: true
+      };
+
+      const [newOrg] = await db.insert(organizations).values(orgData).returning();
 
       res.status(201).json(newOrg);
     } catch (error) {

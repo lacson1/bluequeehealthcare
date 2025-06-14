@@ -143,7 +143,7 @@ export default function OrganizationManagement() {
 
   const createMutation = useMutation({
     mutationFn: (data: OrganizationFormData) => 
-      apiRequest("POST", "/api/organizations", data),
+      apiRequest("POST", "/api/superadmin/organizations", data),
     onSuccess: () => {
       toast({ title: "Success", description: "Organization created successfully!" });
       setIsCreateModalOpen(false);
