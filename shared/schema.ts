@@ -443,7 +443,7 @@ export const comments = pgTable('comments', {
   isPrivate: boolean('is_private').default(false).notNull(), // Internal staff notes vs family-visible
   priority: varchar('priority', { length: 20 }).default('normal').notNull(), // normal, urgent, critical
   commentType: varchar('comment_type', { length: 50 }).default('general').notNull(), // general, medical_note, care_instruction, family_update
-  replyToId: integer('reply_to_id').references(() => comments.id), // For threaded conversations
+  replyToId: integer('reply_to_id'), // For threaded conversations, self-reference added below
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
@@ -937,8 +937,6 @@ export const insertMedicationReviewAssignmentSchema = createInsertSchema(medicat
 
 export type MedicationReviewAssignment = typeof medicationReviewAssignments.$inferSelect;
 export type InsertMedicationReviewAssignment = z.infer<typeof insertMedicationReviewAssignmentSchema>;
-export type MedicationReview = typeof medicationReviews.$inferSelect;
-export type InsertMedicationReview = z.infer<typeof insertMedicationReviewSchema>;
 
 // Consultation Forms Types
 export const insertConsultationFormSchema = createInsertSchema(consultationForms).omit({
