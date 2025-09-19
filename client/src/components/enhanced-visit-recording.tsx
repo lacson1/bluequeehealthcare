@@ -164,7 +164,9 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
   });
 
   // Get patient name safely using standardized formatting
-  const patientName = patient ? formatPatientName(patient) : 'Patient';
+  const patientName = (patient && typeof patient === 'object' && 'firstName' in patient && 'lastName' in patient && patient.firstName && patient.lastName) 
+    ? formatPatientName(patient as { firstName: string; lastName: string; title?: string | null }) 
+    : 'Patient';
   
   // Reset form when modal opens
   React.useEffect(() => {
@@ -216,7 +218,8 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
         }),
       };
 
-      return apiRequest("POST", `/api/patients/${patientId}/visits`, visitData);
+      const response = await apiRequest(`/api/patients/${patientId}/visits`, "POST", visitData);
+      return response.json();
     },
     onSuccess: async (createdVisit) => {
       toast({
@@ -331,7 +334,9 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Stethoscope className="h-5 w-5" />
-            Record Patient Visit - {patient ? formatPatientName(patient) : "Loading..."}
+            Record Patient Visit - {(patient && typeof patient === 'object' && 'firstName' in patient && 'lastName' in patient && patient.firstName && patient.lastName) 
+              ? formatPatientName(patient as { firstName: string; lastName: string; title?: string | null }) 
+              : "Loading..."}
           </DialogTitle>
         </DialogHeader>
         
@@ -842,7 +847,7 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
               </div>
 
               {/* Procedural Reports Integration Section */}
-              {(form.watch("diagnosis") || form.watch("treatment")) && (
+              {(form.watch("diagnosis") || form.watch("treatmentPlan")) && (
                 <div className="space-y-4 border-t pt-6">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <FileText className="h-4 w-4 text-purple-500" />
