@@ -3650,42 +3650,55 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
-  app.post('/api/lab-orders/enhanced', authenticateToken, async (req: AuthRequest, res) => {
+  // Basic lab orders endpoint (used by laboratory-unified.tsx)
+  app.post('/api/lab-orders', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
     try {
       const { patientId, tests, clinicalNotes, diagnosis, priority } = req.body;
-      const userOrgId = req.user?.organizationId;
-      const userId = req.user?.id;
-
+      
       if (!tests || tests.length === 0) {
         return res.status(400).json({ message: "At least one test is required" });
       }
-
-      // Create the lab order
-      const [newOrder] = await db.insert(labOrders)
-        .values({
-          patientId: parseInt(patientId),
-          organizationId: userOrgId,
-          orderedBy: userId,
-          status: 'pending',
-          priority: priority || 'routine',
-          clinicalNotes,
-          diagnosis,
-          createdAt: new Date()
-        })
-        .returning();
-
-      // Create lab order items for each test
-      const orderItems = tests.map((test: any) => ({
-        labOrderId: newOrder.id,
-        labTestId: test.id,
+      
+      // Calculate total cost
+      const testIds = tests.map((test: any) => test.id);
+      const testPrices = await db.select({
+        id: labTests.id,
+        cost: labTests.cost
+      }).from(labTests).where(inArray(labTests.id, testIds));
+      
+      const totalCost = testPrices.reduce((sum, test) => {
+        const cost = test.cost ? parseFloat(test.cost.toString()) : 0;
+        return sum + cost;
+      }, 0);
+      
+      // Create lab order
+      const orderData = {
+        patientId: parseInt(patientId),
+        orderedBy: req.user?.id || 1,
+        clinicalNotes: clinicalNotes || '',
+        diagnosis: diagnosis || '',
+        priority: priority || 'routine',
+        totalCost: totalCost.toString(),
         status: 'pending'
+      };
+      
+      const order = await storage.createLabOrder(orderData);
+      
+      // Create order items
+      const orderItems = await Promise.all(tests.map(async (test: any) => {
+        const itemData = {
+          labOrderId: order.id,
+          labTestId: test.id,
+          status: 'pending'
+        };
+        return await storage.createLabOrderItem(itemData);
       }));
-
-      await db.insert(labOrderItems).values(orderItems);
-
-      res.status(201).json(newOrder);
+      
+      console.log(`✅ Lab order #${order.id} created for patient ${patientId}`);
+      
+      res.status(201).json({ order, orderItems });
     } catch (error) {
-      console.error('Error creating enhanced lab order:', error);
+      console.error('❌ Error creating lab order:', error);
       res.status(500).json({ message: "Failed to create lab order" });
     }
   });
