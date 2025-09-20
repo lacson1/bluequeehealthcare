@@ -1,0 +1,23 @@
+{
+  "testPatient": {
+    "id": 3,
+    "firstName": "Ade",
+    "lastName": "Bola",
+    "dateOfBirth": "1990-05-15",
+    "phone": "08012345678"
+  },
+  "consultationFormData": {
+    "symptoms": "Mild headache and fatigue for past 2 days",
+    "examination": "Patient appears alert, vital signs stable",
+    "diagnosis": "Tension headache",
+    "treatment": "Rest, hydration, paracetamol as needed",
+    "followUp": "Return if symptoms persist beyond 3 days"
+  },
+  "expectedFormFields": [
+    "Chief Complaint",
+    "History of Present Illness",
+    "Physical Examination",
+    "Assessment",
+    "Plan"
+  ]
+}

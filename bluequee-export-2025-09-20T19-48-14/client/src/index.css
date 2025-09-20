@@ -1,0 +1,296 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium Healthcare Design System */
+    --background: 210 20% 97%; /* Sophisticated medical background */
+    --foreground: 217 35% 15%; /* Deep professional text */
+    --card: 0 0% 100%; /* Pure white with premium elevation */
+    --card-foreground: 217 35% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 35% 15%;
+    
+    /* Enhanced Medical Blue Palette - Toned down 10% */
+    --primary: 212 90% 45%; /* Softer medical blue #0051CC */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 212 90% 40%;
+    --primary-light: 212 90% 96%;
+    --primary-dark: 212 90% 30%;
+    
+    /* Sophisticated Secondary Tones */
+    --secondary: 216 22% 95%; /* Premium light surface */
+    --secondary-foreground: 217 35% 15%;
+    --secondary-hover: 216 22% 90%;
+    --secondary-dark: 216 22% 8%;
+    
+    /* Enhanced Muted Tones for Better Contrast */
+    --muted: 217 15% 96%; /* Refined background with better separation */
+    --muted-foreground: 217 20% 45%; /* Improved contrast for text */
+    --muted-dark: 217 32% 20%;
+    
+    /* Premium Accent Colors */
+    --accent: 160 84% 39%; /* Medical emerald #0CA855 */
+    --accent-foreground: 0 0% 100%;
+    --accent-hover: 160 84% 35%;
+    --accent-light: 160 84% 95%;
+    
+    /* Modern Status Indicators */
+    --success: 151 83% 44%; /* Confident green #16C45C */
+    --success-foreground: 0 0% 100%;
+    --success-light: 151 83% 95%;
+    --warning: 35 91% 56%; /* Attention amber #F59E0B */
+    --warning-foreground: 0 0% 100%;
+    --warning-light: 35 91% 95%;
+    --destructive: 0 72% 51%; /* Alert red #DC2626 */
+    --destructive-foreground: 0 0% 100%;
+    --destructive-light: 0 72% 95%;
+    --info: 199 89% 56%; /* Information blue #0891B2 */
+    --info-foreground: 0 0% 100%;
+    --info-light: 199 89% 95%;
+    
+    /* Enhanced Interface Elements for Better Contrast */
+    --border: 217 20% 78%; /* Stronger border definition */
+    --input: 217 16% 84%;
+    --input-focus: 212 100% 50%;
+    --ring: 212 100% 50%;
+    --sidebar: 216 19% 96%;
+    --sidebar-foreground: 217 32% 17%;
+    
+    /* Modern Radius System */
+    --radius: 0.5rem; /* Professional 8px radius */
+    --radius-sm: 0.25rem; /* Small elements */
+    --radius-lg: 0.75rem; /* Cards and panels */
+    --radius-xl: 1rem; /* Large containers */
+    
+    /* Healthcare Chart Colors */
+    --chart-1: 210 100% 56%; /* Primary blue */
+    --chart-2: 160 84% 39%; /* Medical green */
+    --chart-3: 35 91% 56%; /* Warning amber */
+    --chart-4: 0 72% 51%; /* Alert red */
+    --chart-5: 199 89% 56%; /* Info blue */
+    
+    /* Premium Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+
+  .dark {
+    /* Dark Mode Healthcare Design */
+    --background: 217 32% 4%; /* Deep medical dark */
+    --foreground: 210 17% 98%; /* Clean white text */
+    --card: 217 32% 6%; /* Dark card surface */
+    --card-foreground: 210 17% 98%;
+    --popover: 217 32% 6%;
+    --popover-foreground: 210 17% 98%;
+    
+    --primary: 210 100% 65%; /* Brighter blue for dark mode */
+    --primary-foreground: 217 32% 4%;
+    --primary-hover: 210 100% 70%;
+    --primary-light: 210 100% 15%;
+    
+    --secondary: 217 32% 8%;
+    --secondary-foreground: 210 17% 98%;
+    --secondary-hover: 217 32% 12%;
+    --secondary-dark: 217 32% 95%;
+    
+    --muted: 217 32% 6%;
+    --muted-foreground: 217 13% 65%;
+    --muted-dark: 217 32% 85%;
+    
+    --accent: 160 84% 45%;
+    --accent-foreground: 217 32% 4%;
+    --accent-hover: 160 84% 50%;
+    --accent-light: 160 84% 15%;
+    
+    --success: 151 83% 50%;
+    --success-foreground: 217 32% 4%;
+    --success-light: 151 83% 15%;
+    --warning: 35 91% 65%;
+    --warning-foreground: 217 32% 4%;
+    --warning-light: 35 91% 15%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 217 32% 4%;
+    --destructive-light: 0 72% 15%;
+    --info: 199 89% 65%;
+    --info-foreground: 217 32% 4%;
+    --info-light: 199 89% 15%;
+    
+    --border: 217 32% 15%;
+    --input: 217 32% 15%;
+    --input-focus: 210 100% 65%;
+    --ring: 210 100% 65%;
+    --sidebar: 217 32% 6%;
+    --sidebar-foreground: 210 17% 98%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Premium Healthcare Components */
+  .healthcare-card {
+    @apply bg-card/90 backdrop-blur-sm border border-border/70 rounded-lg shadow-sm hover:shadow-md transition-all duration-200;
+  }
+  
+  .healthcare-header {
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(var(--primary-dark)) 40%, 
+      hsl(var(--accent)) 100%);
+    @apply text-primary-foreground relative overflow-hidden;
+  }
+  
+  .healthcare-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, 
+      transparent 0%, 
+      rgba(255,255,255,0.05) 50%, 
+      transparent 100%);
+    pointer-events: none;
+  }
+  
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .status-badge.success {
+    @apply bg-success/10 text-success border border-success/20;
+  }
+  
+  .status-badge.warning {
+    @apply bg-warning/10 text-warning border border-warning/20;
+  }
+  
+  .status-badge.error {
+    @apply bg-destructive/10 text-destructive border border-destructive/20;
+  }
+  
+  .status-badge.info {
+    @apply bg-info/10 text-info border border-info/20;
+  }
+  
+  .metric-card {
+    @apply healthcare-card p-6 relative overflow-hidden;
+  }
+  
+  .metric-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none;
+  }
+  
+  .sidebar-nav {
+    @apply bg-sidebar/95 backdrop-blur-sm border-r border-border/50;
+  }
+  
+  .nav-item {
+    @apply flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200;
+  }
+  
+  .nav-item.active {
+    @apply bg-primary text-primary-foreground shadow-sm;
+  }
+  
+  .nav-item:not(.active) {
+    @apply text-muted-foreground hover:text-foreground hover:bg-accent/10;
+  }
+  
+  .form-section {
+    @apply space-y-4 p-6 healthcare-card;
+  }
+  
+  .section-header {
+    @apply text-lg font-semibold text-foreground mb-4 pb-2 border-b border-border/50;
+  }
+  
+  .data-table {
+    @apply w-full border-collapse bg-card rounded-lg overflow-hidden shadow-sm;
+  }
+  
+  .data-table th {
+    @apply bg-muted/50 px-4 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border/50;
+  }
+  
+  .data-table td {
+    @apply px-4 py-3 text-sm text-foreground border-b border-border/30;
+  }
+  
+  .data-table tr:hover {
+    @apply bg-muted/30;
+  }
+  
+  .glass-panel {
+    @apply bg-card/60 backdrop-blur-lg border border-border/40 rounded-xl shadow-lg;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+  
+  .floating-action {
+    @apply fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-200 z-50;
+  }
+  
+  /* Fixed Layout Structure */
+  .fixed-layout-container {
+    @apply h-screen flex flex-col overflow-hidden;
+  }
+  
+  .fixed-header-section {
+    @apply flex-shrink-0 border-b border-border/30;
+  }
+  
+  .fixed-header-content {
+    @apply px-6 py-4;
+  }
+  
+  .fixed-tabs-container {
+    @apply flex-shrink-0 border-b border-border/50;
+  }
+  
+  .scrollable-content {
+    @apply flex-1 overflow-y-auto p-6;
+  }
+  
+  /* Enhanced Healthcare Background */
+  .healthcare-background {
+    background: linear-gradient(135deg, 
+      hsl(210, 20%, 98%) 0%, 
+      hsl(0, 0%, 100%) 50%, 
+      hsl(212, 30%, 96%) 100%);
+    position: relative;
+  }
+  
+  .healthcare-background::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.02;
+    background-image: 
+      radial-gradient(circle at 25% 25%, hsl(var(--primary)) 0%, transparent 70%),
+      radial-gradient(circle at 75% 75%, hsl(var(--accent)) 0%, transparent 70%),
+      radial-gradient(circle at 50% 100%, hsl(var(--info)) 0%, transparent 70%);
+    pointer-events: none;
+  }
+}
