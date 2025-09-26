@@ -2979,7 +2979,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           status: sql<string>`'active'`,
           organizationId: users.organizationId,
           organizationName: sql<string>`COALESCE(organizations.name, 'No Organization')`,
-          lastLogin: sql<string>`COALESCE(users.last_login, '')`,
+          lastLogin: sql<string>`COALESCE(users.last_login_at, '')`,
           createdAt: users.createdAt
         })
         .from(users)
