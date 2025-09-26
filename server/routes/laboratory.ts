@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import { Router } from "express";
 import { authenticateToken, requireAnyRole, requireRole, type AuthRequest } from "../middleware/auth";
 import { tenantMiddleware, type TenantRequest } from "../middleware/tenant";
 import { storage } from "../storage";
@@ -8,16 +8,18 @@ import { db } from "../db";
 import { eq, desc, and, isNotNull, sql } from "drizzle-orm";
 import { AuditLogger } from "../audit";
 
+const router = Router();
+
 /**
  * Laboratory management routes
  * Handles: lab orders, test results, AI analysis, FHIR exports
  */
-export function setupLaboratoryRoutes(app: Express): void {
+export function setupLaboratoryRoutes(): Router {
 
   // === PATIENT LAB RESULTS ===
 
   // Create lab result for patient
-  app.post("/api/patients/:id/labs", async (req, res) => {
+  router.post("/patients/:id/labs", async (req, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const labData = insertLabResultSchema.parse({ ...req.body, patientId });
@@ -33,7 +35,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Get patient lab results
-  app.get("/api/patients/:id/labs", authenticateToken, async (req: AuthRequest, res) => {
+  router.get("/patients/:id/labs", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const organizationId = req.user?.organizationId;
@@ -81,7 +83,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   // === LAB TESTS MANAGEMENT ===
 
   // Get lab tests (old endpoint)
-  app.get('/api/lab-tests-old', authenticateToken, async (req: AuthRequest, res) => {
+  router.get('/lab-tests-old', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const labTestResults = await db.select().from(labTests);
       const convertedResults = labTestResults.map(test => ({
@@ -102,7 +104,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Get lab tests (modern endpoint)
-  app.get('/api/lab-tests', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  router.get('/lab-tests', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const tests = await db.select().from(labTests).orderBy(labTests.name);
       res.json(tests);
@@ -112,7 +114,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Create lab test (admin only)
-  app.post('/api/lab-tests', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
+  router.post('/lab-tests', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
       const validatedData = insertLabTestSchema.parse(req.body);
       
@@ -138,7 +140,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Update lab test (admin only)
-  app.patch('/api/lab-tests/:id', authenticateToken, requireAnyRole(['admin', 'lab_manager']), async (req: AuthRequest, res) => {
+  router.patch('/lab-tests/:id', authenticateToken, requireAnyRole(['admin', 'lab_manager']), async (req: AuthRequest, res) => {
     try {
       const labTestId = parseInt(req.params.id);
       const updateData = req.body;
@@ -169,7 +171,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   // === LAB ORDERS MANAGEMENT ===
 
   // Create lab order for patient
-  app.post('/api/patients/:id/lab-orders', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  router.post('/patients/:id/lab-orders', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       console.log('🔬 Lab order creation request:', {
         patientId: req.params.id,
@@ -244,7 +246,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Get pending lab orders
-  app.get('/api/lab-orders/pending', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  router.get('/lab-orders/pending', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
@@ -292,7 +294,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Get patient lab orders
-  app.get('/api/patients/:id/lab-orders', authenticateToken, async (req: AuthRequest, res) => {
+  router.get('/patients/:id/lab-orders', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
@@ -339,8 +341,75 @@ export function setupLaboratoryRoutes(app: Express): void {
     }
   });
 
+  // Get specific lab order details for patient
+  router.get('/patients/:patientId/lab-orders/:orderId', authenticateToken, async (req: AuthRequest, res) => {
+    console.log('=== LAB ORDER DETAILS ROUTE HIT ===');
+    console.log('URL params:', req.params);
+    console.log('User org ID:', req.user?.organizationId);
+    
+    try {
+      const userOrgId = req.user?.organizationId;
+      if (!userOrgId) {
+        console.log('ERROR: No organization context');
+        return res.status(400).json({ message: "Organization context required" });
+      }
+      
+      const patientId = parseInt(req.params.patientId);
+      const orderId = parseInt(req.params.orderId);
+      
+      console.log('Looking for lab order:', { patientId, orderId, userOrgId });
+      
+      // Get lab order details - using simple select to avoid Drizzle field selection issues
+      const labOrderResults = await db.select()
+        .from(labOrders)
+        .where(and(
+          eq(labOrders.id, orderId),
+          eq(labOrders.patientId, patientId),
+          eq(labOrders.organizationId, userOrgId)
+        ));
+
+      console.log('Lab order query results:', labOrderResults);
+
+      if (!labOrderResults || labOrderResults.length === 0) {
+        console.log('ERROR: Lab order not found');
+        return res.status(404).json({ message: "Lab order not found" });
+      }
+
+      const labOrder = labOrderResults[0];
+      console.log('Lab order found:', labOrder);
+
+      // Get lab order items - simplified query to avoid Drizzle issues
+      const orderItems = await db.select()
+        .from(labOrderItems)
+        .where(eq(labOrderItems.labOrderId, orderId));
+
+      console.log('Lab order items found:', orderItems.length);
+
+      // Combine order details with items
+      const orderWithItems = {
+        ...labOrder,
+        items: orderItems
+      };
+
+      console.log('Sending JSON response:', orderWithItems);
+
+      // Set no-cache headers to ensure fresh data
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
+      res.json(orderWithItems);
+      console.log('=== RESPONSE SENT ===');
+    } catch (error) {
+      console.error('ERROR in lab order details route:', error);
+      res.status(500).json({ message: "Failed to fetch lab order details" });
+    }
+  });
+
   // Get lab order items
-  app.get('/api/lab-orders/:id/items', authenticateToken, async (req: AuthRequest, res) => {
+  router.get('/lab-orders/:id/items', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
@@ -422,7 +491,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   }
 
   // Get reviewed lab results with pagination
-  app.get('/api/lab-results/reviewed', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  router.get('/lab-results/reviewed', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
@@ -509,7 +578,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Bulk save lab results
-  app.post('/api/lab-results/bulk-save', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  router.post('/lab-results/bulk-save', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
@@ -548,7 +617,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Update lab order item
-  app.patch('/api/lab-order-items/:id', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  router.patch('/lab-order-items/:id', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const itemId = parseInt(req.params.id);
       const updateData = req.body;
@@ -583,7 +652,7 @@ export function setupLaboratoryRoutes(app: Express): void {
   });
 
   // Search lab tests
-  app.get("/api/lab-tests/search", authenticateToken, async (req: AuthRequest, res) => {
+  router.get("/lab-tests/search", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { q } = req.query;
       const searchTerm = (q as string) || "";
@@ -604,4 +673,6 @@ export function setupLaboratoryRoutes(app: Express): void {
       res.status(500).json({ message: "Failed to search lab tests" });
     }
   });
+
+  return router;
 }
