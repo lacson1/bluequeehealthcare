@@ -148,39 +148,31 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
   const getCommonTestPanels = () => {
     return {
       'Basic Metabolic Panel': labTests.filter(test => 
-        ['Glucose', 'Sodium', 'Potassium', 'Chloride', 'BUN', 'Creatinine'].some(name => 
-          test.name.toLowerCase().includes(name.toLowerCase())
-        )
+        test.name.toLowerCase().includes('basic metabolic panel') ||
+        test.name.toLowerCase().includes('bmp')
       ).map(test => test.id),
       'Complete Blood Count': labTests.filter(test => 
-        ['Hemoglobin', 'Hematocrit', 'White Blood Cell', 'Platelet', 'Red Blood Cell'].some(name => 
-          test.name.toLowerCase().includes(name.toLowerCase())
-        )
+        test.name.toLowerCase().includes('complete blood count') ||
+        test.name.toLowerCase().includes('cbc')
       ).map(test => test.id),
       'Liver Function Panel': labTests.filter(test => 
-        ['ALT', 'AST', 'Bilirubin', 'Alkaline Phosphatase'].some(name => 
-          test.name.toLowerCase().includes(name.toLowerCase())
-        )
+        test.name.toLowerCase().includes('liver function')
       ).map(test => test.id),
       'Lipid Panel': labTests.filter(test => 
-        ['Cholesterol', 'Triglycerides', 'HDL', 'LDL'].some(name => 
-          test.name.toLowerCase().includes(name.toLowerCase())
-        )
+        test.name.toLowerCase().includes('lipid panel')
       ).map(test => test.id),
       'Thyroid Panel': labTests.filter(test => 
-        ['TSH', 'T4', 'T3'].some(name => 
-          test.name.toLowerCase().includes(name.toLowerCase())
-        )
+        test.name.toLowerCase().includes('thyroid')
       ).map(test => test.id)
     };
   };
 
   const selectTestPanel = (panelName: string) => {
     const panels = getCommonTestPanels();
-    const panelTestIds = panels[panelName] || [];
+    const panelTestIds = panels[panelName as keyof typeof panels] || [];
     setSelectedTests(prev => {
       const newSelection = [...prev];
-      panelTestIds.forEach(id => {
+      panelTestIds.forEach((id: number) => {
         if (!newSelection.includes(id)) {
           newSelection.push(id);
         }
