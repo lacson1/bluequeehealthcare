@@ -575,12 +575,24 @@ export default function EnhancedPatientManagementFixed({ user, onPatientSelect }
                             <Phone className="h-3 w-3 mr-2" />
                             {patient.phone}
                           </div>
+                          <div className="flex items-center text-muted-foreground">
+                            <Calendar className="h-3 w-3 mr-2" />
+                            {new Date(patient.dateOfBirth).toLocaleDateString()}
+                          </div>
+                          {patient.address && (
+                            <div className="flex items-center text-muted-foreground">
+                              <MapPin className="h-3 w-3 mr-2" />
+                              <span className="truncate">{patient.address}</span>
+                            </div>
+                          )}
                           <div className="flex items-center justify-between pt-3 border-t">
                             <div className="flex items-center gap-2">
                               <div className={`w-2 h-2 ${getRiskIndicatorColor(patient.riskLevel || 'low')} rounded-full`} 
                                    title={`Risk: ${patient.riskLevel?.toUpperCase() || 'LOW'}`}></div>
                               {patient.isPriority && (
-                                <Star className="w-3 h-3 text-purple-500 fill-purple-500" title="Priority Patient" />
+                                <div title="Priority Patient">
+                                  <Star className="w-3 h-3 text-purple-500 fill-purple-500" />
+                                </div>
                               )}
                             </div>
                             <Badge variant="secondary" className="text-xs">
@@ -608,19 +620,32 @@ export default function EnhancedPatientManagementFixed({ user, onPatientSelect }
                               <h3 className="font-semibold text-foreground truncate">
                                 {formatPatientName(patient)}
                               </h3>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <span>Age: {calculateAge(patient.dateOfBirth)}</span>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                                <span className="flex items-center">
+                                  <Calendar className="h-3 w-3 mr-1" />
+                                  {new Date(patient.dateOfBirth).toLocaleDateString()}
+                                </span>
                                 <span className="flex items-center">
                                   <Phone className="h-3 w-3 mr-1" />
                                   {patient.phone}
                                 </span>
+                                {patient.address && (
+                                  <span className="flex items-center truncate max-w-xs">
+                                    <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                                    <span className="truncate">{patient.address}</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
                               <div className={`w-2 h-2 ${getRiskIndicatorColor(patient.riskLevel || 'low')} rounded-full`}></div>
-                              {patient.isPriority && <Star className="w-3 h-3 text-purple-500 fill-purple-500" />}
+                              {patient.isPriority && (
+                                <div title="Priority Patient">
+                                  <Star className="w-3 h-3 text-purple-500 fill-purple-500" />
+                                </div>
+                              )}
                             </div>
                             <Badge variant="secondary" className="text-xs">
                               {patient.totalVisits} visits
