@@ -12,7 +12,11 @@ A comprehensive digital health platform specializing in advanced medical communi
 - Comprehensive patient communication and data management system
 
 ## Recent Changes
-**October 10, 2025 - Medication Display Fixed, Patient Portal & Route Modernization ✅**
+**October 10, 2025 - UI/UX Improvements, Medication Display Fixed & Route Modernization ✅**
+- Reorganized patient overview tabs for optimal clinical workflow:
+  - New order: Overview → Visit → Vitals → Labs → Medications → Vaccines → Documents → Timeline → Safety → Specialty → Reviews → Chat
+  - Follows natural patient care sequence from consultation to documentation
+  - Enhanced user experience with logical tab progression
 - Fixed critical medication name display bug in patient overview:
   - Updated prescription endpoints to join with correct "medications" table
   - Implemented COALESCE logic to show medication names from catalog or manual entries

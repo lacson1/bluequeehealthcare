@@ -1562,50 +1562,73 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
       {/* Enhanced Tabbed Interface - Full Width */}
       <Tabs defaultValue="overview" className="w-full h-full">
         <TabsList className="grid w-full grid-cols-12 mb-8 h-20 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 border-2 border-blue-200/60 rounded-2xl p-3 shadow-2xl backdrop-blur-lg ring-1 ring-blue-100/50">
+          {/* 1. Overview - Patient Summary */}
           <TabsTrigger value="overview" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
             <Patient className="w-6 h-6 group-data-[state=active]:text-blue-600" />
             <span className="font-semibold">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="medications" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
-            <Medication className="w-6 h-6 group-data-[state=active]:text-purple-600" />
-            <span className="font-semibold">Medications</span>
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
-            <MedicalRecord className="w-6 h-6 group-data-[state=active]:text-emerald-600" />
-            <span className="font-semibold">Documents</span>
-          </TabsTrigger>
-          <TabsTrigger value="labs" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
-            <BloodTest className="w-6 h-6 group-data-[state=active]:text-red-600" />
-            <span className="font-semibold">Labs</span>
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
-            <Vitals className="w-6 h-6 group-data-[state=active]:text-teal-600" />
-            <span className="font-semibold">Timeline</span>
-          </TabsTrigger>
-          <TabsTrigger value="safety" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
-            <HeartRate className="w-6 h-6 group-data-[state=active]:text-rose-600" />
-            <span className="font-semibold">Safety</span>
-          </TabsTrigger>
-          <TabsTrigger value="vitals" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
-            <Monitor className="w-6 h-6 group-data-[state=active]:text-amber-600" />
-            <span className="font-semibold">Vitals</span>
-          </TabsTrigger>
-          <TabsTrigger value="vaccinations" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
-            <Injection className="w-6 h-6 group-data-[state=active]:text-green-600" />
-            <span className="font-semibold">Vaccines</span>
-          </TabsTrigger>
+          
+          {/* 2. Visit - Record Consultation */}
           <TabsTrigger value="record-visit" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
             <Calendar className="w-6 h-6 group-data-[state=active]:text-indigo-600" />
             <span className="font-semibold">Visit</span>
           </TabsTrigger>
+          
+          {/* 3. Vitals - Take Vital Signs */}
+          <TabsTrigger value="vitals" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <Monitor className="w-6 h-6 group-data-[state=active]:text-amber-600" />
+            <span className="font-semibold">Vitals</span>
+          </TabsTrigger>
+          
+          {/* 4. Labs - Order Lab Tests */}
+          <TabsTrigger value="labs" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <BloodTest className="w-6 h-6 group-data-[state=active]:text-red-600" />
+            <span className="font-semibold">Labs</span>
+          </TabsTrigger>
+          
+          {/* 5. Medications - Prescribe Medications */}
+          <TabsTrigger value="medications" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <Medication className="w-6 h-6 group-data-[state=active]:text-purple-600" />
+            <span className="font-semibold">Medications</span>
+          </TabsTrigger>
+          
+          {/* 6. Vaccines - Immunizations */}
+          <TabsTrigger value="vaccinations" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <Injection className="w-6 h-6 group-data-[state=active]:text-green-600" />
+            <span className="font-semibold">Vaccines</span>
+          </TabsTrigger>
+          
+          {/* 7. Documents - Medical Records */}
+          <TabsTrigger value="documents" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <MedicalRecord className="w-6 h-6 group-data-[state=active]:text-emerald-600" />
+            <span className="font-semibold">Documents</span>
+          </TabsTrigger>
+          
+          {/* 8. Timeline - Patient History */}
+          <TabsTrigger value="timeline" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <Vitals className="w-6 h-6 group-data-[state=active]:text-teal-600" />
+            <span className="font-semibold">Timeline</span>
+          </TabsTrigger>
+          
+          {/* 9. Safety - Allergies/Alerts */}
+          <TabsTrigger value="safety" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
+            <HeartRate className="w-6 h-6 group-data-[state=active]:text-rose-600" />
+            <span className="font-semibold">Safety</span>
+          </TabsTrigger>
+          
+          {/* 10. Specialty - Consultations/Referrals */}
           <TabsTrigger value="consultation" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
             <Stethoscope className="w-6 h-6 group-data-[state=active]:text-cyan-600" />
             <span className="font-semibold">Specialty</span>
           </TabsTrigger>
+          
+          {/* 11. Reviews - Medication Reviews */}
           <TabsTrigger value="med-reviews" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
             <FileText className="w-6 h-6 group-data-[state=active]:text-orange-600" />
             <span className="font-semibold">Reviews</span>
           </TabsTrigger>
+          
+          {/* 12. Chat - Communication */}
           <TabsTrigger value="communication" className="flex flex-col items-center gap-1.5 text-xs font-bold px-3 py-4 rounded-xl transition-all duration-300 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:text-blue-900 data-[state=active]:border-2 data-[state=active]:border-blue-300 data-[state=active]:scale-105 hover:bg-white/80 hover:shadow-lg hover:scale-102 text-blue-800 group">
             <Message className="w-6 h-6 group-data-[state=active]:text-violet-600" />
             <span className="font-semibold">Chat</span>
