@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import { Router } from "express";
 import { authenticateToken, requireAnyRole, type AuthRequest } from "../middleware/auth";
 import { storage } from "../storage";
 import { insertMedicineSchema, insertPrescriptionSchema, medicines, prescriptions, patients, users, organizations } from "@shared/schema";
@@ -7,16 +7,18 @@ import { db } from "../db";
 import { eq, desc } from "drizzle-orm";
 import { AuditLogger } from "../audit";
 
+const router = Router();
+
 /**
  * Prescription and medication management routes
  * Handles: prescriptions, medication reviews, pharmacy operations
  */
-export function setupPrescriptionRoutes(app: Express): void {
+export function setupPrescriptionRoutes(): Router {
 
   // === MEDICINES MANAGEMENT ===
 
   // Create medicine (pharmacist and admin only)
-  app.post("/api/medicines", authenticateToken, requireAnyRole(['pharmacist', 'admin']), async (req: AuthRequest, res) => {
+  router.post("/medicines", authenticateToken, requireAnyRole(['pharmacist', 'admin']), async (req: AuthRequest, res) => {
     try {
       const medicineData = insertMedicineSchema.parse(req.body);
       const medicine = await storage.createMedicine(medicineData);
@@ -31,7 +33,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Get medicines
-  app.get("/api/medicines", authenticateToken, requireAnyRole(['pharmacist', 'doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+  router.get("/medicines", authenticateToken, requireAnyRole(['pharmacist', 'doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const medicines = await storage.getMedicines();
       res.json(medicines);
@@ -41,7 +43,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Update medicine quantity (simple version)
-  app.patch("/api/medicines/:id", async (req, res) => {
+  router.patch("/medicines/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { quantity } = req.body;
@@ -59,7 +61,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Update medicine quantity for inventory management
-  app.patch("/api/medicines/:id/quantity", authenticateToken, async (req: AuthRequest, res) => {
+  router.patch("/medicines/:id/quantity", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const medicineId = parseInt(req.params.id);
       const { quantity } = req.body;
@@ -86,7 +88,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Medicine reorder request
-  app.post("/api/medicines/reorder", authenticateToken, async (req: AuthRequest, res) => {
+  router.post("/medicines/reorder", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { medicineId, quantity, priority, notes } = req.body;
 
@@ -133,7 +135,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Get low stock medicines
-  app.get("/api/medicines/low-stock", authenticateToken, async (req: AuthRequest, res) => {
+  router.get("/medicines/low-stock", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const lowStockThreshold = parseInt(req.query.threshold as string) || 10;
       
@@ -150,7 +152,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Search medicines
-  app.get("/api/medicines/search", authenticateToken, async (req: AuthRequest, res) => {
+  router.get("/medicines/search", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { q } = req.query;
       const searchTerm = (q as string) || "";
@@ -175,7 +177,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   // === PRESCRIPTIONS MANAGEMENT ===
 
   // Get all prescriptions
-  app.get("/api/prescriptions", authenticateToken, async (req: AuthRequest, res) => {
+  router.get("/prescriptions", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
@@ -196,7 +198,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Create prescription for patient
-  app.post("/api/patients/:id/prescriptions", authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
+  router.post("/patients/:id/prescriptions", authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const user = req.user!;
@@ -245,7 +247,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Print prescription with organization details
-  app.get('/api/prescriptions/:id/print', authenticateToken, async (req: AuthRequest, res) => {
+  router.get('/prescriptions/:id/print', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const prescriptionId = parseInt(req.params.id);
       
@@ -317,7 +319,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Get patient prescriptions
-  app.get("/api/patients/:id/prescriptions", authenticateToken, async (req: AuthRequest, res) => {
+  router.get("/patients/:id/prescriptions", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
@@ -342,7 +344,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Get active patient prescriptions
-  app.get("/api/patients/:id/prescriptions/active", async (req, res) => {
+  router.get("/patients/:id/prescriptions/active", async (req, res) => {
     try {
       const patientId = parseInt(req.params.id);
       
@@ -362,7 +364,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Update prescription status
-  app.patch("/api/prescriptions/:id/status", authenticateToken, async (req: AuthRequest, res) => {
+  router.patch("/prescriptions/:id/status", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const prescriptionId = parseInt(req.params.id);
       const { status } = req.body;
@@ -395,7 +397,7 @@ export function setupPrescriptionRoutes(app: Express): void {
   });
 
   // Update prescription
-  app.patch("/api/prescriptions/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'pharmacist']), async (req: AuthRequest, res) => {
+  router.patch("/prescriptions/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const prescriptionId = parseInt(req.params.id);
       const updateData = req.body;
@@ -422,6 +424,8 @@ export function setupPrescriptionRoutes(app: Express): void {
       res.status(500).json({ message: "Failed to update prescription" });
     }
   });
+
+  return router;
 }
 
 // Helper function to generate prescription HTML for printing

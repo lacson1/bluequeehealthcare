@@ -29,7 +29,8 @@ export function setupRoutes(app: Express): void {
   app.use('/api', laboratoryRouter);
   
   console.log("Setting up prescription routes...");
-  setupPrescriptionRoutes(app);
+  const prescriptionRouter = setupPrescriptionRoutes();
+  app.use('/api', prescriptionRouter);
   
   // TODO: Add remaining modules as they are created:
   // setupAppointmentRoutes(app);
