@@ -791,27 +791,16 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   const handleSendToRepeatMedications = async (prescription: any) => {
     try {
-      const response = await fetch(`/api/prescriptions/${prescription.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ 
-          duration: 'Ongoing as directed',
-          instructions: (prescription.instructions || '') + ' [Added to repeat medications]'
-        })
+      await apiRequest(`/api/prescriptions/${prescription.id}`, 'PATCH', { 
+        duration: 'Ongoing as directed',
+        instructions: (prescription.instructions || '') + ' [Added to repeat medications]'
       });
 
-      if (response.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] });
-        toast({
-          title: "Added to Repeat Medications",
-          description: `${prescription.medicationName} is now available in repeat medications tab`,
-        });
-      } else {
-        throw new Error('Failed to add to repeat medications');
-      }
+      queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] });
+      toast({
+        title: "Added to Repeat Medications",
+        description: `${prescription.medicationName} is now available in repeat medications tab`,
+      });
     } catch (error) {
       handleError(error);
       toast({
