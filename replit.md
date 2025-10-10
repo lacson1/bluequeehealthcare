@@ -12,7 +12,13 @@ A comprehensive digital health platform specializing in advanced medical communi
 - Comprehensive patient communication and data management system
 
 ## Recent Changes
-**October 10, 2025 - Route Modernization & Critical Bug Fixes ✅**
+**October 10, 2025 - Patient Portal Authentication Fixed & Route Modernization ✅**
+- Fixed critical patient portal JWT authentication bug:
+  - Updated authenticatedFetch to use Bearer token from localStorage (was using session cookies)
+  - Login now properly stores JWT token and patient data in localStorage
+  - Logout now properly clears all authentication data from localStorage
+  - All API requests now correctly include Authorization: Bearer {token} header
+- Patient portal fully functional: login, dashboard, lab results, medications, appointments, logout all working
 - Successfully modernized 3 major route modules to Express Router architecture:
   - ✅ Patients module (server/routes/patients.ts)
   - ✅ Laboratory module (server/routes/laboratory.ts)  

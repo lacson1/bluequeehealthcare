@@ -78,20 +78,24 @@ const messageSchema = z.object({
   category: z.enum(["general", "medical", "billing", "prescription"])
 });
 
-// Secure fetch function with session-based authentication
+// Secure fetch function with JWT token authentication
 const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('patientToken');
+  
   const response = await fetch(url, {
     ...options,
     headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    credentials: 'include', // Use secure session cookies
   });
 
   if (!response.ok) {
     if (response.status === 401) {
-      // Session expired, redirect to login
+      // Token expired, clear storage and reload
+      localStorage.removeItem('patientToken');
+      localStorage.removeItem('patientData');
       window.location.reload();
       throw new Error('Session expired. Please log in again.');
     }
@@ -132,8 +136,15 @@ const PatientLogin = ({ onLogin }: { onLogin: (data: any) => void }) => {
       }
 
       const result = await response.json();
-      // Session cookies are automatically set by the server
-      // No need to store tokens in localStorage
+      
+      // Store JWT token and patient data in localStorage
+      if (result.token) {
+        localStorage.setItem('patientToken', result.token);
+      }
+      if (result.patient) {
+        localStorage.setItem('patientData', JSON.stringify(result.patient));
+      }
+      
       onLogin(result);
       
       toast({
@@ -405,25 +416,6 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
     sendMessageMutation.mutate(data);
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/patient-auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (error) {
-      // Production: Logout error handled
-    }
-    
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out',
-    });
-    
-    // Reload the page to reset the authentication state
-    window.location.reload();
-  };
-
   return (
     <div className="container mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
@@ -617,7 +609,7 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
           
           <Button 
             variant="outline" 
-            onClick={handleLogout}
+            onClick={onLogout}
             className="text-xs sm:text-sm px-3 sm:px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
           >
             <LogOut className="h-4 w-4 mr-1 sm:mr-2" />
@@ -963,6 +955,10 @@ export default function PatientPortal() {
     } catch (error) {
       // Production: Logout error handled
     }
+    
+    // Clear localStorage
+    localStorage.removeItem('patientToken');
+    localStorage.removeItem('patientData');
     
     setIsAuthenticated(false);
     setPatient(null);
