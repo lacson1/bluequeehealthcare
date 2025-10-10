@@ -5,6 +5,9 @@ interface User {
   id: number;
   username: string;
   role: string;
+  title?: string;
+  firstName?: string;
+  lastName?: string;
   organizationId?: number;
   organization?: {
     id: number;
