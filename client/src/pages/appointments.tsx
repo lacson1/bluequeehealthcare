@@ -82,14 +82,8 @@ export default function AppointmentsPage() {
   const prefilledPatientId = urlParams.get('patientId');
 
   // Fetch appointments
-  const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
-    queryKey: ['/api/appointments'],
-    onError: (error) => {
-      console.error('Failed to fetch appointments:', error);
-    },
-    onSuccess: (data) => {
-      console.log('Appointments loaded successfully:', data);
-    }
+  const { data: appointments = [], isLoading: appointmentsLoading } = useQuery<Appointment[]>({
+    queryKey: ['/api/appointments']
   });
 
   // Filtered and sorted appointments
@@ -157,36 +151,27 @@ export default function AppointmentsPage() {
   }, [appointments, searchTerm, statusFilter, providerFilter, dateFilter, sortBy, sortOrder]);
 
   // Fetch patients for selection
-  const { data: patients = [] } = useQuery({
+  const { data: patients = [] } = useQuery<Patient[]>({
     queryKey: ['/api/patients'],
   });
 
   // Fetch healthcare staff for selection  
-  const { data: healthcareStaff = [] } = useQuery({
-    queryKey: ['/api/users/healthcare-staff'],
-    onSuccess: (data) => {
-      console.log('Healthcare staff loaded:', data);
-    },
-    onError: (error) => {
-      console.error('Failed to load healthcare staff:', error);
-    }
+  const { data: healthcareStaff = [] } = useQuery<HealthcareStaff[]>({
+    queryKey: ['/api/users/healthcare-staff']
   });
 
   // Create appointment mutation
   const createAppointmentMutation = useMutation({
     mutationFn: (data: any) => {
-      console.log('Sending appointment data:', data);
       return apiRequest('/api/appointments', 'POST', data);
     },
-    onSuccess: (data) => {
-      console.log('Appointment created successfully:', data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
       toast({ title: 'Success', description: 'Appointment scheduled successfully' });
       resetForm();
       setIsCreating(false);
     },
     onError: (error: any) => {
-      console.error('Appointment creation failed:', error);
       const errorMessage = error?.response?.data?.message || 
                           error?.response?.data?.error || 
                           error?.message || 
@@ -350,15 +335,6 @@ export default function AppointmentsPage() {
   };
 
   const handleCreateAppointment = () => {
-    console.log('=== APPOINTMENT CREATION DEBUG ===');
-    console.log('selectedDate:', selectedDate);
-    console.log('selectedTime:', selectedTime);
-    console.log('selectedPatient:', selectedPatient);
-    console.log('selectedStaff:', selectedStaff);
-    console.log('appointmentType:', appointmentType);
-    console.log('duration:', duration);
-    console.log('notes:', notes);
-
     if (!selectedDate || !selectedTime || !selectedPatient || !selectedStaff || !appointmentType) {
       const missingFields = [];
       if (!selectedDate) missingFields.push('Date');
@@ -367,7 +343,6 @@ export default function AppointmentsPage() {
       if (!selectedStaff) missingFields.push('Healthcare Provider');
       if (!appointmentType) missingFields.push('Appointment Type');
       
-      console.log('Missing required fields:', missingFields);
       toast({
         title: 'Validation Error',
         description: `Please fill in: ${missingFields.join(', ')}`,
@@ -390,16 +365,8 @@ export default function AppointmentsPage() {
       priority: 'medium',
       notes: notes || undefined
     };
-
-    console.log('Final appointment data being sent:', appointmentData);
-    console.log('About to call createAppointmentMutation.mutate');
     
-    try {
-      createAppointmentMutation.mutate(appointmentData);
-      console.log('Mutation called successfully');
-    } catch (error) {
-      console.error('Error calling mutation:', error);
-    }
+    createAppointmentMutation.mutate(appointmentData);
   };
 
   const updateAppointmentStatus = (appointmentId: number, status: string) => {
@@ -525,7 +492,7 @@ export default function AppointmentsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={dateFilter} onValueChange={setDateFilter}>
+              <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as 'all' | 'today' | 'week' | 'month')}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Date range" />
                 </SelectTrigger>
@@ -537,7 +504,7 @@ export default function AppointmentsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'dateCreated' | 'appointmentDate' | 'patientName' | 'status')}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
