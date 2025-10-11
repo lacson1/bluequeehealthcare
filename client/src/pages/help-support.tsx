@@ -519,30 +519,21 @@ export default function HelpAndSupport() {
                 <CardDescription>Step-by-step video guides for common tasks</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Video Coming Soon", description: "This video tutorial will be available shortly." })}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Getting Started with Bluequee
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Video Coming Soon", description: "This video tutorial will be available shortly." })}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Patient Registration Walkthrough
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Video Coming Soon", description: "This video tutorial will be available shortly." })}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Managing Lab Orders
-                </Button>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Video className="h-4 w-4" />
+                  <span>Getting Started with Bluequee</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Video className="h-4 w-4" />
+                  <span>Patient Registration Walkthrough</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Video className="h-4 w-4" />
+                  <span>Managing Lab Orders</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
               </CardContent>
             </Card>
 
@@ -555,33 +546,21 @@ export default function HelpAndSupport() {
                 <CardDescription>PDF guides and documentation</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Resource Coming Soon", description: "User Manual PDF will be available for download shortly." })}
-                  data-testid="resource-user-manual"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  User Manual (PDF)
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Resource Coming Soon", description: "Quick Reference Guide will be available for download shortly." })}
-                  data-testid="resource-quick-reference"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Quick Reference Guide
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Resource Coming Soon", description: "Keyboard Shortcuts Cheat Sheet will be available for download shortly." })}
-                  data-testid="resource-keyboard-shortcuts"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Keyboard Shortcuts Cheat Sheet
-                </Button>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground" data-testid="resource-user-manual">
+                  <FileText className="h-4 w-4" />
+                  <span>User Manual (PDF)</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground" data-testid="resource-quick-reference">
+                  <FileText className="h-4 w-4" />
+                  <span>Quick Reference Guide</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground" data-testid="resource-keyboard-shortcuts">
+                  <FileText className="h-4 w-4" />
+                  <span>Keyboard Shortcuts Cheat Sheet</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
               </CardContent>
             </Card>
 
@@ -594,30 +573,21 @@ export default function HelpAndSupport() {
                 <CardDescription>Data protection and privacy information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Guide Coming Soon", description: "HIPAA Compliance Guide will be available shortly." })}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  HIPAA Compliance Guide
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Guide Coming Soon", description: "Data Security Best Practices guide will be available shortly." })}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Data Security Best Practices
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Document Available", description: "Privacy Policy can be viewed in Settings → Legal section." })}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Privacy Policy
-                </Button>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>HIPAA Compliance Guide</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>Data Security Best Practices</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>Privacy Policy</span>
+                  <Badge variant="outline" className="ml-auto text-xs">View in Settings</Badge>
+                </div>
               </CardContent>
             </Card>
 
@@ -630,30 +600,21 @@ export default function HelpAndSupport() {
                 <CardDescription>Educational content for staff training</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Training Coming Soon", description: "Clinical Workflow Training materials will be available shortly." })}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Clinical Workflow Training
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Training Coming Soon", description: "Pharmacy Module Training materials will be available shortly." })}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Pharmacy Module Training
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => toast({ title: "Training Coming Soon", description: "Admin Panel Training materials will be available shortly." })}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Admin Panel Training
-                </Button>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>Clinical Workflow Training</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>Pharmacy Module Training</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
+                <div className="w-full p-3 rounded-md bg-muted/50 flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>Admin Panel Training</span>
+                  <Badge variant="secondary" className="ml-auto text-xs">Coming Soon</Badge>
+                </div>
               </CardContent>
             </Card>
           </div>
