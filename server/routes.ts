@@ -32,6 +32,8 @@ import { setupNetworkValidationRoutes } from "./network-validator";
 import { setupAuthValidationRoutes } from "./auth-validator";
 import { setupSystemHealthRoutes } from "./system-health-dashboard";
 import Anthropic from '@anthropic-ai/sdk';
+// Replit Auth - Reference: blueprint:javascript_log_in_with_replit
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 // Helper function to generate prescription HTML for printing
 function generatePrescriptionHTML(prescriptionResult: any): string {
@@ -475,6 +477,9 @@ const getOrganizationDetails = async (orgId: number) => {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Firebase for push notifications
   initializeFirebase();
+  
+  // Replit Auth setup - Reference: blueprint:javascript_log_in_with_replit
+  await setupAuth(app);
   
   // Apply security headers to all routes
   app.use(securityHeaders);
@@ -2132,6 +2137,21 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   });
 
 
+
+  // Replit Auth user route - Reference: blueprint:javascript_log_in_with_replit
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const replitAuthId = req.user.claims.sub;
+      const user = await storage.getReplitAuthUser(replitAuthId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
