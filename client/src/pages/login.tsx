@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { Loader2, Heart, Shield, Activity, Stethoscope, Users, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { SiGoogle, SiGithub, SiX, SiApple } from 'react-icons/si';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -196,6 +198,72 @@ export default function Login() {
                   )}
                 </Button>
               </form>
+              
+              {/* Replit Auth - Social Login */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <Separator />
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                    OR CONTINUE WITH
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-11"
+                    onClick={() => window.location.href = '/api/login?provider=google'}
+                    data-testid="button-login-google"
+                  >
+                    <SiGoogle className="mr-2 h-4 w-4" />
+                    Google
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-11"
+                    onClick={() => window.location.href = '/api/login?provider=github'}
+                    data-testid="button-login-github"
+                  >
+                    <SiGithub className="mr-2 h-4 w-4" />
+                    GitHub
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-11"
+                    onClick={() => window.location.href = '/api/login?provider=x'}
+                    data-testid="button-login-x"
+                  >
+                    <SiX className="mr-2 h-4 w-4" />
+                    X
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-11"
+                    onClick={() => window.location.href = '/api/login?provider=apple'}
+                    data-testid="button-login-apple"
+                  >
+                    <SiApple className="mr-2 h-4 w-4" />
+                    Apple
+                  </Button>
+                </div>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11"
+                  onClick={() => window.location.href = '/api/login?provider=email'}
+                  data-testid="button-login-email"
+                >
+                  Continue with Email
+                </Button>
+              </div>
               
               {/* Demo Accounts */}
               <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
