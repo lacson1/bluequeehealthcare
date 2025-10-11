@@ -80,7 +80,7 @@ export default function TelemedicinePage() {
   });
 
   const createSessionMutation = useMutation({
-    mutationFn: (sessionData: any) => apiRequest('POST', '/api/telemedicine/sessions', sessionData),
+    mutationFn: (sessionData: any) => apiRequest('/api/telemedicine/sessions', 'POST', sessionData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/telemedicine/sessions'] });
       setNewSessionDialog(false);
@@ -125,7 +125,7 @@ export default function TelemedicinePage() {
 
   const updateSessionMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest('PATCH', `/api/telemedicine/sessions/${id}`, data),
+      apiRequest(`/api/telemedicine/sessions/${id}`, 'PATCH', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/telemedicine/sessions'] });
       toast({

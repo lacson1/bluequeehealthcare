@@ -182,6 +182,7 @@ function AuthenticatedApp() {
         onClick={() => setShowGlobalSearch(true)}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 group"
         size="lg"
+        aria-label="Open global search"
       >
         <Search className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
       </Button>

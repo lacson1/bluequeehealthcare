@@ -7670,11 +7670,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const sessionData = insertTelemedicineSessionSchema.parse(req.body);
       
-      // Add doctor ID and organization ID
+      // Add doctor ID and organization ID, convert scheduledTime to Date if it's a string
       const enrichedData = {
         ...sessionData,
         doctorId: req.user?.id || sessionData.doctorId,
-        organizationId: req.user?.organizationId
+        organizationId: req.user?.organizationId,
+        scheduledTime: typeof sessionData.scheduledTime === 'string' 
+          ? new Date(sessionData.scheduledTime) 
+          : sessionData.scheduledTime
       };
 
       const [newSession] = await db

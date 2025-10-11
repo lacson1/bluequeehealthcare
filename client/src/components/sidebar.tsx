@@ -206,6 +206,7 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
           variant="ghost"
           size="sm"
           className="hidden lg:block absolute -right-3 top-6 z-10 h-6 w-6 rounded-full bg-white shadow-md border border-slate-200 hover:bg-slate-50 p-0"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (
             <Menu className="h-3 w-3 text-slate-600" />

@@ -299,6 +299,7 @@ export default function TopBar() {
                     variant="ghost"
                     size="sm"
                     className="relative h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
                   >
                     <Bell className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                     {unreadCount > 0 && (
