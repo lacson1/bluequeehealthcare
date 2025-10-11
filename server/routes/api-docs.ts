@@ -112,7 +112,7 @@ const openApiSpec = {
   },
   security: [{ ApiKeyAuth: [] }],
   paths: {
-    "/api/v1/health": {
+    "/health": {
       get: {
         summary: "Health check",
         description: "Check API status and authentication",
@@ -135,7 +135,7 @@ const openApiSpec = {
         }
       }
     },
-    "/api/v1/patients": {
+    "/patients": {
       get: {
         summary: "List patients",
         description: "Get a list of patients in your organization",
@@ -183,7 +183,7 @@ const openApiSpec = {
         }
       }
     },
-    "/api/v1/patients/{id}": {
+    "/patients/{id}": {
       get: {
         summary: "Get patient by ID",
         description: "Get detailed information about a specific patient",
@@ -213,7 +213,7 @@ const openApiSpec = {
         }
       }
     },
-    "/api/v1/appointments": {
+    "/appointments": {
       get: {
         summary: "List appointments",
         description: "Get a list of appointments with optional filtering",
@@ -267,7 +267,7 @@ const openApiSpec = {
         }
       }
     },
-    "/api/v1/prescriptions": {
+    "/prescriptions": {
       get: {
         summary: "List prescriptions",
         description: "Get a list of prescriptions with optional filtering",
@@ -313,7 +313,7 @@ const openApiSpec = {
         }
       }
     },
-    "/api/v1/vital-signs": {
+    "/vital-signs": {
       get: {
         summary: "List vital signs",
         description: "Get a list of vital signs records",
@@ -359,7 +359,7 @@ const openApiSpec = {
         }
       }
     },
-    "/api/mobile/dashboard/stats": {
+    "/dashboard/stats": {
       get: {
         summary: "Dashboard statistics (Mobile)",
         description: "Get quick statistics for mobile dashboard",
@@ -383,7 +383,7 @@ const openApiSpec = {
         }
       }
     },
-    "/api/mobile/appointments/today": {
+    "/appointments/today": {
       get: {
         summary: "Today's appointments (Mobile)",
         description: "Get today's appointments with minimal payload",
