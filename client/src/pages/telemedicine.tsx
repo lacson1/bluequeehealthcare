@@ -95,7 +95,15 @@ export default function TelemedicinePage() {
   });
 
   const handleScheduleSession = () => {
+    console.log('Schedule session - Form values:', { selectedPatientId, scheduledTime, sessionType });
+    
     if (!selectedPatientId || !scheduledTime) {
+      console.log('Validation failed - Missing:', { 
+        hasPatient: !!selectedPatientId, 
+        hasTime: !!scheduledTime,
+        patientId: selectedPatientId,
+        time: scheduledTime
+      });
       toast({
         title: "Missing Information",
         description: "Please select a patient and scheduled time.",
@@ -111,6 +119,7 @@ export default function TelemedicinePage() {
       status: 'scheduled'
     };
 
+    console.log('Creating session with data:', sessionData);
     createSessionMutation.mutate(sessionData);
   };
 
@@ -224,7 +233,7 @@ export default function TelemedicinePage() {
               <div>
                 <label className="text-sm font-medium">Patient</label>
                 <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="select-patient">
                     <SelectValue placeholder="Select patient" />
                   </SelectTrigger>
                   <SelectContent>
@@ -254,7 +263,11 @@ export default function TelemedicinePage() {
                 <Input 
                   type="datetime-local" 
                   value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Scheduled time changed:', e.target.value);
+                    setScheduledTime(e.target.value);
+                  }}
+                  data-testid="input-scheduled-time"
                 />
               </div>
               <div className="flex gap-2">
@@ -264,6 +277,7 @@ export default function TelemedicinePage() {
                 <Button 
                   onClick={handleScheduleSession}
                   disabled={createSessionMutation.isPending}
+                  data-testid="button-schedule-session"
                 >
                   {createSessionMutation.isPending ? 'Scheduling...' : 'Schedule Session'}
                 </Button>

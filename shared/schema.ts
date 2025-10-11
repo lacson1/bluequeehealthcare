@@ -1551,6 +1551,9 @@ export const insertTelemedicineSessionSchema = createInsertSchema(telemedicineSe
   id: true,
   createdAt: true,
   completedAt: true
+}).extend({
+  doctorId: z.number().optional(),
+  organizationId: z.number().optional()
 });
 
 export type TelemedicineSession = typeof telemedicineSessions.$inferSelect;

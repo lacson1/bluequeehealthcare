@@ -361,7 +361,17 @@ export default function HelpAndSupport() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <Button variant="ghost" className="w-full justify-between group-hover:bg-accent">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-between group-hover:bg-accent"
+                      onClick={() => {
+                        toast({
+                          title: "Coming Soon",
+                          description: `${guide.title} guide will be available soon. Check back later!`,
+                        });
+                      }}
+                      data-testid={`button-view-guide-${guide.title.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
                       View Guide
                       <ExternalLink className="h-4 w-4" />
                     </Button>
