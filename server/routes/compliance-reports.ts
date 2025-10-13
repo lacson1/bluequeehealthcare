@@ -1,5 +1,4 @@
-import type { Express } from "express";
-import type { AuthRequest } from "../middleware/auth";
+import type { Express, Request, Response } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { db } from "../db";
 import { patients, visits, users, auditLogs, invoices, invoiceItems, medications, prescriptions, appointments, labResults, labTests } from "@shared/schema";
@@ -11,11 +10,12 @@ import autoTable from 'jspdf-autotable';
 export function setupComplianceReportRoutes(app: Express) {
   
   // Generate compliance report with real data
-  app.post("/api/compliance/reports/generate", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/compliance/reports/generate", authenticateToken, async (req: Request, res: Response) => {
     try {
       const { reportId, dateRange } = req.body;
-      const userId = req.user?.id;
-      const organizationId = req.user?.organizationId || req.user?.currentOrganizationId;
+      const user = (req as any).user;
+      const userId = user?.id;
+      const organizationId = user?.organizationId || user?.currentOrganizationId;
 
       if (!userId || !organizationId) {
         return res.status(401).json({ message: "Authentication required" });
