@@ -2223,6 +2223,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           // Initialize session activity tracking
           (req.session as any).lastActivity = new Date();
           
+          // Save session before sending response
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) {
+                console.error('Session save error:', err);
+                reject(err);
+              } else {
+                resolve();
+              }
+            });
+          });
+          
           return res.json({
             success: true,
             user: {
@@ -2260,6 +2272,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           organizationId: null
         };
         
+        // Save session before sending response
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error('Session save error:', err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+        
         return res.json({
           user: {
             id: 999,
@@ -2285,6 +2309,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           role: 'doctor',
           organizationId: 1
         };
+        
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
         
         return res.json({
           user: {
@@ -2312,6 +2343,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           organizationId: 1
         };
         
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+        
         return res.json({
           user: {
             id: 11,
@@ -2338,6 +2376,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           organizationId: 1
         };
         
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+        
         return res.json({
           user: {
             id: 12,
@@ -2363,6 +2408,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           role: 'physiotherapist',
           organizationId: 1
         };
+        
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
         
         return res.json({
           user: {

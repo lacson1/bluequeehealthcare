@@ -67,11 +67,18 @@ export default function EnhancedPatientManagementFixed({ user, onPatientSelect }
   });
 
   // Fetch organizations for filtering
-  const { data: organizations = [] } = useQuery({
+  const { data: organizationsData } = useQuery({
     queryKey: ['/api/organizations'],
-    queryFn: () => fetch('/api/organizations').then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/organizations');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
     enabled: user?.role === 'admin' || user?.role === 'superadmin'
   });
+  
+  const organizations = Array.isArray(organizationsData) ? organizationsData : [];
 
   // Bulk actions
   const handleBulkAction = async (action: string) => {
