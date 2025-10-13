@@ -123,7 +123,7 @@ export default function Login() {
         
         {/* Right Side - Login Form */}
         <div className="w-full max-w-md mx-auto lg:mx-0">
-          <Card className="healthcare-card shadow-2xl bg-white/60 backdrop-blur-2xl border-white/30">
+          <Card className="healthcare-card shadow-2xl bg-transparent backdrop-blur-2xl border-white/20">
             <CardHeader className="space-y-4 pb-6">
               <div className="text-center space-y-3">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mx-auto shadow-lg">
