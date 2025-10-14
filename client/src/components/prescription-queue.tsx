@@ -62,7 +62,7 @@ export function PrescriptionQueue() {
 
   const dispensePrescriptionMutation = useMutation({
     mutationFn: async ({ prescriptionId, data }: { prescriptionId: number; data: DispensingForm }) => {
-      const response = await apiRequest("PATCH", `/api/prescriptions/${prescriptionId}/status`, { 
+      const response = await apiRequest(`/api/prescriptions/${prescriptionId}/status`, "PATCH", { 
         status: "dispensed",
         ...data 
       });
