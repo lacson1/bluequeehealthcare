@@ -42,7 +42,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', `/api/patients/${patientId}/physiotherapy-assessment`, data),
+    mutationFn: (data: any) => apiRequest(`/api/patients/${patientId}/physiotherapy-assessment`, 'POST', data),
     onSuccess: () => {
       toast({
         title: "Success",
