@@ -251,11 +251,11 @@ export default function UserManagementEnhanced() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await apiRequest("POST", "/api/upload/staff", formData);
+      const response = await apiRequest("/api/upload/staff", "POST", formData);
       const photoUrl = response.url;
       
       if (userId) {
-        await apiRequest("PATCH", `/api/users/${userId}`, { photoUrl });
+        await apiRequest(`/api/users/${userId}`, "PATCH", { photoUrl });
         queryClient.invalidateQueries({ queryKey: ["/api/users"] });
         toast({
           title: "Success",
