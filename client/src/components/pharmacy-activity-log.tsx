@@ -71,7 +71,7 @@ export function PharmacyActivityLog({ onActivityLogged }: PharmacyActivityLogPro
 
   // Mutation for creating activity
   const createActivity = useMutation({
-    mutationFn: (data: PharmacyActivityForm) => apiRequest('POST', '/api/pharmacy/activities', data),
+    mutationFn: (data: PharmacyActivityForm) => apiRequest('/api/pharmacy/activities', 'POST', data),
     onSuccess: () => {
       toast({
         title: "Success",
