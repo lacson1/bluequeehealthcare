@@ -71,7 +71,7 @@ export default function PatientRegistrationModal({
   const registerPatientMutation = useMutation({
     mutationFn: async (data: InsertPatient) => {
       const response = await apiRequest("/api/patients", "POST", data);
-      return response.json();
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
@@ -82,12 +82,41 @@ export default function PatientRegistrationModal({
         description: "Patient registered successfully!",
       });
       form.reset();
+      setSelectedAllergies([]);
+      setSelectedConditions([]);
       onOpenChange(false);
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Patient registration error:", error);
+      
+      // Extract error message from the error object
+      let errorMessage = "Failed to register patient. Please try again.";
+      
+      if (error?.message) {
+        // Parse the error message to extract the actual error from the server
+        const errorText = error.message;
+        
+        // Check if it's a validation error
+        if (errorText.includes("400") || errorText.includes("Validation")) {
+          errorMessage = "Please check all required fields and try again.";
+          
+          // Try to extract the specific validation message
+          const match = errorText.match(/{"message":"([^"]+)"/);
+          if (match && match[1]) {
+            errorMessage = match[1];
+          }
+        } else if (errorText.includes("details")) {
+          // Try to extract Zod validation details
+          errorMessage = "Please fill in all required fields correctly.";
+        } else {
+          // Remove HTTP status code prefix
+          errorMessage = errorText.replace(/^\d+:\s*/, '');
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to register patient. Please try again.",
+        title: "Registration Error",
+        description: errorMessage,
         variant: "destructive",
       });
     },
