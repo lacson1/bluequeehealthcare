@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   Moon, Sun, Palette, Type, Square, MessageSquare, Bell, 
   CheckCircle, AlertCircle, AlertTriangle, Info, Heart,
@@ -219,16 +220,124 @@ export default function UIShowcase() {
       await new Promise(resolve => setTimeout(resolve, 300));
       addResult("Healthcare Components", "pass", "Patient, Visit, Lab, and Pharmacy cards rendered");
 
+      // ==== CRUD OPERATIONS TESTS ====
+      let createdPatientId: number | null = null;
+
+      // Test 13: CREATE - Create a test patient
+      try {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const response = await apiRequest('/api/patients', 'POST', {
+          title: 'Mr.',
+          firstName: 'TestUser',
+          lastName: 'SystemTest',
+          dateOfBirth: '1990-01-01',
+          gender: 'male',
+          phone: '08012345678',
+          email: 'test@systemtest.com',
+          address: '123 Test Street'
+        });
+        
+        const createResponse = await response.json();
+        
+        if (createResponse && createResponse.id) {
+          createdPatientId = createResponse.id;
+          addResult("CRUD: Create Patient", "pass", `Created patient with ID ${createdPatientId}`);
+        } else {
+          addResult("CRUD: Create Patient", "fail", "Failed to get patient ID from response");
+        }
+      } catch (error: any) {
+        addResult("CRUD: Create Patient", "fail", `Error: ${error.message || 'Unknown error'}`);
+      }
+
+      // Test 14: READ - Fetch the created patient
+      if (createdPatientId) {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const response = await fetch(`/api/patients/${createdPatientId}`);
+          const patient = await response.json();
+          
+          if (patient && patient.firstName === 'TestUser') {
+            addResult("CRUD: Read Patient", "pass", `Successfully fetched patient ${patient.firstName} ${patient.lastName}`);
+          } else {
+            addResult("CRUD: Read Patient", "fail", "Patient data mismatch");
+          }
+        } catch (error: any) {
+          addResult("CRUD: Read Patient", "fail", `Error: ${error.message || 'Unknown error'}`);
+        }
+      }
+
+      // Test 15: UPDATE - Update the patient
+      if (createdPatientId) {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const updateResponse = await apiRequest(`/api/patients/${createdPatientId}`, 'PATCH', {
+            firstName: 'UpdatedTest'
+          });
+          
+          await updateResponse.json();
+          
+          const verifyResponse = await fetch(`/api/patients/${createdPatientId}`);
+          const updatedPatient = await verifyResponse.json();
+          
+          if (updatedPatient.firstName === 'UpdatedTest') {
+            addResult("CRUD: Update Patient", "pass", `Updated patient name to ${updatedPatient.firstName}`);
+          } else {
+            addResult("CRUD: Update Patient", "fail", "Update verification failed");
+          }
+        } catch (error: any) {
+          addResult("CRUD: Update Patient", "fail", `Error: ${error.message || 'Unknown error'}`);
+        }
+      }
+
+      // Test 16: LIST - Verify patient appears in list
+      try {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const listResponse = await fetch('/api/patients');
+        const patients = await listResponse.json();
+        
+        const foundPatient = patients.find((p: any) => p.id === createdPatientId);
+        
+        if (foundPatient && foundPatient.firstName === 'UpdatedTest') {
+          addResult("CRUD: List Patients", "pass", `Found updated patient in list (${patients.length} total patients)`);
+        } else {
+          addResult("CRUD: List Patients", "fail", "Patient not found in list or data mismatch");
+        }
+      } catch (error: any) {
+        addResult("CRUD: List Patients", "fail", `Error: ${error.message || 'Unknown error'}`);
+      }
+
+      // Test 17: API Health Check
+      try {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const response = await fetch('/api/profile');
+        if (response.status === 200 || response.status === 401) {
+          addResult("API: Health Check", "pass", "API endpoints responding correctly");
+        } else {
+          addResult("API: Health Check", "fail", `Unexpected status: ${response.status}`);
+        }
+      } catch (error: any) {
+        addResult("API: Health Check", "fail", `Error: ${error.message || 'Unknown error'}`);
+      }
+
       // Final Result
       await new Promise(resolve => setTimeout(resolve, 500));
       const totalTests = results.length;
       const passedTests = results.filter(r => r.status === 'pass').length;
+      const failedTests = results.filter(r => r.status === 'fail').length;
       
-      toast({ 
-        title: "System Test Complete!", 
-        description: `All ${totalTests} component tests passed successfully ✓`,
-        variant: "default"
-      });
+      if (failedTests === 0) {
+        toast({ 
+          title: "System Test Complete!", 
+          description: `All ${totalTests} tests passed successfully (UI + CRUD) ✓`,
+          variant: "default"
+        });
+      } else {
+        toast({ 
+          title: "Tests Completed with Issues", 
+          description: `${passedTests}/${totalTests} tests passed. ${failedTests} failed.`,
+          variant: "destructive"
+        });
+      }
 
     } catch (error) {
       addResult("System Test", "fail", `Test failed: ${error}`);
