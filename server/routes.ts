@@ -7630,6 +7630,48 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       const validatedData = insertAppointmentSchema.parse(appointmentData);
 
+      // Check for overlapping appointments
+      const { appointmentDate, appointmentTime, duration, doctorId } = validatedData;
+      
+      // Parse the appointment time (HH:MM format)
+      const [hours, minutes] = appointmentTime.split(':').map(Number);
+      const startMinutes = hours * 60 + minutes;
+      const endMinutes = startMinutes + (duration || 30);
+      
+      // Get all appointments for this doctor on the same date
+      const existingAppointments = await db.select()
+        .from(appointments)
+        .where(
+          and(
+            eq(appointments.doctorId, doctorId),
+            eq(appointments.appointmentDate, appointmentDate),
+            ne(appointments.status, 'cancelled')
+          )
+        );
+      
+      // Check for overlaps
+      for (const existing of existingAppointments) {
+        const [existingHours, existingMinutes] = existing.appointmentTime.split(':').map(Number);
+        const existingStart = existingHours * 60 + existingMinutes;
+        const existingEnd = existingStart + (existing.duration || 30);
+        
+        // Check if appointments overlap
+        const hasOverlap = (startMinutes < existingEnd) && (endMinutes > existingStart);
+        
+        if (hasOverlap) {
+          return res.status(409).json({ 
+            message: "Time slot conflict", 
+            error: `This time slot conflicts with an existing appointment at ${existing.appointmentTime}. Please choose a different time.`,
+            conflictingAppointment: {
+              id: existing.id,
+              time: existing.appointmentTime,
+              duration: existing.duration
+            }
+          });
+        }
+      }
+
+      // No overlap found, create the appointment
       const [appointment] = await db.insert(appointments)
         .values(validatedData)
         .returning();
