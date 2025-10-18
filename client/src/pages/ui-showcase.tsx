@@ -257,7 +257,14 @@ export default function UIShowcase() {
       if (createdPatientId) {
         try {
           await new Promise(resolve => setTimeout(resolve, 300));
-          const response = await fetch(`/api/patients/${createdPatientId}`);
+          const response = await fetch(`/api/patients/${createdPatientId}`, {
+            credentials: 'include'
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
           const patient = await response.json();
           
           if (patient && patient.firstName === 'TestUser') {
@@ -278,9 +285,20 @@ export default function UIShowcase() {
             firstName: 'UpdatedTest'
           });
           
+          if (!updateResponse.ok) {
+            throw new Error(`HTTP ${updateResponse.status}: ${updateResponse.statusText}`);
+          }
+          
           await updateResponse.json();
           
-          const verifyResponse = await fetch(`/api/patients/${createdPatientId}`);
+          const verifyResponse = await fetch(`/api/patients/${createdPatientId}`, {
+            credentials: 'include'
+          });
+          
+          if (!verifyResponse.ok) {
+            throw new Error(`Verify failed: HTTP ${verifyResponse.status}`);
+          }
+          
           const updatedPatient = await verifyResponse.json();
           
           if (updatedPatient.firstName === 'UpdatedTest') {
@@ -296,7 +314,9 @@ export default function UIShowcase() {
       // Test 16: LIST - Verify patient appears in list
       try {
         await new Promise(resolve => setTimeout(resolve, 300));
-        const listResponse = await fetch('/api/patients');
+        const listResponse = await fetch('/api/patients', {
+          credentials: 'include'
+        });
         
         if (!listResponse.ok) {
           throw new Error(`HTTP ${listResponse.status}: ${listResponse.statusText}`);
@@ -322,8 +342,10 @@ export default function UIShowcase() {
       // Test 17: API Health Check
       try {
         await new Promise(resolve => setTimeout(resolve, 300));
-        const response = await fetch('/api/profile');
-        if (response.status === 200 || response.status === 401) {
+        const response = await fetch('/api/profile', {
+          credentials: 'include'
+        });
+        if (response.status === 200) {
           addResult("API: Health Check", "pass", "API endpoints responding correctly");
         } else {
           addResult("API: Health Check", "fail", `Unexpected status: ${response.status}`);
@@ -1075,10 +1097,10 @@ export default function UIShowcase() {
                     </AlertDescription>
                   </Alert>
                   <div className="flex flex-wrap gap-4 p-4 border rounded-lg">
-                    <Button data-testid="button-keyboard-1">Button 1</Button>
-                    <Button variant="secondary" data-testid="button-keyboard-2">Button 2</Button>
-                    <Button variant="outline" data-testid="button-keyboard-3">Button 3</Button>
-                    <Input placeholder="Focusable input" className="w-48" data-testid="input-keyboard" />
+                    <Button aria-label="Primary test button" data-testid="button-keyboard-1">Button 1</Button>
+                    <Button aria-label="Secondary test button" variant="secondary" data-testid="button-keyboard-2">Button 2</Button>
+                    <Button aria-label="Outline test button" variant="outline" data-testid="button-keyboard-3">Button 3</Button>
+                    <Input aria-label="Keyboard navigation test input" placeholder="Focusable input" className="w-48" data-testid="input-keyboard" />
                   </div>
                 </div>
 
@@ -1131,15 +1153,16 @@ export default function UIShowcase() {
                       npm install bluequee
                     </code>
                     <Button
+                      aria-label="Copy command to clipboard"
                       size="sm"
                       variant="ghost"
                       onClick={() => copyToClipboard('npm install bluequee')}
                       data-testid="button-copy-code"
                     >
                       {copiedText === 'npm install bluequee' ? (
-                        <Check className="h-4 w-4 text-green-600" />
+                        <Check className="h-4 w-4 text-green-600" aria-label="Copied successfully" />
                       ) : (
-                        <Copy className="h-4 w-4" />
+                        <Copy className="h-4 w-4" aria-label="Copy icon" />
                       )}
                     </Button>
                   </div>
