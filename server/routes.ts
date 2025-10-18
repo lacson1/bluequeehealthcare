@@ -3693,7 +3693,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   // Enhanced Laboratory Management API Endpoints
   app.get('/api/lab-orders/enhanced', authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const userOrgId = req.user?.organizationId;
+      // Use currentOrganizationId for multi-org users, fallback to organizationId
+      const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
       const { status, priority } = req.query;
 
       let query = db.select({
@@ -3768,10 +3769,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return sum + cost;
       }, 0);
       
-      // Create lab order
+      // Create lab order with organization context
+      const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
+      
       const orderData = {
         patientId: parseInt(patientId),
         orderedBy: req.user?.id || 1,
+        organizationId: userOrgId || 1, // Ensure organization context is set
         clinicalNotes: clinicalNotes || '',
         diagnosis: diagnosis || '',
         priority: priority || 'routine',
@@ -6800,10 +6804,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return sum + cost;
       }, 0);
       
-      // Create lab order
+      // Create lab order with organization context
+      const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
+      
       const orderData = {
         patientId: parseInt(patientId),
         orderedBy: req.user?.id || 1,
+        organizationId: userOrgId || 1, // Ensure organization context is set
         clinicalNotes: clinicalNotes || '',
         diagnosis: diagnosis || '',
         priority: priority || 'routine',
