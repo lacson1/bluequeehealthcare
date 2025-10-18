@@ -618,6 +618,7 @@ export default function AppointmentsPage() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      data-testid="select-date"
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
@@ -630,6 +631,7 @@ export default function AppointmentsPage() {
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-white dark:bg-gray-800">
                     <Calendar
+                      data-testid="calendar-picker"
                       mode="single"
                       selected={selectedDate}
                       onSelect={setSelectedDate}
