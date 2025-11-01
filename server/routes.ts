@@ -5873,12 +5873,59 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       // If doctor's message, simulate patient response
       let patientResponse = null;
       if (role === 'user' || role === 'doctor') {
+        // Fetch comprehensive patient context for AI with organization filtering for security
+        const [recentVisits, activePrescriptions, recentLabResults, latestVitals] = await Promise.all([
+          // Recent visits (last 5) - filter by org for defense-in-depth
+          storage.getVisitsByPatient(consultation.patientId).then(visits => 
+            visits.filter((v: any) => v.organizationId === userOrgId).slice(0, 5)
+          ),
+          // Active prescriptions - filter by org for defense-in-depth
+          storage.getActivePrescriptionsByPatient(consultation.patientId).then(rx => 
+            rx.filter((r: any) => r.organizationId === userOrgId).slice(0, 10)
+          ),
+          // Recent lab results (last 5) - filter by org for defense-in-depth
+          storage.getLabResultsByPatient(consultation.patientId).then(labs => 
+            labs.filter((l: any) => l.organizationId === userOrgId).slice(0, 5)
+          ),
+          // Latest vital signs - filter by org for defense-in-depth
+          db.select().from(vitalSigns)
+            .where(and(
+              eq(vitalSigns.patientId, consultation.patientId),
+              eq(vitalSigns.organizationId, userOrgId)
+            ))
+            .orderBy(desc(vitalSigns.recordedAt))
+            .limit(1)
+        ]);
+
         const patientContext = {
           name: `${patient.firstName} ${patient.lastName}`,
           age: new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear(),
           gender: patient.gender,
           medicalHistory: patient.medicalHistory || undefined,
-          allergies: patient.allergies || undefined
+          allergies: patient.allergies || undefined,
+          // Enhanced context
+          vitals: latestVitals[0] ? {
+            temperature: latestVitals[0].temperature ? `${latestVitals[0].temperature}°C` : undefined,
+            bloodPressure: latestVitals[0].bloodPressureSystolic && latestVitals[0].bloodPressureDiastolic
+              ? `${latestVitals[0].bloodPressureSystolic}/${latestVitals[0].bloodPressureDiastolic} mmHg`
+              : undefined,
+            heartRate: latestVitals[0].heartRate ? `${latestVitals[0].heartRate} bpm` : undefined,
+            weight: latestVitals[0].weight ? `${latestVitals[0].weight} kg` : undefined
+          } : undefined,
+          recentVisits: recentVisits.map((v: any) => ({
+            date: new Date(v.visitDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+            diagnosis: v.diagnosis || 'Not specified',
+            treatment: v.treatment
+          })),
+          labResults: recentLabResults.map((lab: any) => ({
+            test: lab.testName || lab.testType || 'Unknown test',
+            result: lab.result || lab.value || 'Pending',
+            date: lab.resultDate ? new Date(lab.resultDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A',
+            isAbnormal: lab.isAbnormal || false
+          })),
+          currentMedications: activePrescriptions.map((rx: any) => 
+            `${rx.medicationName} ${rx.dosage} - ${rx.frequency}`
+          ).join(', ') || undefined
         };
         
         const response = await simulatePatientResponse(
@@ -5937,12 +5984,54 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(403).json({ message: "Access denied" });
       }
       
+      // Fetch comprehensive patient context for clinical note generation with organization filtering
+      const [recentVisits, activePrescriptions, recentLabResults, latestVitals] = await Promise.all([
+        storage.getVisitsByPatient(consultation.patientId).then(visits => 
+          visits.filter((v: any) => v.organizationId === userOrgId).slice(0, 5)
+        ),
+        storage.getActivePrescriptionsByPatient(consultation.patientId).then(rx => 
+          rx.filter((r: any) => r.organizationId === userOrgId).slice(0, 10)
+        ),
+        storage.getLabResultsByPatient(consultation.patientId).then(labs => 
+          labs.filter((l: any) => l.organizationId === userOrgId).slice(0, 5)
+        ),
+        db.select().from(vitalSigns)
+          .where(and(
+            eq(vitalSigns.patientId, consultation.patientId),
+            eq(vitalSigns.organizationId, userOrgId)
+          ))
+          .orderBy(desc(vitalSigns.recordedAt))
+          .limit(1)
+      ]);
+
       const patientContext = {
         name: `${patient.firstName} ${patient.lastName}`,
         age: new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear(),
         gender: patient.gender,
         medicalHistory: patient.medicalHistory || undefined,
-        allergies: patient.allergies || undefined
+        allergies: patient.allergies || undefined,
+        vitals: latestVitals[0] ? {
+          temperature: latestVitals[0].temperature ? `${latestVitals[0].temperature}°C` : undefined,
+          bloodPressure: latestVitals[0].bloodPressureSystolic && latestVitals[0].bloodPressureDiastolic
+            ? `${latestVitals[0].bloodPressureSystolic}/${latestVitals[0].bloodPressureDiastolic} mmHg`
+            : undefined,
+          heartRate: latestVitals[0].heartRate ? `${latestVitals[0].heartRate} bpm` : undefined,
+          weight: latestVitals[0].weight ? `${latestVitals[0].weight} kg` : undefined
+        } : undefined,
+        recentVisits: recentVisits.map((v: any) => ({
+          date: new Date(v.visitDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+          diagnosis: v.diagnosis || 'Not specified',
+          treatment: v.treatment
+        })),
+        labResults: recentLabResults.map((lab: any) => ({
+          test: lab.testName || lab.testType || 'Unknown test',
+          result: lab.result || lab.value || 'Pending',
+          date: lab.resultDate ? new Date(lab.resultDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A',
+          isAbnormal: lab.isAbnormal || false
+        })),
+        currentMedications: activePrescriptions.map((rx: any) => 
+          `${rx.medicationName} ${rx.dosage} - ${rx.frequency}`
+        ).join(', ') || undefined
       };
       
       const notes = await generateClinicalNotes(consultation.transcript || [], patientContext);
