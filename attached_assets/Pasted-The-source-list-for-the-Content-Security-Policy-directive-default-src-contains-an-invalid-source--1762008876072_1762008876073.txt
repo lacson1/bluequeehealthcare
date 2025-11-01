@@ -1,0 +1,530 @@
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+ClinicConnect:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+ClinicConnect:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?
+ClinicConnect:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+ClinicConnect:1 Uncaught (in promise) Timeout (b)
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: The message port closed before a response was received.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+background.js:1 Uncaught (in promise) 
+background.js:1 Uncaught (in promise) 
+background.js:1 Uncaught (in promise) 
+background.js:1 Uncaught (in promise) 
+background.js:1 Uncaught (in promise) 
+background.js:1 Uncaught (in promise) 
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+background.js:1 Uncaught (in promise) 
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/profile:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+utils.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+extensionState.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+heuristicsRedefinitions.js:1  Failed to load resource: net::ERR_FILE_NOT_FOUND
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/notifications:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/dashboard/stats:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/patients:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/organizations/user-organizations:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/patients:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/autocomplete/address:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/notifications:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+4a2288ea-34b5-4be7-b80a-4d92a50b4880-00-31bjqy7lqr5v2.spock.replit.dev/api/patients:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+injected.js:27 Patient registration error: Error: 401: {"message":"Authentication required"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:50:3)
+    at async Object.mutationFn (patient-registration-modal.tsx:73:24)
+(anonymous) @ injected.js:27
