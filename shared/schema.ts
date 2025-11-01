@@ -1596,6 +1596,73 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 
+// AI-Powered Consultations - Reference: blueprint:javascript_openai_ai_integrations
+export const aiConsultations = pgTable('ai_consultations', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id').references(() => patients.id).notNull(),
+  providerId: integer('provider_id').references(() => users.id).notNull(),
+  transcript: json('transcript').$type<Array<{
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp: string;
+  }>>().default([]),
+  status: varchar('status', { length: 20 }).default('in_progress').notNull(), // 'in_progress', 'completed', 'cancelled'
+  chiefComplaint: text('chief_complaint'),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  createdAt: timestamp('created_at').defaultNow(),
+  completedAt: timestamp('completed_at')
+});
+
+export const clinicalNotes = pgTable('clinical_notes', {
+  id: serial('id').primaryKey(),
+  consultationId: integer('consultation_id').references(() => aiConsultations.id).notNull(),
+  // SOAP Format
+  subjective: text('subjective'), // Patient's story in their own words
+  objective: text('objective'), // Physical examination findings
+  assessment: text('assessment'), // Diagnosis or differential diagnoses
+  plan: text('plan'), // Treatment plan and follow-up
+  // Additional structured data
+  chiefComplaint: text('chief_complaint'),
+  historyOfPresentIllness: text('history_of_present_illness'),
+  pastMedicalHistory: text('past_medical_history'),
+  medications: json('medications').$type<Array<{
+    name: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+  }>>().default([]),
+  vitalSigns: json('vital_signs').$type<{
+    temperature?: string;
+    bloodPressure?: string;
+    heartRate?: string;
+    respiratoryRate?: string;
+    oxygenSaturation?: string;
+  }>(),
+  diagnosis: text('diagnosis'),
+  recommendations: text('recommendations'),
+  followUpInstructions: text('follow_up_instructions'),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+export const insertAiConsultationSchema = createInsertSchema(aiConsultations).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true
+});
+
+export const insertClinicalNoteSchema = createInsertSchema(clinicalNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type AiConsultation = typeof aiConsultations.$inferSelect;
+export type InsertAiConsultation = z.infer<typeof insertAiConsultationSchema>;
+export type ClinicalNote = typeof clinicalNotes.$inferSelect;
+export type InsertClinicalNote = z.infer<typeof insertClinicalNoteSchema>;
+
 // UserOrganizations schemas
 export const insertUserOrganizationSchema = createInsertSchema(userOrganizations).omit({
   id: true,
