@@ -1,0 +1,102 @@
+Got it ✅ — from your screenshot, I can see that your **Medication search** box currently says:
+
+> “No medications found matching ‘paracetmaol’”
+
+That means your **autocomplete or medication search function** isn’t returning results from your medication database or API.
+Here’s how to fix and improve it — both short-term (to make it work) and long-term (to make it smarter 👇).
+
+---
+
+### ⚙️ 1. Verify Medication Data Exists in the Backend
+
+Your repo already includes
+`medications_comprehensive_seed.sql` — this likely seeds the database.
+Make sure it’s actually been imported:
+
+```bash
+psql clinicconnect_db < server/medications_comprehensive_seed.sql
+```
+
+Then verify:
+
+```sql
+SELECT COUNT(*) FROM medications;
+```
+
+If it returns 0, your autocomplete will always fail.
+
+---
+
+### 🧠 2. Fix Typo-Tolerant Search (Fuzzy Matching)
+
+Right now, searching “paracetmaol” (typo) returns nothing.
+Improve your `/api/medications/search` endpoint or query to use **ILIKE** or fuzzy matching:
+
+**PostgreSQL example:**
+
+```sql
+SELECT * FROM medications
+WHERE name ILIKE '%' || $1 || '%'
+ORDER BY SIMILARITY(name, $1) DESC
+LIMIT 10;
+```
+
+Make sure to enable the fuzzy extension:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+```
+
+If using Drizzle ORM:
+
+```ts
+const results = await db.select()
+  .from(medications)
+  .where(ilike(medications.name, `%${query}%`))
+  .limit(10);
+```
+
+---
+
+### ⚛️ 3. Check Front-End Search Function
+
+In your React component (likely `MedicationSearch.tsx` or similar), make sure the search input correctly calls your API:
+
+```ts
+const handleSearch = async (term: string) => {
+  if (!term) return setOptions([]);
+  const res = await fetch(`/api/medications/search?query=${term}`);
+  const data = await res.json();
+  setOptions(data);
+};
+```
+
+✅ Add a small **debounce** (e.g. 300 ms) so it doesn’t fire on every keystroke.
+
+---
+
+### 💡 4. Optional Enhancements
+
+| Feature                      | Description                                                             |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| **Autocomplete Suggestions** | Show “Did you mean Paracetamol?” when fuzzy-match confidence > 0.7      |
+| **Drug Details Popup**       | Display strength, route, and dosage when a medication is selected       |
+| **Recent / Common Drugs**    | Cache last 10 used drugs per user or per specialty                      |
+| **Add Custom Entry**         | Allow manual entry if not found (already visible in your UI)            |
+| **AI Helper**                | Optional: suggest standard dosages using OpenAI API for each medication |
+
+---
+
+### ✅ Quick Debug Checklist
+
+| Step | Check                                                            |
+| ---- | ---------------------------------------------------------------- |
+| 🗃️  | `medications` table populated?                                   |
+| 🧩   | `/api/medications/search` returns results when queried manually? |
+| 🖥️  | Frontend uses correct API URL (same origin)?                     |
+| 🔡   | Search term normalization (trim, lowercase)?                     |
+| 🔍   | Fuzzy matching enabled?                                          |
+
+---
+
+Would you like me to generate a **working React + Express snippet** for the medication search with **fuzzy match and suggestions** (plug-and-play for your ClinicConnect)?

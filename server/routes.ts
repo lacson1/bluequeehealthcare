@@ -669,7 +669,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
-  // Smart Suggestion Endpoints for Auto-complete
+  // Smart Suggestion Endpoints for Auto-complete with fuzzy matching
   app.get("/api/suggestions/medicines", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { q } = req.query;
@@ -677,45 +677,58 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.json([]);
       }
 
-      // Query the comprehensive medications database
-      const searchTerm = `%${q.toLowerCase()}%`;
-      const result = await db.select()
-        .from(medications)
-        .where(
-          or(
-            ilike(medications.name, searchTerm),
-            ilike(medications.genericName, searchTerm),
-            ilike(medications.brandName, searchTerm),
-            ilike(medications.category, searchTerm),
-            ilike(medications.activeIngredient, searchTerm)
-          )
-        )
-        .limit(10)
-        .orderBy(medications.name);
+      const searchQuery = q.toLowerCase().trim();
+      
+      // Use raw SQL for fuzzy matching with pg_trgm extension
+      // Combines exact/partial matches (ILIKE) with typo-tolerant similarity search
+      const result = await db.execute(sql`
+        SELECT DISTINCT ON (id)
+          id, name, generic_name, brand_name, category, dosage_form, 
+          strength, dosage_adult, dosage_child, frequency, indications,
+          contraindications, side_effects, route_of_administration, cost_per_unit,
+          GREATEST(
+            SIMILARITY(name, ${searchQuery}),
+            COALESCE(SIMILARITY(generic_name, ${searchQuery}), 0),
+            COALESCE(SIMILARITY(brand_name, ${searchQuery}), 0)
+          ) as similarity_score
+        FROM medications
+        WHERE 
+          name ILIKE ${`%${searchQuery}%`}
+          OR generic_name ILIKE ${`%${searchQuery}%`}
+          OR brand_name ILIKE ${`%${searchQuery}%`}
+          OR category ILIKE ${`%${searchQuery}%`}
+          OR active_ingredient ILIKE ${`%${searchQuery}%`}
+          OR SIMILARITY(name, ${searchQuery}) > 0.3
+          OR SIMILARITY(generic_name, ${searchQuery}) > 0.3
+          OR SIMILARITY(brand_name, ${searchQuery}) > 0.3
+        ORDER BY id, similarity_score DESC
+        LIMIT 10
+      `);
 
-      res.json(result.map(med => ({
+      res.json(result.rows.map((med: any) => ({
         id: med.id,
         name: med.name,
-        genericName: med.genericName,
-        brandName: med.brandName,
+        genericName: med.generic_name,
+        brandName: med.brand_name,
         category: med.category,
-        dosageForm: med.dosageForm,
+        dosageForm: med.dosage_form,
         strength: med.strength,
-        dosageAdult: med.dosageAdult,
-        dosageChild: med.dosageChild,
+        dosageAdult: med.dosage_adult,
+        dosageChild: med.dosage_child,
         frequency: med.frequency,
         indications: med.indications,
         contraindications: med.contraindications,
-        sideEffects: med.sideEffects,
-        routeOfAdministration: med.routeOfAdministration,
-        costPerUnit: med.costPerUnit
+        sideEffects: med.side_effects,
+        routeOfAdministration: med.route_of_administration,
+        costPerUnit: med.cost_per_unit
       })));
     } catch (error) {
+      console.error('Medicine suggestions error:', error);
       res.status(500).json({ error: "Failed to fetch medicine suggestions" });
     }
   });
 
-  // Comprehensive Medications Database API
+  // Comprehensive Medications Database API with fuzzy matching
   app.get('/api/suggestions/medications', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { q } = req.query;
@@ -723,38 +736,50 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.json([]);
       }
 
-      const searchTerm = `%${q.toLowerCase()}%`;
-      // Use comprehensive medications table for auto-fill functionality
-      const result = await db.select()
-        .from(medications)
-        .where(
-          or(
-            ilike(medications.name, searchTerm),
-            ilike(medications.genericName, searchTerm),
-            ilike(medications.brandName, searchTerm),
-            ilike(medications.category, searchTerm),
-            ilike(medications.activeIngredient, searchTerm)
-          )
-        )
-        .limit(10)
-        .orderBy(medications.name);
+      const searchQuery = q.toLowerCase().trim();
+      
+      // Use raw SQL for fuzzy matching with pg_trgm extension
+      // Combines exact/partial matches (ILIKE) with typo-tolerant similarity search
+      const result = await db.execute(sql`
+        SELECT DISTINCT ON (id)
+          id, name, generic_name, brand_name, category, dosage_form, 
+          strength, dosage_adult, dosage_child, frequency, indications,
+          contraindications, side_effects, route_of_administration, cost_per_unit,
+          GREATEST(
+            SIMILARITY(name, ${searchQuery}),
+            COALESCE(SIMILARITY(generic_name, ${searchQuery}), 0),
+            COALESCE(SIMILARITY(brand_name, ${searchQuery}), 0)
+          ) as similarity_score
+        FROM medications
+        WHERE 
+          name ILIKE ${`%${searchQuery}%`}
+          OR generic_name ILIKE ${`%${searchQuery}%`}
+          OR brand_name ILIKE ${`%${searchQuery}%`}
+          OR category ILIKE ${`%${searchQuery}%`}
+          OR active_ingredient ILIKE ${`%${searchQuery}%`}
+          OR SIMILARITY(name, ${searchQuery}) > 0.3
+          OR SIMILARITY(generic_name, ${searchQuery}) > 0.3
+          OR SIMILARITY(brand_name, ${searchQuery}) > 0.3
+        ORDER BY id, similarity_score DESC
+        LIMIT 10
+      `);
 
-      res.json(result.map(med => ({
+      res.json(result.rows.map((med: any) => ({
         id: med.id,
         name: med.name,
-        genericName: med.genericName,
-        brandName: med.brandName,
+        genericName: med.generic_name,
+        brandName: med.brand_name,
         category: med.category,
-        dosageForm: med.dosageForm,
+        dosageForm: med.dosage_form,
         strength: med.strength,
-        dosageAdult: med.dosageAdult,
-        dosageChild: med.dosageChild,
+        dosageAdult: med.dosage_adult,
+        dosageChild: med.dosage_child,
         frequency: med.frequency,
         indications: med.indications,
         contraindications: med.contraindications,
-        sideEffects: med.sideEffects,
-        routeOfAdministration: med.routeOfAdministration,
-        costPerUnit: med.costPerUnit
+        sideEffects: med.side_effects,
+        routeOfAdministration: med.route_of_administration,
+        costPerUnit: med.cost_per_unit
       })));
     } catch (error) {
       console.error('Medication suggestions error:', error);
