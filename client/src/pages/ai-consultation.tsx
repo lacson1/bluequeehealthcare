@@ -32,10 +32,11 @@ export default function AiConsultationPage() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (msg: string) => {
-      return await apiRequest(`/api/ai-consultations/${id}/messages`, {
-        method: "POST",
-        body: JSON.stringify({ message: msg, role: "user" })
+      const response = await apiRequest(`/api/ai-consultations/${id}/messages`, 'POST', { 
+        message: msg, 
+        role: "user" 
       });
+      return await response.json();
     },
     onSuccess: () => {
       setMessage("");
@@ -52,9 +53,8 @@ export default function AiConsultationPage() {
 
   const generateNotesMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/ai-consultations/${id}/generate-notes`, {
-        method: "POST"
-      });
+      const response = await apiRequest(`/api/ai-consultations/${id}/generate-notes`, 'POST');
+      return await response.json();
     },
     onSuccess: () => {
       toast({

@@ -30,10 +30,8 @@ export default function AiConsultationsListPage() {
 
   const createConsultationMutation = useMutation({
     mutationFn: async (data: { patientId: number; chiefComplaint: string }) => {
-      return await apiRequest('/api/ai-consultations', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
+      const response = await apiRequest('/api/ai-consultations', 'POST', data);
+      return await response.json();
     },
     onSuccess: (data: any) => {
       toast({
