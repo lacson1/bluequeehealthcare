@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation } from "wouter";
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -136,25 +137,14 @@ export function PatientDropdownMenu({
           onClick={async () => {
             if (confirm(`Are you sure you want to archive ${formatPatientName(patient)}? This will hide the patient from active lists but preserve all medical records.`)) {
               try {
-                const response = await fetch(`/api/patients/${patient.id}/archive`, {
-                  method: 'PATCH',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                  },
-                  body: JSON.stringify({ archived: true })
+                const response = await apiRequest(`/api/patients/${patient.id}/archive`, 'PATCH', { archived: true });
+                
+                toast({
+                  title: 'Patient Archived',
+                  description: `${patient.firstName} ${patient.lastName} has been archived successfully.`,
                 });
-
-                if (response.ok) {
-                  toast({
-                    title: 'Patient Archived',
-                    description: `${patient.firstName} ${patient.lastName} has been archived successfully.`,
-                  });
-                  // Refresh the page to update the patient list
-                  window.location.reload();
-                } else {
-                  throw new Error('Failed to archive patient');
-                }
+                // Refresh the page to update the patient list
+                window.location.reload();
               } catch (error) {
                 toast({
                   title: 'Archive Failed',

@@ -813,34 +813,23 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   const handleSendToDispensary = async (prescription: any) => {
     try {
-      const response = await fetch(`/api/pharmacy-activities`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          prescriptionId: prescription.id,
-          patientId: prescription.patientId,
-          medicationName: prescription.medicationName,
-          dosage: prescription.dosage,
-          frequency: prescription.frequency,
-          activityType: 'dispensing_request',
-          status: 'pending',
-          requestedBy: 'doctor',
-          notes: `Prescription sent for dispensing: ${prescription.medicationName} ${prescription.dosage}`,
-          organizationId: prescription.organizationId
-        })
+      await apiRequest('/api/pharmacy-activities', 'POST', {
+        prescriptionId: prescription.id,
+        patientId: prescription.patientId,
+        medicationName: prescription.medicationName,
+        dosage: prescription.dosage,
+        frequency: prescription.frequency,
+        activityType: 'dispensing_request',
+        status: 'pending',
+        requestedBy: 'doctor',
+        notes: `Prescription sent for dispensing: ${prescription.medicationName} ${prescription.dosage}`,
+        organizationId: prescription.organizationId
       });
 
-      if (response.ok) {
-        toast({
-          title: "Sent to Dispensary",
-          description: `${prescription.medicationName} has been sent to the dispensary for processing`,
-        });
-      } else {
-        throw new Error('Failed to send to dispensary');
-      }
+      toast({
+        title: "Sent to Dispensary",
+        description: `${prescription.medicationName} has been sent to the dispensary for processing`,
+      });
     } catch (error) {
       toast({
         title: "Error",

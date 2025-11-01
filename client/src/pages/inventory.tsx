@@ -71,19 +71,7 @@ export default function InventoryPage() {
 
   const updateQuantityMutation = useMutation({
     mutationFn: async ({ id, quantity }: { id: number; quantity: number }) => {
-      const response = await fetch(`/api/medicines/${id}/quantity`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ quantity })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update quantity');
-      }
-      
+      const response = await apiRequest(`/api/medicines/${id}/quantity`, 'PATCH', { quantity });
       return response.json();
     },
     onSuccess: () => {
@@ -100,19 +88,7 @@ export default function InventoryPage() {
 
   const reorderMutation = useMutation({
     mutationFn: async (reorderData: ReorderRequest) => {
-      const response = await fetch('/api/medicines/reorder', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(reorderData)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create reorder request');
-      }
-      
+      const response = await apiRequest('/api/medicines/reorder', 'POST', reorderData);
       return response.json();
     },
     onSuccess: () => {

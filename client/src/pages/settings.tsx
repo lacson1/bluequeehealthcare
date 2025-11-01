@@ -98,19 +98,7 @@ export default function Settings() {
   // Update settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: SettingsForm) => {
-      const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update settings');
-      }
-      
+      const response = await apiRequest('/api/settings', 'PUT', data);
       return response.json();
     },
     onSuccess: () => {

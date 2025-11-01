@@ -131,19 +131,7 @@ export default function PatientAccessCards() {
   // Send notifications mutation
   const sendNotificationMutation = useMutation({
     mutationFn: async (data: { patientIds: number[], type: 'email' | 'sms' }) => {
-      const response = await fetch('/api/patient-portal/send-access-info', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to send notifications');
-      }
-      
+      const response = await apiRequest('/api/patient-portal/send-access-info', 'POST', data);
       return response.json();
     },
     onSuccess: () => {
