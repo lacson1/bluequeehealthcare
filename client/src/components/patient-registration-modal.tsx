@@ -91,13 +91,18 @@ export default function PatientRegistrationModal({
       
       // Extract error message from the error object
       let errorMessage = "Failed to register patient. Please try again.";
+      let errorTitle = "Registration Error";
       
       if (error?.message) {
-        // Parse the error message to extract the actual error from the server
         const errorText = error.message;
         
+        // Check for authentication error
+        if (errorText.includes("401") || errorText.toLowerCase().includes("authentication required")) {
+          errorTitle = "Authentication Required";
+          errorMessage = "Please log in to register patients. Your session may have expired.";
+        }
         // Check if it's a validation error
-        if (errorText.includes("400") || errorText.includes("Validation")) {
+        else if (errorText.includes("400") || errorText.includes("Validation")) {
           errorMessage = "Please check all required fields and try again.";
           
           // Try to extract the specific validation message
@@ -108,14 +113,29 @@ export default function PatientRegistrationModal({
         } else if (errorText.includes("details")) {
           // Try to extract Zod validation details
           errorMessage = "Please fill in all required fields correctly.";
+        } else if (errorText.includes("403") || errorText.toLowerCase().includes("forbidden")) {
+          errorMessage = "You don't have permission to register patients.";
         } else {
-          // Remove HTTP status code prefix
-          errorMessage = errorText.replace(/^\d+:\s*/, '');
+          // Remove HTTP status code prefix and clean up the message
+          errorMessage = errorText.replace(/^\d+:\s*/, '').replace(/^Error:\s*/i, '');
+          
+          // If message still contains JSON, try to parse it
+          try {
+            const jsonMatch = errorText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (parsed.message) {
+                errorMessage = parsed.message;
+              }
+            }
+          } catch (e) {
+            // Keep the cleaned message if JSON parsing fails
+          }
         }
       }
       
       toast({
-        title: "Registration Error",
+        title: errorTitle,
         description: errorMessage,
         variant: "destructive",
       });
