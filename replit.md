@@ -27,6 +27,7 @@ The system adopts a mobile-first responsive design with a clean, professional in
 **Feature Specifications:**
 - **Enhanced Blood Test Dashboard:** 4-tab interface with interactive charts (recharts), clinical trend analysis, and mobile responsiveness.
 - **Enhanced Medication Management:** Visual categorization, refill tracking, alerts, and touch-friendly mobile controls.
+- **Typo-Tolerant Medication Search:** Fuzzy text search using PostgreSQL pg_trgm extension enables finding medications even with spelling mistakes. Backend endpoints (`/api/suggestions/medications` and `/api/suggestions/medicines`) combine ILIKE pattern matching with SIMILARITY() scoring (threshold: 0.3). Example: searching "paracetmaol" (typo) finds "Paracetamol" with 50% similarity score; "ibruprofen" finds "Ibuprofen" with 62% similarity. Results ordered by similarity score (best matches first). Database: 463 medications available. Frontend: MedicationAutocomplete component in prescription modal with minimum 2-character search query.
 - **User Management System:** Role-based user creation, permission-based access control, organization-aware operations, and audit logging.
 - **Patient Management:** Redesigned interface for improved usability with streamlined controls, grid/list views, search, filters, and sorting.
 - **Patient Portal:** Secure patient authentication, dashboard, lab results, medications, and appointments, all mobile-responsive.
@@ -39,7 +40,7 @@ The system adopts a mobile-first responsive design with a clean, professional in
 ## External Dependencies
 - **Replit Auth:** For OpenID Connect-based social authentication (Google, GitHub, X, Apple, Email).
 - **OpenAI:** For AI-powered consultation tool via Replit AI Integrations (no API key required, billed to Replit credits).
-- **PostgreSQL:** Relational database system.
+- **PostgreSQL:** Relational database system with pg_trgm extension for fuzzy text search.
 - **Drizzle ORM:** Object-Relational Mapper for database interaction.
 - **Shadcn/UI:** UI component library.
 - **Tailwind CSS:** Utility-first CSS framework.
