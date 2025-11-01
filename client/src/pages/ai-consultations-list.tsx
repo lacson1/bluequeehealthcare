@@ -46,10 +46,11 @@ export default function AiConsultationsListPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/ai-consultations'] });
       navigate(`/ai-consultations/${data.id}`);
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Failed to start consultation";
       toast({
         title: "Error",
-        description: "Failed to start consultation",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -92,16 +93,30 @@ export default function AiConsultationsListPage() {
                 <Label htmlFor="patient">Patient</Label>
                 <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
                   <SelectTrigger id="patient" data-testid="select-patient">
-                    <SelectValue placeholder="Select patient" />
+                    <SelectValue placeholder={patients.length === 0 ? "No patients available" : "Select patient"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {patients.map((patient: any) => (
-                      <SelectItem key={patient.id} value={patient.id.toString()}>
-                        {patient.firstName} {patient.lastName}
-                      </SelectItem>
-                    ))}
+                    {patients.length === 0 ? (
+                      <div className="p-4 text-sm text-center text-muted-foreground">
+                        No patients found. Please create a patient first.
+                      </div>
+                    ) : (
+                      patients.map((patient: any) => (
+                        <SelectItem key={patient.id} value={patient.id.toString()}>
+                          {patient.firstName} {patient.lastName}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {patients.length === 0 && (
+                  <p className="text-sm text-amber-600 mt-2">
+                    You need to create at least one patient before starting an AI consultation.
+                    <a href="/patients" className="ml-1 underline font-medium">
+                      Go to Patient Registry
+                    </a>
+                  </p>
+                )}
               </div>
               <div>
                 <Label htmlFor="complaint">Chief Complaint</Label>
@@ -115,7 +130,7 @@ export default function AiConsultationsListPage() {
               </div>
               <Button
                 onClick={handleCreate}
-                disabled={!selectedPatientId || !chiefComplaint || createConsultationMutation.isPending}
+                disabled={!selectedPatientId || !chiefComplaint || createConsultationMutation.isPending || patients.length === 0}
                 className="w-full"
                 data-testid="button-create"
               >

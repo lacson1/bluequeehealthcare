@@ -5750,6 +5750,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const { patientId, chiefComplaint } = req.body;
       const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
       
+      // Validate patient exists and belongs to the same organization
+      const patient = await storage.getPatient(parseInt(patientId));
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found. Please create a patient first before starting a consultation." });
+      }
+      if (patient.organizationId !== userOrgId) {
+        return res.status(403).json({ message: "Patient belongs to a different organization" });
+      }
+      
       const consultationData = {
         patientId: parseInt(patientId),
         providerId: req.user!.id,
