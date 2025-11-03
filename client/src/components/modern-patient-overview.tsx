@@ -1626,19 +1626,35 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
               <Tabs defaultValue="current" className="w-full">
                 <div className="flex items-center justify-between mb-4">
                   <TabsList className="grid w-full grid-cols-4 max-w-2xl">
-                    <TabsTrigger value="current" className="flex items-center gap-2">
+                    <TabsTrigger 
+                      value="current" 
+                      className="flex items-center gap-2 data-[state=active]:bg-green-50 data-[state=active]:text-green-700 data-[state=active]:border-green-200"
+                      data-testid="tab-current-medications"
+                    >
                       <Medication className="w-4 h-4" />
                       Current ({activeMedications.length})
                     </TabsTrigger>
-                    <TabsTrigger value="past" className="flex items-center gap-2">
+                    <TabsTrigger 
+                      value="past" 
+                      className="flex items-center gap-2 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 data-[state=active]:border-orange-200"
+                      data-testid="tab-past-medications"
+                    >
                       <Clock className="w-4 h-4" />
                       Past ({discontinuedMedications.length})
                     </TabsTrigger>
-                    <TabsTrigger value="repeat" className="flex items-center gap-2">
+                    <TabsTrigger 
+                      value="repeat" 
+                      className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200"
+                      data-testid="tab-repeat-medications"
+                    >
                       <Refresh className="w-4 h-4" />
                       Repeat ({repeatMedications.length})
                     </TabsTrigger>
-                    <TabsTrigger value="summary" className="flex items-center gap-2">
+                    <TabsTrigger 
+                      value="summary" 
+                      className="flex items-center gap-2 data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700 data-[state=active]:border-purple-200"
+                      data-testid="tab-medication-summary"
+                    >
                       <FileText className="w-4 h-4" />
                       Summary
                     </TabsTrigger>
