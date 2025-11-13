@@ -1804,6 +1804,8 @@ export const tabConfigs = pgTable('tab_configs', {
   }>(),
   isVisible: boolean('is_visible').default(true),
   isSystemDefault: boolean('is_system_default').default(false), // True for built-in tabs
+  isMandatory: boolean('is_mandatory').default(false), // Cannot be hidden even by user overrides
+  category: varchar('category', { length: 50 }), // e.g., 'clinical', 'administrative', 'custom'
   displayOrder: integer('display_order').notNull(), // Sort order (use multiples of 10 for easier reordering)
   createdBy: integer('created_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow(),
@@ -1818,3 +1820,45 @@ export const insertTabConfigSchema = createInsertSchema(tabConfigs).omit({
 
 export type TabConfig = typeof tabConfigs.$inferSelect;
 export type InsertTabConfig = z.infer<typeof insertTabConfigSchema>;
+
+// Tab Presets - predefined tab configurations for different user roles/workflows
+export const tabPresets = pgTable('tab_presets', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(), // e.g., "Doctor's View", "Nurse's View"
+  description: text('description'), // What this preset is for
+  scope: varchar('scope', { length: 20 }).notNull(), // 'system', 'organization'
+  organizationId: integer('organization_id').references(() => organizations.id), // null for system presets
+  icon: varchar('icon', { length: 50 }), // Lucide icon name
+  isDefault: boolean('is_default').default(false), // Default preset for new users
+  createdBy: integer('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+export const insertTabPresetSchema = createInsertSchema(tabPresets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export type TabPreset = typeof tabPresets.$inferSelect;
+export type InsertTabPreset = z.infer<typeof insertTabPresetSchema>;
+
+// Tab Preset Items - which tabs are included in each preset
+export const tabPresetItems = pgTable('tab_preset_items', {
+  id: serial('id').primaryKey(),
+  presetId: integer('preset_id').references(() => tabPresets.id).notNull(),
+  tabKey: varchar('tab_key', { length: 100 }).notNull(), // References tab_configs.key
+  isVisible: boolean('is_visible').default(true),
+  displayOrder: integer('display_order').notNull(),
+  customLabel: varchar('custom_label', { length: 100 }), // Override default label
+  customIcon: varchar('custom_icon', { length: 50 }), // Override default icon
+  customSettings: json('custom_settings').$type<Record<string, any>>(), // Override default settings
+});
+
+export const insertTabPresetItemSchema = createInsertSchema(tabPresetItems).omit({
+  id: true
+});
+
+export type TabPresetItem = typeof tabPresetItems.$inferSelect;
+export type InsertTabPresetItem = z.infer<typeof insertTabPresetItemSchema>;
