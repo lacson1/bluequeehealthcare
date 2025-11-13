@@ -1554,10 +1554,6 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                 <Clock className="w-5 h-5 animate-spin mr-2" />
                 <span className="font-semibold">Loading tabs...</span>
               </div>
-            ) : tabsError ? (
-              <div className="col-span-full flex items-center justify-center py-4 text-orange-600">
-                <span className="font-semibold">Using default tabs (offline mode)</span>
-              </div>
             ) : (
               tabs.map((tab) => {
                 const IconComponent = getTabIcon(tab.icon);
