@@ -110,7 +110,7 @@ function SortableTabItem({ tab, onEdit, onDelete, onToggleVisibility }: Sortable
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: tab.id });
+  } = useSortable({ id: tab.id, disabled: tab.isSystemDefault });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -132,8 +132,9 @@ function SortableTabItem({ tab, onEdit, onDelete, onToggleVisibility }: Sortable
       <div
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        className={tab.isSystemDefault ? "opacity-30 cursor-not-allowed text-gray-300" : "cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"}
         data-testid={`drag-handle-${tab.key}`}
+        title={tab.isSystemDefault ? "System tabs cannot be reordered" : "Drag to reorder"}
       >
         <GripVertical className="h-5 w-5" />
       </div>
@@ -348,7 +349,19 @@ export function TabManager({ open, onOpenChange }: TabManagerProps) {
 
       const reordered = arrayMove(tabs, oldIndex, newIndex);
       setTabs(reordered);
-      reorderMutation.mutate(reordered);
+      
+      // Only send custom tabs for reordering (filter out system defaults)
+      const customTabsOnly = reordered.filter(tab => !tab.isSystemDefault);
+      
+      if (customTabsOnly.length === 0) {
+        toast({
+          title: 'Info',
+          description: 'Only custom tabs can be reordered. System tabs maintain their default order.',
+        });
+        return;
+      }
+      
+      reorderMutation.mutate(customTabsOnly);
     }
   }
 

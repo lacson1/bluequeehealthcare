@@ -287,10 +287,10 @@ export const securityHeaders = (req: any, res: any, next: any) => {
   const cspDirectives = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.replit.com https://*.replit.dev",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob:",
-    "font-src 'self' data:",
-    "connect-src 'self' https://*.replit.com https://*.replit.dev wss://*.replit.com wss://*.replit.dev",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' https://*.replit.com https://*.replit.dev wss://*.replit.com wss://*.replit.dev wss://*.replit.com:* wss://*.replit.dev:*",
     "frame-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
