@@ -229,8 +229,6 @@ export default function PatientChat({ patientId, patientName }: PatientChatProps
                         </div>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => {
-                          // Could navigate to user profile page
-                          console.log(`Viewing profile for ${comment.user.username}`);
                         }} className="flex items-center">
                           <Eye className="mr-2 h-4 w-4" />
                           View Profile
@@ -243,23 +241,17 @@ export default function PatientChat({ patientId, patientName }: PatientChatProps
                           Reply to Comment
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
-                          // Could open a direct message interface
-                          console.log(`Starting conversation with ${comment.user.username}`);
                         }} className="flex items-center">
                           <Mail className="mr-2 h-4 w-4" />
                           Send Message
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => {
-                          // Could show user activity in a modal
-                          console.log(`Viewing activity for ${comment.user.username}`);
                         }} className="flex items-center">
                           <UserCheck className="mr-2 h-4 w-4" />
                           View Activity
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
-                          // Could open a report dialog
-                          console.log(`Reporting comment from ${comment.user.username}`);
                         }} className="flex items-center">
                           <Flag className="mr-2 h-4 w-4" />
                           Report Comment

@@ -104,15 +104,7 @@ export default function TelemedicinePage() {
   });
 
   const handleScheduleSession = () => {
-    console.log('Schedule session - Form values:', { selectedPatientId, scheduledTime, sessionType });
-    
     if (!selectedPatientId || !scheduledTime) {
-      console.log('Validation failed - Missing:', { 
-        hasPatient: !!selectedPatientId, 
-        hasTime: !!scheduledTime,
-        patientId: selectedPatientId,
-        time: scheduledTime
-      });
       toast({
         title: "Missing Information",
         description: "Please select a patient and scheduled time.",
@@ -128,7 +120,6 @@ export default function TelemedicinePage() {
       status: 'scheduled'
     };
 
-    console.log('Creating session with data:', sessionData);
     createSessionMutation.mutate(sessionData);
   };
 
@@ -272,10 +263,7 @@ export default function TelemedicinePage() {
                 <Input 
                   type="datetime-local" 
                   value={scheduledTime}
-                  onChange={(e) => {
-                    console.log('Scheduled time changed:', e.target.value);
-                    setScheduledTime(e.target.value);
-                  }}
+                  onChange={(e) => setScheduledTime(e.target.value)}
                   data-testid="input-scheduled-time"
                 />
               </div>

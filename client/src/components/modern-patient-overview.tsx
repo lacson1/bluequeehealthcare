@@ -1062,8 +1062,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
           });
           
           if (notificationResponse.ok) {
-            const notificationData = await notificationResponse.json();
-            console.log('✅ Staff notification sent:', notificationData);
+            await notificationResponse.json();
           } else {
             console.error('❌ Failed to send staff notification:', await notificationResponse.text());
           }
@@ -1140,8 +1139,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
           });
           
           if (pharmacyNotificationResponse.ok) {
-            const pharmacyNotificationData = await pharmacyNotificationResponse.json();
-            console.log('✅ Pharmacy notification sent:', pharmacyNotificationData);
+            await pharmacyNotificationResponse.json();
           } else {
             console.error('❌ Failed to send pharmacy notification:', await pharmacyNotificationResponse.text());
           }
@@ -1220,10 +1218,6 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   const handleReorderMedication = async (prescription: any) => {
     try {
-      console.log('🔄 Step 1: Starting reorder');
-      console.log('🔄 Step 2: User check passed');
-      console.log('🔄 Step 3: Creating reorder data...');
-      
       // Create a new prescription based on the previous one
       const reorderData = {
         patientId: prescription.patientId,
@@ -1238,8 +1232,6 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
         startDate: new Date().toISOString(),
         organizationId: user?.organizationId || 2
       };
-
-      console.log('🔄 Step 4: Data prepared, making request...');
       
       const response = await fetch(`/api/patients/${prescription.patientId}/prescriptions`, {
         method: 'POST',
@@ -1249,9 +1241,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
         body: JSON.stringify(reorderData),
       });
 
-      console.log('🔄 Reorder response status:', response.status);
       const responseText = await response.text();
-      console.log('🔄 Reorder response body:', responseText);
 
       if (response.ok) {
         // Refresh prescriptions data
