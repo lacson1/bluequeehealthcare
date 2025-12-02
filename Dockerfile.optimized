@@ -14,14 +14,15 @@ COPY postcss.config.js ./
 COPY components.json ./
 
 # Install all dependencies (needed for build)
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY client ./client
 COPY shared ./shared
+COPY attached_assets ./attached_assets
 
-# Build frontend
-RUN npm run build
+# Build frontend only (vite)
+RUN npx vite build
 
 # Stage 2: Build backend
 FROM node:20-alpine AS backend-builder
@@ -33,12 +34,17 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install all dependencies
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
-# Copy server code
+# Copy server code and config files
 COPY server ./server
 COPY shared ./shared
+COPY client ./client
 COPY drizzle.config.ts ./
+COPY vite.config.ts ./
+COPY tailwind.config.ts ./
+COPY postcss.config.js ./
+COPY tsconfig.json ./
 
 # Build backend
 RUN npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
@@ -50,7 +56,7 @@ WORKDIR /app
 
 # Install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
 # Copy built assets from previous stages
 COPY --from=frontend-builder /app/dist/public ./dist/public
