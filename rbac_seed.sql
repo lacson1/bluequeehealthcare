@@ -3,10 +3,11 @@
 
 -- 1. Insert Roles
 INSERT INTO roles (name, description) VALUES
-('doctor', 'Can view and edit patient data, consultations, and lab results'),
-('nurse', 'Can view and update basic patient data and lab orders'),
-('pharmacist', 'Can view prescriptions and manage medication orders'),
+('doctor', 'Can view and edit patient data, consultations, prescriptions, and lab results'),
+('nurse', 'Can view and update basic patient data, vitals, and lab orders'),
+('pharmacist', 'Can view prescriptions and manage medication dispensing'),
 ('physiotherapist', 'Can view patients and create specialized consultation forms'),
+('receptionist', 'Front desk staff handling patient registration and appointments'),
 ('admin', 'Can manage staff, patients, and organization settings'),
 ('superadmin', 'Full platform access across all organizations');
 
@@ -59,7 +60,18 @@ INSERT INTO permissions (name, description) VALUES
 -- Dashboard & Analytics
 ('viewDashboard', 'Access the dashboard'),
 ('viewReports', 'View analytics and performance reports'),
-('viewAuditLogs', 'View system audit logs');
+('viewAuditLogs', 'View system audit logs'),
+
+-- Appointments
+('viewAppointments', 'View appointment schedules'),
+('createAppointments', 'Create and schedule appointments'),
+('editAppointments', 'Modify existing appointments'),
+('cancelAppointments', 'Cancel appointments'),
+
+-- Billing (for receptionist)
+('viewBilling', 'View invoices and billing information'),
+('createInvoice', 'Create invoices for patients'),
+('processPayment', 'Process and record payments');
 
 -- 3. Assign Role-Permission Mappings
 
@@ -72,6 +84,7 @@ SELECT 1, id FROM permissions WHERE name IN (
     'createConsultation', 'viewConsultation', 'createConsultationForm',
     'viewMedications', 'createPrescription', 'viewPrescriptions',
     'createReferral', 'viewReferrals', 'manageReferrals',
+    'viewAppointments', 'createAppointments', 'editAppointments',
     'uploadFiles', 'viewFiles',
     'viewDashboard', 'viewReports'
 );
@@ -85,6 +98,7 @@ SELECT 2, id FROM permissions WHERE name IN (
     'viewConsultation',
     'viewMedications', 'viewPrescriptions',
     'createReferral', 'viewReferrals',
+    'viewAppointments', 'createAppointments',
     'uploadFiles', 'viewFiles',
     'viewDashboard'
 );
@@ -109,9 +123,21 @@ SELECT 4, id FROM permissions WHERE name IN (
     'viewDashboard'
 );
 
--- Admin Permissions (Organization-level)
+-- Receptionist Permissions (Front Desk)
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 5, id FROM permissions WHERE name IN (
+    'viewPatients', 'createPatients', 'editPatients',
+    'viewVisits',
+    'viewAppointments', 'createAppointments', 'editAppointments', 'cancelAppointments',
+    'viewPrescriptions',
+    'viewBilling', 'createInvoice', 'processPayment',
+    'viewFiles', 'uploadFiles',
+    'viewDashboard'
+);
+
+-- Admin Permissions (Organization-level)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 6, id FROM permissions WHERE name IN (
     'viewPatients', 'editPatients', 'createPatients',
     'createVisit', 'viewVisits', 'editVisits',
     'createLabOrder', 'viewLabResults', 'editLabResults',
@@ -120,13 +146,15 @@ SELECT 5, id FROM permissions WHERE name IN (
     'createReferral', 'viewReferrals', 'manageReferrals',
     'manageUsers', 'viewUsers',
     'viewOrganizations',
+    'viewAppointments', 'createAppointments', 'editAppointments', 'cancelAppointments',
+    'viewBilling', 'createInvoice', 'processPayment',
     'uploadFiles', 'viewFiles', 'deleteFiles',
     'viewDashboard', 'viewReports', 'viewAuditLogs'
 );
 
 -- Superadmin Permissions (All permissions)
 INSERT INTO role_permissions (role_id, permission_id)
-SELECT 6, id FROM permissions;
+SELECT 7, id FROM permissions;
 
 -- Display created roles and their permission counts
 SELECT 

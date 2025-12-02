@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bell, Globe, Moon, Sun, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, Download, MapPin, MessageSquare, Plus, UserPlus, CalendarPlus, TestTube, Clipboard, ClipboardList, HeartHandshake, Trash2 } from "lucide-react";
+import { Bell, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, MessageSquare, Plus, UserPlus, ClipboardList, HeartHandshake, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,14 +31,13 @@ const getNavigationForRole = (role: string) => {
     { name: "Telemedicine", href: "/telemedicine", icon: Video, roles: ["superadmin", "admin", "doctor", "nurse"] },
     { name: "Clinical Protocols", href: "/protocols", icon: BookOpen, roles: ["superadmin", "admin", "doctor", "nurse"] },
     { name: "Staff Messages", href: "/staff-messages", icon: MessageSquare, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
-    { name: "Compliance Export", href: "/compliance", icon: Download, roles: ["superadmin", "admin"] },
     { name: "Form Builder", href: "/form-builder", icon: FileText, roles: ["superadmin", "admin", "doctor", "nurse"] },
     { name: "User Management", href: "/user-management", icon: UserCog, roles: ["superadmin", "admin"] },
     { name: "Organization Management", href: "/organization-management", icon: Building2, roles: ["superadmin"] },
     { name: "Audit Logs", href: "/audit-logs", icon: Shield, roles: ["superadmin", "admin"] },
     { name: "Profile", href: "/profile", icon: Settings, roles: ["superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
   ];
-  
+
   return allNavigation.filter(item => item.roles.includes(role));
 };
 
@@ -64,8 +63,10 @@ export default function TopBar() {
     unreadCount: number;
   }>({
     queryKey: ['/api/notifications'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 2 * 60 * 1000, // Reduced from 30s to 2 minutes
+    staleTime: 60 * 1000, // Cache for 1 minute
     retry: false,
+    enabled: true, // Always fetch, but handle errors gracefully in queryClient
   });
 
   const notifications = notificationsData?.notifications || [];
@@ -126,88 +127,112 @@ export default function TopBar() {
 
   return (
     <>
-      <div className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-full">
-            
-            {/* Left Section: Logo & Navigation */}
-            <div className="flex items-center space-x-6">
-              {/* Mobile Menu Button */}
+      <header className="h-12 bg-gradient-to-r from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-sm sticky top-0 z-50 backdrop-blur-md bg-white/90 dark:bg-slate-900/90">
+        <div className="h-full max-w-full px-2 sm:px-3 lg:px-4">
+          <div className="flex items-center justify-between h-full gap-2">
+
+            {/* Left: Brand + Navigation */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              {/* Mobile Menu */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="md:hidden h-7 w-7 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md"
+                title="Menu"
               >
-                <Menu className="h-5 w-5" />
+                {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
               </Button>
-              
 
-              
+              {/* Brand/Logo */}
+              <Link href="/dashboard" className="flex items-center gap-1.5 px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors">
+                <Heart className="h-4 w-4 text-blue-600 dark:text-blue-400 fill-blue-600 dark:fill-blue-400" />
+                <span className="hidden sm:inline text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  ClinicConnect
+                </span>
+              </Link>
+
               {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center space-x-1">
-                {navigation.slice(0, 4).map((item) => {
+              <nav className="hidden md:flex items-center gap-0.5 ml-2">
+                {navigation.slice(0, 5).map((item) => {
                   const Icon = item.icon;
+                  const active = isActive(item.href);
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        isActive(item.href)
-                          ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
+                      className={`group flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${active
+                          ? "bg-blue-500 text-white shadow-sm"
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
-                      }`}
+                        }`}
+                      title={item.name}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span className="hidden lg:block">{item.name}</span>
+                      <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${active ? 'text-white' : 'text-slate-500 group-hover:text-slate-700'}`} />
+                      <span className="hidden lg:inline whitespace-nowrap">{item.name}</span>
                     </Link>
                   );
                 })}
-              </nav>
 
+                {/* More Menu */}
+                {navigation.length > 5 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-[11px] hover:bg-slate-100 dark:hover:bg-slate-800"
+                        title="More"
+                      >
+                        <Menu className="h-3 w-3 mr-1" />
+                        <span className="hidden lg:inline">More</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      {navigation.slice(5).map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <DropdownMenuItem key={item.name} asChild>
+                            <Link href={item.href} className="flex items-center gap-2 w-full">
+                              <Icon className="h-4 w-4" />
+                              <span>{item.name}</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </nav>
             </div>
 
-            {/* Center Section: Organization Context */}
+            {/* Center: Organization Badge */}
             {user?.organization && (
-              <div className="hidden lg:flex items-center">
-                <div className="flex items-center px-5 py-2.5 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-blue-900/20 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0 mr-3"
-                    style={{ backgroundColor: user.organization.themeColor || '#3B82F6' }}
-                  />
-                  <MapPin className="h-4 w-4 text-slate-600 dark:text-slate-400 flex-shrink-0 mr-2" />
-                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap mr-3">
+              <div className="hidden xl:flex items-center flex-shrink-0">
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-md border border-blue-200/50 dark:border-blue-700/50">
+                  <Building2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                  <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 max-w-[120px] truncate">
                     {user.organization.name}
                   </span>
-                  <Badge 
-                    variant="secondary" 
-                    className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700 flex-shrink-0 mr-4"
-                  >
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-blue-300 dark:border-blue-700">
                     {user.organization.type}
                   </Badge>
-                  <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex-shrink-0">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                      Online
-                    </span>
-                  </div>
                 </div>
               </div>
             )}
 
-            {/* Right Section: Actions & Profile */}
-            <div className="flex items-center space-x-1">
-              
+            {/* Right: Actions & Profile */}
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+
               {/* Quick Actions */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="relative h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="h-7 w-7 p-0 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-colors"
+                    title="Quick Actions"
                   >
-                    <Plus className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                    <span className="sr-only">Quick Actions</span>
+                    <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72">
@@ -215,7 +240,7 @@ export default function TopBar() {
                     Organization Functions
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  
+
                   {/* Patient Management */}
                   <DropdownMenuItem asChild>
                     <Link href="/patients/new" className="flex items-center w-full py-2.5">
@@ -226,7 +251,7 @@ export default function TopBar() {
                       </div>
                     </Link>
                   </DropdownMenuItem>
-                  
+
                   {/* Staff Management */}
                   <DropdownMenuItem asChild>
                     <Link href="/user-management" className="flex items-center w-full py-2.5">
@@ -237,7 +262,7 @@ export default function TopBar() {
                       </div>
                     </Link>
                   </DropdownMenuItem>
-                  
+
                   {/* Clinical Workflows */}
                   <DropdownMenuItem asChild>
                     <Link href="/clinical-activity" className="flex items-center w-full py-2.5">
@@ -248,7 +273,7 @@ export default function TopBar() {
                       </div>
                     </Link>
                   </DropdownMenuItem>
-                  
+
                   {/* Forms & Templates */}
                   <DropdownMenuItem asChild>
                     <Link href="/form-builder" className="flex items-center w-full py-2.5">
@@ -259,7 +284,7 @@ export default function TopBar() {
                       </div>
                     </Link>
                   </DropdownMenuItem>
-                  
+
                   {/* Organization Settings */}
                   {(user?.role === 'admin' || user?.role === 'superadmin') && (
                     <>
@@ -273,7 +298,7 @@ export default function TopBar() {
                           </div>
                         </Link>
                       </DropdownMenuItem>
-                      
+
                       <DropdownMenuItem asChild>
                         <Link href="/analytics" className="flex items-center w-full py-2.5">
                           <TrendingUp className="mr-3 h-4 w-4 text-orange-600" />
@@ -294,13 +319,14 @@ export default function TopBar() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="relative h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+                    className="relative h-7 w-7 p-0 rounded-md hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 transition-colors"
+                    aria-label={`${unreadCount} notifications`}
+                    title={`${unreadCount} notifications`}
                   >
-                    <Bell className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    <Bell className={`h-3.5 w-3.5 ${unreadCount > 0 ? 'text-amber-600 dark:text-amber-400' : ''}`} />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-red-500 rounded-full border border-white dark:border-slate-900">
-                        <span className="sr-only">{unreadCount} notifications</span>
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white dark:border-slate-900">
+                        {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
                   </Button>
@@ -332,11 +358,10 @@ export default function TopBar() {
                       </div>
                     ) : (
                       notifications.map((notification, index) => (
-                        <div 
-                          key={notification.id} 
-                          className={`group p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                            index < notifications.length - 1 ? 'border-b border-slate-100 dark:border-slate-700' : ''
-                          }`}
+                        <div
+                          key={notification.id}
+                          className={`group p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${index < notifications.length - 1 ? 'border-b border-slate-100 dark:border-slate-700' : ''
+                            }`}
                         >
                           <div className="flex gap-3">
                             <div className={`h-2 w-2 rounded-full mt-2 flex-shrink-0 ${notification.color || 'bg-blue-500'}`} />
@@ -376,30 +401,44 @@ export default function TopBar() {
 
 
 
-              {/* Offline Status */}
+              {/* System Status */}
               <OfflineIndicator />
 
+              {/* System Admin Link */}
+              {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                <Link href="/system-administration">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 transition-colors"
+                    title="System Administration"
+                  >
+                    <Shield className="h-3.5 w-3.5" />
+                  </Button>
+                </Link>
+              )}
+
               {/* Divider */}
-              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2" />
+              <div className="h-4 w-px bg-slate-300 dark:bg-slate-600" />
 
               {/* User Profile */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="flex items-center gap-3 h-10 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-1.5 h-7 px-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <div className="relative">
-                      <div className="h-8 w-8 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-sm">
-                        <User className="h-4 w-4 text-white" />
+                    <div className="relative flex-shrink-0">
+                      <div className="h-6 w-6 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 rounded-md flex items-center justify-center shadow-sm ring-1 ring-blue-600/20">
+                        <User className="h-3 w-3 text-white" />
                       </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-500 rounded-full border border-white dark:border-slate-900" />
+                      <div className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 bg-emerald-500 rounded-full border border-white dark:border-slate-900" />
                     </div>
-                    <div className="hidden md:block text-left">
-                      <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    <div className="hidden sm:block text-left pr-1">
+                      <div className="text-[11px] font-semibold text-slate-900 dark:text-slate-100 leading-tight">
                         {user?.username}
                       </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 capitalize">
+                      <div className="text-[9px] text-slate-500 dark:text-slate-400 capitalize leading-tight">
                         {user?.role}
                       </div>
                     </div>
@@ -434,7 +473,7 @@ export default function TopBar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                     onClick={() => window.location.href = '/api/logout'}
                   >
@@ -446,7 +485,7 @@ export default function TopBar() {
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Mobile Navigation Menu */}
       {mobileMenuOpen && (
@@ -458,11 +497,10 @@ export default function TopBar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                    isActive(item.href)
-                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${isActive(item.href)
+                    ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Icon className="w-5 h-5" />
