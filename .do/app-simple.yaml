@@ -13,7 +13,7 @@ services:
   github:
     branch: main
     deploy_on_push: true
-    repo: lacson1/clinicconnect
+    repo: lacson1/clinicconnect-2
   build_command: npm run build
   run_command: npm start
   http_port: 5001
@@ -27,10 +27,15 @@ services:
   - key: DATABASE_URL
     scope: RUN_TIME
     value: ${dev-db-525009.DATABASE_URL}
+  # REQUIRED: Generate with: openssl rand -base64 32
+  - key: JWT_SECRET
+    scope: RUN_TIME
+    type: SECRET
+    value: "CHANGE_ME_GENERATE_WITH_openssl_rand_base64_32"
   - key: SESSION_SECRET
     scope: RUN_TIME
     type: SECRET
-    value: "F1TtW8N1zWE6M6c1B75TOTp1PNrKW0StWa1yqaStD3M="
+    value: "CHANGE_ME_GENERATE_WITH_openssl_rand_base64_32"
   health_check:
     http_path: /api/health
     initial_delay_seconds: 60

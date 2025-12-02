@@ -20,7 +20,7 @@ services:
     
     # GitHub repository
     github:
-      repo: lacson1/clinicconnect
+      repo: lacson1/clinicconnect-2
       branch: main
       deploy_on_push: true
     
@@ -49,10 +49,15 @@ services:
       - key: DATABASE_URL
         scope: RUN_TIME
         value: ${db.DATABASE_URL}
+      # REQUIRED: Security secrets (generate with: openssl rand -base64 32)
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: "CHANGE_ME_GENERATE_WITH_openssl_rand_base64_32"
       - key: SESSION_SECRET
         scope: RUN_TIME
         type: SECRET
-        value: "F1TtW8N1zWE6M6c1B75TOTp1PNrKW0StWa1yqaStD3M="
+        value: "CHANGE_ME_GENERATE_WITH_openssl_rand_base64_32"
       # Optional: AI Keys
       - key: OPENAI_API_KEY
         scope: RUN_TIME
