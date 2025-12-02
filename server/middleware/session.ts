@@ -32,26 +32,45 @@ if (!isDevelopment && process.env.DATABASE_URL) {
       ssl: {
         rejectUnauthorized: false, // Accept self-signed certificates
       },
+      // Connection pool settings
+      max: 5, // Smaller pool for session store
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
     });
     
+    // Test the connection before creating session store
+    pgPool.on('error', (err: Error) => {
+      console.error('Session store pool error:', err.message);
+    });
+
     sessionStore = new PgSession({
       pool: pgPool,
       tableName: 'user_sessions',
       createTableIfMissing: true,
-      pruneSessionInterval: 60 * 15,
+      pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 minutes
       errorLog: (err: Error) => {
+        // Suppress "already exists" errors (expected during table creation)
         if (!err.message?.includes('already exists')) {
           console.error('Session store error:', err.message);
         }
       },
     });
-    console.log('Using PostgreSQL session store with SSL');
-  } catch (error) {
-    console.warn('Failed to initialize PostgreSQL session store, falling back to MemoryStore');
+    
+    console.log('✅ Using PostgreSQL session store with SSL');
+  } catch (error: any) {
+    console.warn('⚠️  Failed to initialize PostgreSQL session store:', error?.message || error);
+    console.warn('   Falling back to MemoryStore (not recommended for production)');
+    console.warn('   Ensure the user_sessions table exists in your database.');
+    console.warn('   Run migrations or manually create the table:');
+    console.warn('   CREATE TABLE IF NOT EXISTS user_sessions (sid VARCHAR PRIMARY KEY, sess JSON NOT NULL, expire TIMESTAMP NOT NULL);');
     sessionStore = undefined;
   }
 } else {
-  console.log('Using in-memory session store (development mode)');
+  if (isDevelopment) {
+    console.log('📦 Using in-memory session store (development mode)');
+  } else {
+    console.warn('⚠️  Using in-memory session store - DATABASE_URL not set');
+  }
 }
 
 // Session configuration with environment-based security

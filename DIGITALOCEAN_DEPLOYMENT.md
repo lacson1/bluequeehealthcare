@@ -43,14 +43,20 @@ Region: Choose closest to your users
 ```bash
 NODE_ENV=production
 DATABASE_URL=${db.DATABASE_URL}  # Auto-injected by DO
-SESSION_SECRET=your-super-secure-random-string-here
 PORT=5001
+
+# REQUIRED: Security secrets (generate with: openssl rand -base64 32)
+JWT_SECRET=your-super-secure-jwt-secret-here
+SESSION_SECRET=your-super-secure-session-secret-here
 
 # Optional API Keys
 OPENAI_API_KEY=your-key
 ANTHROPIC_API_KEY=your-key
 SENDGRID_API_KEY=your-key
 ```
+
+> ⚠️ **Important:** Both `JWT_SECRET` and `SESSION_SECRET` must be set for production.
+> Without these, authentication tokens and sessions will be invalidated on server restart.
 
 **Build Settings:**
 ```yaml
@@ -111,7 +117,12 @@ NODE_ENV=production
 DB_USER=clinicuser
 DB_PASSWORD=your-secure-password-here
 DATABASE_URL=postgresql://clinicuser:your-secure-password-here@db:5432/clinicconnect
+
+# REQUIRED: Generate with: openssl rand -base64 32
+JWT_SECRET=your-super-secure-jwt-secret
 SESSION_SECRET=your-super-secure-session-secret
+
+# Optional API Keys
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 SENDGRID_API_KEY=
@@ -244,10 +255,12 @@ volumes:
 - [ ] Enable automatic security updates
 - [ ] Setup database backups
 - [ ] Use HTTPS with valid SSL certificate
-- [ ] Set secure SESSION_SECRET
+- [ ] Set secure `JWT_SECRET` (for API token authentication)
+- [ ] Set secure `SESSION_SECRET` (for cookie sessions)
 
 ```bash
 # Generate secure secrets
+openssl rand -base64 32  # For JWT_SECRET
 openssl rand -base64 32  # For SESSION_SECRET
 openssl rand -base64 24  # For DB_PASSWORD
 ```
