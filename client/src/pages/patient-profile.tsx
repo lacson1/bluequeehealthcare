@@ -643,22 +643,76 @@ function LabResultInputModal({
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top Bar */}
+      {/* Industry-Standard Patient Banner */}
       <header className="bg-white shadow-sm border-b border-slate-200 px-4 py-3 sticky top-0 z-10">
         <div className="max-w-full flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-white font-semibold text-lg">
+            {/* Patient Avatar */}
+            <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center ring-2 ring-primary/20">
+              <span className="text-white font-semibold text-xl">
                 {getPatientInitials(patient)}
               </span>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800">
-                {formatPatientName(patient)}
-              </h2>
-              <p className="text-sm text-slate-500">
-                ID: HC{patient.id?.toString().padStart(6, "0")} | Age: {getPatientAge(patient.dateOfBirth)} | {patient.gender}
-              </p>
+            
+            {/* Patient Identification - Industry Standard Format */}
+            <div className="flex flex-col">
+              {/* Primary Line: Name + Code Status */}
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-slate-800">
+                  {formatPatientName(patient)}
+                </h2>
+                {(patient as any).codeStatus && (patient as any).codeStatus !== 'full' && (
+                  <span className={`px-2 py-0.5 text-xs font-bold rounded ${
+                    (patient as any).codeStatus === 'dnr' || (patient as any).codeStatus === 'dnr_dni' 
+                      ? 'bg-red-600 text-white' 
+                      : (patient as any).codeStatus === 'comfort' 
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-orange-500 text-white'
+                  }`}>
+                    {(patient as any).codeStatus.toUpperCase().replace('_', '/')}
+                  </span>
+                )}
+              </div>
+              
+              {/* Secondary Line: DOB (critical), Age, Sex, MRN */}
+              <div className="flex items-center gap-2 text-sm text-slate-600 mt-0.5">
+                <span className="font-semibold text-slate-700">
+                  DOB: {new Date(patient.dateOfBirth).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                  })}
+                </span>
+                <span className="text-slate-400">|</span>
+                <span>{getPatientAge(patient.dateOfBirth)}y {patient.gender?.charAt(0).toUpperCase()}</span>
+                <span className="text-slate-400">|</span>
+                <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
+                  MRN: HC{patient.id?.toString().padStart(6, "0")}
+                </span>
+                {(patient as any).bloodType && (
+                  <>
+                    <span className="text-slate-400">|</span>
+                    <span className="text-red-600 font-semibold bg-red-50 px-1.5 py-0.5 rounded text-xs">
+                      🩸 {(patient as any).bloodType}
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Third Line: PCP, Language, Emergency Contact indicators */}
+              <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                {(patient as any).preferredLanguage && (patient as any).preferredLanguage !== 'English' && (
+                  <span className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
+                    🌐 {(patient as any).preferredLanguage}
+                    {(patient as any).interpreterNeeded && <span className="text-orange-600">(Interpreter)</span>}
+                  </span>
+                )}
+                {(patient as any).emergencyContactName && (
+                  <span className="flex items-center gap-1 text-emerald-600">
+                    📞 EC: {(patient as any).emergencyContactName}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">

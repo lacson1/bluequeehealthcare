@@ -1,11 +1,42 @@
 // AI-Powered Medical Consultation Service
 // Reference: blueprint:javascript_openai_ai_integrations
 import OpenAI from "openai";
+import { apiLogger as logger } from './lib/logger';
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+// Check if OpenAI is configured
+const OPENAI_API_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+const OPENAI_BASE_URL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+
+const isOpenAIConfigured = !!OPENAI_API_KEY;
+
+if (!isOpenAIConfigured) {
+  logger.warn('OpenAI API key not configured. AI consultation features will be disabled.');
+  logger.warn('Set AI_INTEGRATIONS_OPENAI_API_KEY or OPENAI_API_KEY environment variable to enable.');
+}
+
+const openai = isOpenAIConfigured
+  ? new OpenAI({
+    apiKey: OPENAI_API_KEY,
+    baseURL: OPENAI_BASE_URL,
+  })
+  : null;
+
+/**
+ * Check if AI features are available
+ */
+export function isAIAvailable(): boolean {
+  return isOpenAIConfigured && openai !== null;
+}
+
+/**
+ * Error thrown when AI features are not configured
+ */
+export class AINotConfiguredError extends Error {
+  constructor() {
+    super('AI features are not configured. Please set OPENAI_API_KEY environment variable.');
+    this.name = 'AINotConfiguredError';
+  }
+}
 
 interface ConsultationMessage {
   role: 'user' | 'assistant' | 'system';
@@ -88,6 +119,12 @@ export async function simulatePatientResponse(
   patientContext: PatientContext,
   chiefComplaint: string
 ): Promise<string> {
+  // Check if OpenAI is configured
+  if (!openai) {
+    logger.debug('AI not configured, returning fallback response');
+    return `[AI features not available] As a ${patientContext.age}-year-old patient, I'm here to discuss my ${chiefComplaint}. How can you help me today?`;
+  }
+
   // Build enhanced context with all available patient data
   let contextBuilder = `You are simulating a patient named ${patientContext.name}, a ${patientContext.age}-year-old ${patientContext.gender}.
 
@@ -160,6 +197,32 @@ export async function generateClinicalNotes(
   transcript: ConsultationMessage[],
   patientContext: PatientContext
 ): Promise<ClinicalNote> {
+  // Check if OpenAI is configured
+  if (!openai) {
+    logger.debug('AI not configured, returning placeholder clinical notes');
+    return {
+      subjective: 'AI features not available - Please configure OPENAI_API_KEY',
+      objective: 'Unable to generate clinical notes without AI configuration',
+      assessment: 'N/A',
+      plan: 'Please configure AI features to enable automatic clinical note generation',
+      chiefComplaint: 'N/A',
+      historyOfPresentIllness: 'N/A',
+      medications: [],
+      diagnosis: 'N/A',
+      differentialDiagnoses: [],
+      icdCodes: [],
+      suggestedLabTests: [],
+      clinicalWarnings: [{
+        type: 'red_flag',
+        message: 'AI features are not configured. Clinical notes cannot be auto-generated.',
+        severity: 'medium'
+      }],
+      confidenceScore: 0,
+      recommendations: 'Please configure AI features by setting OPENAI_API_KEY environment variable.',
+      followUpInstructions: 'N/A'
+    };
+  }
+
   // Build enhanced patient context
   let contextInfo = `Patient Information:
 - Name: ${patientContext.name}
@@ -276,7 +339,7 @@ CRITICAL INSTRUCTIONS:
   }
 
   const parsedNote = JSON.parse(noteContent);
-  
+
   return {
     chiefComplaint: parsedNote.chiefComplaint || '',
     subjective: parsedNote.subjective || '',
@@ -375,7 +438,7 @@ export async function suggestLabTests(
 ): Promise<LabTestSuggestion[]> {
   const { symptoms, diagnosis, patientAge, patientGender, medicalHistory, currentMedications, recentLabResults, availableTests } = context;
 
-  const testCatalog = availableTests.map(t => 
+  const testCatalog = availableTests.map(t =>
     `${t.name} (${t.code || 'N/A'}) - ${t.category}${t.description ? ': ' + t.description : ''}`
   ).join('\n');
 
@@ -445,7 +508,7 @@ Return a JSON object with this exact structure:
 
   const mappedSuggestions = suggestions
     .map((suggestion: any) => {
-      const matchedTest = availableTests.find(t => 
+      const matchedTest = availableTests.find(t =>
         t.name.toLowerCase() === suggestion.testName?.toLowerCase() ||
         t.code?.toLowerCase() === suggestion.testCode?.toLowerCase()
       );

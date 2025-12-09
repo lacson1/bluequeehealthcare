@@ -1,0 +1,16 @@
+# Large folders
+node_modules/
+dist/
+.git/
+
+# Assets that don't need AI indexing
+attached_assets/
+uploads/
+
+# Build outputs
+*.log
+*.cache
+
+# Dependencies
+package-lock.json
+

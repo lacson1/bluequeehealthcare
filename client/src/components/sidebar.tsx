@@ -7,9 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { GlobalQuickSearch } from "@/components/global-quick-search";
 
+// All valid roles in the system
+const ALL_ROLES = ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist", "receptionist", "lab_technician", "user"];
+
 const getNavigationGroupsForRole = (role: string) => {
+  // Normalize role to lowercase for comparison
+  const normalizedRole = role?.toLowerCase() || 'user';
+  
   // Super admin gets enhanced navigation with system-wide access
-  const superAdminExtras = (role === 'super_admin' || role === 'superadmin') ? [
+  const superAdminExtras = (normalizedRole === 'super_admin' || normalizedRole === 'superadmin') ? [
     {
       name: "System Overview",
       icon: Shield,
@@ -28,7 +34,7 @@ const getNavigationGroupsForRole = (role: string) => {
       icon: LayoutDashboard,
       color: "sky",
       items: [
-        { name: "Overview", href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist", "receptionist"] },
+        { name: "Overview", href: "/dashboard", icon: LayoutDashboard, roles: ALL_ROLES },
         { name: "Admin Dashboard", href: "/admin-dashboard", icon: Shield, roles: ["super_admin", "superadmin", "admin"] },
         { name: "Clinical Activity", href: "/visits", icon: Activity, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
       ]
@@ -40,8 +46,8 @@ const getNavigationGroupsForRole = (role: string) => {
       icon: Users,
       color: "violet",
       items: [
-        { name: "Patient Registry", href: "/patients", icon: Users, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist"] },
-        { name: "Appointments", href: "/appointments", icon: Calendar, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist"] },
+        { name: "Patient Registry", href: "/patients", icon: Users, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist", "user"] },
+        { name: "Appointments", href: "/appointments", icon: Calendar, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist", "user"] },
         { name: "Consultations", href: "/consultation-dashboard", icon: Stethoscope, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
         { name: "Patient Access Cards", href: "/patient-access-cards", icon: CreditCard, roles: ["super_admin", "superadmin", "admin", "nurse", "receptionist"] },
         { name: "Communication", href: "/patient-communication", icon: Mail, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist"] },
@@ -135,16 +141,16 @@ const getNavigationGroupsForRole = (role: string) => {
       icon: User,
       color: "zinc",
       items: [
-        { name: "My Profile", href: "/profile", icon: User, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist", "receptionist"] },
-        { name: "Settings", href: "/settings", icon: Settings, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist", "receptionist"] },
-        { name: "Help & Support", href: "/help", icon: HelpCircle, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist", "receptionist", "lab_technician"] },
+        { name: "My Profile", href: "/profile", icon: User, roles: ALL_ROLES },
+        { name: "Settings", href: "/settings", icon: Settings, roles: ALL_ROLES },
+        { name: "Help & Support", href: "/help", icon: HelpCircle, roles: ALL_ROLES },
       ]
     }
   ];
 
   return [...superAdminExtras, ...navigationGroups].map(group => ({
     ...group,
-    items: group.items.filter(item => item.roles.includes(role))
+    items: group.items.filter(item => item.roles.includes(normalizedRole))
   })).filter(group => group.items.length > 0);
 };
 
@@ -219,9 +225,9 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
 
   return (
     <>
-      {/* Mobile Overlay with smooth fade transition */}
+      {/* Mobile Overlay with smooth fade transition - starts below topbar */}
       <div
-        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ease-out ${isMobileOpen
+        className={`fixed inset-x-0 top-11 sm:top-12 bottom-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ease-out ${isMobileOpen
           ? 'opacity-100 pointer-events-auto'
           : 'opacity-0 pointer-events-none'
           }`}
@@ -229,12 +235,12 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
         aria-hidden="true"
       />
 
-      {/* Mobile Menu Button with smooth animation */}
+      {/* Mobile Menu Button - positioned to align with topbar */}
       <Button
         onClick={toggleMobileSidebar}
         variant="ghost"
         size="sm"
-        className="fixed top-4 left-4 z-50 lg:hidden bg-card shadow-md border border-border hover:bg-muted hover:shadow-lg hover:scale-105 transition-[transform,box-shadow,background-color] duration-200 ease-out"
+        className="fixed top-1.5 sm:top-2 left-2 z-[60] lg:hidden h-8 w-8 bg-card/95 backdrop-blur-sm shadow-md border border-border hover:bg-muted hover:shadow-lg hover:scale-105 transition-[transform,box-shadow,background-color] duration-200 ease-out"
         aria-label="Toggle mobile menu"
         aria-expanded={isMobileOpen}
       >
@@ -247,13 +253,14 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
       {/* Sidebar with hardware-accelerated smooth transitions */}
       <aside
         className={`
-          fixed lg:relative inset-y-0 left-0 z-50 lg:z-30
+          fixed lg:relative left-0 z-50 lg:z-30
+          top-11 sm:top-12 lg:top-0 bottom-0 lg:inset-y-0
           ${isCollapsed ? 'w-16' : 'w-64'} 
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           bg-sidebar shadow-xl border-r border-sidebar-border flex flex-col 
           transition-[transform,width] duration-300 ease-out
           will-change-[transform,width] transform-gpu
-          h-screen overflow-hidden flex-shrink-0
+          lg:h-screen overflow-hidden flex-shrink-0
         `}
         style={{ 
           WebkitBackfaceVisibility: 'hidden',

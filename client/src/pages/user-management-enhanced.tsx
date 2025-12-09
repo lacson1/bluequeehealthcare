@@ -11,56 +11,57 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { User, InsertUser } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { UserPlus, Edit, Trash2, Shield, UserX, Settings, Search, Grid3X3, List, Filter, X, Stethoscope, Pill, Heart, Activity, ClipboardList } from "lucide-react";
+import { UserPlus, Edit, Trash2, Shield, UserX, Users, Settings, Search, Grid3X3, List, Filter, X, Stethoscope, Pill, Heart, Activity, ClipboardList } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { StaffRegistrationModal } from "@/components/staff-registration-modal";
 import { OrganizationRegistrationModal } from "@/components/organization-registration-modal";
 
 const USER_ROLES = [
-  { 
-    value: "admin", 
-    label: "Administrator", 
-    color: "bg-red-100 text-red-800", 
+  {
+    value: "admin",
+    label: "Administrator",
+    color: "bg-red-100 text-red-800",
     icon: Shield,
     description: "Full system access and management",
     specialty: "System Administration"
   },
-  { 
-    value: "doctor", 
-    label: "Doctor", 
-    color: "bg-blue-100 text-blue-800", 
+  {
+    value: "doctor",
+    label: "Doctor",
+    color: "bg-blue-100 text-blue-800",
     icon: Stethoscope,
     description: "Patient diagnosis and treatment",
     specialty: "General Medicine"
   },
-  { 
-    value: "nurse", 
-    label: "Nurse", 
-    color: "bg-green-100 text-green-800", 
+  {
+    value: "nurse",
+    label: "Nurse",
+    color: "bg-green-100 text-green-800",
     icon: Heart,
     description: "Patient care and vital monitoring",
     specialty: "Nursing Care"
   },
-  { 
-    value: "pharmacist", 
-    label: "Pharmacist", 
-    color: "bg-purple-100 text-purple-800", 
+  {
+    value: "pharmacist",
+    label: "Pharmacist",
+    color: "bg-purple-100 text-purple-800",
     icon: Pill,
     description: "Medication management and dispensing",
     specialty: "Pharmaceutical Care"
   },
-  { 
-    value: "physiotherapist", 
-    label: "Physiotherapist", 
-    color: "bg-orange-100 text-orange-800", 
+  {
+    value: "physiotherapist",
+    label: "Physiotherapist",
+    color: "bg-orange-100 text-orange-800",
     icon: Activity,
     description: "Physical therapy and rehabilitation",
     specialty: "Physical Therapy"
   },
-  { 
-    value: "receptionist", 
-    label: "Receptionist", 
-    color: "bg-teal-100 text-teal-800", 
+  {
+    value: "receptionist",
+    label: "Receptionist",
+    color: "bg-teal-100 text-teal-800",
     icon: ClipboardList,
     description: "Patient registration and appointments",
     specialty: "Front Desk"
@@ -207,7 +208,7 @@ export default function UserManagementEnhanced() {
       ...formData,
       organizationId: parseInt(formData.organizationId)
     };
-    
+
     createUserMutation.mutate(userData as any);
   };
 
@@ -263,10 +264,10 @@ export default function UserManagementEnhanced() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await apiRequest("/api/upload/staff", "POST", formData);
       const photoUrl = response.url;
-      
+
       if (userId) {
         await apiRequest(`/api/users/${userId}`, "PATCH", { photoUrl });
         queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -298,7 +299,7 @@ export default function UserManagementEnhanced() {
 
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.username.toLowerCase().includes(searchLower) ||
         (user.firstName && user.firstName.toLowerCase().includes(searchLower)) ||
         (user.lastName && user.lastName.toLowerCase().includes(searchLower)) ||
@@ -357,14 +358,14 @@ export default function UserManagementEnhanced() {
               <p className="text-slate-600 mt-1">Manage clinic staff accounts and permissions</p>
             </div>
             <div className="flex items-center space-x-3">
-              <Button 
+              <Button
                 onClick={() => setShowStaffModal(true)}
                 className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
               >
                 <Stethoscope className="w-4 h-4 mr-2" />
                 Register Staff
               </Button>
-              
+
               <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button onClick={resetForm} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
@@ -386,7 +387,7 @@ export default function UserManagementEnhanced() {
                         placeholder="Enter username"
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="password">Password *</Label>
                       <Input
@@ -397,7 +398,7 @@ export default function UserManagementEnhanced() {
                         placeholder="Enter password"
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="role">Role *</Label>
                       <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
@@ -485,7 +486,7 @@ export default function UserManagementEnhanced() {
                       <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                         Cancel
                       </Button>
-                      <Button 
+                      <Button
                         onClick={handleCreateUser}
                         disabled={createUserMutation.isPending}
                       >
@@ -563,11 +564,10 @@ export default function UserManagementEnhanced() {
           <div className="flex space-x-1 bg-slate-100 rounded-lg p-1">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === "all"
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "all"
                   ? "bg-white text-slate-900 shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
-              }`}
+                }`}
             >
               All ({roleCounts.all})
             </button>
@@ -577,11 +577,10 @@ export default function UserManagementEnhanced() {
                 <button
                   key={role.value}
                   onClick={() => setActiveTab(role.value)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
-                    activeTab === role.value
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${activeTab === role.value
                       ? "bg-white text-slate-900 shadow-sm"
                       : "text-slate-600 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{role.label} ({roleCounts[role.value] || 0})</span>
@@ -595,19 +594,17 @@ export default function UserManagementEnhanced() {
         <div className="flex-1 overflow-auto bg-slate-50">
           <div className="p-6">
             {filteredUsers.length === 0 ? (
-              <div className="text-center py-12">
-                <UserX className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">No users found</h3>
-                <p className="text-slate-600">
-                  {searchTerm || filterSpecialty ? "Try adjusting your search or filters" : "No users have been added yet"}
-                </p>
-              </div>
+              <EmptyState
+                icon={Users}
+                title="No users found"
+                description={searchTerm || filterSpecialty ? "Try adjusting your search or filters" : "No users have been added yet"}
+              />
             ) : (
               <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"}>
                 {filteredUsers.map((user) => {
                   const roleConfig = getRoleConfig(user.role);
                   const Icon = roleConfig.icon;
-                  
+
                   if (viewMode === "grid") {
                     return (
                       <Tooltip key={user.id}>
@@ -653,7 +650,7 @@ export default function UserManagementEnhanced() {
                                     Edit
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     onClick={() => handleDeleteUser(user.id)}
                                     className="text-red-600 hover:text-red-700"
                                   >
@@ -717,7 +714,7 @@ export default function UserManagementEnhanced() {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleDeleteUser(user.id)}
                                 className="text-red-600 hover:text-red-700"
                               >
@@ -752,7 +749,7 @@ export default function UserManagementEnhanced() {
                   placeholder="Enter username"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="edit-password">Password (leave blank to keep current)</Label>
                 <Input
@@ -763,7 +760,7 @@ export default function UserManagementEnhanced() {
                   placeholder="Enter new password"
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="edit-role">Role *</Label>
                 <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
@@ -851,7 +848,7 @@ export default function UserManagementEnhanced() {
                 <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={handleUpdateUser}
                   disabled={updateUserMutation.isPending}
                 >
@@ -862,7 +859,7 @@ export default function UserManagementEnhanced() {
           </DialogContent>
         </Dialog>
       </div>
-      
+
       {/* Staff Registration Modal */}
       <StaffRegistrationModal
         open={showStaffModal}

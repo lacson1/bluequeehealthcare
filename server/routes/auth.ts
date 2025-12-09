@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import type { Session } from 'express-session';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { db } from '../db';
@@ -53,11 +54,15 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req: Reques
   }
 
   // Verify password using bcrypt
-  // First check against demo passwords for backward compatibility, then check bcrypt hash
-  const demoPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'receptionist123', 'password123', 'pharmacy123', 'physio123', 'lab123'];
-  let passwordValid = demoPasswords.includes(password);
+  let passwordValid = false;
+  
+  // SECURITY: Demo passwords only work in development mode
+  if (process.env.NODE_ENV !== 'production') {
+    const demoPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'receptionist123', 'password123', 'pharmacy123', 'physio123', 'lab123'];
+    passwordValid = demoPasswords.includes(password);
+  }
 
-  // If not a demo password, check against the stored bcrypt hash
+  // Check against the stored bcrypt hash
   if (!passwordValid && user.password) {
     passwordValid = await bcrypt.compare(password, user.password);
   }
@@ -86,8 +91,13 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req: Reques
     currentOrgId = defaultOrg?.organizationId || userOrgs[0].organizationId;
   }
 
+  // Ensure session is available
+  if (!req.session) {
+    throw ApiError.internal('Session not available. Please ensure session middleware is configured.');
+  }
+
   // Set user session with activity tracking
-  (req.session as any).user = {
+  req.session.user = {
     id: user.id,
     username: user.username,
     role: user.role,
@@ -97,11 +107,11 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req: Reques
   };
 
   // Initialize session activity tracking
-  (req.session as any).lastActivity = new Date();
+  req.session.lastActivity = new Date();
 
   // Save session before sending response
   await new Promise<void>((resolve, reject) => {
-    req.session.save((err) => {
+    req.session!.save((err) => {
       if (err) {
         console.error('Session save error:', err);
         reject(err);
@@ -176,9 +186,21 @@ router.post('/change-password',
       throw ApiError.notFound('User');
     }
 
-    // For demo, verify against known passwords
-    const validCurrentPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'password123', 'pharmacy123', 'physio123'];
-    if (!validCurrentPasswords.includes(currentPassword)) {
+    // Verify current password
+    let currentPasswordValid = false;
+    
+    // SECURITY: Demo passwords only work in development mode
+    if (process.env.NODE_ENV !== 'production') {
+      const validCurrentPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'password123', 'pharmacy123', 'physio123'];
+      currentPasswordValid = validCurrentPasswords.includes(currentPassword);
+    }
+    
+    // Check against stored bcrypt hash
+    if (!currentPasswordValid && user.password) {
+      currentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    }
+    
+    if (!currentPasswordValid) {
       throw ApiError.unauthorized('Current password is incorrect');
     }
 

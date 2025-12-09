@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { apiLogger as logger } from './logger';
 
 /**
  * Standardized API response types and utilities
@@ -221,8 +222,12 @@ export function asyncHandler<T>(
 ) {
   return (req: T, res: Response, next: Function) => {
     Promise.resolve(fn(req, res)).catch((error) => {
-      // Log the error
-      console.error('Route handler error:', error);
+      // Log the error with appropriate level
+      if (error instanceof ApiError && error.isOperational) {
+        logger.warn('Route handler error:', error.message);
+      } else {
+        logger.error('Route handler error:', error);
+      }
       
       // Send error response
       sendError(res, error);

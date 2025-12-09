@@ -1,6 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('auth');
 
 interface User {
   id: number;
@@ -38,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkSession = async () => {
       try {
+        logger.debug('Checking existing session...');
         const response = await fetch('/api/profile', {
           credentials: 'include',
         });
@@ -45,12 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
+          logger.debug('Session restored for user:', userData.username || userData.firstName || 'unknown');
         } else {
           // No valid session - user needs to login
+          logger.debug('No valid session found');
           setUser(null);
         }
       } catch (error) {
-        console.error('Session check error:', error);
+        logger.warn('Session check failed:', error);
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -164,27 +170,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
+    logger.debug('Logging out user...');
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });
       
+      logger.info('User logged out successfully');
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",
         duration: 3000,
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.warn('Logout request failed:', error);
+      // Still clear user state even if server request fails
     }
     
     setUser(null);
     setLocation('/login');
-  };
+  }, [setLocation, toast]);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const response = await fetch('/api/profile', {
         credentials: 'include',
@@ -193,15 +202,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        logger.debug('User data refreshed');
       } else if (response.status === 401 || response.status === 404) {
         // Session is invalid or user not found, clear user state
+        logger.debug('Session expired or invalid');
         setUser(null);
       }
     } catch (error) {
-      console.error('Failed to refresh user data:', error);
+      logger.warn('Failed to refresh user data:', error);
       // Don't clear user on network errors, only on auth failures
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading }}>

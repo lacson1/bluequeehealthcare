@@ -1,21 +1,30 @@
 import session from 'express-session';
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
+import { sessionLogger as logger } from '../lib/logger';
 
-// SECURITY: Session secret from environment variable or generate secure default
+// SECURITY: Session secret from environment variable
+const isProduction = process.env.NODE_ENV === 'production';
 let SESSION_SECRET = process.env.SESSION_SECRET;
+
 if (!SESSION_SECRET) {
-  // Generate a secure random secret if not provided
-  SESSION_SECRET = crypto.randomBytes(64).toString('base64');
-  console.warn('⚠️  WARNING: SESSION_SECRET not set. Generated temporary secret.');
-  console.warn('   Sessions will not persist across server restarts.');
-  console.warn('   Set SESSION_SECRET environment variable for production.');
+  if (isProduction) {
+    // CRITICAL: In production, require SESSION_SECRET to be set
+    logger.error('SESSION_SECRET environment variable is required in production.');
+    logger.error('Generate a secure secret with: openssl rand -base64 64');
+    logger.error('Then set it in your environment: SESSION_SECRET="your-secret-here"');
+    process.exit(1);
+  } else {
+    // Development: Generate a temporary secret with warning
+    SESSION_SECRET = crypto.randomBytes(64).toString('base64');
+    logger.warn('SESSION_SECRET not set. Generated temporary secret (dev mode only).');
+    logger.warn('Sessions will not persist across server restarts.');
+  }
 }
 
 // Use MemoryStore for development - faster and no DB issues
 // In production, you should use a proper store like connect-pg-simple or connect-redis
-const isDevelopment = process.env.NODE_ENV !== 'production';
-const isProduction = process.env.NODE_ENV === 'production';
+const isDevelopment = !isProduction;
 
 let sessionStore: session.Store | undefined;
 
@@ -51,25 +60,23 @@ if (!isDevelopment && process.env.DATABASE_URL) {
       errorLog: (err: Error) => {
         // Suppress "already exists" errors (expected during table creation)
         if (!err.message?.includes('already exists')) {
-          console.error('Session store error:', err.message);
+          logger.error('Session store error:', err.message);
         }
       },
     });
     
-    console.log('✅ Using PostgreSQL session store with SSL');
+    logger.info('Using PostgreSQL session store with SSL');
   } catch (error: any) {
-    console.warn('⚠️  Failed to initialize PostgreSQL session store:', error?.message || error);
-    console.warn('   Falling back to MemoryStore (not recommended for production)');
-    console.warn('   Ensure the sessions table exists in your database.');
-    console.warn('   Run migrations or manually create the table:');
-    console.warn('   CREATE TABLE IF NOT EXISTS sessions (sid VARCHAR PRIMARY KEY, sess JSON NOT NULL, expire TIMESTAMP NOT NULL);');
+    logger.warn('Failed to initialize PostgreSQL session store:', error?.message || error);
+    logger.warn('Falling back to MemoryStore (not recommended for production)');
+    logger.warn('Ensure the sessions table exists in your database.');
     sessionStore = undefined;
   }
 } else {
   if (isDevelopment) {
-    console.log('📦 Using in-memory session store (development mode)');
+    logger.debug('Using in-memory session store (development mode)');
   } else {
-    console.warn('⚠️  Using in-memory session store - DATABASE_URL not set');
+    logger.warn('Using in-memory session store - DATABASE_URL not set');
   }
 }
 

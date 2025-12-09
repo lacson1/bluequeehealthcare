@@ -8,6 +8,8 @@ import { securityHeaders } from "./middleware/security";
 import { authRateLimit, apiRateLimit } from "./middleware/rate-limit";
 import { devLogger, prodLogger } from "./middleware/request-logger";
 import { globalErrorHandler, notFoundHandler } from "./middleware/error-handler";
+import { logger } from "./lib/logger";
+import { validateAndLogEnvironment, getEnvironmentSummary } from "./lib/env-validator";
 
 // Dynamic imports for seeding (may fail if tables don't exist)
 const seedTabPresets = async () => {
@@ -16,7 +18,7 @@ const seedTabPresets = async () => {
     await module.seedTabPresets();
   } catch (error: any) {
     if (error?.code === '42P01') {
-      console.log('⚠️  Skipping tab presets seeding - tables not yet created');
+      // Table doesn't exist - will be created on db:push
     } else {
       throw error;
     }
@@ -29,7 +31,7 @@ const seedTabConfigs = async () => {
     await module.seedTabConfigs();
   } catch (error: any) {
     if (error?.code === '42P01') {
-      console.log('⚠️  Skipping tab configs seeding - tables not yet created');
+      // Table doesn't exist - will be created on db:push
     } else {
       throw error;
     }
@@ -42,7 +44,7 @@ const seedMockData = async () => {
     await module.seedMockData();
   } catch (error: any) {
     if (error?.code === '42P01') {
-      console.log('⚠️  Skipping mock data seeding - tables not yet created');
+      // Table doesn't exist - will be created on db:push
     } else {
       throw error;
     }
@@ -123,48 +125,69 @@ app.use(isProduction ? prodLogger : devLogger);
 
 (async () => {
   try {
+    // ===========================================
+    // STEP 1: Validate Environment Variables
+    // ===========================================
+    logger.info('Starting ClinicConnect Healthcare Platform...');
+    logger.info('Validating environment configuration...');
+    
+    const envValid = validateAndLogEnvironment();
+    if (!envValid && process.env.NODE_ENV === 'production') {
+      logger.error('Cannot start in production with invalid environment configuration.');
+      process.exit(1);
+    }
+    
+    // Log environment summary (with sensitive values masked)
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('Environment Summary:', getEnvironmentSummary());
+    }
+    
+    // ===========================================
+    // STEP 2: Database Seeding (Development)
+    // ===========================================
     // Note: Seeding will be skipped if database tables don't exist yet
     // Run 'npm run db:push' to create tables, then restart the server
     
     // Seed tab configurations on startup (idempotent - only creates if not exists)
     try {
-      console.log('🌱 Seeding tab configurations...');
+      logger.info('Seeding tab configurations...');
       await seedTabConfigs();
     } catch (error: any) {
       if (error?.code === '42P01') {
-        console.log('⚠️  Tables not found - run "npm run db:push" to create database schema');
+        logger.warn('Tables not found - run "npm run db:push" to create database schema');
       } else {
-        console.error('Failed to seed tab configurations:', error?.message || error);
+        logger.error('Failed to seed tab configurations:', error?.message || error);
       }
     }
 
     // Seed tab presets on startup (idempotent - only creates if not exists)
     try {
-      console.log('🌱 Seeding tab presets...');
+      logger.info('Seeding tab presets...');
       await seedTabPresets();
     } catch (error: any) {
       if (error?.code !== '42P01') {
-        console.error('Failed to seed tab presets:', error?.message || error);
+        logger.error('Failed to seed tab presets:', error?.message || error);
       }
     }
 
     // Seed mock data (2 patients, 2 staff) on startup (idempotent)
     try {
+      logger.debug('Seeding mock data...');
       await seedMockData();
     } catch (error: any) {
       if (error?.code !== '42P01') {
-        console.error('Failed to seed mock data:', error?.message || error);
+        logger.error('Failed to seed mock data:', error?.message || error);
       }
     }
 
     // Seed comprehensive lab test catalog on startup (idempotent)
     try {
-      console.log('🧪 Seeding lab test catalog...');
+      logger.info('Seeding lab test catalog...');
       const { seedComprehensiveLabTests } = await import('./seedComprehensiveLabTests');
       await seedComprehensiveLabTests();
     } catch (error: any) {
       if (error?.code !== '42P01') {
-        console.error('Failed to seed lab test catalog:', error?.message || error);
+        logger.error('Failed to seed lab test catalog:', error?.message || error);
       }
     }
 
@@ -203,30 +226,32 @@ app.use(isProduction ? prodLogger : devLogger);
       log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
     });
 
-    // Graceful shutdown handling
+    // ===========================================
+    // STEP 4: Graceful Shutdown Handling
+    // ===========================================
     const gracefulShutdown = async (signal: string) => {
-      log(`\n${signal} received. Starting graceful shutdown...`);
+      logger.info(`${signal} received. Starting graceful shutdown...`);
       
       // Stop accepting new connections
       server.close(async () => {
-        log('HTTP server closed');
+        logger.info('HTTP server closed');
         
         // Close database connections
         try {
           const { pool } = await import('./db');
           await pool.end();
-          log('Database connections closed');
+          logger.info('Database connections closed');
         } catch (error) {
-          console.error('Error closing database:', error);
+          logger.error('Error closing database:', error);
         }
         
-        log('Graceful shutdown complete');
+        logger.info('Graceful shutdown complete');
         process.exit(0);
       });
 
       // Force shutdown after 30 seconds
       setTimeout(() => {
-        console.error('Forced shutdown after timeout');
+        logger.error('Forced shutdown after timeout');
         process.exit(1);
       }, 30000);
     };
@@ -237,17 +262,17 @@ app.use(isProduction ? prodLogger : devLogger);
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
-      console.error('Uncaught Exception:', error);
+      logger.error('Uncaught Exception:', error);
       gracefulShutdown('uncaughtException');
     });
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
     });
 
   } catch (error) {
-    console.error('CRITICAL: Failed to start server:', error);
+    logger.error('CRITICAL: Failed to start server:', error);
     process.exit(1);
   }
 })();

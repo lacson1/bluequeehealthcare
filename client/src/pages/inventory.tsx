@@ -51,6 +51,36 @@ interface ReorderRequest {
   notes?: string;
 }
 
+interface NewMedicine {
+  name: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  expiryDate: string;
+  supplier: string;
+  cost: string;
+  lowStockThreshold: number;
+  defaultDosage?: string;
+  defaultFrequency?: string;
+  defaultDuration?: string;
+  defaultInstructions?: string;
+}
+
+const initialNewMedicine: NewMedicine = {
+  name: '',
+  description: '',
+  quantity: 0,
+  unit: 'tablets',
+  expiryDate: '',
+  supplier: '',
+  cost: '',
+  lowStockThreshold: 10,
+  defaultDosage: '',
+  defaultFrequency: '',
+  defaultDuration: '',
+  defaultInstructions: '',
+};
+
 export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all');
@@ -58,7 +88,9 @@ export default function InventoryPage() {
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [reorderDialog, setReorderDialog] = useState(false);
   const [updateQuantityDialog, setUpdateQuantityDialog] = useState(false);
+  const [addMedicineDialog, setAddMedicineDialog] = useState(false);
   const [newQuantity, setNewQuantity] = useState('');
+  const [newMedicine, setNewMedicine] = useState<NewMedicine>(initialNewMedicine);
   const { toast } = useToast();
 
   const { data: medicines = [], isLoading, refetch } = useQuery({
@@ -97,6 +129,30 @@ export default function InventoryPage() {
       toast({
         title: "Reorder Requested",
         description: "Your reorder request has been submitted successfully"
+      });
+    }
+  });
+
+  const addMedicineMutation = useMutation({
+    mutationFn: async (medicineData: NewMedicine) => {
+      const response = await apiRequest('/api/medicines', 'POST', medicineData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/medicines'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/medicines/low-stock'] });
+      setAddMedicineDialog(false);
+      setNewMedicine(initialNewMedicine);
+      toast({
+        title: "Medicine Added",
+        description: "New medicine has been added to inventory successfully"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add medicine",
+        variant: "destructive"
       });
     }
   });
@@ -191,14 +247,23 @@ export default function InventoryPage() {
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-gray-600">Real-time medication tracking and stock management</p>
         </div>
-        <Button 
-          onClick={() => refetch()} 
-          variant="outline" 
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => setAddMedicineDialog(true)} 
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4" />
+            Add Medicine
+          </Button>
+          <Button 
+            onClick={() => refetch()} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats Dashboard */}
@@ -480,7 +545,6 @@ export default function InventoryPage() {
                 onClick={() => {
                   if (selectedMedicine) {
                     const quantityInput = document.getElementById('reorderQuantity') as HTMLInputElement;
-                    const prioritySelect = document.querySelector('[data-state="closed"]') as HTMLElement;
                     const notesTextarea = document.getElementById('notes') as HTMLTextAreaElement;
                     
                     reorderMutation.mutate({
@@ -496,6 +560,184 @@ export default function InventoryPage() {
                 {reorderMutation.isPending ? 'Submitting...' : 'Submit Reorder Request'}
               </Button>
               <Button variant="outline" onClick={() => setReorderDialog(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Medicine Dialog */}
+      <Dialog open={addMedicineDialog} onOpenChange={setAddMedicineDialog}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-green-600" />
+              Add New Medicine
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <Label htmlFor="medicineName">Medicine Name *</Label>
+                <Input
+                  id="medicineName"
+                  placeholder="Enter medicine name"
+                  value={newMedicine.name}
+                  onChange={(e) => setNewMedicine({ ...newMedicine, name: e.target.value })}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter medicine description"
+                  value={newMedicine.description}
+                  onChange={(e) => setNewMedicine({ ...newMedicine, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="quantity">Initial Quantity *</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  placeholder="0"
+                  value={newMedicine.quantity || ''}
+                  onChange={(e) => setNewMedicine({ ...newMedicine, quantity: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="unit">Unit *</Label>
+                <Select 
+                  value={newMedicine.unit} 
+                  onValueChange={(value) => setNewMedicine({ ...newMedicine, unit: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tablets">Tablets</SelectItem>
+                    <SelectItem value="capsules">Capsules</SelectItem>
+                    <SelectItem value="ml">Milliliters (ml)</SelectItem>
+                    <SelectItem value="mg">Milligrams (mg)</SelectItem>
+                    <SelectItem value="bottles">Bottles</SelectItem>
+                    <SelectItem value="vials">Vials</SelectItem>
+                    <SelectItem value="ampules">Ampules</SelectItem>
+                    <SelectItem value="sachets">Sachets</SelectItem>
+                    <SelectItem value="strips">Strips</SelectItem>
+                    <SelectItem value="boxes">Boxes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="expiryDate">Expiry Date</Label>
+                <Input
+                  id="expiryDate"
+                  type="date"
+                  value={newMedicine.expiryDate}
+                  onChange={(e) => setNewMedicine({ ...newMedicine, expiryDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="lowStockThreshold">Low Stock Threshold</Label>
+                <Input
+                  id="lowStockThreshold"
+                  type="number"
+                  placeholder="10"
+                  value={newMedicine.lowStockThreshold || ''}
+                  onChange={(e) => setNewMedicine({ ...newMedicine, lowStockThreshold: parseInt(e.target.value) || 10 })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="supplier">Supplier</Label>
+                <Input
+                  id="supplier"
+                  placeholder="Supplier name"
+                  value={newMedicine.supplier}
+                  onChange={(e) => setNewMedicine({ ...newMedicine, supplier: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="cost">Cost per Unit</Label>
+                <Input
+                  id="cost"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newMedicine.cost}
+                  onChange={(e) => setNewMedicine({ ...newMedicine, cost: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {/* Prescription Defaults */}
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-3 text-gray-700">Prescription Defaults (Optional)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="defaultDosage">Default Dosage</Label>
+                  <Input
+                    id="defaultDosage"
+                    placeholder="e.g., 500mg, 1 tablet"
+                    value={newMedicine.defaultDosage || ''}
+                    onChange={(e) => setNewMedicine({ ...newMedicine, defaultDosage: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="defaultFrequency">Default Frequency</Label>
+                  <Input
+                    id="defaultFrequency"
+                    placeholder="e.g., Twice daily"
+                    value={newMedicine.defaultFrequency || ''}
+                    onChange={(e) => setNewMedicine({ ...newMedicine, defaultFrequency: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="defaultDuration">Default Duration</Label>
+                  <Input
+                    id="defaultDuration"
+                    placeholder="e.g., 7 days"
+                    value={newMedicine.defaultDuration || ''}
+                    onChange={(e) => setNewMedicine({ ...newMedicine, defaultDuration: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="defaultInstructions">Default Instructions</Label>
+                  <Input
+                    id="defaultInstructions"
+                    placeholder="e.g., Take with food"
+                    value={newMedicine.defaultInstructions || ''}
+                    onChange={(e) => setNewMedicine({ ...newMedicine, defaultInstructions: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-4 border-t">
+              <Button
+                onClick={() => {
+                  if (!newMedicine.name || !newMedicine.unit) {
+                    toast({
+                      title: "Validation Error",
+                      description: "Please fill in required fields (Name and Unit)",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  addMedicineMutation.mutate(newMedicine);
+                }}
+                disabled={addMedicineMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {addMedicineMutation.isPending ? 'Adding...' : 'Add Medicine'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setAddMedicineDialog(false);
+                  setNewMedicine(initialNewMedicine);
+                }}
+              >
                 Cancel
               </Button>
             </div>

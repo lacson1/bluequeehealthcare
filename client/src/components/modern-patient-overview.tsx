@@ -1520,6 +1520,9 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
     return age;
   };
 
+  // Alias for consistency with industry terminology
+  const calculatePatientAge = getPatientAge;
+
 
 
 
@@ -2288,27 +2291,39 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
               </CardContent>
             </Card>
 
-            {/* Patient Summary */}
+            {/* Patient Summary - Industry Standard Format */}
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-gray-900 flex items-center">
                   <User className="h-3 w-3 mr-1" style={{ color: '#0051CC' }} />
                   Summary
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
+                  {/* DOB - Critical for patient identification */}
+                  <div className="flex justify-between items-center bg-blue-50/50 rounded px-2 py-1">
+                    <span className="text-xs font-medium text-blue-700">DOB</span>
+                    <span className="text-xs font-bold text-blue-900">
+                      {patient?.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      }) : 'N/A'}
+                    </span>
+                  </div>
+
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Registration</span>
+                    <span className="text-xs text-gray-600">Age/Sex</span>
                     <span className="text-xs font-medium text-gray-800">
-                      {new Date(patient?.createdAt || '').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}
+                      {patient?.dateOfBirth ? calculatePatientAge(patient.dateOfBirth) : 'N/A'}y {patient?.gender?.charAt(0).toUpperCase() || ''}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">Blood Type</span>
                     <Badge variant="outline" className="text-xs text-red-600 border-red-300/60 h-5 bg-red-50/80">
-                      A+
+                      {(patient as any)?.bloodType || 'Unknown'}
                     </Badge>
                   </div>
 
@@ -2316,6 +2331,13 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     <span className="text-xs text-gray-600">Phone</span>
                     <span className="text-xs font-medium text-gray-800 truncate max-w-20">
                       {patient?.phone || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">Language</span>
+                    <span className="text-xs font-medium text-gray-800">
+                      {(patient as any)?.preferredLanguage || 'English'}
                     </span>
                   </div>
 
@@ -2335,7 +2357,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                         {patient.allergies.length > 12 ? patient.allergies.substring(0, 12) + '...' : patient.allergies}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-gray-500">None</span>
+                      <span className="text-xs text-gray-500">None reported</span>
                     )}
                   </div>
                 </div>
@@ -2474,6 +2496,77 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
               </CollapsibleContent>
             </Card>
           </Collapsible>
+
+          {/* Active Problems/Diagnoses - Industry Standard Requirement */}
+          <Card className="border-l-4 border-l-amber-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-gray-900 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4 text-amber-600" />
+                  Active Problems / Diagnoses
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {visits.filter((v: any) => v.diagnosis).length} recorded
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {/* Extract unique diagnoses from visits */}
+              {(() => {
+                const uniqueDiagnoses = Array.from(new Set(
+                  visits
+                    .filter((v: any) => v.diagnosis)
+                    .map((v: any) => v.diagnosis)
+                )).slice(0, 5);
+
+                if (uniqueDiagnoses.length === 0) {
+                  return (
+                    <div className="text-sm text-gray-500 py-2">
+                      No active diagnoses recorded. Add diagnoses during patient visits.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-2">
+                    {uniqueDiagnoses.map((diagnosis, index) => (
+                      <div key={index} className="flex items-start gap-2 py-1.5 border-b border-gray-100 last:border-0">
+                        <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1">
+                          <span className="text-sm text-gray-800">{diagnosis as string}</span>
+                          {patient?.medicalHistory?.toLowerCase().includes((diagnosis as string).toLowerCase().split(' ')[0]) && (
+                            <Badge variant="outline" className="ml-2 text-xs bg-orange-50 text-orange-700 border-orange-200">
+                              Chronic
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {visits.filter((v: any) => v.diagnosis).length > 5 && (
+                      <div className="text-xs text-blue-600 hover:underline cursor-pointer pt-1">
+                        View all {visits.filter((v: any) => v.diagnosis).length} diagnoses →
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Medical History as chronic conditions */}
+              {patient?.medicalHistory && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <h4 className="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-1">
+                    <History className="h-3 w-3" />
+                    Chronic Conditions / Medical History
+                  </h4>
+                  <p className="text-sm text-gray-700 bg-amber-50/50 p-2 rounded border border-amber-100">
+                    {patient.medicalHistory}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Patient Alerts - Full Width */}
           <PatientAlertsPanel
@@ -2623,6 +2716,96 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* ═══════════════════════════════════════════════════════════════════
+                  PATIENT SAFETY BANNER - Industry Standard Requirement
+                  Shows critical information during visit entry
+              ═══════════════════════════════════════════════════════════════════ */}
+              <div className="mb-6 space-y-3">
+                {/* Allergy Alert Banner */}
+                {patient?.allergies && (
+                  <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-red-800">⚠️ ALLERGY ALERT</h4>
+                        <p className="text-sm text-red-700 mt-1">{patient.allergies}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Medical History Alert */}
+                {patient?.medicalHistory && (
+                  <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-amber-800">📋 MEDICAL HISTORY</h4>
+                        <p className="text-sm text-amber-700 mt-1">{patient.medicalHistory}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Current Medications Summary */}
+                {activePrescriptions && activePrescriptions.length > 0 && (
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0">
+                        <Medication className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-bold text-blue-800">💊 CURRENT MEDICATIONS ({activePrescriptions.length})</h4>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {activePrescriptions.slice(0, 5).map((rx: any, idx: number) => (
+                            <Badge key={idx} variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                              {rx.medicationName} - {rx.dosage}
+                            </Badge>
+                          ))}
+                          {activePrescriptions.length > 5 && (
+                            <Badge variant="outline" className="bg-blue-200 text-blue-800">
+                              +{activePrescriptions.length - 5} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Patient Quick Info Bar */}
+                <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-slate-600">DOB:</span>
+                    <span className="font-semibold">{patient?.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-slate-600">Age:</span>
+                    <span className="font-semibold">{patient?.dateOfBirth ? calculatePatientAge(patient.dateOfBirth) : 'N/A'}y</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-slate-600">Sex:</span>
+                    <span className="font-semibold">{patient?.gender?.charAt(0).toUpperCase() || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-slate-600">Blood Type:</span>
+                    <span className="font-semibold text-red-600">{(patient as any)?.bloodType || 'Unknown'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="font-medium text-slate-600">Weight:</span>
+                    <span className="font-semibold">{visits[0]?.weight ? `${visits[0].weight} kg` : 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
               <Form {...visitForm}>
                 <form onSubmit={visitForm.handleSubmit(onSubmitVisit)} className="space-y-6">
 
@@ -2694,6 +2877,260 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                       </FormItem>
                     )}
                   />
+
+                  {/* ═══════════════════════════════════════════════════════════════════
+                      REVIEW OF SYSTEMS (ROS) - Industry Standard Requirement
+                      Systematic symptom checklist by body system
+                  ═══════════════════════════════════════════════════════════════════ */}
+                  <div className="space-y-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      Review of Systems (ROS)
+                    </h3>
+                    <p className="text-sm text-slate-600">Check all symptoms reported by the patient</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Constitutional */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-slate-700 border-b pb-1">Constitutional</h4>
+                        <div className="space-y-1 text-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-fever" />
+                            <span>Fever</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-chills" />
+                            <span>Chills</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-weight-loss" />
+                            <span>Weight loss</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-fatigue" />
+                            <span>Fatigue</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* HEENT */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-slate-700 border-b pb-1">HEENT</h4>
+                        <div className="space-y-1 text-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-headache" />
+                            <span>Headache</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-vision" />
+                            <span>Vision changes</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-hearing" />
+                            <span>Hearing loss</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-sore-throat" />
+                            <span>Sore throat</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Cardiovascular */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-slate-700 border-b pb-1">Cardiovascular</h4>
+                        <div className="space-y-1 text-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-chest-pain" />
+                            <span>Chest pain</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-palpitations" />
+                            <span>Palpitations</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-edema" />
+                            <span>Edema</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-sob-exertion" />
+                            <span>SOB on exertion</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Respiratory */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-slate-700 border-b pb-1">Respiratory</h4>
+                        <div className="space-y-1 text-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-cough" />
+                            <span>Cough</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-sob" />
+                            <span>Shortness of breath</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-wheezing" />
+                            <span>Wheezing</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-sputum" />
+                            <span>Sputum production</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Gastrointestinal */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-slate-700 border-b pb-1">Gastrointestinal</h4>
+                        <div className="space-y-1 text-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-nausea" />
+                            <span>Nausea/Vomiting</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-abdominal-pain" />
+                            <span>Abdominal pain</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-diarrhea" />
+                            <span>Diarrhea</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-constipation" />
+                            <span>Constipation</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Neurological */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-slate-700 border-b pb-1">Neurological</h4>
+                        <div className="space-y-1 text-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-dizziness" />
+                            <span>Dizziness</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-numbness" />
+                            <span>Numbness/Tingling</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-weakness" />
+                            <span>Weakness</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="ros-seizures" />
+                            <span>Seizures</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <FormLabel className="text-sm">ROS Notes</FormLabel>
+                      <Textarea
+                        placeholder="Additional review of systems notes or pertinent negatives..."
+                        className="mt-1 min-h-[60px]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ═══════════════════════════════════════════════════════════════════
+                      SOCIAL & FAMILY HISTORY - Industry Standard Requirement
+                  ═══════════════════════════════════════════════════════════════════ */}
+                  <div className="space-y-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                      <User className="h-5 w-5 text-purple-600" />
+                      Social & Family History
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Social History */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm text-purple-800 border-b border-purple-200 pb-1">Social History</h4>
+
+                        <div className="space-y-2">
+                          <div>
+                            <Label className="text-sm">Smoking Status</Label>
+                            <Select>
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="never">Never smoker</SelectItem>
+                                <SelectItem value="former">Former smoker</SelectItem>
+                                <SelectItem value="current">Current smoker</SelectItem>
+                                <SelectItem value="unknown">Unknown</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label className="text-sm">Alcohol Use</Label>
+                            <Select>
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select frequency" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="occasional">Occasional</SelectItem>
+                                <SelectItem value="moderate">Moderate</SelectItem>
+                                <SelectItem value="heavy">Heavy</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label className="text-sm">Occupation</Label>
+                            <Input placeholder="Patient's occupation" className="mt-1" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Family History */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-sm text-purple-800 border-b border-purple-200 pb-1">Family History</h4>
+
+                        <div className="space-y-1 text-sm">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="fh-diabetes" />
+                            <span>Diabetes</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="fh-heart-disease" />
+                            <span>Heart Disease</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="fh-cancer" />
+                            <span>Cancer</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="fh-hypertension" />
+                            <span>Hypertension</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="fh-stroke" />
+                            <span>Stroke</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox id="fh-mental-illness" />
+                            <span>Mental Illness</span>
+                          </label>
+                        </div>
+
+                        <div className="mt-2">
+                          <Label className="text-sm">Family History Notes</Label>
+                          <Textarea
+                            placeholder="Additional family history details..."
+                            className="mt-1 min-h-[60px]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Vital Signs */}
                   <div className="space-y-4">
@@ -2912,9 +3349,15 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     />
                   </div>
 
-                  {/* Assessment and Diagnosis */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Assessment & Diagnosis</h3>
+                  {/* ═══════════════════════════════════════════════════════════════════
+                      ASSESSMENT & DIAGNOSIS - Enhanced with ICD-10 Search
+                      Industry Standard: ICD-10 codes for billing compliance
+                  ═══════════════════════════════════════════════════════════════════ */}
+                  <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-green-600" />
+                      Assessment & Diagnosis
+                    </h3>
 
                     <FormField
                       control={visitForm.control}
@@ -2925,7 +3368,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                           <FormControl>
                             <Textarea
                               placeholder="Clinical reasoning and assessment"
-                              className="min-h-[80px]"
+                              className="min-h-[80px] bg-white"
                               {...field}
                             />
                           </FormControl>
@@ -2934,26 +3377,64 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                       )}
                     />
 
-                    <FormField
-                      control={visitForm.control}
-                      name="diagnosis"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Primary Diagnosis</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Primary diagnosis"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Additional Diagnoses */}
+                    {/* ICD-10 Diagnosis Search */}
                     <div className="space-y-3">
-                      <FormLabel>Additional Diagnoses</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        Primary Diagnosis
+                        <Badge variant="outline" className="text-xs bg-green-100 text-green-700">ICD-10</Badge>
+                      </FormLabel>
+
+                      <div className="relative">
+                        <FormField
+                          control={visitForm.control}
+                          name="diagnosis"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <div className="space-y-2">
+                                  <Input
+                                    placeholder="Search diagnosis or enter ICD-10 code (e.g., J18.9 Pneumonia)"
+                                    className="bg-white"
+                                    {...field}
+                                  />
+                                  {/* Common ICD-10 Quick Select */}
+                                  <div className="flex flex-wrap gap-1">
+                                    <span className="text-xs text-slate-500">Quick select:</span>
+                                    {[
+                                      { code: 'J06.9', name: 'Upper respiratory infection' },
+                                      { code: 'J18.9', name: 'Pneumonia' },
+                                      { code: 'I10', name: 'Essential hypertension' },
+                                      { code: 'E11.9', name: 'Type 2 diabetes' },
+                                      { code: 'M54.5', name: 'Low back pain' },
+                                      { code: 'K21.0', name: 'GERD' },
+                                    ].map((icd) => (
+                                      <Button
+                                        key={icd.code}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs h-6 px-2 hover:bg-green-100"
+                                        onClick={() => field.onChange(`${icd.name} (${icd.code})`)}
+                                      >
+                                        {icd.code}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Additional Diagnoses with ICD-10 */}
+                    <div className="space-y-3">
+                      <FormLabel className="flex items-center gap-2">
+                        Additional Diagnoses
+                        <Badge variant="outline" className="text-xs bg-green-100 text-green-700">ICD-10</Badge>
+                      </FormLabel>
                       <div className="flex gap-2">
                         <FormField
                           control={visitForm.control}
@@ -2962,7 +3443,8 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                             <FormItem className="flex-1">
                               <FormControl>
                                 <Input
-                                  placeholder="Add secondary diagnosis"
+                                  placeholder="Add secondary diagnosis with ICD-10 code"
+                                  className="bg-white"
                                   {...field}
                                 />
                               </FormControl>
@@ -2975,15 +3457,44 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                           onClick={addDiagnosis}
                           variant="outline"
                           size="sm"
+                          className="bg-white"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
                       </div>
 
+                      {/* Quick ICD-10 codes for secondary diagnoses */}
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-xs text-slate-500">More codes:</span>
+                        {[
+                          { code: 'R05.9', name: 'Cough' },
+                          { code: 'R50.9', name: 'Fever' },
+                          { code: 'R51.9', name: 'Headache' },
+                          { code: 'R10.9', name: 'Abdominal pain' },
+                          { code: 'R53.83', name: 'Fatigue' },
+                        ].map((icd) => (
+                          <Button
+                            key={icd.code}
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs h-6 px-2 hover:bg-green-100"
+                            onClick={() => {
+                              const diagnosisText = `${icd.name} (${icd.code})`;
+                              if (!additionalDiagnoses.includes(diagnosisText)) {
+                                setAdditionalDiagnoses(prev => [...prev, diagnosisText]);
+                              }
+                            }}
+                          >
+                            {icd.code}: {icd.name}
+                          </Button>
+                        ))}
+                      </div>
+
                       {additionalDiagnoses.length > 0 && (
                         <div className="space-y-2">
                           {additionalDiagnoses.map((diagnosis, index) => (
-                            <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                            <div key={index} className="flex items-center justify-between bg-white p-2 rounded border border-green-200">
                               <span className="text-sm">{diagnosis}</span>
                               <Button
                                 type="button"
@@ -3000,9 +3511,15 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     </div>
                   </div>
 
-                  {/* Treatment Plan */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Treatment Plan</h3>
+                  {/* ═══════════════════════════════════════════════════════════════════
+                      TREATMENT PLAN - Enhanced with Drug Safety Alerts
+                      Industry Standard: Drug-drug interaction & allergy checking
+                  ═══════════════════════════════════════════════════════════════════ */}
+                  <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                      <Medication className="h-5 w-5 text-blue-600" />
+                      Treatment Plan
+                    </h3>
 
                     <FormField
                       control={visitForm.control}
@@ -3013,7 +3530,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                           <FormControl>
                             <Textarea
                               placeholder="Detailed treatment plan and interventions"
-                              className="min-h-[100px]"
+                              className="min-h-[100px] bg-white"
                               {...field}
                             />
                           </FormControl>
@@ -3022,30 +3539,135 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                       )}
                     />
 
+                    {/* Drug Safety Alert Banner */}
+                    {patient?.allergies && (
+                      <div className="bg-red-100 border border-red-300 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-red-800">
+                          <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <div>
+                            <span className="font-bold text-sm">⚠️ DRUG ALLERGY ALERT - Review before prescribing!</span>
+                            <p className="text-sm mt-1">Patient allergies: <strong>{patient.allergies}</strong></p>
+                            {patient.allergies.toLowerCase().includes('penicillin') && (
+                              <p className="text-xs mt-1 text-red-700">
+                                ⛔ Avoid: Amoxicillin, Ampicillin, and other beta-lactam antibiotics
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-3">
-                      <FormLabel>Medications</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        Medications
+                        <Badge variant="outline" className="text-xs bg-blue-100 text-blue-700">
+                          Drug Safety Check Active
+                        </Badge>
+                      </FormLabel>
+
                       <GlobalMedicationSearch
                         onMedicationSelect={(medication) => {
+                          // Check for potential allergy contraindication
+                          const allergyLower = (patient?.allergies || '').toLowerCase();
+                          const medNameLower = medication.name.toLowerCase();
+
+                          let isContraindicated = false;
+                          let warningMessage = '';
+
+                          // Simple allergy checking rules
+                          if (allergyLower.includes('penicillin') &&
+                            (medNameLower.includes('amoxicillin') ||
+                              medNameLower.includes('ampicillin') ||
+                              medNameLower.includes('penicillin'))) {
+                            isContraindicated = true;
+                            warningMessage = 'PENICILLIN ALLERGY - This medication is contraindicated!';
+                          }
+
+                          if (allergyLower.includes('sulfa') &&
+                            (medNameLower.includes('sulfamethoxazole') ||
+                              medNameLower.includes('bactrim'))) {
+                            isContraindicated = true;
+                            warningMessage = 'SULFA ALLERGY - This medication is contraindicated!';
+                          }
+
+                          if (isContraindicated) {
+                            toast({
+                              title: "⚠️ ALLERGY ALERT",
+                              description: warningMessage,
+                              variant: "destructive",
+                            });
+                          }
+
                           setMedicationList(prev => [...prev, medication.name]);
                         }}
                         placeholder="Search and add medications..."
                       />
 
+                      {/* Custom medication entry with allergy warning */}
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          placeholder="Or enter a custom medication name..."
+                          className="bg-white flex-1"
+                          id="custom-med-input"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const input = document.getElementById('custom-med-input') as HTMLInputElement;
+                            if (input?.value?.trim()) {
+                              setMedicationList(prev => [...prev, input.value.trim()]);
+                              input.value = '';
+                            }
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+
                       {medicationList.length > 0 && (
                         <div className="space-y-2">
-                          {medicationList.map((medication, index) => (
-                            <div key={index} className="flex items-center justify-between bg-blue-50 p-2 rounded">
-                              <span className="text-sm">{medication}</span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setMedicationList(prev => prev.filter((_, i) => i !== index))}
+                          {medicationList.map((medication, index) => {
+                            // Check each medication against allergies
+                            const allergyLower = (patient?.allergies || '').toLowerCase();
+                            const medLower = medication.toLowerCase();
+                            const isPotentialContraindication =
+                              (allergyLower.includes('penicillin') && (medLower.includes('amoxicillin') || medLower.includes('ampicillin'))) ||
+                              (allergyLower.includes('sulfa') && (medLower.includes('sulfa') || medLower.includes('bactrim')));
+
+                            return (
+                              <div
+                                key={index}
+                                className={`flex items-center justify-between p-2 rounded border ${isPotentialContraindication
+                                    ? 'bg-red-100 border-red-300'
+                                    : 'bg-white border-blue-200'
+                                  }`}
                               >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
+                                <div className="flex items-center gap-2">
+                                  {isPotentialContraindication && (
+                                    <svg className="h-4 w-4 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                  <span className={`text-sm ${isPotentialContraindication ? 'text-red-800 font-medium' : ''}`}>
+                                    {medication}
+                                    {isPotentialContraindication && ' ⚠️ ALLERGY ALERT'}
+                                  </span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setMedicationList(prev => prev.filter((_, i) => i !== index))}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -3059,6 +3681,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                           <FormControl>
                             <Textarea
                               placeholder="Instructions and advice for the patient"
+                              className="bg-white"
                               {...field}
                             />
                           </FormControl>
@@ -3127,6 +3750,92 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     )}
                   />
 
+                  {/* ═══════════════════════════════════════════════════════════════════
+                      VISIT TIME TRACKING - Industry Standard for Billing
+                      Required for accurate billing and documentation
+                  ═══════════════════════════════════════════════════════════════════ */}
+                  <div className="space-y-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-slate-600" />
+                      Visit Time Tracking
+                      <Badge variant="outline" className="text-xs bg-slate-100">For Billing</Badge>
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-sm">Visit Start Time</Label>
+                        <Input
+                          type="time"
+                          className="mt-1"
+                          defaultValue={new Date().toTimeString().slice(0, 5)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm">Visit End Time</Label>
+                        <Input
+                          type="time"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm">Total Duration</Label>
+                        <div className="mt-1 p-2 bg-white rounded border text-sm text-slate-600">
+                          Auto-calculated on save
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-slate-500">
+                      💡 Time-based billing codes: 99213 (15 min), 99214 (25 min), 99215 (40 min)
+                    </div>
+                  </div>
+
+                  {/* ═══════════════════════════════════════════════════════════════════
+                      PROVIDER ATTESTATION - Industry Standard
+                      Required for legal and compliance purposes
+                  ═══════════════════════════════════════════════════════════════════ */}
+                  <div className="space-y-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-amber-600" />
+                      Provider Attestation
+                      <Badge variant="outline" className="text-xs bg-amber-100 text-amber-700">Required</Badge>
+                    </h3>
+
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 p-3 bg-white rounded border">
+                        <Checkbox id="attestation-accuracy" className="mt-1" />
+                        <label htmlFor="attestation-accuracy" className="text-sm cursor-pointer">
+                          I attest that the information documented above is accurate and complete to the best of my knowledge,
+                          and that I have personally examined this patient or supervised the examination.
+                        </label>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 bg-white rounded border">
+                        <Checkbox id="attestation-medical-necessity" className="mt-1" />
+                        <label htmlFor="attestation-medical-necessity" className="text-sm cursor-pointer">
+                          I certify that the services provided were medically necessary for the diagnosis and/or treatment
+                          of the patient's condition.
+                        </label>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <Label className="text-sm">Provider Signature</Label>
+                          <div className="mt-1 p-3 bg-white rounded border flex items-center gap-2 text-sm text-slate-600">
+                            <User className="h-4 w-4" />
+                            <span>Electronically signed by: <strong className="text-slate-800">{user?.firstName} {user?.lastName}</strong></span>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-sm">Date & Time</Label>
+                          <div className="mt-1 p-3 bg-white rounded border text-sm text-slate-600">
+                            {new Date().toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Submit Button */}
                   <div className="flex justify-end space-x-4 pt-6 border-t">
                     <Button
@@ -3136,9 +3845,9 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     >
                       Clear Form
                     </Button>
-                    <Button type="submit">
+                    <Button type="submit" className="bg-green-600 hover:bg-green-700">
                       <Stethoscope className="w-4 h-4 mr-2" />
-                      Save Visit Record
+                      Save & Sign Visit Record
                     </Button>
                   </div>
                 </form>

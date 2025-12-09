@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EmptyState, NoLabOrders } from "@/components/ui/empty-state";
 import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -301,133 +302,20 @@ export default function LaboratoryUnified() {
       orderingOrganization = Array.isArray(organizations) ? organizations.find((org: any) => org.id === userProfile.organizationId) : null;
     }
 
-    // Use the ordering staff member's organization for letterhead branding
-    const org = orderingOrganization || {};
-    const orgName = (org as any)?.name || 'Healthcare Organization';
-    const orgType = org.type || 'clinic';
-    const orgEmail = org.email || 'info@healthcare.com';
-    const orgPhone = org.phone || '+234-XXX-XXX-XXXX';
-    const orgAddress = org.address || 'Healthcare Address';
-    const orgWebsite = org.website || 'www.healthcare.com';
-    const themeColor = org.themeColor || '#1e40af';
-    const orgLogo = org.logo || '';
+    // Use organization data or fallback to defaults
+    const organization = orderingOrganization || organizationData || (userProfile as any)?.organization || {
+      id: 1,
+      name: 'ClinicConnect Healthcare',
+      type: 'health_center',
+      themeColor: '#3B82F6',
+      address: 'Healthcare Address',
+      phone: '+234-XXX-XXX-XXXX',
+      email: 'info@clinicconnect.com',
+      website: 'www.clinicconnect.com'
+    };
 
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Lab Order #${order.id}</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
-            .letterhead { background: linear-gradient(135deg, ${themeColor} 0%, #3b82f6 100%); color: white; padding: 30px; margin: -20px -20px 30px -20px; }
-            .org-name { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
-            .org-tagline { font-size: 14px; opacity: 0.9; margin-bottom: 15px; }
-            .org-contact { font-size: 12px; opacity: 0.8; display: flex; justify-content: space-between; }
-            .document-title { text-align: center; font-size: 24px; font-weight: bold; color: ${themeColor}; margin: 30px 0 20px 0; border-bottom: 3px solid ${themeColor}; padding-bottom: 10px; }
-            .order-info { background: #f8fafc; border-left: 4px solid ${themeColor}; padding: 20px; margin-bottom: 25px; }
-            .patient-section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 25px; }
-            .section-title { font-size: 18px; font-weight: bold; color: ${themeColor}; margin-bottom: 15px; display: flex; align-items: center; }
-            .tests-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-            .test-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; background: #fafafa; }
-            .test-name { font-weight: bold; color: #1f2937; margin-bottom: 5px; }
-            .test-category { color: #6b7280; font-size: 13px; margin-bottom: 8px; }
-            .test-status { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-            .status-pending { background: #fef3c7; color: #92400e; }
-            .status-processing { background: #dbeafe; color: #1e40af; }
-            .status-completed { background: #d1fae5; color: #065f46; }
-            .footer { border-top: 2px solid #e2e8f0; padding-top: 20px; margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
-            .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
-            .signature-box { text-align: center; width: 200px; }
-            .signature-line { border-top: 1px solid #000; margin-top: 40px; padding-top: 5px; }
-            @media print { 
-              .no-print { display: none; }
-              body { margin: 0; }
-              .letterhead { margin: -20px -20px 20px -20px; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="letterhead">
-            <div class="org-name">${orgName}</div>
-            <div class="org-tagline">${orgType.charAt(0).toUpperCase() + orgType.slice(1)} Laboratory Services</div>
-            <div class="org-contact">
-              <span>📧 ${orgEmail} | 📞 ${orgPhone}</span>
-              <span>🏥 ${orgAddress} | 🌐 ${orgWebsite}</span>
-            </div>
-          </div>
-          
-          <div class="document-title">LABORATORY ORDER FORM</div>
-          
-          <div class="order-info">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="font-size: 16px;">Order #${order.id}</strong><br>
-                <span style="color: #6b7280;">Issued: ${format(new Date(order.createdAt), 'PPPP')}</span>
-              </div>
-              <div style="text-align: right;">
-                <span style="background: #1e40af; color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">
-                  ${order.status.toUpperCase()}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="patient-section">
-            <div class="section-title">👤 Patient Information</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-              <div>
-                <p><strong>Full Name:</strong> ${patient?.title} ${patient?.firstName} ${patient?.lastName}</p>
-                <p><strong>Phone Number:</strong> ${patient?.phone || ''}</p>
-                <p><strong>Email:</strong> ${patient?.email || ''}</p>
-              </div>
-              <div>
-                <p><strong>Date of Birth:</strong> ${patient?.dateOfBirth ? format(new Date(patient.dateOfBirth), 'PP') : ''}</p>
-                <p><strong>Gender:</strong> ${patient?.gender || ''}</p>
-                <p><strong>Address:</strong> ${patient?.phone || ''}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="patient-section">
-            <div class="section-title">🧪 Ordered Laboratory Tests</div>
-            <div class="tests-grid">
-              ${order.items?.map(item => `
-                <div class="test-card">
-                  <div class="test-name">${item.labTest?.name || 'Unknown Test'}</div>
-                  <div class="test-category">Category: ${item.labTest?.category || 'Not specified'}</div>
-                  <span class="test-status status-${item.status}">${item.status.toUpperCase()}</span>
-                </div>
-              `).join('') || '<p style="color: #6b7280; font-style: italic;">No tests specified</p>'}
-            </div>
-            
-            <div style="background: #f1f5f9; padding: 15px; border-radius: 6px; margin-top: 15px;">
-              <strong>Total Tests Ordered:</strong> ${order.items?.length || 0}<br>
-              <strong>Priority Level:</strong> ${order.items?.[0]?.priority?.toUpperCase() || ''}<br>
-              ${(order as any).clinicalNotes ? `<strong>Clinical Notes:</strong> ${(order as any).clinicalNotes}` : ''}
-            </div>
-          </div>
-          
-          <div class="signatures">
-            <div class="signature-box">
-              <div class="signature-line">Ordering Physician</div>
-              <small>Dr. ${order.orderedBy || ''}</small>
-            </div>
-            <div class="signature-box">
-              <div class="signature-line">Laboratory Supervisor</div>
-              <small>Date: _______________</small>
-            </div>
-          </div>
-          
-          <div class="footer">
-            <p><strong>${orgName} Laboratory Services</strong></p>
-            <p>This document was generated electronically on ${format(new Date(), 'PPPP')} at ${format(new Date(), 'p')}</p>
-            <p style="font-size: 10px; margin-top: 10px;">
-              ⚕️ Licensed Healthcare Facility | Professional Laboratory Services
-            </p>
-          </div>
-        </body>
-      </html>
-    `;
+    // Use LetterheadService for consistent formatting
+    return LetterheadService.generateLabOrderHTML(organization, order, patient);
   };
 
   // Enhanced print function with letterhead
@@ -1137,13 +1025,8 @@ export default function LaboratoryUnified() {
             </Card>
           ) : filteredOrders.length === 0 ? (
             <Card>
-              <CardContent className="p-12 text-center">
-                <TestTube className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No lab orders found</h3>
-                <p className="text-gray-600 mb-4">Create your first lab order to get started</p>
-                <Button onClick={() => setShowOrderDialog(true)} title="Create Lab Order">
-                  <Plus className="w-4 h-4" />
-                </Button>
+              <CardContent className="p-4">
+                <NoLabOrders onCreate={() => setShowOrderDialog(true)} />
               </CardContent>
             </Card>
           ) : (
@@ -1344,10 +1227,12 @@ export default function LaboratoryUnified() {
         <TabsContent value="results" className="space-y-4">
           {filteredResults.length === 0 ? (
             <Card>
-              <CardContent className="p-12 text-center">
-                <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No results found</h3>
-                <p className="text-gray-600">Lab results will appear here once processed</p>
+              <CardContent className="p-4">
+                <EmptyState
+                  icon={FileText}
+                  title="No lab results found"
+                  description="Lab results will appear here once orders are processed"
+                />
               </CardContent>
             </Card>
           ) : (
@@ -1590,7 +1475,7 @@ export default function LaboratoryUnified() {
 
       {/* New Lab Order Dialog */}
       <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Lab Order</DialogTitle>
             <DialogDescription>
@@ -1908,7 +1793,7 @@ export default function LaboratoryUnified() {
 
       {/* Enhanced FBC Result Entry Dialog */}
       <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <TestTube className="w-5 h-5 text-blue-600" />
@@ -2160,7 +2045,7 @@ export default function LaboratoryUnified() {
 
       {/* View Order Details Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-blue-600" />
@@ -2250,14 +2135,14 @@ export default function LaboratoryUnified() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <FlaskRound className="w-4 h-4 text-blue-600" />
-                              <p className="font-medium">{item.labTest?.name}</p>
+                              <p className="font-medium">{item.labTest?.name || item.testName || 'Unknown Test'}</p>
                             </div>
                             <p className="text-sm text-gray-600 mt-1">
-                              Category: {item.labTest?.category}
+                              Category: {item.labTest?.category || item.testCategory || 'General'}
                             </p>
-                            {item.labTest?.referenceRange && (
+                            {(item.labTest?.referenceRange || item.referenceRange) && (
                               <p className="text-sm text-gray-600">
-                                Reference Range: {item.labTest.referenceRange}
+                                Reference Range: {item.labTest?.referenceRange || item.referenceRange}
                               </p>
                             )}
                             {item.result && (
@@ -2354,6 +2239,232 @@ export default function LaboratoryUnified() {
             </Button>
             <Button onClick={() => setShowViewDialog(false)}>
               Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom View Settings Dialog */}
+      <Dialog open={showCustomViewDialog} onOpenChange={setShowCustomViewDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Custom View Settings
+            </DialogTitle>
+            <DialogDescription>
+              Customize how lab orders and results are displayed
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Display Options */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Eye className="w-4 h-4" />
+                Display Options
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="showPatientInfo"
+                    checked={customViewSettings.showPatientInfo}
+                    onCheckedChange={(checked) =>
+                      setCustomViewSettings(prev => ({ ...prev, showPatientInfo: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="showPatientInfo" className="text-sm cursor-pointer">
+                    Patient Information
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="showTestDetails"
+                    checked={customViewSettings.showTestDetails}
+                    onCheckedChange={(checked) =>
+                      setCustomViewSettings(prev => ({ ...prev, showTestDetails: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="showTestDetails" className="text-sm cursor-pointer">
+                    Test Details
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="showTimestamps"
+                    checked={customViewSettings.showTimestamps}
+                    onCheckedChange={(checked) =>
+                      setCustomViewSettings(prev => ({ ...prev, showTimestamps: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="showTimestamps" className="text-sm cursor-pointer">
+                    Timestamps
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="showStatus"
+                    checked={customViewSettings.showStatus}
+                    onCheckedChange={(checked) =>
+                      setCustomViewSettings(prev => ({ ...prev, showStatus: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="showStatus" className="text-sm cursor-pointer">
+                    Status Badges
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="showPriority"
+                    checked={customViewSettings.showPriority}
+                    onCheckedChange={(checked) =>
+                      setCustomViewSettings(prev => ({ ...prev, showPriority: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="showPriority" className="text-sm cursor-pointer">
+                    Priority Labels
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="showNotes"
+                    checked={customViewSettings.showNotes}
+                    onCheckedChange={(checked) =>
+                      setCustomViewSettings(prev => ({ ...prev, showNotes: !!checked }))
+                    }
+                  />
+                  <Label htmlFor="showNotes" className="text-sm cursor-pointer">
+                    Clinical Notes
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Layout Options */}
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Layout Options
+              </h3>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="compactView"
+                  checked={customViewSettings.compactView}
+                  onCheckedChange={(checked) =>
+                    setCustomViewSettings(prev => ({ ...prev, compactView: !!checked }))
+                  }
+                />
+                <Label htmlFor="compactView" className="text-sm cursor-pointer">
+                  Compact View (Show more items in less space)
+                </Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="itemsPerPage" className="text-sm">Items Per Page</Label>
+                <Select
+                  value={customViewSettings.itemsPerPage.toString()}
+                  onValueChange={(value) =>
+                    setCustomViewSettings(prev => ({ ...prev, itemsPerPage: parseInt(value) }))
+                  }
+                >
+                  <SelectTrigger id="itemsPerPage" className="w-full">
+                    <SelectValue placeholder="Select items per page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 items</SelectItem>
+                    <SelectItem value="10">10 items</SelectItem>
+                    <SelectItem value="20">20 items</SelectItem>
+                    <SelectItem value="50">50 items</SelectItem>
+                    <SelectItem value="100">100 items</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="text-sm font-semibold text-gray-700">Quick Presets</h3>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCustomViewSettings({
+                    showPatientInfo: true,
+                    showTestDetails: true,
+                    showTimestamps: true,
+                    showStatus: true,
+                    showPriority: true,
+                    showNotes: true,
+                    compactView: false,
+                    itemsPerPage: 10
+                  })}
+                >
+                  Default View
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCustomViewSettings({
+                    showPatientInfo: true,
+                    showTestDetails: false,
+                    showTimestamps: false,
+                    showStatus: true,
+                    showPriority: true,
+                    showNotes: false,
+                    compactView: true,
+                    itemsPerPage: 20
+                  })}
+                >
+                  Compact
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCustomViewSettings({
+                    showPatientInfo: true,
+                    showTestDetails: true,
+                    showTimestamps: true,
+                    showStatus: true,
+                    showPriority: true,
+                    showNotes: true,
+                    compactView: false,
+                    itemsPerPage: 5
+                  })}
+                >
+                  Detailed
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCustomViewSettings({
+                    showPatientInfo: false,
+                    showTestDetails: true,
+                    showTimestamps: false,
+                    showStatus: true,
+                    showPriority: false,
+                    showNotes: false,
+                    compactView: true,
+                    itemsPerPage: 50
+                  })}
+                >
+                  Tests Only
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowCustomViewDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              setShowCustomViewDialog(false);
+              toast({
+                title: "View settings updated",
+                description: "Your custom view preferences have been applied"
+              });
+            }}>
+              Apply Settings
             </Button>
           </div>
         </DialogContent>

@@ -128,8 +128,17 @@ export default function CustomLabOrderPrint({ labOrders, patient, onClose }: Cus
           </DialogTitle>
         </DialogHeader>
 
-        {/* Print Content */}
-        <div id="lab-order-print-content" className="bg-white p-8 print:p-0" style={{ minHeight: '297mm' }}>
+        {/* Print Content - Force light mode with explicit styles */}
+        <div 
+          id="lab-order-print-content" 
+          className="bg-white dark:bg-white text-gray-900 dark:text-gray-900 p-8 print:p-0" 
+          style={{ 
+            minHeight: '297mm', 
+            colorScheme: 'light',
+            backgroundColor: 'white',
+            color: '#1f2937'
+          }}
+        >
         {/* Organization Header */}
         {generateClinicHeader(organization)}
 

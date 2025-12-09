@@ -20,9 +20,6 @@ import {
   Edit3,
   Save,
   X,
-  Mail,
-  Phone,
-  Calendar,
   Building
 } from 'lucide-react';
 
@@ -64,16 +61,19 @@ export default function Profile() {
   });
 
   // Update form when profile data is loaded
+  // API returns { success: true, data: {...} } so we need to access .data
+  const profile = (profileData as any)?.data || profileData;
+  
   useEffect(() => {
-    if (profileData) {
+    if (profile) {
       form.reset({
-        title: (profileData as any).title || 'none',
-        firstName: (profileData as any).firstName || '',
-        lastName: (profileData as any).lastName || '',
-        phone: (profileData as any).phone || '',
+        title: profile.title || 'none',
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        phone: profile.phone || '',
       });
     }
-  }, [profileData, form]);
+  }, [profile, form]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileForm) => {
@@ -103,11 +103,13 @@ export default function Profile() {
   };
 
   const handleCancel = () => {
-    if (user) {
+    // Reset form to original profile data
+    if (profile) {
       form.reset({
-        firstName: '',  // User object doesn't contain firstName
-        lastName: '',   // User object doesn't contain lastName  
-        phone: '',      // User object doesn't contain phone
+        title: profile.title || 'none',
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        phone: profile.phone || '',
       });
     }
     setIsEditing(false);
@@ -154,8 +156,8 @@ export default function Profile() {
               <Avatar className="h-20 w-20">
                 <AvatarFallback className="text-lg font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
                   {getInitials({
-                    firstName: (profileData as any)?.firstName,
-                    lastName: (profileData as any)?.lastName,
+                    firstName: profile?.firstName,
+                    lastName: profile?.lastName,
                     username: user?.username
                   })}
                 </AvatarFallback>
@@ -163,9 +165,9 @@ export default function Profile() {
             </div>
             <CardTitle className="text-xl text-gray-900 dark:text-gray-100">
               {getDisplayName({
-                title: (profileData as any)?.title,
-                firstName: (profileData as any)?.firstName,
-                lastName: (profileData as any)?.lastName,
+                title: profile?.title,
+                firstName: profile?.firstName,
+                lastName: profile?.lastName,
                 username: user?.username
               })}
             </CardTitle>
@@ -216,7 +218,7 @@ export default function Profile() {
                       <Select
                         disabled={!isEditing}
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -225,13 +227,13 @@ export default function Profile() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="none">No Title</SelectItem>
-                          <SelectItem value="Mr">Mr</SelectItem>
-                          <SelectItem value="Mrs">Mrs</SelectItem>
-                          <SelectItem value="Ms">Ms</SelectItem>
+                          <SelectItem value="Mr.">Mr.</SelectItem>
+                          <SelectItem value="Mrs.">Mrs.</SelectItem>
+                          <SelectItem value="Ms.">Ms.</SelectItem>
                           <SelectItem value="Miss">Miss</SelectItem>
-                          <SelectItem value="Dr">Dr</SelectItem>
-                          <SelectItem value="Prof">Prof</SelectItem>
-                          <SelectItem value="Rev">Rev</SelectItem>
+                          <SelectItem value="Dr.">Dr.</SelectItem>
+                          <SelectItem value="Prof.">Prof.</SelectItem>
+                          <SelectItem value="Rev.">Rev.</SelectItem>
                           <SelectItem value="Chief">Chief</SelectItem>
                           <SelectItem value="Alhaji">Alhaji</SelectItem>
                           <SelectItem value="Alhaja">Alhaja</SelectItem>

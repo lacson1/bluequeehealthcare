@@ -32,7 +32,7 @@ const referralSchema = z.object({
 type ReferralFormData = z.infer<typeof referralSchema>;
 
 interface ReferralManagementProps {
-  patientId: number;
+  readonly patientId: number;
 }
 
 interface PatientReferral {
@@ -115,7 +115,7 @@ export default function ReferralManagement({ patientId }: ReferralManagementProp
   });
 
   // Fetch patient referrals
-  const { data: referrals = [], isLoading } = useQuery({
+  const { data: referrals = [], isLoading } = useQuery<PatientReferral[]>({
     queryKey: [`/api/patients/${patientId}/referrals`],
     enabled: !!patientId
   });
@@ -255,13 +255,13 @@ export default function ReferralManagement({ patientId }: ReferralManagementProp
               New Referral
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingReferral ? 'Edit Referral' : 'Create New Referral'}
               </DialogTitle>
             </DialogHeader>
-            
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Facility and Specialty */}
@@ -365,9 +365,9 @@ export default function ReferralManagement({ patientId }: ReferralManagementProp
                     <FormItem>
                       <FormLabel>Reason for Referral *</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Describe the reason for this referral..." 
-                          {...field} 
+                        <Textarea
+                          placeholder="Describe the reason for this referral..."
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -435,9 +435,9 @@ export default function ReferralManagement({ patientId }: ReferralManagementProp
                     <FormItem>
                       <FormLabel>Additional Notes</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Any additional information or instructions..." 
-                          {...field} 
+                        <Textarea
+                          placeholder="Any additional information or instructions..."
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
@@ -446,24 +446,24 @@ export default function ReferralManagement({ patientId }: ReferralManagementProp
                 />
 
                 <div className="flex justify-end space-x-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => setIsOpen(false)}
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={createReferralMutation.isPending || updateReferralMutation.isPending}
                     className="bg-cyan-600 hover:bg-cyan-700"
                   >
-                    {createReferralMutation.isPending || updateReferralMutation.isPending 
-                      ? "Saving..." 
-                      : editingReferral 
-                        ? "Update Referral" 
-                        : "Create Referral"
-                    }
+                    {(() => {
+                      if (createReferralMutation.isPending || updateReferralMutation.isPending) {
+                        return "Saving...";
+                      }
+                      return editingReferral ? "Update Referral" : "Create Referral";
+                    })()}
                   </Button>
                 </div>
               </form>
@@ -576,7 +576,7 @@ export default function ReferralManagement({ patientId }: ReferralManagementProp
 
                 {referral.referringDoctor && (
                   <div className="border-t pt-3 text-xs text-gray-500">
-                    Referred by Dr. {referral.referringDoctor.firstName || referral.referringDoctor.username} 
+                    Referred by Dr. {referral.referringDoctor.firstName || referral.referringDoctor.username}
                     ({referral.referringDoctor.role})
                   </div>
                 )}

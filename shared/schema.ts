@@ -119,6 +119,21 @@ export const patients = pgTable("patients", {
   address: text("address"),
   allergies: text("allergies"),
   medicalHistory: text("medical_history"),
+  // Industry-standard patient identification fields
+  bloodType: varchar("blood_type", { length: 5 }), // A+, A-, B+, B-, AB+, AB-, O+, O-
+  preferredLanguage: varchar("preferred_language", { length: 50 }).default('English'),
+  interpreterNeeded: boolean("interpreter_needed").default(false),
+  // Primary Care Provider
+  primaryCareProviderId: integer("primary_care_provider_id").references(() => users.id),
+  // Emergency Contact Information
+  emergencyContactName: varchar("emergency_contact_name", { length: 100 }),
+  emergencyContactPhone: varchar("emergency_contact_phone", { length: 20 }),
+  emergencyContactRelationship: varchar("emergency_contact_relationship", { length: 50 }),
+  // Code Status (for inpatient/acute settings)
+  codeStatus: varchar("code_status", { length: 20 }).default('full'), // full, dnr, dni, dnr_dni, comfort
+  // Additional identifiers
+  nationalId: varchar("national_id", { length: 50 }),
+  insuranceId: varchar("insurance_id", { length: 50 }),
   organizationId: integer('organization_id').references(() => organizations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

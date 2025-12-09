@@ -4,6 +4,7 @@ import { drizzle as pgDrizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { dbLogger as logger } from './lib/logger';
 
 const { Pool: PgPool } = pg;
 
@@ -49,8 +50,8 @@ const sslConfig = requireSSL ? {
 
 const { pool, db } = (() => {
   if (isNeonDatabase) {
-    console.log('📡 Using Neon serverless database with WebSocket connection');
-    console.log(`   Pool config: max=${POOL_CONFIG.max}, min=${POOL_CONFIG.min}, idleTimeout=${POOL_CONFIG.idleTimeoutMillis}ms`);
+    logger.info('Using Neon serverless database with WebSocket connection');
+    logger.debug(`Pool config: max=${POOL_CONFIG.max}, min=${POOL_CONFIG.min}, idleTimeout=${POOL_CONFIG.idleTimeoutMillis}ms`);
     neonConfig.webSocketConstructor = ws;
     const pool = new NeonPool({ 
       connectionString: process.env.DATABASE_URL,
@@ -61,10 +62,10 @@ const { pool, db } = (() => {
     const db = neonDrizzle({ client: pool, schema });
     return { pool, db };
   } else {
-    console.log('🐘 Using PostgreSQL database with standard connection');
-    console.log(`   Pool config: max=${POOL_CONFIG.max}, min=${POOL_CONFIG.min}, idleTimeout=${POOL_CONFIG.idleTimeoutMillis}ms`);
+    logger.info('Using PostgreSQL database with standard connection');
+    logger.debug(`Pool config: max=${POOL_CONFIG.max}, min=${POOL_CONFIG.min}, idleTimeout=${POOL_CONFIG.idleTimeoutMillis}ms`);
     if (sslConfig) {
-      console.log('   SSL: enabled (accepting self-signed certificates)');
+      logger.debug('SSL: enabled (accepting self-signed certificates)');
     }
     const pool = new PgPool({ 
       connectionString: process.env.DATABASE_URL,
@@ -78,5 +79,42 @@ const { pool, db } = (() => {
     return { pool, db };
   }
 })();
+
+/**
+ * Test database connection with retry logic
+ * Use this during app startup to verify database is reachable
+ */
+export async function testConnection(maxRetries = 3, retryDelay = 2000): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      logger.info('Database connection verified');
+      return true;
+    } catch (error: any) {
+      logger.warn(`Database connection attempt ${attempt}/${maxRetries} failed:`, error.message);
+      
+      if (attempt < maxRetries) {
+        logger.info(`Retrying in ${retryDelay / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
+    }
+  }
+  
+  logger.error(`Failed to connect to database after ${maxRetries} attempts`);
+  return false;
+}
+
+/**
+ * Get database pool statistics
+ */
+export function getPoolStats() {
+  return {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+  };
+}
 
 export { pool, db };

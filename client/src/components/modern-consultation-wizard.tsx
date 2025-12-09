@@ -32,7 +32,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -43,9 +42,7 @@ import {
 import {
   Stethoscope,
   Heart,
-  Thermometer,
   Weight,
-  Activity,
   FileText,
   Save,
   Plus,
@@ -61,10 +58,6 @@ import {
   FileSearch,
   ClipboardList,
   Search,
-  Pin,
-  PinOff,
-  Grid3x3,
-  List,
   ChevronRight,
   Trash2
 } from "lucide-react";
@@ -110,10 +103,10 @@ const consultationSchema = z.object({
 type ConsultationFormData = z.infer<typeof consultationSchema>;
 
 interface ModernConsultationWizardProps {
-  patientId: number;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  onSave?: () => void;
+  readonly patientId: number;
+  readonly open?: boolean;
+  readonly onOpenChange?: (open: boolean) => void;
+  readonly onSave?: () => void;
 }
 
 const STEPS = [
@@ -144,7 +137,7 @@ export function ModernConsultationWizard({
   const [suggestedMedications, setSuggestedMedications] = useState<MedicationSuggestion[]>([]);
   const [treatmentInstructions, setTreatmentInstructions] = useState<string>("");
   const [formCompletionPercentage, setFormCompletionPercentage] = useState(0);
-  
+
   // Specialty forms state
   const [specialtyFormSearchQuery, setSpecialtyFormSearchQuery] = useState("");
   const [selectedSpecialtyForms, setSelectedSpecialtyForms] = useState<any[]>([]);
@@ -188,13 +181,13 @@ export function ModernConsultationWizard({
     queryKey: [`/api/patients/${patientId}`],
     enabled: !!patientId,
   });
-  
+
   // Fetch available specialty consultation forms
   const { data: specialtyForms = [] } = useQuery<any[]>({
     queryKey: ["/api/consultation-forms"],
     enabled: !!open,
   });
-  
+
   // Filter specialty forms
   const filteredSpecialtyForms = specialtyForms.filter((form: any) => {
     const matchesSearch =
@@ -203,7 +196,7 @@ export function ModernConsultationWizard({
     const matchesRole = specialtyFilterRole === "all" || form.specialistRole === specialtyFilterRole;
     return matchesSearch && matchesRole && form.isActive;
   });
-  
+
   // Get unique specialist roles from forms
   const availableSpecialistRoles = Array.from(new Set(specialtyForms.map((f: any) => f.specialistRole).filter(Boolean)));
 
@@ -214,8 +207,8 @@ export function ModernConsultationWizard({
 
   // Calculate BMI
   const calculateBMI = useCallback((weight: string, height: string) => {
-    const weightNum = parseFloat(weight);
-    const heightNum = parseFloat(height);
+    const weightNum = Number.parseFloat(weight);
+    const heightNum = Number.parseFloat(height);
 
     if (weightNum > 0 && heightNum > 0) {
       const heightInMeters = heightNum / 100;
@@ -232,10 +225,10 @@ export function ModernConsultationWizard({
     const alerts: string[] = [];
 
     if (formData.bloodPressure) {
-      const bpMatch = formData.bloodPressure.match(/(\d+)\/(\d+)/);
+      const bpMatch = /(\d+)\/(\d+)/.exec(formData.bloodPressure);
       if (bpMatch) {
-        const systolic = parseInt(bpMatch[1]);
-        const diastolic = parseInt(bpMatch[2]);
+        const systolic = Number.parseInt(bpMatch[1], 10);
+        const diastolic = Number.parseInt(bpMatch[2], 10);
         if (systolic > 140 || diastolic > 90) {
           alerts.push("⚠️ Elevated blood pressure detected");
         } else if (systolic < 90 || diastolic < 60) {
@@ -245,24 +238,24 @@ export function ModernConsultationWizard({
     }
 
     if (formData.heartRate) {
-      const hr = parseInt(formData.heartRate);
+      const hr = Number.parseInt(formData.heartRate, 10);
       if (hr > 100) alerts.push("⚠️ Tachycardia detected (HR > 100)");
       else if (hr < 60) alerts.push("⚠️ Bradycardia detected (HR < 60)");
     }
 
     if (formData.temperature) {
-      const temp = parseFloat(formData.temperature);
-      if (temp > 38.0) alerts.push("🌡️ Fever detected (>38°C)");
-      else if (temp < 36.0) alerts.push("🌡️ Low temperature detected (<36°C)");
+      const temp = Number.parseFloat(formData.temperature);
+      if (temp > 38) alerts.push("🌡️ Fever detected (>38°C)");
+      else if (temp < 36) alerts.push("🌡️ Low temperature detected (<36°C)");
     }
 
     if (formData.oxygenSaturation) {
-      const spo2 = parseInt(formData.oxygenSaturation);
+      const spo2 = Number.parseInt(formData.oxygenSaturation, 10);
       if (spo2 < 95) alerts.push("⚠️ Low oxygen saturation (<95%)");
     }
 
     if (formData.respiratoryRate) {
-      const rr = parseInt(formData.respiratoryRate);
+      const rr = Number.parseInt(formData.respiratoryRate, 10);
       if (rr > 20) alerts.push("⚠️ Elevated respiratory rate (>20)");
       else if (rr < 12) alerts.push("⚠️ Low respiratory rate (<12)");
     }
@@ -278,7 +271,7 @@ export function ModernConsultationWizard({
       const value = values[key as keyof ConsultationFormData];
       return value && value.toString().trim() !== "";
     });
-    
+
     const percentage = Math.round((filledFields.length / fields.length) * 100);
     setFormCompletionPercentage(percentage);
   }, [form]);
@@ -346,7 +339,7 @@ export function ModernConsultationWizard({
         specialistRole: form.specialistRole,
         data: specialtyFormData[form.id] || {}
       }));
-      
+
       const visitData = {
         patientId,
         visitDate: new Date().toISOString(),
@@ -355,10 +348,10 @@ export function ModernConsultationWizard({
         diagnosis: data.diagnosis,
         treatment: data.treatmentPlan,
         bloodPressure: data.bloodPressure,
-        heartRate: data.heartRate ? parseInt(data.heartRate) : null,
-        temperature: data.temperature ? parseFloat(data.temperature) : null,
-        weight: data.weight ? parseFloat(data.weight) : null,
-        height: data.height ? parseFloat(data.height) : null,
+        heartRate: data.heartRate ? Number.parseInt(data.heartRate, 10) : null,
+        temperature: data.temperature ? Number.parseFloat(data.temperature) : null,
+        weight: data.weight ? Number.parseFloat(data.weight) : null,
+        height: data.height ? Number.parseFloat(data.height) : null,
         medications: medicationList.join(", "),
         notes: JSON.stringify({
           historyOfPresentIllness: data.historyOfPresentIllness,
@@ -387,32 +380,29 @@ export function ModernConsultationWizard({
 
       const response = await apiRequest(`/api/patients/${patientId}/visits`, "POST", visitData);
       const visitResult = await response.json();
-      
+
       // Also save specialty forms as separate consultation records
       if (specialtyAssessments.length > 0 && visitResult.id) {
         for (const assessment of specialtyAssessments) {
           try {
-            await apiRequest(`/api/patients/${patientId}/consultation-records`, {
-              method: "POST",
-              body: {
-                formId: assessment.formId,
-                patientId,
-                visitId: visitResult.id,
-                data: assessment.data,
-              },
+            await apiRequest(`/api/patients/${patientId}/consultation-records`, "POST", {
+              formId: assessment.formId,
+              patientId,
+              visitId: visitResult.id,
+              data: assessment.data,
             });
           } catch (error) {
             console.error('Error saving specialty form:', error);
           }
         }
       }
-      
+
       return visitResult;
     },
     onSuccess: () => {
       toast({
         title: "✅ Visit Recorded Successfully",
-        description: selectedSpecialtyForms.length > 0 
+        description: selectedSpecialtyForms.length > 0
           ? `Patient consultation saved with ${selectedSpecialtyForms.length} specialty assessment(s).`
           : "Patient consultation has been saved to the medical record.",
       });
@@ -430,7 +420,7 @@ export function ModernConsultationWizard({
       setSelectedSpecialtyForms([]);
       setSpecialtyFormData({});
       setActiveSpecialtyForm(null);
-      
+
       if (onSave) onSave();
       if (onOpenChange) onOpenChange(false);
     },
@@ -513,22 +503,20 @@ export function ModernConsultationWizard({
                   <button
                     key={step.id}
                     onClick={() => setCurrentStep(step.id)}
-                    className={`flex flex-col items-center gap-1 transition-all ${
-                      isActive
-                        ? "text-blue-600"
-                        : isCompleted
+                    className={`flex flex-col items-center gap-1 transition-all ${isActive
+                      ? "text-blue-600"
+                      : isCompleted
                         ? "text-green-600"
                         : "text-gray-400"
-                    }`}
+                      }`}
                   >
                     <div
-                      className={`p-2 rounded-full ${
-                        isActive
-                          ? "bg-blue-100 ring-2 ring-blue-500"
-                          : isCompleted
+                      className={`p-2 rounded-full ${isActive
+                        ? "bg-blue-100 ring-2 ring-blue-500"
+                        : isCompleted
                           ? "bg-green-100"
                           : "bg-gray-100"
-                      }`}
+                        }`}
                     >
                       {isCompleted ? (
                         <CheckCircle2 className="h-5 w-5" />
@@ -1079,13 +1067,13 @@ export function ModernConsultationWizard({
                           <SelectItem value="all">All Specialties</SelectItem>
                           {availableSpecialistRoles.map((role: string) => (
                             <SelectItem key={role} value={role}>
-                              {role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              {role.replaceAll('_', ' ').replaceAll(/\b\w/g, l => l.toUpperCase())}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     {/* Selected Forms Display */}
                     {selectedSpecialtyForms.length > 0 && (
                       <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
@@ -1098,7 +1086,7 @@ export function ModernConsultationWizard({
                             <div key={form.id} className="flex items-center justify-between bg-white p-3 rounded border">
                               <div className="flex-1">
                                 <div className="font-medium text-gray-900">{form.name}</div>
-                                <div className="text-xs text-gray-500">{form.specialistRole?.replace(/_/g, ' ')}</div>
+                                <div className="text-xs text-gray-500">{form.specialistRole?.replaceAll('_', ' ')}</div>
                               </div>
                               <div className="flex items-center gap-2">
                                 {specialtyFormData[form.id] && Object.keys(specialtyFormData[form.id]).length > 0 && (
@@ -1136,7 +1124,7 @@ export function ModernConsultationWizard({
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Active Form Filling */}
                     {activeSpecialtyForm && (
                       <Card className="border-2 border-purple-400">
@@ -1284,7 +1272,7 @@ export function ModernConsultationWizard({
                         </CardContent>
                       </Card>
                     )}
-                    
+
                     {/* Available Forms List */}
                     {!activeSpecialtyForm && (
                       <div className="space-y-3">
@@ -1299,50 +1287,50 @@ export function ModernConsultationWizard({
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
                             {filteredSpecialtyForms.map((form: any) => {
                               const isSelected = selectedSpecialtyForms.some(f => f.id === form.id);
+                              const handleFormToggle = () => {
+                                if (isSelected) {
+                                  setSelectedSpecialtyForms(prev => prev.filter(f => f.id !== form.id));
+                                } else {
+                                  setSelectedSpecialtyForms(prev => [...prev, form]);
+                                }
+                              };
                               return (
-                                <div
+                                <button
+                                  type="button"
                                   key={form.id}
-                                  className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                                    isSelected
-                                      ? 'border-purple-400 bg-purple-50'
-                                      : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
-                                  }`}
-                                  onClick={() => {
-                                    if (isSelected) {
-                                      setSelectedSpecialtyForms(prev => prev.filter(f => f.id !== form.id));
-                                    } else {
-                                      setSelectedSpecialtyForms(prev => [...prev, form]);
-                                    }
-                                  }}
+                                  className={`p-3 rounded-lg border transition-all cursor-pointer text-left w-full ${isSelected
+                                    ? 'border-purple-400 bg-purple-50'
+                                    : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                                    }`}
+                                  onClick={handleFormToggle}
                                 >
                                   <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                       <h5 className="font-medium text-gray-900">{form.name}</h5>
                                       <p className="text-xs text-gray-500 mt-1 line-clamp-2">{form.description}</p>
                                       <Badge variant="secondary" className="mt-2 text-xs">
-                                        {form.specialistRole?.replace(/_/g, ' ')}
+                                        {form.specialistRole?.replaceAll('_', ' ')}
                                       </Badge>
                                     </div>
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                      isSelected ? 'border-purple-500 bg-purple-500' : 'border-gray-300'
-                                    }`}>
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-purple-500 bg-purple-500' : 'border-gray-300'
+                                      }`}>
                                       {isSelected && <CheckCircle2 className="h-3 w-3 text-white" />}
                                     </div>
                                   </div>
-                                </div>
+                                </button>
                               );
                             })}
                           </div>
                         )}
                       </div>
                     )}
-                    
+
                     {/* Info Message */}
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
                       <div className="flex items-start gap-2">
                         <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <div>
-                          <strong>Tip:</strong> Select specialty forms to add detailed specialist assessments 
+                          <strong>Tip:</strong> Select specialty forms to add detailed specialist assessments
                           to this consultation. The form data will be saved alongside the visit record.
                         </div>
                       </div>
@@ -1472,7 +1460,7 @@ export function ModernConsultationWizard({
 
       {/* Template Selection Dialog */}
       <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-purple-500" />
@@ -1500,9 +1488,10 @@ export function ModernConsultationWizard({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
               {filteredTemplates.map((template) => (
-                <div
+                <button
+                  type="button"
                   key={template.id}
-                  className="bg-white p-4 rounded-lg border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer"
+                  className="bg-white p-4 rounded-lg border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all cursor-pointer text-left w-full"
                   onClick={() => applyTemplate(template)}
                 >
                   <div className="flex items-start justify-between">
@@ -1515,7 +1504,7 @@ export function ModernConsultationWizard({
                     </div>
                     <Zap className="h-5 w-5 text-purple-500 flex-shrink-0 ml-2" />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>

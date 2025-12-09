@@ -21,7 +21,7 @@ interface PhysiotherapyAssessmentProps {
 export default function PhysiotherapyAssessment({ patientId, visitId }: PhysiotherapyAssessmentProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [assessmentData, setAssessmentData] = useState({
     mobilityAssessment: '',
     rangeOfMotion: '',
@@ -104,7 +104,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
           </Badge>
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Physical Assessment Section */}
@@ -113,7 +113,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
               <Target className="w-4 h-4" />
               Physical Assessment
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="mobilityAssessment" className="text-sm font-medium">Mobility Assessment</Label>
@@ -126,7 +126,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="rangeOfMotion" className="text-sm font-medium">Range of Motion</Label>
                 <Textarea
@@ -138,7 +138,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="strengthAssessment" className="text-sm font-medium">Strength Assessment</Label>
                 <Textarea
@@ -150,7 +150,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="balanceCoordination" className="text-sm font-medium">Balance & Coordination</Label>
                 <Textarea
@@ -168,7 +168,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
           {/* Clinical Assessment */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Clinical Assessment</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="painAssessment" className="text-sm font-medium">Pain Assessment</Label>
@@ -181,7 +181,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="functionalCapacity" className="text-sm font-medium">Functional Capacity</Label>
                 <Textarea
@@ -202,7 +202,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
               <Zap className="w-4 h-4" />
               Treatment Plan
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="treatmentModalities" className="text-sm font-medium">Treatment Modalities</Label>
@@ -215,7 +215,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="exercisesPrescribed" className="text-sm font-medium">Exercises Prescribed</Label>
                 <Textarea
@@ -227,7 +227,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="homeExercises" className="text-sm font-medium">Home Exercise Program</Label>
                 <Textarea
@@ -239,7 +239,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="assistiveDevices" className="text-sm font-medium">Assistive Devices</Label>
                 <Input
@@ -256,7 +256,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
           {/* Goals and Progress */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Goals & Progress</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="goals" className="text-sm font-medium">Treatment Goals</Label>
@@ -269,7 +269,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="progressNotes" className="text-sm font-medium">Progress Notes</Label>
                 <Textarea
@@ -290,7 +290,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
               <Clock className="w-4 h-4" />
               Session Details
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sessionDuration" className="text-sm font-medium">Session Duration</Label>
@@ -302,7 +302,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="nextSession" className="text-sm font-medium">Next Session</Label>
                 <Input
@@ -313,7 +313,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="precautions" className="text-sm font-medium">Precautions/Contraindications</Label>
                 <Input
@@ -333,7 +333,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
               <BookOpen className="w-4 h-4" />
               Exercise Leaflets & Resources
             </h3>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Exercise Leaflet Generator */}
               <Card className="border-blue-200">
@@ -363,7 +363,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label className="text-xs font-medium">Difficulty Level</Label>
                       <Select>
@@ -378,7 +378,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                       </Select>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label className="text-xs font-medium">Specific Exercises</Label>
                     <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -394,7 +394,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <Dialog>
                       <DialogTrigger asChild>
@@ -403,7 +403,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                           Preview Leaflet
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Exercise Prescription Leaflet</DialogTitle>
                         </DialogHeader>
@@ -412,7 +412,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                             <h2 className="text-xl font-bold text-blue-600">Home Exercise Program</h2>
                             <p className="text-sm text-gray-600">Personalized for your recovery</p>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <strong>Patient:</strong> [Patient Name]
@@ -427,7 +427,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                               <strong>Physiotherapist:</strong> [Your Name]
                             </div>
                           </div>
-                          
+
                           <div className="space-y-3">
                             <h3 className="font-semibold text-blue-600">Prescribed Exercises</h3>
                             {[
@@ -443,7 +443,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                               </div>
                             ))}
                           </div>
-                          
+
                           <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
                             <h4 className="font-medium text-yellow-800">Important Notes</h4>
                             <ul className="text-sm text-yellow-700 mt-1 space-y-1">
@@ -466,7 +466,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                         </div>
                       </DialogContent>
                     </Dialog>
-                    
+
                     <Button size="sm" className="flex-1">
                       <Download className="w-3 h-3 mr-1" />
                       Generate PDF
@@ -492,10 +492,10 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                         { name: 'Physiopedia', url: 'https://www.physio-pedia.com/', category: 'Clinical Reference' },
                         { name: 'World Physiotherapy', url: 'https://world.physio/', category: 'Global Standards' }
                       ].map((resource, index) => (
-                        <a 
+                        <a
                           key={index}
-                          href={resource.url} 
-                          target="_blank" 
+                          href={resource.url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center justify-between p-2 rounded border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors group"
                         >
@@ -508,7 +508,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-gray-700">Exercise Databases</h4>
                     <div className="space-y-1">
@@ -517,10 +517,10 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                         { name: 'NHS Exercise Library', url: 'https://www.nhs.uk/live-well/exercise/', category: 'Patient Resources' },
                         { name: 'RehabGuru', url: 'https://www.rehabguru.com/', category: 'Digital Platform' }
                       ].map((resource, index) => (
-                        <a 
+                        <a
                           key={index}
-                          href={resource.url} 
-                          target="_blank" 
+                          href={resource.url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center justify-between p-2 rounded border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors group"
                         >
@@ -533,7 +533,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-gray-700">Nigerian Resources</h4>
                     <div className="space-y-1">
@@ -541,10 +541,10 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                         { name: 'Nigeria Society of Physiotherapy', url: 'https://www.nsp.org.ng/', category: 'National Body' },
                         { name: 'Medical Rehabilitation Therapists Board', url: 'https://www.mrtbn.gov.ng/', category: 'Regulatory Body' }
                       ].map((resource, index) => (
-                        <a 
+                        <a
                           key={index}
-                          href={resource.url} 
-                          target="_blank" 
+                          href={resource.url}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center justify-between p-2 rounded border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors group"
                         >
@@ -557,7 +557,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                     <div className="flex items-start gap-2">
                       <Heart className="w-4 h-4 text-blue-600 mt-0.5" />
@@ -599,8 +599,8 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
             >
               Clear Form
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={saveMutation.isPending}
               className="bg-purple-600 hover:bg-purple-700"
             >

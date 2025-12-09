@@ -109,29 +109,209 @@ export const printElement = (elementId?: string) => {
         throw new Error('Popup blocked');
       }
       
+      // Get computed styles from the element to ensure print matches preview
+      const computedStyles = window.getComputedStyle(element);
+      const bgColor = computedStyles.backgroundColor || '#f0fdf4';
+      
       printWindow.document.write(`
         <html>
           <head>
             <title>Print</title>
-            <link rel="stylesheet" href="/src/index.css">
             <style>
-              @media print {
-                body { margin: 0; padding: 20px; }
-                .no-print { display: none !important; }
-                .print-only { display: block !important; }
+              /* Reset and base styles */
+              * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
               }
-              .no-print { display: none; }
-              .print-only { display: none; }
+              
+              @page {
+                size: 148mm 210mm; /* A5 size */
+                margin: 8mm;
+              }
+              
+              body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 11px;
+                line-height: 1.4;
+                color: #1f2937;
+                background: ${bgColor};
+                padding: 0;
+                margin: 0;
+              }
+              
+              /* Print container */
+              .print-content {
+                background: #f0fdf4;
+                padding: 12px;
+                max-width: 148mm;
+                min-height: 200mm;
+              }
+              
+              /* Header styles */
+              .print-header {
+                border-bottom: 2px solid #22c55e;
+                padding-bottom: 10px;
+                margin-bottom: 12px;
+              }
+              
+              .print-header h1 {
+                font-size: 16px;
+                font-weight: bold;
+                color: #166534;
+                margin-bottom: 2px;
+              }
+              
+              .print-header p {
+                font-size: 10px;
+                color: #4b5563;
+              }
+              
+              /* Section styles */
+              .section {
+                margin-bottom: 10px;
+                padding: 8px;
+                background: #dcfce7;
+                border-radius: 4px;
+              }
+              
+              .section-title {
+                font-size: 10px;
+                font-weight: 600;
+                color: #166534;
+                margin-bottom: 6px;
+                text-transform: uppercase;
+              }
+              
+              /* Info grid */
+              .info-grid {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px 12px;
+              }
+              
+              .info-item {
+                font-size: 10px;
+              }
+              
+              .info-item strong {
+                color: #374151;
+              }
+              
+              /* Medication styles */
+              .medication {
+                border-left: 3px solid #22c55e;
+                padding-left: 8px;
+                margin-bottom: 8px;
+              }
+              
+              .medication h4 {
+                font-size: 11px;
+                font-weight: 600;
+                color: #166534;
+                margin-bottom: 4px;
+              }
+              
+              .medication p {
+                font-size: 10px;
+                margin-bottom: 2px;
+              }
+              
+              /* Footer */
+              .print-footer {
+                border-top: 1px solid #bbf7d0;
+                padding-top: 8px;
+                margin-top: 12px;
+                font-size: 9px;
+                color: #6b7280;
+              }
+              
+              .signature-grid {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 10px;
+              }
+              
+              .signature-box {
+                text-align: center;
+              }
+              
+              .signature-line {
+                border-top: 1px solid #374151;
+                width: 80px;
+                margin-top: 20px;
+                padding-top: 4px;
+                font-size: 8px;
+              }
+              
+              /* Tailwind-like utility classes */
+              .text-center { text-align: center; }
+              .text-xs { font-size: 10px; }
+              .text-sm { font-size: 11px; }
+              .font-bold { font-weight: 700; }
+              .font-semibold { font-weight: 600; }
+              .mb-1 { margin-bottom: 4px; }
+              .mb-2 { margin-bottom: 8px; }
+              .mb-3 { margin-bottom: 12px; }
+              .mt-2 { margin-top: 8px; }
+              .mt-3 { margin-top: 12px; }
+              .p-2 { padding: 8px; }
+              .p-3 { padding: 12px; }
+              .p-4 { padding: 16px; }
+              .pt-2 { padding-top: 8px; }
+              .pb-4 { padding-bottom: 16px; }
+              .pl-2 { padding-left: 8px; }
+              .py-1 { padding-top: 4px; padding-bottom: 4px; }
+              .space-y-1 > * + * { margin-top: 4px; }
+              .space-y-2 > * + * { margin-top: 8px; }
+              .border-t { border-top: 1px solid #d1d5db; }
+              .border-b { border-bottom: 1px solid #d1d5db; }
+              .border-l-2 { border-left: 2px solid #22c55e; }
+              .rounded { border-radius: 4px; }
+              .bg-green-50 { background-color: #f0fdf4; }
+              .bg-green-100 { background-color: #dcfce7; }
+              .text-gray-500 { color: #6b7280; }
+              .text-gray-600 { color: #4b5563; }
+              .grid { display: grid; }
+              .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+              .gap-2 { gap: 8px; }
+              .flex { display: flex; }
+              .items-center { align-items: center; }
+              .justify-between { justify-content: space-between; }
+              .space-x-4 > * + * { margin-left: 16px; }
+              
+              @media print {
+                body {
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                  background: #f0fdf4 !important;
+                }
+                .no-print { display: none !important; }
+              }
             </style>
           </head>
           <body>
-            ${element.outerHTML}
+            <div class="print-content">
+              ${element.innerHTML}
+            </div>
           </body>
         </html>
       `);
       printWindow.document.close();
+      
+      // Wait for content to load before printing
+      printWindow.onload = () => {
+        printWindow.print();
+        printWindow.close();
+      };
+      
+      // Fallback if onload doesn't fire
+      setTimeout(() => {
+        if (!printWindow.closed) {
       printWindow.print();
       printWindow.close();
+        }
+      }, 500);
     } else {
       window.print();
     }

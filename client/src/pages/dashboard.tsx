@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -134,7 +135,7 @@ export default function Dashboard() {
                     <div className="p-3 bg-gradient-to-br from-blue-100/80 to-blue-200/60 rounded-xl shadow-sm group-hover:shadow-md transition-all duration-200">
                       <Users className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform duration-200" />
                     </div>
-                    <span className="status-badge info text-xs font-medium bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Active</span>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">Active</Badge>
                   </div>
                   <div className="space-y-2">
                     <p className="text-3xl font-bold text-foreground group-hover:text-blue-700 transition-colors">{stats?.totalPatients || 0}</p>
@@ -154,7 +155,7 @@ export default function Dashboard() {
                     <div className="p-3 bg-gradient-to-br from-green-100/80 to-green-200/60 rounded-xl shadow-sm group-hover:shadow-md transition-all duration-200">
                       <Calendar className="h-6 w-6 text-green-600 group-hover:scale-110 transition-transform duration-200" />
                     </div>
-                    <span className="status-badge success text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">Active</Badge>
                   </div>
                   <div className="space-y-2">
                     <p className="text-3xl font-bold text-foreground group-hover:text-green-700 transition-colors">{stats?.todayVisits || 0}</p>
@@ -174,7 +175,7 @@ export default function Dashboard() {
                     <div className="p-3 bg-gradient-to-br from-orange-100/80 to-orange-200/60 rounded-xl shadow-sm group-hover:shadow-md transition-all duration-200">
                       <Activity className="h-6 w-6 text-orange-600 group-hover:scale-110 transition-transform duration-200" />
                     </div>
-                    <span className="status-badge warning text-xs font-medium bg-orange-100 text-orange-700 px-2 py-1 rounded-full">Pending</span>
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200">Pending</Badge>
                   </div>
                   <div className="space-y-2">
                     <p className="text-3xl font-bold text-foreground group-hover:text-orange-700 transition-colors">{stats?.pendingLabs || 0}</p>
@@ -194,7 +195,7 @@ export default function Dashboard() {
                     <div className="p-3 bg-gradient-to-br from-red-100/80 to-red-200/60 rounded-xl shadow-sm group-hover:shadow-md transition-all duration-200">
                       <Settings className="h-6 w-6 text-red-600 group-hover:scale-110 transition-transform duration-200" />
                     </div>
-                    <span className="status-badge error text-xs font-medium bg-red-100 text-red-700 px-2 py-1 rounded-full">Alert</span>
+                    <Badge variant="secondary" className="bg-red-100 text-red-700 border-red-200">Alert</Badge>
                   </div>
                   <div className="space-y-2">
                     <p className="text-3xl font-bold text-foreground group-hover:text-red-700 transition-colors">{stats?.lowStockItems || 0}</p>

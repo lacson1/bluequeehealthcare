@@ -2888,7 +2888,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
-  // Authentication routes
+  // ============================================================================
+  // DEPRECATED: Authentication routes have been moved to server/routes/auth.ts
+  // These legacy endpoints are commented out to prevent duplicate route conflicts.
+  // The new auth module includes proper bcrypt verification and environment-based
+  // security controls. See server/routes/auth.ts for the active implementation.
+  // ============================================================================
+  
+  /*
+  // Authentication routes (MOVED TO server/routes/auth.ts)
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { username, password } = req.body;
@@ -3190,7 +3198,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     });
   });
 
-  // Logout endpoint
+  // Logout endpoint (MOVED TO server/routes/auth.ts)
   app.post("/api/auth/logout", (req, res) => {
     req.session.destroy((err) => {
       if (err) {
@@ -3200,6 +3208,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       res.json({ message: "Logged out successfully" });
     });
   });
+  */
+  // ============================================================================
+  // END DEPRECATED AUTH ROUTES
+  // ============================================================================
 
   // Get current user profile with session authentication
   app.get("/api/profile", authenticateToken, async (req: AuthRequest, res) => {
@@ -7001,8 +7013,24 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         userMessage: newTranscript[newTranscript.length - 1],
         patientResponse 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding message:', error);
+      
+      // Provide more specific error messages
+      if (error?.message?.includes('API key')) {
+        return res.status(503).json({ 
+          message: "AI service not configured",
+          details: "Please configure OPENAI_API_KEY to enable AI consultations"
+        });
+      }
+      
+      if (error?.code === 'insufficient_quota' || error?.message?.includes('quota')) {
+        return res.status(503).json({ 
+          message: "AI service quota exceeded",
+          details: "The OpenAI API quota has been reached. Please try again later."
+        });
+      }
+      
       res.status(500).json({ message: "Failed to add message" });
     }
   });

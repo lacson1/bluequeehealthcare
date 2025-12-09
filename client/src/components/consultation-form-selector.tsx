@@ -51,11 +51,11 @@ interface ConsultationFormSelectorProps {
   onFormSubmit?: (data: any) => void;
 }
 
-export default function ConsultationFormSelector({ 
-  patientId, 
-  visitId, 
+export default function ConsultationFormSelector({
+  patientId,
+  visitId,
   patient,
-  onFormSubmit 
+  onFormSubmit
 }: ConsultationFormSelectorProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
@@ -74,18 +74,18 @@ export default function ConsultationFormSelector({
   // Separate pinned and regular forms, then filter
   const pinnedForms = forms.filter(form => form.isPinned);
   const regularForms = forms.filter(form => !form.isPinned);
-  
+
   // Filter forms based on search and role filter
   const filteredPinnedForms = pinnedForms.filter(form => {
     const matchesSearch = form.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         form.description.toLowerCase().includes(searchQuery.toLowerCase());
+      form.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = !filterByRole || filterByRole === "all" || form.specialistRole.toLowerCase().includes(filterByRole.toLowerCase());
     return matchesSearch && matchesRole;
   });
 
   const filteredRegularForms = regularForms.filter(form => {
     const matchesSearch = form.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         form.description.toLowerCase().includes(searchQuery.toLowerCase());
+      form.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = !filterByRole || filterByRole === "all" || form.specialistRole.toLowerCase().includes(filterByRole.toLowerCase());
     return matchesSearch && matchesRole;
   });
@@ -361,11 +361,10 @@ export default function ConsultationFormSelector({
   const FormCard = ({ form, isPinned }: { form: ConsultationForm; isPinned: boolean }) => (
     <div
       data-testid="form-card"
-      className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group ${
-        isPinned
+      className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group ${isPinned
           ? 'border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 hover:border-amber-300 hover:shadow-md'
           : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-blue-300 hover:shadow-md hover:bg-blue-50/50 dark:hover:bg-blue-900/20'
-      }`}
+        }`}
       onClick={() => handleSelectForm(form.id)}
     >
       <div className="flex items-start justify-between gap-3">
@@ -389,9 +388,8 @@ export default function ConsultationFormSelector({
           size="sm"
           onClick={(e) => handlePinToggle(form.id, form.isPinned || false, e)}
           disabled={pinFormMutation.isPending || unpinFormMutation.isPending}
-          className={`h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity ${
-            isPinned ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-100' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'
-          }`}
+          className={`h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity ${isPinned ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-100' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'
+            }`}
           title={isPinned ? "Unpin form" : "Pin form"}
         >
           <Star className={`h-4 w-4 ${isPinned ? 'fill-current' : ''}`} />
@@ -431,7 +429,7 @@ export default function ConsultationFormSelector({
 
       {/* Consultation Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="max-w-3xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <DialogContent className="max-w-3xl max-h-[85vh] p-0 gap-0 overflow-hidden">
           {/* Dialog Header */}
           <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-slate-50 to-blue-50/50 dark:from-slate-900 dark:to-blue-900/20">
             <div className="flex items-center gap-3">
@@ -457,7 +455,7 @@ export default function ConsultationFormSelector({
                   {step === 'select' ? 'Select Consultation Form' : selectedForm?.name}
                 </DialogTitle>
                 <DialogDescription className="text-sm">
-                  {step === 'select' 
+                  {step === 'select'
                     ? `Choose a specialist form for ${patient?.firstName || 'the patient'}'s consultation`
                     : selectedForm?.description
                   }
@@ -504,8 +502,8 @@ export default function ConsultationFormSelector({
                           </Select>
                         </div>
                         {(searchQuery || filterByRole !== "all") && (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => {
                               setSearchQuery("");
@@ -538,7 +536,7 @@ export default function ConsultationFormSelector({
                         {forms.length === 0 ? 'No Forms Available' : 'No Matching Forms'}
                       </h3>
                       <p className="text-sm text-slate-500 mb-4">
-                        {forms.length === 0 
+                        {forms.length === 0
                           ? 'Create consultation forms in the Form Builder first'
                           : 'Try adjusting your search or filter criteria'
                         }

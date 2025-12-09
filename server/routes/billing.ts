@@ -1,52 +1,337 @@
-import type { Express } from "express";
-import { authenticateToken, type AuthRequest } from "../middleware/auth";
+import { Router } from "express";
+import { authenticateToken, requireAnyRole, type AuthRequest } from "../middleware/auth";
+import { invoices, invoiceItems, payments, patients, users } from "@shared/schema";
+import { z } from "zod";
+import { db } from "../db";
+import { eq, desc, and, sql } from "drizzle-orm";
+
+const router = Router();
 
 /**
- * Billing and financial management routes
- * Handles: invoices, payments, insurance claims, service pricing
+ * Billing and invoice management routes
+ * Handles: invoices, payments, billing operations
  */
-export function setupBillingRoutes(app: Express): void {
-  // Invoice management
-  app.get("/api/invoices", authenticateToken, async (req: AuthRequest, res) => {
-    // Implementation will be moved from main routes.ts
-    res.status(501).json({ message: "Invoices listing - implementation pending" });
+export function setupBillingRoutes(): Router {
+  
+  // Get all invoices
+  router.get("/invoices", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const orgId = req.user?.organizationId;
+      if (!orgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+
+      const patientId = req.query.patientId ? parseInt(req.query.patientId as string) : null;
+      
+      let query = db.select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        patientId: invoices.patientId,
+        patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`.as('patientName'),
+        issueDate: invoices.issueDate,
+        dueDate: invoices.dueDate,
+        status: invoices.status,
+        totalAmount: invoices.totalAmount,
+        paidAmount: invoices.paidAmount,
+        balanceAmount: invoices.balanceAmount,
+        currency: invoices.currency,
+        createdAt: invoices.createdAt
+      })
+      .from(invoices)
+      .innerJoin(patients, eq(invoices.patientId, patients.id))
+      .where(
+        patientId 
+          ? and(eq(invoices.organizationId, orgId), eq(invoices.patientId, patientId))
+          : eq(invoices.organizationId, orgId)
+      )
+      .orderBy(desc(invoices.createdAt));
+
+      const invoicesList = await query;
+      res.json(invoicesList);
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      res.status(500).json({ error: 'Failed to fetch invoices' });
+    }
   });
 
-  app.post("/api/invoices", authenticateToken, async (req: AuthRequest, res) => {
-    // Implementation will be moved from main routes.ts
-    res.status(501).json({ message: "Invoice creation - implementation pending" });
+  // Create new invoice
+  router.post("/invoices", authenticateToken, requireAnyRole(['admin', 'nurse', 'receptionist']), async (req: AuthRequest, res) => {
+    try {
+      const orgId = req.user?.organizationId;
+      const userId = req.user?.id;
+      
+      if (!orgId || !userId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+      
+      const { patientId, items, notes, dueDate } = req.body;
+      
+      if (!patientId || !items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "Patient ID and items are required" });
+      }
+      
+      // Generate invoice number
+      const invoiceCount = await db.select({ count: sql<number>`count(*)`.as('count') })
+        .from(invoices)
+        .where(eq(invoices.organizationId, orgId));
+      
+      const invoiceNumber = `INV-${orgId}-${String(invoiceCount[0].count + 1).padStart(4, '0')}`;
+      
+      // Calculate totals
+      const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0);
+      const taxAmount = subtotal * 0.075; // 7.5% VAT
+      const totalAmount = subtotal + taxAmount;
+      
+      // Create invoice
+      const [newInvoice] = await db.insert(invoices).values({
+        patientId,
+        organizationId: orgId,
+        invoiceNumber,
+        issueDate: new Date().toISOString().split('T')[0],
+        dueDate,
+        status: 'draft',
+        subtotal: subtotal.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        discountAmount: '0.00',
+        totalAmount: totalAmount.toFixed(2),
+        paidAmount: '0.00',
+        balanceAmount: totalAmount.toFixed(2),
+        currency: 'NGN',
+        notes,
+        createdBy: userId
+      }).returning();
+
+      // Create invoice items
+      for (const item of items) {
+        await db.insert(invoiceItems).values({
+          invoiceId: newInvoice.id,
+          description: item.description,
+          serviceType: item.serviceType,
+          serviceId: item.serviceId,
+          quantity: item.quantity.toString(),
+          unitPrice: item.unitPrice.toFixed(2),
+          totalPrice: (item.quantity * item.unitPrice).toFixed(2)
+        });
+      }
+
+      res.json({ message: 'Invoice created successfully', invoiceId: newInvoice.id, invoice: newInvoice });
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      res.status(500).json({ error: 'Failed to create invoice' });
+    }
   });
 
-  app.get("/api/invoices/:id", authenticateToken, async (req: AuthRequest, res) => {
-    // Implementation will be moved from main routes.ts
-    res.status(501).json({ message: "Invoice details - implementation pending" });
+  // Get invoice details with items
+  router.get("/invoices/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const orgId = req.user?.organizationId;
+      const invoiceId = parseInt(req.params.id);
+      
+      if (!orgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+      
+      // Get invoice details
+      const [invoiceDetails] = await db.select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        patientId: invoices.patientId,
+        patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`.as('patientName'),
+        patientPhone: patients.phone,
+        patientEmail: patients.email,
+        issueDate: invoices.issueDate,
+        dueDate: invoices.dueDate,
+        status: invoices.status,
+        subtotal: invoices.subtotal,
+        taxAmount: invoices.taxAmount,
+        discountAmount: invoices.discountAmount,
+        totalAmount: invoices.totalAmount,
+        paidAmount: invoices.paidAmount,
+        balanceAmount: invoices.balanceAmount,
+        currency: invoices.currency,
+        notes: invoices.notes,
+        createdAt: invoices.createdAt
+      })
+      .from(invoices)
+      .innerJoin(patients, eq(invoices.patientId, patients.id))
+      .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, orgId)));
+
+      if (!invoiceDetails) {
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+
+      // Get invoice items
+      const items = await db.select()
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, invoiceId));
+
+      // Get payments
+      const paymentsList = await db.select({
+        id: payments.id,
+        amount: payments.amount,
+        paymentMethod: payments.paymentMethod,
+        paymentDate: payments.paymentDate,
+        transactionId: payments.transactionId,
+        status: payments.status,
+        notes: payments.notes,
+        processedBy: sql<string>`COALESCE(NULLIF(TRIM(${users.firstName} || ' ' || ${users.lastName}), ''), ${users.username})`.as('processedBy')
+      })
+      .from(payments)
+      .leftJoin(users, eq(payments.processedBy, users.id))
+      .where(eq(payments.invoiceId, invoiceId));
+
+      res.json({
+        ...invoiceDetails,
+        items,
+        payments: paymentsList
+      });
+    } catch (error) {
+      console.error('Error fetching invoice details:', error);
+      res.status(500).json({ error: 'Failed to fetch invoice details' });
+    }
   });
 
-  // Payment processing
-  app.post("/api/payments", authenticateToken, async (req: AuthRequest, res) => {
-    // Implementation will be moved from main routes.ts
-    res.status(501).json({ message: "Payment processing - implementation pending" });
+  // Update invoice status
+  router.patch("/invoices/:id", authenticateToken, requireAnyRole(['admin', 'nurse', 'receptionist']), async (req: AuthRequest, res) => {
+    try {
+      const orgId = req.user?.organizationId;
+      const invoiceId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!orgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+
+      if (status && !['draft', 'sent', 'paid', 'partial', 'overdue', 'cancelled'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid invoice status' });
+      }
+
+      const [updatedInvoice] = await db.update(invoices)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, orgId)))
+        .returning();
+
+      if (!updatedInvoice) {
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+
+      res.json(updatedInvoice);
+    } catch (error) {
+      console.error('Error updating invoice:', error);
+      res.status(500).json({ error: 'Failed to update invoice' });
+    }
   });
 
-  // Service pricing
-  app.get("/api/service-prices", authenticateToken, async (req: AuthRequest, res) => {
-    // Implementation will be moved from main routes.ts
-    res.status(501).json({ message: "Service prices - implementation pending" });
+  // Record payment
+  router.post("/payments", authenticateToken, requireAnyRole(['admin', 'nurse', 'receptionist']), async (req: AuthRequest, res) => {
+    try {
+      const orgId = req.user?.organizationId;
+      const userId = req.user?.id;
+      
+      if (!orgId || !userId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+      
+      const { invoiceId, amount, paymentMethod, transactionId, notes } = req.body;
+      
+      if (!invoiceId || !amount || !paymentMethod) {
+        return res.status(400).json({ error: "Invoice ID, amount, and payment method are required" });
+      }
+      
+      // Get current invoice
+      const [currentInvoice] = await db.select()
+        .from(invoices)
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, orgId)));
+
+      if (!currentInvoice) {
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+
+      // Create payment record
+      const [newPayment] = await db.insert(payments).values({
+        invoiceId,
+        patientId: currentInvoice.patientId,
+        organizationId: orgId,
+        paymentMethod,
+        amount: amount.toFixed(2),
+        currency: 'NGN',
+        transactionId,
+        paymentDate: new Date(),
+        status: 'completed',
+        notes,
+        processedBy: userId
+      }).returning();
+
+      // Update invoice amounts
+      const newPaidAmount = parseFloat(currentInvoice.paidAmount) + amount;
+      const newBalanceAmount = parseFloat(currentInvoice.totalAmount) - newPaidAmount;
+      const newStatus = newBalanceAmount <= 0 ? 'paid' : 'partial';
+
+      await db.update(invoices)
+        .set({
+          paidAmount: newPaidAmount.toFixed(2),
+          balanceAmount: newBalanceAmount.toFixed(2),
+          status: newStatus,
+          updatedAt: new Date()
+        })
+        .where(eq(invoices.id, invoiceId));
+
+      res.json({ 
+        message: 'Payment recorded successfully',
+        payment: newPayment,
+        updatedInvoice: {
+          paidAmount: newPaidAmount.toFixed(2),
+          balanceAmount: newBalanceAmount.toFixed(2),
+          status: newStatus
+        }
+      });
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      res.status(500).json({ error: 'Failed to record payment' });
+    }
   });
 
-  app.post("/api/service-prices", authenticateToken, async (req: AuthRequest, res) => {
-    // Implementation will be moved from main routes.ts
-    res.status(501).json({ message: "Service price creation - implementation pending" });
+  // Get payments for an invoice
+  router.get("/invoices/:id/payments", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const orgId = req.user?.organizationId;
+      const invoiceId = parseInt(req.params.id);
+
+      if (!orgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+
+      // Verify invoice belongs to organization
+      const [invoice] = await db.select()
+        .from(invoices)
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, orgId)))
+        .limit(1);
+
+      if (!invoice) {
+        return res.status(404).json({ error: 'Invoice not found' });
+      }
+
+      const paymentsList = await db.select({
+        id: payments.id,
+        amount: payments.amount,
+        paymentMethod: payments.paymentMethod,
+        paymentDate: payments.paymentDate,
+        transactionId: payments.transactionId,
+        status: payments.status,
+        notes: payments.notes,
+        processedBy: sql<string>`COALESCE(NULLIF(TRIM(${users.firstName} || ' ' || ${users.lastName}), ''), ${users.username})`.as('processedBy')
+      })
+      .from(payments)
+      .leftJoin(users, eq(payments.processedBy, users.id))
+      .where(eq(payments.invoiceId, invoiceId))
+      .orderBy(desc(payments.paymentDate));
+
+      res.json(paymentsList);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      res.status(500).json({ error: 'Failed to fetch payments' });
+    }
   });
 
-  // Insurance claims
-  app.get("/api/insurance-claims", authenticateToken, async (req: AuthRequest, res) => {
-    // Implementation will be moved from main routes.ts
-    res.status(501).json({ message: "Insurance claims - implementation pending" });
-  });
-
-  app.post("/api/insurance-claims", authenticateToken, async (req: AuthRequest, res) => {
-    // Implementation will be moved from main routes.ts
-    res.status(501).json({ message: "Insurance claim creation - implementation pending" });
-  });
+  return router;
 }

@@ -76,13 +76,13 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
 
   // Filter tests based on search query and category
   const filteredTests = labTests.filter(test => {
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       test.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       test.category.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'all' || 
+
+    const matchesCategory = selectedCategory === 'all' ||
       test.category === selectedCategory;
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -100,8 +100,8 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
   const categories = Array.from(new Set(labTests.map(test => test.category || 'Other')));
 
   const handleTestToggle = (testId: number) => {
-    setSelectedTests(prev => 
-      prev.includes(testId) 
+    setSelectedTests(prev =>
+      prev.includes(testId)
         ? prev.filter(id => id !== testId)
         : [...prev, testId]
     );
@@ -147,21 +147,21 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
 
   const getCommonTestPanels = () => {
     return {
-      'Basic Metabolic Panel': labTests.filter(test => 
+      'Basic Metabolic Panel': labTests.filter(test =>
         test.name.toLowerCase().includes('basic metabolic panel') ||
         test.name.toLowerCase().includes('bmp')
       ).map(test => test.id),
-      'Complete Blood Count': labTests.filter(test => 
+      'Complete Blood Count': labTests.filter(test =>
         test.name.toLowerCase().includes('complete blood count') ||
         test.name.toLowerCase().includes('cbc')
       ).map(test => test.id),
-      'Liver Function Panel': labTests.filter(test => 
+      'Liver Function Panel': labTests.filter(test =>
         test.name.toLowerCase().includes('liver function')
       ).map(test => test.id),
-      'Lipid Panel': labTests.filter(test => 
+      'Lipid Panel': labTests.filter(test =>
         test.name.toLowerCase().includes('lipid panel')
       ).map(test => test.id),
-      'Thyroid Panel': labTests.filter(test => 
+      'Thyroid Panel': labTests.filter(test =>
         test.name.toLowerCase().includes('thyroid')
       ).map(test => test.id)
     };
@@ -182,7 +182,7 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
   };
 
   const toggleCategory = (category: string) => {
-    setExpandedCategories(prev => 
+    setExpandedCategories(prev =>
       prev.includes(category)
         ? prev.filter(cat => cat !== category)
         : [...prev, category]
@@ -233,6 +233,30 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
 
   return (
     <div className="space-y-6">
+      {/* Create Lab Order Button - Top */}
+      {selectedTests.length > 0 && (
+        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{selectedTests.length} test{selectedTests.length > 1 ? 's' : ''}</span> selected
+            {selectedPatientId && patients.find(p => p.id === selectedPatientId) && (
+              <span> for <span className="font-medium text-foreground">{patients.find(p => p.id === selectedPatientId)?.firstName} {patients.find(p => p.id === selectedPatientId)?.lastName}</span></span>
+            )}
+          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={createOrderMutation.isPending || !selectedPatientId}
+            className="flex items-center gap-2"
+          >
+            {createOrderMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            Create Lab Order
+          </Button>
+        </div>
+      )}
+
       {/* Patient Selection */}
       {!patientId && (
         <Card>
@@ -262,149 +286,130 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
         </Card>
       )}
 
-      {/* Search and Filter Lab Tests */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Search Lab Tests
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search tests by name or category..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10"
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1 h-8 w-8 p-0"
-                  onClick={() => setSearchQuery('')}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            
-            {/* Category Filter */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {getCategoryIcon(category)} {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {/* Search and Filter Lab Tests - Compact */}
+      <div className="flex flex-col gap-2 p-3 bg-muted/30 rounded-lg border">
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Search Input */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-gray-400" />
+            <Input
+              placeholder="Search tests..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-8 pr-8 text-sm"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-0.5 top-0.5 h-7 w-7 p-0"
+                onClick={() => setSearchQuery('')}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
-          
-          {/* Search Results Summary and Bulk Actions */}
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>
-              {filteredTests.length} test{filteredTests.length !== 1 ? 's' : ''} found
-              {searchQuery && ` for "${searchQuery}"`}
-              {selectedCategory !== 'all' && ` in ${selectedCategory}`}
-            </span>
-            <div className="flex items-center gap-2">
-              {filteredTests.length > 0 && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={selectAllFiltered}
-                    className="text-xs"
-                  >
-                    Select All ({filteredTests.length})
-                  </Button>
-                  {selectedTests.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearAllSelections}
-                      className="text-xs text-red-600 hover:text-red-700"
-                    >
-                      Clear All ({selectedTests.length})
-                    </Button>
-                  )}
-                </>
-              )}
-              {(searchQuery || selectedCategory !== 'all') && (
+
+          {/* Category Filter */}
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="h-8 w-full sm:w-40 text-sm">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map(category => (
+                <SelectItem key={category} value={category}>
+                  {getCategoryIcon(category)} {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Search Results Summary and Bulk Actions */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>
+            {filteredTests.length} test{filteredTests.length !== 1 ? 's' : ''}
+            {searchQuery && ` for "${searchQuery}"`}
+            {selectedCategory !== 'all' && ` in ${selectedCategory}`}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {filteredTests.length > 0 && (
+              <>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all');
-                  }}
+                  onClick={selectAllFiltered}
+                  className="h-6 px-2 text-xs"
                 >
-                  Clear filters
+                  Select All ({filteredTests.length})
                 </Button>
-              )}
-            </div>
+                {selectedTests.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearAllSelections}
+                    className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                  >
+                    Clear ({selectedTests.length})
+                  </Button>
+                )}
+              </>
+            )}
+            {(searchQuery || selectedCategory !== 'all') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
+                className="h-6 px-2 text-xs"
+              >
+                Reset
+              </Button>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Quick Test Panels */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TestTube className="h-5 w-5" />
-            Quick Test Panels
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">Select common test combinations with one click</p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {Object.entries(getCommonTestPanels()).map(([panelName, testIds]) => {
-              const selectedCount = testIds.filter(id => selectedTests.includes(id)).length;
-              const isFullySelected = selectedCount === testIds.length && testIds.length > 0;
-              const isPartiallySelected = selectedCount > 0 && selectedCount < testIds.length;
-              
-              return (
-                <Button
-                  key={panelName}
-                  variant={isFullySelected ? "default" : "outline"}
-                  className={`h-auto p-4 flex flex-col items-start justify-start text-left ${
-                    isPartiallySelected ? "border-blue-500 bg-blue-50" : ""
-                  }`}
-                  onClick={() => selectTestPanel(panelName)}
-                  disabled={testIds.length === 0}
-                >
-                  <div className="font-medium text-sm">{panelName}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {testIds.length} tests
-                    {selectedCount > 0 && (
-                      <span className="text-blue-600 font-medium ml-2">
-                        ({selectedCount} selected)
-                      </span>
-                    )}
-                  </div>
-                  {testIds.length === 0 && (
-                    <div className="text-xs text-red-500 mt-1">No matching tests found</div>
-                  )}
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Quick Test Panels - Compact Icon Style */}
+      <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2">
+          <TestTube className="h-3.5 w-3.5" />
+          <span className="font-medium">Quick Panels:</span>
+        </div>
+        {Object.entries(getCommonTestPanels()).map(([panelName, testIds]) => {
+          const selectedCount = testIds.filter(id => selectedTests.includes(id)).length;
+          const isFullySelected = selectedCount === testIds.length && testIds.length > 0;
+          const isPartiallySelected = selectedCount > 0 && selectedCount < testIds.length;
+
+          return (
+            <Button
+              key={panelName}
+              variant={isFullySelected ? "default" : "outline"}
+              size="sm"
+              className={`h-7 px-2.5 text-xs gap-1 ${isPartiallySelected ? "border-blue-500 bg-blue-50 dark:bg-blue-950" : ""
+                } ${testIds.length === 0 ? "opacity-50" : ""}`}
+              onClick={() => selectTestPanel(panelName)}
+              disabled={testIds.length === 0}
+              title={`${panelName} (${testIds.length} tests)${selectedCount > 0 ? ` - ${selectedCount} selected` : ''}`}
+            >
+              {panelName}
+              {selectedCount > 0 && (
+                <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-0.5">
+                  {selectedCount}
+                </Badge>
+              )}
+            </Button>
+          );
+        })}
+      </div>
 
       {/* Lab Tests by Category */}
       <Card>
-        <Collapsible 
-          open={expandedCategories.includes('main')} 
+        <Collapsible
+          open={expandedCategories.includes('main')}
           onOpenChange={() => toggleCategory('main')}
         >
           <CollapsibleTrigger asChild>
@@ -466,7 +471,7 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
                           const categoryTestIds = tests.map(test => test.id);
                           const selectedInCategory = selectedTests.filter(id => categoryTestIds.includes(id)).length;
                           const allSelected = selectedInCategory === tests.length && tests.length > 0;
-                          
+
                           return (
                             <div className="flex gap-1">
                               <Button
@@ -495,7 +500,7 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
                       </div>
                     </Button>
                   </CollapsibleTrigger>
-                  
+
                   <CollapsibleContent className="mt-2">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       {tests.map(test => (
@@ -533,33 +538,6 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
         </Collapsible>
       </Card>
 
-      {/* Submit Button */}
-      {selectedTests.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Ready to order {selectedTests.length} test{selectedTests.length > 1 ? 's' : ''}
-                {selectedPatientId && patients.find(p => p.id === selectedPatientId) && (
-                  <span> for {patients.find(p => p.id === selectedPatientId)?.firstName} {patients.find(p => p.id === selectedPatientId)?.lastName}</span>
-                )}
-              </div>
-              <Button
-                onClick={handleSubmit}
-                disabled={createOrderMutation.isPending || !selectedPatientId}
-                className="flex items-center gap-2"
-              >
-                {createOrderMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                Create Lab Order
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

@@ -103,7 +103,7 @@ export default function CustomPrescriptionPrint({ prescriptions, patient, onClos
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex justify-between items-center">
             <span>Prescription Print Preview</span>
@@ -120,100 +120,176 @@ export default function CustomPrescriptionPrint({ prescriptions, patient, onClos
           </DialogTitle>
         </DialogHeader>
 
-        {/* Print Content - A6 Format with Light Green Background */}
-        <div 
-          id="prescription-print-content" 
-          className="bg-green-50 p-4 print:p-3" 
-          style={{ 
+        {/* Print Content - A5 Format with Light Green Background */}
+        <div
+          id="prescription-print-content"
+          style={{
             width: '148mm',
             minHeight: '210mm',
             maxWidth: '148mm',
             backgroundColor: '#f0fdf4',
+            padding: '16px',
+            fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
             fontSize: '11px',
-            lineHeight: '1.3',
+            lineHeight: '1.4',
+            color: '#1f2937',
             overflow: 'visible'
           }}
         >
-        {/* Organization Header */}
-        {generateClinicHeader(organization)}
-
-        {/* Document Title - Compact for A6 */}
-        <div className="text-center mb-3">
-          <h2 className="text-sm font-bold mb-1" style={{ color: organization.themeColor }}>
-            MEDICAL PRESCRIPTION
-          </h2>
-          <p className="text-xs text-gray-600">
-            Date: {formatDocumentDate(new Date())}
-          </p>
-        </div>
-
-        {/* Patient Information - Compact for A6 */}
-        <div className="mb-3 p-2 bg-green-100 rounded print:bg-green-100">
-          <h3 className="text-xs font-semibold mb-1" style={{ color: organization.themeColor }}>
-            Patient Information
-          </h3>
-          <div className="space-y-1 text-xs">
-            <p><strong>Name:</strong> {patient.title} {patient.firstName} {patient.lastName}</p>
-            <p><strong>DOB:</strong> {new Date(patient.dateOfBirth).toLocaleDateString()} | <strong>Gender:</strong> {patient.gender}</p>
-            <p><strong>Phone:</strong> {patient.phone}</p>
-          </div>
-        </div>
-
-        {/* Prescription Details - Compact for A6 */}
-        <div className="mb-3">
-          <h3 className="text-xs font-semibold mb-2" style={{ color: organization.themeColor }}>
-            Prescribed Medications
-          </h3>
-          
-          {activePrescriptions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <MedicalIcons.prescription className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No active prescriptions found for this patient.</p>
+          {/* Organization Header */}
+          <div style={{
+            borderBottom: `2px solid ${organization.themeColor}`,
+            paddingBottom: '12px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {organization.logoUrl && (
+                <img
+                  src={organization.logoUrl}
+                  alt={`${organization.name} Logo`}
+                  style={{ height: '48px', width: '48px', objectFit: 'contain' }}
+                />
+              )}
+              <div>
+                <h1 style={{ fontSize: '18px', fontWeight: 'bold', color: organization.themeColor, marginBottom: '2px' }}>
+                  {organization.name}
+                </h1>
+                <p style={{ fontSize: '10px', color: '#6b7280', textTransform: 'capitalize' }}>{organization.type}</p>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {activePrescriptions.map((prescription, index) => (
-                <div key={prescription.id} className="border-l-2 pl-2 py-1" style={{ borderLeftColor: organization.themeColor }}>
-                  <div className="mb-1">
-                    <h4 className="text-xs font-semibold">{index + 1}. {prescription.medicationName}</h4>
-                  </div>
-                  
-                  <div className="text-xs space-y-1">
-                    <p><strong>Dose:</strong> {prescription.dosage} | <strong>Freq:</strong> {prescription.frequency}</p>
-                    <p><strong>Duration:</strong> {prescription.duration}</p>
-                    {prescription.instructions && (
-                      <p><strong>Instructions:</strong> {prescription.instructions}</p>
-                    )}
-                    <p><strong>By:</strong> Dr. {prescription.prescribedBy}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Footer - Compact for A6 */}
-        <div className="border-t pt-2 mt-3">
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <p className="font-semibold" style={{ color: organization.themeColor }}>Physician:</p>
-              <p>Dr. {activePrescriptions[0]?.prescribedBy || 'N/A'}</p>
-              <p className="text-gray-600">Signature: ___________</p>
-            </div>
-            <div>
-              <p className="font-semibold" style={{ color: organization.themeColor }}>Pharmacy:</p>
-              <p className="text-gray-600">Dispensed: ___________</p>
-              <p className="text-gray-600">Date: ___________</p>
+            <div style={{ textAlign: 'right', fontSize: '9px', color: '#6b7280' }}>
+              {organization.address && <p>{organization.address}</p>}
+              {organization.phone && <p>Tel: {organization.phone}</p>}
+              {organization.email && <p>Email: {organization.email}</p>}
             </div>
           </div>
-        </div>
 
-        {/* Legal Notice - Compact */}
-        <div className="mt-2 text-xs text-gray-500 text-center border-t pt-2">
-          <p>Valid only when issued by licensed practitioner | {organization.name}</p>
-          <p>{new Date().toLocaleDateString()}</p>
+          {/* Document Title */}
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <h2 style={{
+              fontSize: '14px',
+              fontWeight: 'bold',
+              color: organization.themeColor,
+              marginBottom: '4px',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}>
+              MEDICAL PRESCRIPTION
+            </h2>
+            <p style={{ fontSize: '10px', color: '#6b7280' }}>
+              Date: {formatDocumentDate(new Date())}
+            </p>
+          </div>
+
+          {/* Patient Information */}
+          <div style={{
+            marginBottom: '16px',
+            padding: '10px',
+            backgroundColor: '#dcfce7',
+            borderRadius: '6px'
+          }}>
+            <h3 style={{
+              fontSize: '10px',
+              fontWeight: '600',
+              color: organization.themeColor,
+              marginBottom: '8px',
+              textTransform: 'uppercase',
+              borderBottom: '1px solid #bbf7d0',
+              paddingBottom: '4px'
+            }}>
+              Patient Information
+            </h3>
+            <div style={{ fontSize: '10px' }}>
+              <p style={{ marginBottom: '4px' }}><strong>Name:</strong> {patient.title} {patient.firstName} {patient.lastName}</p>
+              <p style={{ marginBottom: '4px' }}><strong>DOB:</strong> {new Date(patient.dateOfBirth).toLocaleDateString()} | <strong>Gender:</strong> {patient.gender}</p>
+              <p><strong>Phone:</strong> {patient.phone}</p>
+            </div>
+          </div>
+
+          {/* Prescription Details */}
+          <div style={{ marginBottom: '16px' }}>
+            <h3 style={{
+              fontSize: '11px',
+              fontWeight: '600',
+              color: organization.themeColor,
+              marginBottom: '10px',
+              textTransform: 'uppercase'
+            }}>
+              Prescribed Medications
+            </h3>
+
+            {activePrescriptions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+                <MedicalIcons.prescription style={{ width: '40px', height: '40px', margin: '0 auto 12px', opacity: 0.5 }} />
+                <p>No active prescriptions found for this patient.</p>
+              </div>
+            ) : (
+              <div>
+                {activePrescriptions.map((prescription, index) => (
+                  <div
+                    key={prescription.id}
+                    style={{
+                      borderLeft: `3px solid ${organization.themeColor}`,
+                      paddingLeft: '10px',
+                      marginBottom: '12px',
+                      paddingTop: '4px',
+                      paddingBottom: '4px'
+                    }}
+                  >
+                    <h4 style={{ fontSize: '11px', fontWeight: '600', color: '#166534', marginBottom: '6px' }}>
+                      {index + 1}. {prescription.medicationName}
+                    </h4>
+
+                    <div style={{ fontSize: '10px' }}>
+                      <p style={{ marginBottom: '3px' }}><strong>Dose:</strong> {prescription.dosage} | <strong>Freq:</strong> {prescription.frequency}</p>
+                      <p style={{ marginBottom: '3px' }}><strong>Duration:</strong> {prescription.duration}</p>
+                      {prescription.instructions && (
+                        <p style={{ marginBottom: '3px' }}><strong>Instructions:</strong> {prescription.instructions}</p>
+                      )}
+                      <p style={{ color: '#6b7280' }}><strong>Prescribed by:</strong> Dr. {prescription.prescribedBy}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer - Signatures */}
+          <div style={{
+            borderTop: '1px solid #d1d5db',
+            paddingTop: '12px',
+            marginTop: '16px'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '10px' }}>
+              <div>
+                <p style={{ fontWeight: '600', color: organization.themeColor, marginBottom: '4px' }}>Physician:</p>
+                <p style={{ marginBottom: '4px' }}>Dr. {activePrescriptions[0]?.prescribedBy || 'N/A'}</p>
+                <p style={{ color: '#6b7280', marginTop: '20px' }}>Signature: _______________</p>
+              </div>
+              <div>
+                <p style={{ fontWeight: '600', color: organization.themeColor, marginBottom: '4px' }}>Pharmacy Use:</p>
+                <p style={{ color: '#6b7280', marginBottom: '4px' }}>Dispensed by: _______________</p>
+                <p style={{ color: '#6b7280' }}>Date: _______________</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Legal Notice */}
+          <div style={{
+            marginTop: '12px',
+            paddingTop: '8px',
+            borderTop: '1px solid #e5e7eb',
+            textAlign: 'center',
+            fontSize: '8px',
+            color: '#9ca3af'
+          }}>
+            <p>Valid only when issued by licensed healthcare practitioner | {organization.name}</p>
+            <p>Printed: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</p>
+          </div>
         </div>
-      </div>
       </DialogContent>
     </Dialog>
   );

@@ -14,11 +14,18 @@ import healthRouter from "./health";
 import profileRouter from "./profile";
 import { setupTabConfigRoutes } from "./tab-configs";
 import { setupTabPresetRoutes } from "./tab-presets";
-// import { setupAppointmentRoutes } from "./appointments";
-// import { setupAnalyticsRoutes } from "./analytics";
-// import { setupIntegrationRoutes } from "./integrations";
-// import { setupSuggestionRoutes } from "./suggestions";
-// import { setupNotificationRoutes } from "./notifications";
+import { setupVisitRoutes } from "./visits";
+import { setupLabResultsRoutes } from "./lab-results";
+import { setupMedicinesRoutes } from "./medicines";
+import { setupReferralRoutes } from "./referrals";
+import { setupVaccinationRoutes } from "./vaccinations";
+import { setupAppointmentRoutes } from "./appointments";
+import { setupBillingRoutes } from "./billing";
+import { setupAnalyticsRoutes } from "./analytics";
+import { setupNotificationRoutes } from "./notifications";
+import { setupSuggestionRoutes } from "./suggestions";
+import { setupSystemRoutes } from "./system";
+import { setupIntegrationRoutes } from "./integrations";
 // import { setupPatientPortalRoutes } from "./patient-portal";
 // import { setupBillingRoutes } from "./billing";
 // import { setupSystemRoutes } from "./system";
@@ -58,6 +65,66 @@ export function setupRoutes(app: Express): void {
   console.log("Setting up patient extended routes (allergies, immunizations, imaging, procedures)...");
   const patientExtendedRouter = setupPatientExtendedRoutes();
   app.use('/api', patientExtendedRouter);
+  
+  // Visit routes
+  console.log("Setting up visit routes...");
+  const visitRouter = setupVisitRoutes();
+  app.use('/api', visitRouter);
+  
+  // Lab Results routes
+  console.log("Setting up lab results routes...");
+  const labResultsRouter = setupLabResultsRoutes();
+  app.use('/api', labResultsRouter);
+  
+  // Medicines routes
+  console.log("Setting up medicines routes...");
+  const medicinesRouter = setupMedicinesRoutes();
+  app.use('/api', medicinesRouter);
+  
+  // Referrals routes
+  console.log("Setting up referrals routes...");
+  const referralsRouter = setupReferralRoutes();
+  app.use('/api', referralsRouter);
+  
+  // Vaccinations routes
+  console.log("Setting up vaccinations routes...");
+  const vaccinationsRouter = setupVaccinationRoutes();
+  app.use('/api', vaccinationsRouter);
+  
+  // Appointments routes
+  console.log("Setting up appointments routes...");
+  const appointmentsRouter = setupAppointmentRoutes();
+  app.use('/api', appointmentsRouter);
+  
+  // Billing routes
+  console.log("Setting up billing routes...");
+  const billingRouter = setupBillingRoutes();
+  app.use('/api', billingRouter);
+  
+  // Analytics routes
+  console.log("Setting up analytics routes...");
+  const analyticsRouter = setupAnalyticsRoutes();
+  app.use('/api', analyticsRouter);
+  
+  // Notifications routes
+  console.log("Setting up notifications routes...");
+  const notificationsRouter = setupNotificationRoutes();
+  app.use('/api', notificationsRouter);
+  
+  // Suggestions routes
+  console.log("Setting up suggestions routes...");
+  const suggestionsRouter = setupSuggestionRoutes();
+  app.use('/api', suggestionsRouter);
+  
+  // System routes
+  console.log("Setting up system routes...");
+  const systemRouter = setupSystemRoutes();
+  app.use('/api', systemRouter);
+  
+  // Integration routes
+  console.log("Setting up integration routes...");
+  const integrationRouter = setupIntegrationRoutes();
+  app.use('/api', integrationRouter);
   
   // Public REST API routes
   console.log("Setting up public API routes...");

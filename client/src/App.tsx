@@ -67,6 +67,7 @@ const ProceduralReports = lazy(() => import("@/pages/procedural-reports"));
 const ConsentManagement = lazy(() => import("@/pages/consent-management"));
 const StaffMessages = lazy(() => import("@/pages/staff-messages"));
 const BillingPage = lazy(() => import("@/pages/billing"));
+const CompliancePage = lazy(() => import("@/pages/compliance"));
 // Login is imported directly (not lazy) since it's needed immediately for unauthenticated users
 import Login from "@/pages/login";
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -205,6 +206,7 @@ function AuthenticatedApp() {
                     <Route path="/staff-access-control" component={StaffAccessControl} />
                     <Route path="/vaccination-management" component={VaccinationManagement} />
                     <Route path="/vaccinations" component={VaccinationManagement} />
+                    <Route path="/compliance" component={CompliancePage} />
                     <Route component={NotFound} />
                   </Switch>
                 </Suspense>
