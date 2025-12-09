@@ -135,7 +135,7 @@ export function PatientDropdownMenu({
         <DropdownMenuItem 
           className="text-red-600" 
           onClick={async () => {
-            if (confirm(`Are you sure you want to archive ${formatPatientName(patient)}? This will hide the patient from active lists but preserve all medical records.`)) {
+            if (confirm(`Are you sure you want to archive ${patient.firstName} ${patient.lastName}? This will hide the patient from active lists but preserve all medical records.`)) {
               try {
                 const response = await apiRequest(`/api/patients/${patient.id}/archive`, 'PATCH', { archived: true });
                 

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Calendar, Clock, UserPlus } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { fetchTyped } from "@/lib/api-typed";
 
 interface PatientStatistics {
   totalPatients: number;
@@ -25,7 +25,7 @@ interface PatientStatistics {
 export default function PatientStatistics() {
   const { data: stats, isLoading } = useQuery<PatientStatistics>({
     queryKey: ['/api/patients/statistics'],
-    queryFn: () => apiRequest('/api/patients/statistics')
+    queryFn: () => fetchTyped<PatientStatistics>('/api/patients/statistics')
   });
 
   if (isLoading) {
