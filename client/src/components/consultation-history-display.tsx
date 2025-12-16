@@ -16,7 +16,8 @@ import {
   Heart,
   Bone,
   Pill,
-  Activity
+  Activity,
+  Printer
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { printConsultation } from '@/services/print-utils';
 
 interface ConsultationHistoryDisplayProps {
   patientId: number;
@@ -395,6 +396,30 @@ export default function ConsultationHistoryDisplay({ patientId, patient }: Consu
                                     +{record.embeddedSpecialtyAssessments.length} forms
                                   </Badge>
                                 )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Format consultation data for print service
+                                    const consultationData = {
+                                      id: record.id,
+                                      formName: record.title,
+                                      formData: record.formData || {
+                                        chiefComplaint: record.complaint,
+                                        diagnosis: record.diagnosis,
+                                        treatment: record.treatment
+                                      },
+                                      specialistRole: record.specialistRole || record.role,
+                                      createdAt: record.date
+                                    };
+                                    printConsultation(consultationData, patient);
+                                  }}
+                                  className="h-7 w-7 p-0 text-slate-500 hover:text-purple-600 hover:bg-purple-50"
+                                  title="Print this record"
+                                >
+                                  <Printer className="h-3.5 w-3.5" />
+                                </Button>
                               </div>
                             </div>
                             
