@@ -391,16 +391,16 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl p-0">
-        <DialogHeader className="px-4 py-3 border-b">
-          <DialogTitle className="flex items-center gap-2">
+        <DialogHeader className="px-5 py-4 border-b">
+          <DialogTitle className="flex items-center gap-2 text-lg font-semibold leading-snug">
             <Search className="w-5 h-5" />
             Enhanced Global Search
           </DialogTitle>
         </DialogHeader>
         
-        <div className="p-4">
-          <Tabs value={searchType} onValueChange={setSearchType} className="mb-4">
-            <TabsList className="grid w-full grid-cols-2">
+        <div className="p-5 space-y-4">
+          <Tabs value={searchType} onValueChange={setSearchType} className="mb-1">
+            <TabsList className="grid w-full grid-cols-2 text-sm">
               <TabsTrigger value="features">Features & Pages</TabsTrigger>
               <TabsTrigger value="data">Patient Data</TabsTrigger>
             </TabsList>
@@ -411,7 +411,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="mb-4"
+            className="mb-3 h-11 text-base"
             autoFocus
           />
           
@@ -438,12 +438,12 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium text-sm">{result.title}</h3>
-                            <Badge variant="secondary" className={`text-xs ${getCategoryColor(result.category)}`}>
+                            <h3 className="text-sm font-semibold leading-snug">{result.title}</h3>
+                            <Badge variant="secondary" className={`text-[11px] font-medium ${getCategoryColor(result.category)}`}>
                               {result.category}
                             </Badge>
                           </div>
-                          <p className="text-xs text-gray-600">{result.description}</p>
+                          <p className="text-sm text-gray-600 leading-snug">{result.description}</p>
                         </div>
                       </div>
                     </div>
@@ -453,7 +453,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             ) : (
               <div className="text-center py-8">
                 <Search className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="text-gray-500 mb-2">No results found</p>
+                <p className="text-base text-gray-600 mb-1">No results found</p>
                 <p className="text-sm text-gray-400">Try searching for features like "patients", "pharmacy", or "appointments"</p>
               </div>
             )
@@ -480,13 +480,13 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium text-sm">{result.title}</h3>
-                            <Badge variant="outline" className="text-xs capitalize">
+                            <h3 className="text-sm font-semibold leading-snug">{result.title}</h3>
+                            <Badge variant="outline" className="text-[11px] capitalize">
                               {result.type.replace('_', ' ')}
                             </Badge>
                           </div>
-                          <p className="text-xs text-gray-600 mb-1">{result.subtitle}</p>
-                          <p className="text-xs text-gray-500">{result.description}</p>
+                          <p className="text-sm text-gray-600 leading-snug mb-0.5">{result.subtitle}</p>
+                          <p className="text-xs text-gray-500 leading-snug">{result.description}</p>
                         </div>
                       </div>
                     </div>
@@ -496,13 +496,13 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             ) : searchTerm.length >= 2 ? (
               <div className="text-center py-8">
                 <Heart className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p className="text-gray-500 mb-2">No patient data found</p>
+                <p className="text-base text-gray-600 mb-1">No patient data found</p>
                 <p className="text-sm text-gray-400">Try searching for patient names, vaccination types, or medication names</p>
               </div>
             ) : (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 mx-auto mb-3 text-blue-300" />
-                <p className="text-gray-500 mb-2">Search patient data</p>
+                <p className="text-base text-gray-600 mb-1">Search patient data</p>
                 <p className="text-sm text-gray-400">Find patients, vaccinations, prescriptions, and lab results</p>
               </div>
             )
@@ -525,7 +525,11 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                 <span>Close</span>
               </div>
             </div>
-            <span>{filteredResults.length} results</span>
+            <span className="text-xs text-gray-400">
+              {searchType === "features" 
+                ? `${filteredResults.length} results`
+                : `${liveSearchResults?.totalCount ?? 0} matches`}
+            </span>
           </div>
         </div>
       </DialogContent>

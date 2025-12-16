@@ -52,12 +52,24 @@ class RateLimiter {
     return { allowed: record.count <= maxRequests, remaining, resetTime };
   }
 
+  // Clear rate limit for a specific key (development only)
+  clear(key?: string): void {
+    if (key) {
+      this.records.delete(key);
+    } else {
+      this.records.clear();
+    }
+  }
+
   destroy() {
     clearInterval(this.cleanupInterval);
   }
 }
 
 const limiter = new RateLimiter();
+
+// Export limiter for development use (clearing rate limits)
+export { limiter };
 
 /**
  * Creates a rate limiting middleware
@@ -94,10 +106,11 @@ export function rateLimit(config: RateLimitConfig) {
 
 /**
  * Stricter rate limit for authentication endpoints
+ * In development, allow more attempts to avoid blocking during setup
  */
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  maxRequests: 10, // 10 login attempts per 15 minutes
+  maxRequests: process.env.NODE_ENV === 'production' ? 10 : 50, // More lenient in development
   message: 'Too many authentication attempts. Please try again in 15 minutes.',
   keyGenerator: (req: Request) => `auth:${req.ip || 'unknown'}`,
 });

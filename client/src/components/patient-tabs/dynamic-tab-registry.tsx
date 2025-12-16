@@ -12,8 +12,10 @@ import {
   History,
   FileCheck,
   MessageSquare,
+  Brain,
 } from 'lucide-react';
 import { PatientBillingTab } from '../patient-billing-tab';
+import PsychologicalTherapyAssessment from '@/components/psychological-therapy-assessment';
 
 export interface TabRenderProps {
   patient: any;
@@ -197,6 +199,23 @@ export const SYSTEM_TAB_REGISTRY: Record<string, SystemTabDefinition> = {
       </div>
     ),
   },
+  
+  'psychological-therapy': {
+    key: 'psychological-therapy',
+    defaultLabel: 'Mental Health',
+    icon: Brain,
+    render: ({ patient }) => (
+      <div className="p-4">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Mental Health Services</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Record psychological therapy sessions and access mental health resources for this patient.
+          </p>
+        </div>
+        <PsychologicalTherapyAssessment patientId={patient.id} />
+      </div>
+    ),
+  },
 };
 
 /**
@@ -217,6 +236,7 @@ export function getTabIcon(iconName: string): LucideIcon {
     History,
     FileCheck,
     MessageSquare,
+    Brain,
   };
   
   return iconMap[iconName] || FileText;

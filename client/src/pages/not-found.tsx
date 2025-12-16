@@ -227,7 +227,7 @@ export default function NotFound() {
               <div className="flex items-center justify-center gap-2 mb-2 flex-wrap">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <p className="text-sm sm:text-base text-blue-700 font-semibold">
-                  ClinicConnect Healthcare Management
+                  Bluequee Health Management
                 </p>
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
               </div>

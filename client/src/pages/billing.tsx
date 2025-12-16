@@ -198,7 +198,7 @@ export default function BillingPage() {
   // Print Invoice Function
   const printInvoice = (invoice: any) => {
     const org = organizationData || {
-      name: 'ClinicConnect',
+      name: 'Bluequee Health Management',
       type: 'clinic',
       address: '123 Healthcare Avenue',
       phone: '+234 802 123 4567',

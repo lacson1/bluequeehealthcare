@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Stethoscope, FlaskRound, Pill, FileText, X } from 'lucide-react';
+import { Plus, Stethoscope, FlaskRound, Pill, FileText, X, Brain } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface FloatingAction {
@@ -16,6 +16,7 @@ interface FloatingActionMenuProps {
   onAddLabResult: () => void;
   onAddPrescription: () => void;
   onCreateConsultation: () => void;
+  onRecordTherapy?: () => void;
   userRole: string;
 }
 
@@ -24,6 +25,7 @@ export function FloatingActionMenu({
   onAddLabResult,
   onAddPrescription,
   onCreateConsultation,
+  onRecordTherapy,
   userRole
 }: FloatingActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -56,6 +58,13 @@ export function FloatingActionMenu({
       icon: <FileText className="w-4 h-4" />,
       onClick: onCreateConsultation,
       roles: ['doctor', 'nurse', 'admin']
+    },
+    {
+      id: 'therapy',
+      label: 'Psychological Therapy',
+      icon: <Brain className="w-4 h-4" />,
+      onClick: onRecordTherapy || (() => {}),
+      roles: ['doctor', 'admin', 'psychologist']
     }
   ];
 

@@ -81,8 +81,6 @@ export const sessions = pgTable(
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  // External auth ID for SSO integrations (optional)
-  replitAuthId: varchar('replit_auth_id', { length: 100 }).unique(), // Legacy field - kept for data compatibility
   profileImageUrl: varchar('profile_image_url', { length: 255 }),
   username: varchar('username', { length: 50 }).notNull().unique(),
   password: varchar('password', { length: 255 }).notNull(),

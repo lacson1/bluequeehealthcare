@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Bell, User, Settings, Menu, X, Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, UserCheck, Calculator, TrendingUp, FileText, UserCog, Building2, Shield, Video, DollarSign, BookOpen, MessageSquare, Plus, UserPlus, ClipboardList, HeartHandshake, Trash2, Settings2, Moon, Sun, Search, HelpCircle, RefreshCw, Calendar, Activity } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -43,6 +43,34 @@ const getNavigationForRole = (role: string) => {
   return allNavigation.filter(item => item.roles.includes(role));
 };
 
+function getNavLimit(width: number) {
+  // Keep logic aligned with Tailwind breakpoints used in the header:
+  // md: >= 768 (nav becomes visible), lg: >= 1024, xl: >= 1280
+  if (width >= 1280) return 5;
+  if (width >= 1024) return 4;
+  return 3;
+}
+
+function getCurrentPageLabel(location: string, navigation: { name: string; href: string }[]) {
+  // Prefer the longest matching href (e.g. "/patients" beats "/")
+  const normalized = location === "/" ? "/dashboard" : location;
+  const match = navigation
+    .filter(n => normalized === n.href || normalized.startsWith(n.href + "/") || normalized.startsWith(n.href))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+
+  if (match) return match.name;
+
+  // Fallbacks for common routes not in navigation for some roles
+  const fallbacks: Array<{ prefix: string; label: string }> = [
+    { prefix: "/appointments", label: "Appointments" },
+    { prefix: "/my-profile", label: "My Profile" },
+    { prefix: "/settings", label: "Settings" },
+    { prefix: "/help", label: "Help & Support" },
+  ];
+  const fb = fallbacks.find(f => normalized === f.prefix || normalized.startsWith(f.prefix + "/") || normalized.startsWith(f.prefix));
+  return fb?.label ?? "Dashboard";
+}
+
 export default function TopBar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState("EN");
@@ -51,6 +79,7 @@ export default function TopBar() {
   const { user } = useRole();
   const { toast } = useToast();
   const { getVisibleIcons } = useTopBarConfig(user?.role || '');
+  const [navLimit, setNavLimit] = useState(() => (typeof window === "undefined" ? 3 : getNavLimit(window.innerWidth)));
 
   // Fetch real-time notifications
   const { data: notificationsData, isLoading: notificationsLoading } = useQuery<{
@@ -142,6 +171,17 @@ export default function TopBar() {
     return location.startsWith(href);
   };
 
+  useEffect(() => {
+    const update = () => setNavLimit(getNavLimit(window.innerWidth));
+    update();
+    window.addEventListener("resize", update, { passive: true } as AddEventListenerOptions);
+    return () => window.removeEventListener("resize", update as EventListener);
+  }, []);
+
+  const currentPageLabel = useMemo(() => getCurrentPageLabel(location, navigation), [location, navigation]);
+  const primaryNavItems = useMemo(() => navigation.slice(0, navLimit), [navigation, navLimit]);
+  const overflowNavItems = useMemo(() => navigation.slice(navLimit), [navigation, navLimit]);
+
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle("dark");
@@ -175,17 +215,29 @@ export default function TopBar() {
               <Link
                 href="/dashboard"
                 className="flex items-center gap-1 sm:gap-1.5 px-1 sm:px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors flex-shrink-0"
+                title={user?.organization?.name ? `${user.organization.name} • Bluequee` : "Bluequee"}
               >
                 <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400 fill-blue-600 dark:fill-blue-400 flex-shrink-0" />
                 <span className="hidden xs:inline text-[10px] sm:text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent whitespace-nowrap">
-                  ClinicConnect
+                  Bluequee
                 </span>
               </Link>
+
+              {/* Current Page Label - Helps orientation, truncates cleanly */}
+              <div className="hidden sm:flex items-center min-w-0">
+                <span className="mx-1 text-slate-300 dark:text-slate-600">•</span>
+                <span
+                  className="min-w-0 truncate text-[10px] sm:text-[11px] font-semibold text-slate-700 dark:text-slate-200"
+                  title={currentPageLabel}
+                >
+                  {currentPageLabel}
+                </span>
+              </div>
 
               {/* Desktop Navigation - Responsive item count */}
               <nav className="hidden md:flex items-center gap-0.5 ml-1 lg:ml-2 overflow-x-auto scrollbar-none">
                 {/* Show fewer items on medium screens, more on large */}
-                {navigation.slice(0, window.innerWidth >= 1280 ? 5 : window.innerWidth >= 1024 ? 4 : 3).map((item) => {
+                {primaryNavItems.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.href);
                   return (
@@ -205,7 +257,7 @@ export default function TopBar() {
                 })}
 
                 {/* More Menu - Shows remaining items */}
-                {navigation.length > (window.innerWidth >= 1280 ? 5 : window.innerWidth >= 1024 ? 4 : 3) && (
+                {overflowNavItems.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -219,7 +271,7 @@ export default function TopBar() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-48 sm:w-56">
-                      {navigation.slice(window.innerWidth >= 1280 ? 5 : window.innerWidth >= 1024 ? 4 : 3).map((item) => {
+                      {overflowNavItems.map((item) => {
                         const Icon = item.icon;
                         return (
                           <DropdownMenuItem key={item.name} asChild>
@@ -560,9 +612,15 @@ export default function TopBar() {
                 <DropdownMenuContent align="end" className="w-64">
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{user?.username}</p>
+                      <p className="text-sm font-medium">
+                        {user?.firstName && user?.lastName 
+                          ? `${user.firstName} ${user.lastName}`
+                          : user?.username || 'User'}
+                      </p>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {user?.role} • {user?.organization?.name}
+                        {[user?.role, user?.organization?.name]
+                          .filter(Boolean)
+                          .join(' • ') || 'No role assigned'}
                       </p>
                     </div>
                   </DropdownMenuLabel>

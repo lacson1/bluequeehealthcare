@@ -67,16 +67,20 @@ const { pool, db } = (() => {
     if (sslConfig) {
       logger.debug('SSL: enabled (accepting self-signed certificates)');
     }
-    const pool = new PgPool({ 
-      connectionString: process.env.DATABASE_URL,
-      max: POOL_CONFIG.max,
-      min: POOL_CONFIG.min,
-      idleTimeoutMillis: POOL_CONFIG.idleTimeoutMillis,
-      connectionTimeoutMillis: POOL_CONFIG.connectionTimeoutMillis,
-      ssl: sslConfig,
-    });
-    const db = pgDrizzle({ client: pool, schema });
-    return { pool, db };
+    try {
+      const pool = new PgPool({ 
+        connectionString: process.env.DATABASE_URL,
+        max: POOL_CONFIG.max,
+        min: POOL_CONFIG.min,
+        idleTimeoutMillis: POOL_CONFIG.idleTimeoutMillis,
+        connectionTimeoutMillis: POOL_CONFIG.connectionTimeoutMillis,
+        ssl: sslConfig,
+      });
+      const db = pgDrizzle({ client: pool, schema });
+      return { pool, db };
+    } catch (poolError: any) {
+      throw poolError;
+    }
   }
 })();
 

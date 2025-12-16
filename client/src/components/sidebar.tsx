@@ -1,157 +1,114 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Heart, BarChart3, Users, Stethoscope, FlaskRound, Pill, User, LogOut, UserCheck, Menu, X, Settings, UserCog, Shield, FileText, TrendingUp, Building2, Calculator, HelpCircle, ChevronDown, ChevronRight, Brain, Calendar, ClipboardList, Activity, Star, Building, CreditCard, Mail, DollarSign, Receipt, Syringe, Eye, Baby, Bone, Ear, FileSearch, Video, Clipboard, Package, PieChart, LayoutDashboard, FolderOpen, Wrench, HeartPulse } from "lucide-react";
+import { 
+  LayoutDashboard, Users, Calendar, FlaskRound, Pill, 
+  User, LogOut, Settings, Shield, FileText, TrendingUp, 
+  Building2, HelpCircle, ChevronLeft, Brain, Activity,
+  Video, Receipt, Mail, Syringe, Bone, FolderOpen,
+  Package, BarChart3, UserCog, Stethoscope, HeartPulse,
+  Search, Sparkles, Menu, X, Heart, AlertTriangle, ClipboardList, BarChart
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRole, RoleGuard } from "@/components/role-guard";
+import { useRole } from "@/components/role-guard";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { GlobalQuickSearch } from "@/components/global-quick-search";
+import { cn } from "@/lib/utils";
 
 // All valid roles in the system
 const ALL_ROLES = ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist", "receptionist", "lab_technician", "user"];
 
-const getNavigationGroupsForRole = (role: string) => {
-  // Normalize role to lowercase for comparison
+// Navigation items with streamlined structure
+const getNavItems = (role: string) => {
   const normalizedRole = role?.toLowerCase() || 'user';
   
-  // Super admin gets enhanced navigation with system-wide access
-  const superAdminExtras = (normalizedRole === 'super_admin' || normalizedRole === 'superadmin') ? [
-    {
-      name: "System Overview",
-      icon: Shield,
-      color: "red",
+  const navItems = [
+    // Main
+    { 
+      section: "Main",
       items: [
-        { name: "Global Analytics", href: "/superadmin/analytics", icon: TrendingUp, roles: ["super_admin", "superadmin"] },
-        { name: "Super Admin Control", href: "/super-admin-control", icon: Shield, roles: ["super_admin", "superadmin"] },
-      ]
-    }
-  ] : [];
-
-  const navigationGroups = [
-    // ===== CORE NAVIGATION =====
-    {
-      name: "Dashboard",
-      icon: LayoutDashboard,
-      color: "sky",
-      items: [
-        { name: "Overview", href: "/dashboard", icon: LayoutDashboard, roles: ALL_ROLES },
-        { name: "Admin Dashboard", href: "/admin-dashboard", icon: Shield, roles: ["super_admin", "superadmin", "admin"] },
-        { name: "Clinical Activity", href: "/visits", icon: Activity, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-      ]
-    },
-
-    // ===== PATIENT CARE =====
-    {
-      name: "Patients",
-      icon: Users,
-      color: "violet",
-      items: [
-        { name: "Patient Registry", href: "/patients", icon: Users, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist", "user"] },
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ALL_ROLES },
+        { name: "Psychiatry Dashboard", href: "/psychiatry-dashboard", icon: Brain, roles: ["super_admin", "superadmin", "admin", "doctor"] },
+        { name: "Patients", href: "/patients", icon: Users, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist", "user"] },
         { name: "Appointments", href: "/appointments", icon: Calendar, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist", "user"] },
-        { name: "Consultations", href: "/consultation-dashboard", icon: Stethoscope, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Patient Access Cards", href: "/patient-access-cards", icon: CreditCard, roles: ["super_admin", "superadmin", "admin", "nurse", "receptionist"] },
-        { name: "Communication", href: "/patient-communication", icon: Mail, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "receptionist"] },
+        { name: "Visits", href: "/visits", icon: Activity, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
       ]
     },
-
-    // ===== CLINICAL SERVICES =====
+    // Clinical
     {
-      name: "Clinical Services",
-      icon: HeartPulse,
-      color: "emerald",
+      section: "Clinical",
       items: [
-        { name: "AI Consultations", href: "/ai-consultations", icon: Brain, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Laboratory", href: "/laboratory", icon: FlaskRound, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
+        { name: "AI Consultations", href: "/ai-consultations", icon: Brain, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"], badge: "AI" },
+        { name: "Laboratory", href: "/laboratory", icon: FlaskRound, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "lab_technician"] },
         { name: "Pharmacy", href: "/pharmacy", icon: Pill, roles: ["super_admin", "superadmin", "admin", "pharmacist"] },
         { name: "Vaccinations", href: "/vaccination-management", icon: Syringe, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Referrals", href: "/referrals", icon: UserCheck, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
-      ]
-    },
-
-    // ===== SPECIALTY CONSULTATIONS - NEW! =====
-    {
-      name: "Specialty Care",
-      icon: Stethoscope,
-      color: "fuchsia",
-      items: [
-        { name: "Form Builder", href: "/form-builder", icon: FileSearch, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Physiotherapy", href: "/physiotherapy", icon: Bone, roles: ["super_admin", "superadmin", "admin", "physiotherapist", "doctor"] },
         { name: "Telemedicine", href: "/telemedicine", icon: Video, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Exercise Leaflets", href: "/exercise-leaflets", icon: Clipboard, roles: ["super_admin", "superadmin", "admin", "doctor", "physiotherapist"] },
+        { name: "Physiotherapy", href: "/physiotherapy", icon: Bone, roles: ["super_admin", "superadmin", "admin", "physiotherapist", "doctor"] },
       ]
     },
-
-    // ===== DOCUMENTS =====
+    // Psychiatry (for psychiatrists)
     {
-      name: "Documents",
-      icon: FolderOpen,
-      color: "amber",
+      section: "Psychiatry",
       items: [
-        { name: "Medical Documents", href: "/documents", icon: FileText, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Certificates", href: "/medical-certificates", icon: Shield, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Referral Letters", href: "/referral-letters", icon: UserCheck, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Consent Forms", href: "/consent-management", icon: Clipboard, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
-        { name: "Procedural Reports", href: "/procedural-reports", icon: ClipboardList, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
+        { name: "Psychiatry Dashboard", href: "/psychiatry-dashboard", icon: Brain, roles: ["super_admin", "superadmin", "admin", "doctor"] },
+        { name: "Risk Monitor", href: "/psychiatry/risk-monitor", icon: AlertTriangle, roles: ["super_admin", "superadmin", "admin", "doctor"] },
+        { name: "Assessments", href: "/mental-health", icon: ClipboardList, roles: ["super_admin", "superadmin", "admin", "doctor"] },
+        { name: "Medications", href: "/pharmacy", icon: Pill, roles: ["super_admin", "superadmin", "admin", "doctor"] },
+        { name: "Therapy", href: "/psychological-therapy", icon: Heart, roles: ["super_admin", "superadmin", "admin", "doctor"] },
+        { name: "Outcomes", href: "/psychiatry/outcomes", icon: BarChart, roles: ["super_admin", "superadmin", "admin", "doctor"] },
       ]
     },
-
-    // ===== OPERATIONS =====
+    // Mental Health
     {
-      name: "Operations",
-      icon: Package,
-      color: "orange",
+      section: "Mental Health",
       items: [
-        { name: "Inventory", href: "/inventory", icon: Package, roles: ["super_admin", "superadmin", "admin", "pharmacist"] },
-        { name: "Medical Tools", href: "/medical-tools", icon: Wrench, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist"] },
+        { name: "Psychological Therapy", href: "/psychological-therapy", icon: Brain, roles: ["super_admin", "superadmin", "admin", "doctor", "psychologist"] },
+        { name: "Mental Health Support", href: "/mental-health", icon: Heart, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "psychologist"] },
       ]
     },
-
-    // ===== FINANCE & ANALYTICS =====
+    // Documents
     {
-      name: "Finance & Analytics",
-      icon: PieChart,
-      color: "teal",
+      section: "Documents",
+      items: [
+        { name: "Medical Docs", href: "/documents", icon: FileText, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
+        { name: "Form Builder", href: "/form-builder", icon: FolderOpen, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse"] },
+      ]
+    },
+    // Operations
+    {
+      section: "Operations",
       items: [
         { name: "Billing", href: "/billing", icon: Receipt, roles: ["super_admin", "superadmin", "admin", "nurse", "receptionist"] },
-        { name: "Revenue Analytics", href: "/analytics", icon: TrendingUp, roles: ["super_admin", "superadmin", "admin"] },
-        { name: "Clinical Performance", href: "/clinical-performance", icon: BarChart3, roles: ["super_admin", "superadmin", "admin", "doctor"] },
-        { name: "Compliance", href: "/compliance", icon: Shield, roles: ["super_admin", "superadmin", "admin"] },
+        { name: "Inventory", href: "/inventory", icon: Package, roles: ["super_admin", "superadmin", "admin", "pharmacist"] },
+        { name: "Analytics", href: "/analytics", icon: TrendingUp, roles: ["super_admin", "superadmin", "admin"] },
+        { name: "Performance", href: "/clinical-performance", icon: BarChart3, roles: ["super_admin", "superadmin", "admin", "doctor"] },
       ]
     },
-
-    // ===== ADMINISTRATION =====
+    // Admin
     {
-      name: "Administration",
-      icon: Settings,
-      color: "slate",
+      section: "Admin",
       items: [
-        { name: "User Management", href: "/user-management", icon: UserCog, roles: ["super_admin", "superadmin", "admin"] },
-        { name: "Roles & Access", href: "/role-management", icon: Shield, roles: ["super_admin", "superadmin", "admin"] },
-        { name: "Staff Control", href: "/staff-access-control", icon: UserCog, roles: ["super_admin", "superadmin", "admin"] },
+        { name: "Users", href: "/user-management", icon: UserCog, roles: ["super_admin", "superadmin", "admin"] },
         { name: "Organization", href: "/organization-management", icon: Building2, roles: ["super_admin", "superadmin", "admin"] },
-        { name: "Staff Messages", href: "/staff-messages", icon: Mail, roles: ["super_admin", "superadmin", "admin", "doctor", "nurse", "pharmacist", "physiotherapist", "receptionist"] },
+        { name: "Staff Messages", href: "/staff-messages", icon: Mail, roles: ALL_ROLES },
         { name: "Audit Logs", href: "/audit-logs-enhanced", icon: Shield, roles: ["super_admin", "superadmin", "admin"] },
-        { name: "Performance", href: "/performance", icon: TrendingUp, roles: ["super_admin", "superadmin", "admin"] },
       ]
     },
-
-    // ===== PERSONAL =====
-    {
-      name: "My Account",
-      icon: User,
-      color: "zinc",
-      items: [
-        { name: "My Profile", href: "/profile", icon: User, roles: ALL_ROLES },
-        { name: "Settings", href: "/settings", icon: Settings, roles: ALL_ROLES },
-        { name: "Help & Support", href: "/help", icon: HelpCircle, roles: ALL_ROLES },
-      ]
-    }
   ];
 
-  return [...superAdminExtras, ...navigationGroups].map(group => ({
-    ...group,
-    items: group.items.filter(item => item.roles.includes(normalizedRole))
-  })).filter(group => group.items.length > 0);
+  // Super admin extras
+  if (normalizedRole === 'super_admin' || normalizedRole === 'superadmin') {
+    navItems.unshift({
+      section: "System",
+      items: [
+        { name: "Super Admin", href: "/super-admin-control", icon: Shield, roles: ["super_admin", "superadmin"] },
+        { name: "Global Analytics", href: "/superadmin/analytics", icon: Sparkles, roles: ["super_admin", "superadmin"] },
+      ]
+    });
+  }
+
+  return navItems.map(section => ({
+    ...section,
+    items: section.items.filter(item => item.roles.includes(normalizedRole))
+  })).filter(section => section.items.length > 0);
 };
 
 interface SidebarProps {
@@ -164,9 +121,9 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
   const { user } = useRole();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['Dashboard', 'Patient Management']));
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const navigationGroups = getNavigationGroupsForRole(user?.role || '');
+  const navSections = useMemo(() => getNavItems(user?.role || ''), [user?.role]);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -175,384 +132,366 @@ export default function Sidebar({ onStartTour }: SidebarProps = {}) {
     return location.startsWith(href);
   };
 
-  const toggleGroup = (groupName: string) => {
-    const newOpenGroups = new Set(openGroups);
-    if (newOpenGroups.has(groupName)) {
-      newOpenGroups.delete(groupName);
-    } else {
-      newOpenGroups.add(groupName);
+  // Filter items based on search
+  const filteredSections = useMemo(() => {
+    if (!searchQuery.trim()) return navSections;
+    
+    const query = searchQuery.toLowerCase();
+    return navSections.map(section => ({
+      ...section,
+      items: section.items.filter(item => 
+        item.name.toLowerCase().includes(query)
+      )
+    })).filter(section => section.items.length > 0);
+  }, [navSections, searchQuery]);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [location]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMobileOpen) {
+        setIsMobileOpen(false);
+      }
+    };
+    
+    if (isMobileOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleEscape);
+      };
     }
-    setOpenGroups(newOpenGroups);
-  };
+  }, [isMobileOpen]);
 
   const handleLogout = () => {
     logout();
   };
 
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
-  const toggleMobileSidebar = () => {
-    setIsMobileOpen(!isMobileOpen);
-  };
-
-  const handleMobileLinkClick = () => {
-    setIsMobileOpen(false);
-  };
-
-  // Close mobile sidebar on escape key and prevent body scroll when open
-  useEffect(() => {
-    const handleEscapeKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMobileOpen) {
-        e.preventDefault();
-        setIsMobileOpen(false);
-      }
-    };
-
-    if (isMobileOpen) {
-      // Prevent body scroll when mobile sidebar is open for better mobile UX
-      const originalStyle = window.getComputedStyle(document.body).overflow;
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleEscapeKey);
-
-      return () => {
-        document.body.style.overflow = originalStyle;
-        window.removeEventListener('keydown', handleEscapeKey);
-      };
-    }
-  }, [isMobileOpen]);
-
   return (
     <>
-      {/* Mobile Overlay with smooth fade transition - starts below topbar */}
+      {/* Mobile Overlay */}
       <div
-        className={`fixed inset-x-0 top-11 sm:top-12 bottom-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300 ease-out ${isMobileOpen
-          ? 'opacity-100 pointer-events-auto'
-          : 'opacity-0 pointer-events-none'
-          }`}
+        className={cn(
+          "fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-all duration-300",
+          isMobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
         onClick={() => setIsMobileOpen(false)}
-        aria-hidden="true"
       />
 
-      {/* Mobile Menu Button - positioned to align with topbar */}
+      {/* Mobile Toggle */}
       <Button
-        onClick={toggleMobileSidebar}
+        onClick={() => setIsMobileOpen(!isMobileOpen)}
         variant="ghost"
         size="sm"
-        className="fixed top-1.5 sm:top-2 left-2 z-[60] lg:hidden h-8 w-8 bg-card/95 backdrop-blur-sm shadow-md border border-border hover:bg-muted hover:shadow-lg hover:scale-105 transition-[transform,box-shadow,background-color] duration-200 ease-out"
+        className="fixed top-2 left-2 z-[60] lg:hidden h-9 w-9 bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform"
         aria-label="Toggle mobile menu"
-        aria-expanded={isMobileOpen}
       >
-        <Menu
-          className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ease-out ${isMobileOpen ? 'rotate-90' : 'rotate-0'
-            }`}
-        />
+        {isMobileOpen ? (
+          <X className="h-4 w-4" />
+        ) : (
+          <Menu className="h-4 w-4" />
+        )}
       </Button>
 
-      {/* Sidebar with hardware-accelerated smooth transitions */}
+      {/* Sidebar */}
       <aside
-        className={`
-          fixed lg:relative left-0 z-50 lg:z-30
-          top-11 sm:top-12 lg:top-0 bottom-0 lg:inset-y-0
-          ${isCollapsed ? 'w-16' : 'w-64'} 
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          bg-sidebar shadow-xl border-r border-sidebar-border flex flex-col 
-          transition-[transform,width] duration-300 ease-out
-          will-change-[transform,width] transform-gpu
-          lg:h-screen overflow-hidden flex-shrink-0
-        `}
-        style={{ 
-          WebkitBackfaceVisibility: 'hidden',
-          backfaceVisibility: 'hidden',
-          perspective: 1000 
-        }}
+        className={cn(
+          "fixed lg:sticky top-0 left-0 z-50 h-screen flex flex-col",
+          "bg-gradient-to-b from-slate-50 via-white to-slate-50",
+          "dark:from-slate-950 dark:via-slate-900 dark:to-slate-950",
+          "border-r border-slate-200/80 dark:border-slate-800/80",
+          "transition-all duration-300 ease-out",
+          isCollapsed ? "w-[72px]" : "w-[260px]",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
       >
-        {/* Desktop Toggle Button with smooth icon transition */}
-        <Button
-          onClick={toggleSidebar}
-          variant="ghost"
-          size="sm"
-          className="hidden lg:flex absolute -right-2.5 top-6 z-10 h-5 w-5 rounded-full bg-card/80 backdrop-blur-sm shadow-sm border border-border/50 hover:bg-card hover:shadow-md hover:border-border hover:scale-110 p-0 transition-all duration-200 items-center justify-center"
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <div className="relative w-3 h-3 flex items-center justify-center">
-            <Menu
-              className={`absolute h-3 w-3 text-muted-foreground hover:text-foreground transition-all duration-200 ${isCollapsed ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 rotate-90 scale-0'
-                }`}
-            />
-            <X
-              className={`absolute h-3 w-3 text-muted-foreground hover:text-foreground transition-all duration-200 ${isCollapsed ? 'opacity-0 -rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'
-                }`}
-            />
-          </div>
-        </Button>
-
-        {/* Logo Section */}
-        <div className={`${isCollapsed ? 'p-2' : 'p-5'} border-b border-sidebar-border bg-sidebar transition-all duration-300 flex-shrink-0`}>
-          <div className={`flex items-center w-full ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-            <div className={`${isCollapsed ? 'w-9 h-9' : 'w-11 h-11'} bg-gradient-to-br from-sky-500 via-blue-500 to-violet-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/25 transition-all duration-300`}>
-              <HeartPulse className={`text-white ${isCollapsed ? 'h-5 w-5' : 'h-6 w-6'} transition-all duration-300`} />
+        {/* Header */}
+        <div className={cn(
+          "flex items-center gap-3 p-4 border-b border-slate-200/60 dark:border-slate-800/60",
+          isCollapsed && "justify-center px-2"
+        )}>
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+              <HeartPulse className="w-5 h-5 text-white" />
             </div>
-            <div className={`transition-all duration-300 flex-1 min-w-0 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-              <h1 className="text-lg font-bold text-sidebar-foreground leading-tight tracking-tight">ClinicConnect</h1>
-              <p className="text-[10px] font-medium text-muted-foreground leading-tight tracking-wide uppercase">Healthcare Management</p>
-            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
           </div>
-
-          {/* Current Organization Badge - Always visible when not collapsed */}
-          {!isCollapsed && user?.organization && (
-            <div className="mt-3 w-full">
-              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-200/60 dark:border-emerald-700/40">
-                <Building2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 truncate">
-                    {user.organization.name}
-                  </p>
-                  <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/70 capitalize">
-                    {user.organization.type || 'Healthcare Facility'}
-                  </p>
-                </div>
+          
+          {!isCollapsed && (
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                Bluequee
+              </h1>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                  Health System
+                </p>
+                {user?.role && (
+                  <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800">
+                    Role: {user.role.replace(/_/g, " ")}
+                  </span>
+                )}
               </div>
             </div>
           )}
 
-          {/* Quick Search - Only show when not collapsed */}
-          {!isCollapsed && (
-            <div className="mt-3 w-full">
-              <GlobalQuickSearch />
-            </div>
-          )}
+          {/* Collapse toggle - desktop only */}
+          <Button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "hidden lg:flex h-7 w-7 p-0 rounded-lg",
+              "hover:bg-slate-100 dark:hover:bg-slate-800",
+              "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300",
+              isCollapsed && "absolute -right-3 top-6 bg-white dark:bg-slate-900 shadow-md border border-slate-200 dark:border-slate-700"
+            )}
+          >
+            <ChevronLeft className={cn(
+              "h-4 w-4 transition-transform duration-300",
+              isCollapsed && "rotate-180"
+            )} />
+          </Button>
         </div>
 
-        {/* Navigation Menu with smooth scrolling */}
-        <nav className={`flex-1 ${isCollapsed ? 'p-2' : 'px-3 py-4'} transition-all duration-300 overflow-y-auto sidebar-scrollbar bg-sidebar`}>
-          <div className="space-y-1.5">
-            {navigationGroups.map((group, index) => {
-              // Get color classes based on group color property
-              const getGroupStyles = (color: string) => {
-                const colorMap: Record<string, { hover: string; active: string; iconBg: string; iconColor: string; chevron: string; activeBorder: string }> = {
-                  sky: {
-                    hover: 'hover:bg-sky-50',
-                    active: 'text-sky-700 bg-gradient-to-r from-sky-50 to-sky-100/50',
-                    iconBg: 'bg-sky-100',
-                    iconColor: 'text-sky-600',
-                    chevron: 'text-sky-500',
-                    activeBorder: 'border-sky-500'
-                  },
-                  violet: {
-                    hover: 'hover:bg-violet-50',
-                    active: 'text-violet-700 bg-gradient-to-r from-violet-50 to-violet-100/50',
-                    iconBg: 'bg-violet-100',
-                    iconColor: 'text-violet-600',
-                    chevron: 'text-violet-500',
-                    activeBorder: 'border-violet-500'
-                  },
-                  emerald: {
-                    hover: 'hover:bg-emerald-50',
-                    active: 'text-emerald-700 bg-gradient-to-r from-emerald-50 to-emerald-100/50',
-                    iconBg: 'bg-emerald-100',
-                    iconColor: 'text-emerald-600',
-                    chevron: 'text-emerald-500',
-                    activeBorder: 'border-emerald-500'
-                  },
-                  fuchsia: {
-                    hover: 'hover:bg-fuchsia-50',
-                    active: 'text-fuchsia-700 bg-gradient-to-r from-fuchsia-50 to-fuchsia-100/50',
-                    iconBg: 'bg-fuchsia-100',
-                    iconColor: 'text-fuchsia-600',
-                    chevron: 'text-fuchsia-500',
-                    activeBorder: 'border-fuchsia-500'
-                  },
-                  amber: {
-                    hover: 'hover:bg-amber-50',
-                    active: 'text-amber-700 bg-gradient-to-r from-amber-50 to-amber-100/50',
-                    iconBg: 'bg-amber-100',
-                    iconColor: 'text-amber-600',
-                    chevron: 'text-amber-500',
-                    activeBorder: 'border-amber-500'
-                  },
-                  orange: {
-                    hover: 'hover:bg-orange-50',
-                    active: 'text-orange-700 bg-gradient-to-r from-orange-50 to-orange-100/50',
-                    iconBg: 'bg-orange-100',
-                    iconColor: 'text-orange-600',
-                    chevron: 'text-orange-500',
-                    activeBorder: 'border-orange-500'
-                  },
-                  teal: {
-                    hover: 'hover:bg-teal-50',
-                    active: 'text-teal-700 bg-gradient-to-r from-teal-50 to-teal-100/50',
-                    iconBg: 'bg-teal-100',
-                    iconColor: 'text-teal-600',
-                    chevron: 'text-teal-500',
-                    activeBorder: 'border-teal-500'
-                  },
-                  slate: {
-                    hover: 'hover:bg-muted',
-                    active: 'text-foreground bg-muted',
-                    iconBg: 'bg-muted',
-                    iconColor: 'text-muted-foreground',
-                    chevron: 'text-muted-foreground',
-                    activeBorder: 'border-muted-foreground'
-                  },
-                  zinc: {
-                    hover: 'hover:bg-zinc-50',
-                    active: 'text-zinc-700 bg-gradient-to-r from-zinc-50 to-zinc-100/50',
-                    iconBg: 'bg-zinc-200',
-                    iconColor: 'text-zinc-600',
-                    chevron: 'text-zinc-500',
-                    activeBorder: 'border-zinc-500'
-                  },
-                  red: {
-                    hover: 'hover:bg-red-50',
-                    active: 'text-red-700 bg-gradient-to-r from-red-50 to-red-100/50',
-                    iconBg: 'bg-red-100',
-                    iconColor: 'text-red-600',
-                    chevron: 'text-red-500',
-                    activeBorder: 'border-red-500'
-                  },
-                };
-                return colorMap[color] || colorMap.slate;
-              };
-
-              const groupColor = (group as any).color || 'slate';
-              const styles = getGroupStyles(groupColor);
-              const isOpen = openGroups.has(group.name);
-
-              return (
-                <div key={group.name}>
-                  {/* Section divider for visual clarity */}
-                  {index > 0 && !isCollapsed && ['Patients', 'Clinical Services', 'Finance & Analytics', 'Administration'].includes(group.name) && (
-                    <div className="my-3 border-t border-border/70"></div>
-                  )}
-
-                  <Collapsible
-                    open={isOpen}
-                    onOpenChange={() => toggleGroup(group.name)}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <button
-                        className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 group relative ${isOpen ? `${styles.active} shadow-sm` : `text-sidebar-foreground ${styles.hover} hover:shadow-sm`
-                          }`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleGroup(group.name);
-                        }}
-                      >
-                        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2.5'}`}>
-                          <div className={`p-1.5 rounded-lg shadow-sm ${isOpen ? styles.iconBg : 'bg-muted'}`}>
-                            <group.icon className={`w-4 h-4 flex-shrink-0 ${isOpen ? styles.iconColor : 'text-muted-foreground'}`} />
-                          </div>
-                          <span className={`transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-                            {group.name}
-                          </span>
-                        </div>
-                        {!isCollapsed && (
-                          isOpen ?
-                            <ChevronDown className={`w-4 h-4 ${styles.chevron}`} /> :
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                        )}
-
-                        {/* Tooltip for collapsed state */}
-                        {isCollapsed && (
-                          <div className="absolute left-full ml-2 px-3 py-1.5 bg-popover text-popover-foreground text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none shadow-lg border border-border">
-                            {group.name}
-                          </div>
-                        )}
-                      </button>
-                    </CollapsibleTrigger>
-
-                    <CollapsibleContent className={`${isCollapsed ? 'hidden' : 'block'} overflow-visible`}>
-                      <div className={`ml-4 mt-1.5 space-y-1 pl-4 py-2 border-l-2 ${isOpen ? styles.activeBorder : 'border-border'} bg-card/80 dark:bg-card/60 rounded-r-lg transition-colors duration-200`}>
-                        {group.items.map((item) => {
-                          const Icon = item.icon;
-                          const itemActive = isActive(item.href);
-
-                          return (
-                            <Link
-                              key={item.name}
-                              href={item.href}
-                              className={`group relative flex items-center space-x-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${itemActive
-                                ? `bg-primary/10 text-primary font-semibold shadow-sm`
-                                : "text-foreground/80 font-medium hover:bg-muted hover:text-foreground hover:shadow-sm"
-                                }`}
-                              onClick={handleMobileLinkClick}
-                            >
-                              <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${itemActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
-                              <span className={`transition-all duration-300 whitespace-nowrap ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-                                {item.name}
-                              </span>
-
-                              {/* Active indicator */}
-                              {itemActive && (
-                                <div className="absolute right-2.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background"></div>
-                              )}
-
-                              {/* Tooltip for collapsed state */}
-                              {isCollapsed && (
-                                <div className="absolute left-full ml-2 px-3 py-1.5 bg-popover text-popover-foreground text-xs font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none shadow-lg border border-border">
-                                  {item.name}
-                                </div>
-                              )}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              );
-            })}
+        {/* Organization Badge */}
+        {!isCollapsed && user?.organization && (
+          <div className="px-4 py-2">
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200/50 dark:border-emerald-800/30">
+              <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 truncate">
+                  {user.organization.name}
+                </p>
+              </div>
+            </div>
           </div>
+        )}
+
+        {/* Search */}
+        {!isCollapsed && (
+          <div className="px-4 py-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search menu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={cn(
+                  "w-full h-9 pl-9 pr-3 rounded-lg text-sm",
+                  "bg-slate-100/80 dark:bg-slate-800/80",
+                  "border border-slate-200/50 dark:border-slate-700/50",
+                  "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                  "focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50",
+                  "transition-all duration-200"
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-2 px-2 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+          {filteredSections.map((section) => (
+            <div key={section.section} className="mb-4">
+              {/* Section Label */}
+              {!isCollapsed && (
+                <div className="px-3 py-1.5 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {section.section}
+                  </span>
+                </div>
+              )}
+
+              {/* Section Divider for collapsed state */}
+              {isCollapsed && section.section !== filteredSections[0]?.section && (
+                <div className="mx-3 my-2 border-t border-slate-200 dark:border-slate-800" />
+              )}
+
+              {/* Items */}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl",
+                        "transition-all duration-200",
+                        active ? [
+                          "bg-gradient-to-r from-indigo-500 to-violet-500",
+                          "text-white shadow-lg shadow-indigo-500/25",
+                        ] : [
+                          "text-slate-600 dark:text-slate-400",
+                          "hover:bg-slate-100 dark:hover:bg-slate-800/80",
+                          "hover:text-slate-900 dark:hover:text-white",
+                        ],
+                        isCollapsed && "justify-center px-2"
+                      )}
+                    >
+                      <Icon className={cn(
+                        "w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200",
+                        !active && "group-hover:scale-110"
+                      )} />
+                      
+                      {!isCollapsed && (
+                        <>
+                          <span className="text-sm font-medium flex-1">{item.name}</span>
+                          
+                          {/* Badge */}
+                          {'badge' in item && item.badge && (
+                            <span className={cn(
+                              "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
+                              active 
+                                ? "bg-white/20 text-white" 
+                                : "bg-gradient-to-r from-violet-500 to-purple-500 text-white"
+                            )}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {/* Tooltip for collapsed state */}
+                      {isCollapsed && (
+                        <div className={cn(
+                          "absolute left-full ml-2 px-2.5 py-1.5 rounded-lg",
+                          "bg-slate-900 dark:bg-white text-white dark:text-slate-900",
+                          "text-xs font-medium whitespace-nowrap",
+                          "opacity-0 invisible group-hover:opacity-100 group-hover:visible",
+                          "transition-all duration-200 z-50",
+                          "shadow-lg"
+                        )}>
+                          {item.name}
+                          {'badge' in item && item.badge && (
+                            <span className="ml-1.5 text-[10px] px-1 py-0.5 rounded bg-indigo-500 text-white">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        {/* User Profile */}
-        <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-sidebar-border bg-sidebar transition-all duration-300`}>
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} group relative`}>
-            <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-xl flex items-center justify-center text-sm font-semibold flex-shrink-0 shadow-sm">
-              {user?.firstName?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
+        {/* Footer */}
+        <div className={cn(
+          "border-t border-slate-200/60 dark:border-slate-800/60 p-3",
+          isCollapsed && "px-2"
+        )}>
+          {/* User Profile */}
+          <div className={cn(
+            "flex items-center gap-3 mb-3",
+            isCollapsed && "justify-center"
+          )}>
+            <div className="relative">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
+                {user?.firstName?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || 'U'}
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
             </div>
-            <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-              <p className="text-sm font-semibold text-sidebar-foreground">{user?.firstName || user?.username}</p>
-              <p className="text-[11px] text-muted-foreground capitalize font-medium">{user?.role?.replace(/_/g, ' ')}</p>
-            </div>
-
-            {/* Tooltip for collapsed state */}
-            {isCollapsed && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50 pointer-events-none border border-border">
-                {user?.firstName || user?.username} ({user?.role})
+            
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                  {user?.firstName && user?.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user?.firstName || user?.username || 'User'}
+                </p>
+                {user?.role && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 capitalize truncate">
+                    Signed in as {user.role.replace(/_/g, " ")}
+                  </p>
+                )}
               </div>
             )}
           </div>
 
-          <div className={`mt-3 space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+          {/* Quick Actions */}
+          <div className={cn(
+            "flex gap-1",
+            isCollapsed ? "flex-col items-center" : "flex-row"
+          )}>
+            <Link href="/profile" className="flex-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "w-full justify-start gap-2 text-slate-600 dark:text-slate-400",
+                  "hover:bg-slate-100 dark:hover:bg-slate-800",
+                  "hover:text-slate-900 dark:hover:text-white",
+                  isCollapsed && "w-8 h-8 p-0 justify-center"
+                )}
+              >
+                <User className="w-4 h-4" />
+                {!isCollapsed && <span className="text-xs">Profile</span>}
+              </Button>
+            </Link>
+
+            <Link href="/settings" className="flex-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "w-full justify-start gap-2 text-slate-600 dark:text-slate-400",
+                  "hover:bg-slate-100 dark:hover:bg-slate-800",
+                  "hover:text-slate-900 dark:hover:text-white",
+                  isCollapsed && "w-8 h-8 p-0 justify-center"
+                )}
+              >
+                <Settings className="w-4 h-4" />
+                {!isCollapsed && <span className="text-xs">Settings</span>}
+              </Button>
+            </Link>
+          </div>
+
+          {/* Help & Logout */}
+          <div className={cn(
+            "flex gap-1 mt-1",
+            isCollapsed ? "flex-col items-center" : "flex-row"
+          )}>
+            {onStartTour && (
+              <Button
+                onClick={onStartTour}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "flex-1 justify-start gap-2 text-indigo-600 dark:text-indigo-400",
+                  "hover:bg-indigo-50 dark:hover:bg-indigo-950/50",
+                  isCollapsed && "w-8 h-8 p-0 justify-center"
+                )}
+              >
+                <HelpCircle className="w-4 h-4" />
+                {!isCollapsed && <span className="text-xs">Help & Tour</span>}
+              </Button>
+            )}
+
             <Button
-              variant="ghost"
-              size={isCollapsed ? "sm" : "sm"}
               onClick={handleLogout}
-              className={`text-red-600 hover:text-red-700 hover:bg-red-50/80 transition-all duration-200 ${isCollapsed ? 'w-8 h-8 p-1' : 'w-full justify-start text-xs font-medium'
-                }`}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "flex-1 justify-start gap-2 text-rose-600 dark:text-rose-400",
+                "hover:bg-rose-50 dark:hover:bg-rose-950/50",
+                isCollapsed && "w-8 h-8 p-0 justify-center"
+              )}
             >
               <LogOut className="w-4 h-4" />
-              {!isCollapsed && <span className="ml-2">Sign Out</span>}
+              {!isCollapsed && <span className="text-xs">Sign Out</span>}
             </Button>
-
-            {onStartTour && (
-              <div className={isCollapsed ? 'flex flex-col items-center' : ''}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onStartTour}
-                  className={`text-sky-600 hover:text-sky-700 hover:bg-sky-50/80 transition-all duration-200 ${isCollapsed ? 'w-8 h-8 p-1' : 'w-full justify-start text-xs font-medium'
-                    }`}
-                  title="Take a tour of the system"
-                >
-                  <HelpCircle className="w-4 h-4" />
-                  {!isCollapsed && <span className="ml-2">Help & Tour</span>}
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </aside>

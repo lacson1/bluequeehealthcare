@@ -66,10 +66,7 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
     const sessionUser = (req.session as any)?.user;
     
     if (sessionUser) {
-      // Update session activity
-      (req.session as any).lastActivity = new Date();
-      
-      // Check session timeout
+      // Check session timeout BEFORE updating lastActivity
       const lastActivity = (req.session as any).lastActivity;
       if (lastActivity) {
         const timeSinceActivity = Date.now() - new Date(lastActivity).getTime();
@@ -79,6 +76,20 @@ export const authenticateToken = async (req: AuthRequest, res: Response, next: N
           });
           return res.status(401).json({ message: 'Session expired. Please login again.' });
         }
+      }
+      
+      // Update session activity AFTER checking timeout
+      // This keeps the session alive for active users
+      (req.session as any).lastActivity = new Date();
+      
+      // Save session to persist the updated lastActivity
+      // Use callback to avoid blocking, but don't wait for it
+      if (req.session && typeof req.session.save === 'function') {
+        req.session.save((err) => {
+          if (err) {
+            console.error('Failed to save session activity update:', err);
+          }
+        });
       }
       
       req.user = {

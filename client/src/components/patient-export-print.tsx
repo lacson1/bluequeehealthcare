@@ -34,7 +34,7 @@ export function PatientExportPrint({
   vitals = [], 
   labResults = [], 
   prescriptions = [],
-  organizationName = "ClinicConnect Health Center"
+  organizationName = "Bluequee Health Management"
 }: PatientExportPrintProps) {
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportOptions, setExportOptions] = useState({

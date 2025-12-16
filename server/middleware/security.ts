@@ -151,6 +151,7 @@ class SecurityManagerClass {
    */
   async updateLastLogin(userId: number): Promise<void> {
     try {
+      // Try to update last login - if columns don't exist, this will fail gracefully
       await db.update(users)
         .set({ 
           lastLoginAt: new Date(),
@@ -160,8 +161,14 @@ class SecurityManagerClass {
         .where(eq(users.id, userId));
         
       console.log(`[SECURITY] Updated last login for user ${userId}`);
-    } catch (error) {
-      console.error('[SECURITY] Failed to update last login:', error);
+    } catch (error: any) {
+      // Log but don't throw - this is a non-critical operation
+      // If columns don't exist in the database, that's okay for now
+      if (error?.code === '42703' || error?.message?.includes('column')) {
+        console.warn(`[SECURITY] Last login columns may not exist in database. This is non-critical.`);
+      } else {
+        console.error('[SECURITY] Failed to update last login:', error);
+      }
     }
   }
 

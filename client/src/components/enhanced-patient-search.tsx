@@ -192,7 +192,7 @@ export function EnhancedPatientSearch({
             searchMode === 'phone' ? 'Search by phone number...' :
             searchMode === 'id' ? 'Search by patient ID...' :
             searchMode === 'national_id' ? 'Search by national ID...' :
-            'Search patients by name, phone, ID...'
+            'Search patients by name, phone, or ID...'
           }
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -200,7 +200,7 @@ export function EnhancedPatientSearch({
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           autoFocus={autoFocus}
           data-global-search="true"
-          className="pl-10 pr-24"
+          className="pl-10 pr-28 h-11 text-base"
         />
         <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
           <Button
@@ -250,12 +250,12 @@ export function EnhancedPatientSearch({
                           onClick={() => handlePatientClick(patient)}
                           className="w-full text-left px-3 py-2 rounded-md hover:bg-accent transition-colors"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium truncate">
                                 {getDisplayName(patient)}
                               </div>
-                              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              <div className="mt-0.5 text-xs text-muted-foreground flex flex-wrap items-center gap-2">
                                 {patient.phone && (
                                   <span className="flex items-center gap-1">
                                     <Phone className="h-3 w-3" />
@@ -270,7 +270,7 @@ export function EnhancedPatientSearch({
                                 )}
                               </div>
                             </div>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-[11px]">
                               {matchType}
                             </Badge>
                           </div>

@@ -50,12 +50,17 @@ const DocumentsPage = lazy(() => import("@/pages/documents"));
 const RevenueAnalytics = lazy(() => import("@/pages/revenue-analytics"));
 const TelemedicinePage = lazy(() => import("@/pages/telemedicine"));
 const PhysiotherapyPage = lazy(() => import("@/pages/physiotherapy"));
+const PsychologicalTherapyPage = lazy(() => import("@/pages/psychological-therapy"));
+const MentalHealthPage = lazy(() => import("@/pages/mental-health"));
 const ExerciseLeafletsPage = lazy(() => import("@/pages/exercise-leaflets"));
 const MedicalCertificatesPage = lazy(() => import("@/pages/medical-certificates"));
 const ReferralLettersPage = lazy(() => import("@/pages/referral-letters"));
 const EnhancedPrescriptionForm = lazy(() => import("@/pages/enhanced-prescription"));
 const ClinicalProtocols = lazy(() => import("@/components/clinical-protocols"));
 const ConsultationDashboard = lazy(() => import("@/pages/consultation-dashboard"));
+const PsychiatryDashboard = lazy(() => import("@/pages/psychiatry-dashboard"));
+const PsychiatryRiskMonitor = lazy(() => import("@/pages/psychiatry-risk-monitor"));
+const PsychiatryOutcomes = lazy(() => import("@/pages/psychiatry-outcomes"));
 const PatientAccessCards = lazy(() => import("@/pages/patient-access-cards"));
 const Settings = lazy(() => import("@/pages/settings"));
 const PerformancePage = lazy(() => import("@/pages/performance-page").then(m => ({ default: m.PerformancePage })));
@@ -172,6 +177,11 @@ function AuthenticatedApp() {
                     <Route path="/analytics" component={RevenueAnalytics} />
                     <Route path="/telemedicine" component={TelemedicinePage} />
                     <Route path="/physiotherapy" component={PhysiotherapyPage} />
+                    <Route path="/psychological-therapy" component={PsychologicalTherapyPage} />
+                    <Route path="/mental-health" component={MentalHealthPage} />
+                    <Route path="/psychiatry-dashboard" component={PsychiatryDashboard} />
+                    <Route path="/psychiatry/risk-monitor" component={PsychiatryRiskMonitor} />
+                    <Route path="/psychiatry/outcomes" component={PsychiatryOutcomes} />
                     <Route path="/exercise-leaflets" component={ExerciseLeafletsPage} />
                     <Route path="/medical-certificates" component={MedicalCertificatesPage} />
                     <Route path="/referral-letters" component={ReferralLettersPage} />

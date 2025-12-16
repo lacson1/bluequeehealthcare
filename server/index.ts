@@ -91,7 +91,7 @@ app.use(isProduction ? prodLogger : devLogger);
     // ===========================================
     // STEP 1: Validate Environment Variables
     // ===========================================
-    logger.info('Starting ClinicConnect Healthcare Platform...');
+    logger.info('Starting Bluequee Health Management Platform...');
     logger.info('Validating environment configuration...');
     
     const envValid = validateAndLogEnvironment();

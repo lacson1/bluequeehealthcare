@@ -26,6 +26,7 @@ import {
   Sun,
   Monitor
 } from 'lucide-react';
+import MFASettings from '@/components/mfa-settings';
 
 const settingsSchema = z.object({
   notifications: z.object({
@@ -542,63 +543,54 @@ export default function Settings() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <FormField
-                        control={form.control}
-                        name="security.twoFactorEnabled"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <FormLabel>Two-Factor Authentication</FormLabel>
+                      {/* MFA Settings Component */}
+                      <MFASettings />
+                      
+                      <Separator />
+                      
+                      <div className="space-y-4">
+                        <h4 className="font-medium text-gray-900">Session & Password Policies</h4>
+                        
+                        <FormField
+                          control={form.control}
+                          name="security.sessionTimeout"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Session Timeout (minutes)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number.parseInt(e.target.value, 10))}
+                                />
+                              </FormControl>
                               <FormDescription>
-                                Add an extra layer of security to your account
+                                Automatically log out after period of inactivity
                               </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                            </FormItem>
+                          )}
+                        />
 
-                      <FormField
-                        control={form.control}
-                        name="security.sessionTimeout"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Session Timeout (minutes)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) => field.onChange(Number.parseInt(e.target.value, 10))}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Automatically log out after period of inactivity
-                            </FormDescription>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="security.passwordExpiry"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password Expiry (days)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) => field.onChange(Number.parseInt(e.target.value, 10))}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Require password change after specified days
-                            </FormDescription>
-                          </FormItem>
-                        )}
-                      />
+                        <FormField
+                          control={form.control}
+                          name="security.passwordExpiry"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password Expiry (days)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number.parseInt(e.target.value, 10))}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Require password change after specified days (0 = never expires)
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </CardContent>
                   </>
                 )}

@@ -111,7 +111,7 @@ export function KeyboardShortcutsModal() {
             Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription>
-            Use these shortcuts to navigate and work faster in ClinicConnect
+            Use these shortcuts to navigate and work faster in Bluequee Health Management
           </DialogDescription>
         </DialogHeader>
 

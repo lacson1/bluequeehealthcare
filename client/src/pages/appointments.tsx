@@ -166,8 +166,10 @@ export default function AppointmentsPage() {
       const response = await apiRequest('/api/appointments', 'POST', data);
       return await response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+    onSuccess: async () => {
+      // Invalidate and refetch appointments to ensure calendar view updates
+      await queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/appointments'] });
       toast({
         title: 'Success',
         description: 'Appointment scheduled successfully',
@@ -371,8 +373,11 @@ export default function AppointmentsPage() {
       return;
     }
 
-    // Format date as YYYY-MM-DD for the backend
-    const appointmentDate = selectedDate.toISOString().split('T')[0];
+    // Format date as YYYY-MM-DD for the backend (use local timezone to avoid date shifts)
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const appointmentDate = `${year}-${month}-${day}`;
 
     const appointmentData = {
       patientId: selectedPatient,
@@ -406,12 +411,14 @@ export default function AppointmentsPage() {
   };
 
   // Group filtered appointments by date for calendar view
-  const appointmentsByDate = filteredAndSortedAppointments.reduce((acc: any, appointment: Appointment) => {
-    const date = appointment.appointmentDate;
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(appointment);
-    return acc;
-  }, {});
+  const appointmentsByDate = useMemo(() => {
+    return filteredAndSortedAppointments.reduce((acc: any, appointment: Appointment) => {
+      const date = appointment.appointmentDate;
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(appointment);
+      return acc;
+    }, {});
+  }, [filteredAndSortedAppointments]);
 
   // Get month dates for calendar view (including leading/trailing days to fill weeks)
   const getMonthDates = (monthDate: Date) => {
@@ -475,10 +482,10 @@ export default function AppointmentsPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search appointments..."
+                  placeholder="Search appointments by patient name, ID, or phone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-11 text-base"
                 />
               </div>
 

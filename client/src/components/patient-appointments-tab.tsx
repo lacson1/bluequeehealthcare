@@ -115,9 +115,11 @@ export function PatientAppointmentsTab({ patientId }: PatientAppointmentsTabProp
     mutationFn: async (data: any) => {
       return apiRequest('/api/appointments', 'POST', data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/appointments`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+    onSuccess: async () => {
+      // Invalidate and refetch appointments to ensure calendar view updates
+      await queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/appointments`] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/appointments'] });
       setIsSchedulingDialogOpen(false);
       resetForm();
       toast({

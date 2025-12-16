@@ -305,7 +305,7 @@ export default function LaboratoryUnified() {
     // Use organization data or fallback to defaults
     const organization = orderingOrganization || organizationData || (userProfile as any)?.organization || {
       id: 1,
-      name: 'ClinicConnect Healthcare',
+      name: 'Bluequee Health Management',
       type: 'health_center',
       themeColor: '#3B82F6',
       address: 'Healthcare Address',

@@ -62,7 +62,9 @@ import {
   Share,
   Printer,
   Shield,
-  Calendar
+  Calendar,
+  Brain,
+  Heart
 } from "lucide-react";
 import { GlobalMedicationSearch } from "@/components/global-medication-search";
 import { usePatientTabs } from "@/hooks/use-patient-tabs";
@@ -145,6 +147,7 @@ import { PatientAllergies } from './patient-allergies';
 import { PatientImmunizations } from './patient-immunizations';
 import { PatientImaging } from './patient-imaging';
 import { PatientProcedures } from './patient-procedures';
+import PsychologicalTherapyAssessment from './psychological-therapy-assessment';
 import InsuranceManagement from './insurance-management';
 import ReferralManagement from './referral-management';
 // All icons now imported via MedicalIcons system
@@ -585,6 +588,7 @@ export function ModernPatientOverview({
   const [showEditPatientModal, setShowEditPatientModal] = useState(false);
   const [showMedicationReviewAssignmentModal, setShowMedicationReviewAssignmentModal] = useState(false);
   const [selectedPrescriptionForReview, setSelectedPrescriptionForReview] = useState<any>(null);
+  const [showPsychologicalTherapyDialog, setShowPsychologicalTherapyDialog] = useState(false);
 
   // Dynamic tab management
   const { tabs, isLoading: tabsLoading, isError: tabsError, defaultTabKey } = usePatientTabs();
@@ -1557,14 +1561,26 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
     <div className="space-y-4 min-h-screen w-full">
       {/* Enhanced Tabbed Interface - Full Width with Dynamic Tabs */}
       <Tabs defaultValue={defaultTabKey} className="w-full h-full">
-        <div className="relative mb-4">
-          {/* Scrollable Tab List Container */}
-          <div className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 border border-blue-200/60 rounded-xl p-2 shadow-lg backdrop-blur-lg ring-1 ring-blue-100/50">
-            <TabsList className="w-full h-auto bg-transparent flex flex-wrap gap-1.5 justify-start items-start">
+        <div className="relative mb-6">
+          {/* Single Line Tab Container */}
+          <div className="relative bg-white rounded-xl border border-slate-200/80 shadow-sm p-1.5">
+            {/* TabManager Settings Button */}
+            <Button
+              onClick={() => setShowTabManager(true)}
+              size="sm"
+              variant="ghost"
+              className="absolute top-1.5 right-1.5 z-10 h-6 w-6 p-0 bg-slate-50 hover:bg-teal-50 rounded-md border border-slate-200/60 transition-all duration-200 opacity-50 hover:opacity-100 hover:border-teal-300 group"
+              data-testid="button-open-tab-manager"
+              title="Customize Tabs"
+            >
+              <Settings className="h-3 w-3 text-slate-400 group-hover:text-teal-600 transition-all duration-200 group-hover:rotate-90" />
+            </Button>
+
+            <TabsList className="relative w-full h-auto bg-slate-50/50 rounded-lg p-1 flex flex-wrap gap-1 justify-start items-center">
               {tabsLoading ? (
-                <div className="w-full flex items-center justify-center py-6 text-blue-600">
+                <div className="w-full flex items-center justify-center py-3 text-teal-600">
                   <Clock className="w-4 h-4 animate-spin mr-2" />
-                  <span className="text-sm font-semibold">Loading tabs...</span>
+                  <span className="text-sm font-medium">Loading tabs...</span>
                 </div>
               ) : (
                 tabs.map((tab) => {
@@ -1573,28 +1589,16 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     <TabsTrigger
                       key={tab.id}
                       value={tab.key}
-                      className="flex flex-col items-center gap-1 min-w-[85px] px-2.5 py-2 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-blue-900 data-[state=active]:border data-[state=active]:border-blue-400 data-[state=active]:scale-105 hover:bg-white/70 hover:shadow-md hover:scale-102 text-blue-800 bg-white/40 border border-transparent group"
+                      className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-slate-600 font-medium text-sm transition-all duration-200 hover:text-teal-700 hover:bg-white/80 data-[state=active]:text-teal-700 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-teal-100/50 data-[state=active]:border data-[state=active]:border-teal-200 group"
                       data-testid={`tab-trigger-${tab.key}`}
                     >
-                      <IconComponent className="w-4 h-4 group-data-[state=active]:w-4.5 group-data-[state=active]:h-4.5 transition-all" />
-                      <span className="text-[10px] font-semibold text-center leading-tight whitespace-nowrap">{tab.label}</span>
+                      <IconComponent className="w-4 h-4 transition-colors duration-200 group-data-[state=active]:text-teal-600" />
+                      <span>{tab.label}</span>
                     </TabsTrigger>
                   );
                 })
               )}
             </TabsList>
-
-            {/* TabManager Settings Button */}
-            <Button
-              onClick={() => setShowTabManager(true)}
-              size="sm"
-              variant="ghost"
-              className="absolute top-1 right-1 h-5 w-5 p-0 bg-white/70 hover:bg-white hover:shadow-sm rounded border border-slate-200/50 transition-all opacity-60 hover:opacity-100"
-              data-testid="button-open-tab-manager"
-              title="Customize Tabs"
-            >
-              <Settings className="h-2.5 w-2.5 text-slate-500" />
-            </Button>
           </div>
         </div>
 
@@ -2216,6 +2220,15 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                           >
                             <Plus className="w-4 h-4" />
                           </Button>
+                          <Button
+                            onClick={() => setShowPsychologicalTherapyDialog(true)}
+                            size="sm"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700"
+                            title="Record Psychological Therapy Session"
+                          >
+                            <Brain className="w-4 h-4 mr-2" />
+                            Therapy Session
+                          </Button>
                           {activeMedications.length > 0 && (
                             <Button
                               onClick={() => handlePrintPrescription(activeMedications[0])}
@@ -2377,6 +2390,97 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
               </CardContent>
             </Card>
           </div>
+
+          {/* Quick Actions Card */}
+          <Card className="border-l-4 border-l-indigo-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-indigo-600" />
+                Clinical Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                {onRecordVisit && (
+                  <Button
+                    onClick={onRecordVisit}
+                    variant="outline"
+                    className="w-full justify-start"
+                    size="sm"
+                  >
+                    <Stethoscope className="w-4 h-4 mr-2" />
+                    Record Visit
+                  </Button>
+                )}
+                {onAddPrescription && (
+                  <Button
+                    onClick={onAddPrescription}
+                    variant="outline"
+                    className="w-full justify-start"
+                    size="sm"
+                  >
+                    <Medication className="w-4 h-4 mr-2" />
+                    Prescription
+                  </Button>
+                )}
+                <Button
+                  onClick={() => navigate(`/patients/${patient.id}/lab-orders/new`)}
+                  variant="outline"
+                  className="w-full justify-start"
+                  size="sm"
+                >
+                  <BloodTest className="w-4 h-4 mr-2" />
+                  Lab Order
+                </Button>
+                <Button
+                  onClick={() => navigate(`/mental-health?patientId=${patient.id}`)}
+                  variant="outline"
+                  className="w-full justify-start"
+                  size="sm"
+                >
+                  <Heart className="w-4 h-4 mr-2" />
+                  Mental Health
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mental Health Section */}
+          <Card className="border-l-4 border-l-purple-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Brain className="h-4 w-4 text-purple-600" />
+                Mental Health
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={() => setShowPsychologicalTherapyDialog(true)}
+                  variant="outline"
+                  className="w-full justify-start border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700"
+                  size="sm"
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  Therapy Session
+                </Button>
+                <Button
+                  onClick={() => navigate(`/mental-health?patientId=${patient.id}`)}
+                  variant="outline"
+                  className="w-full justify-start border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700"
+                  size="sm"
+                >
+                  <Heart className="w-4 h-4 mr-2" />
+                  Support Resources
+                </Button>
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <p className="text-xs text-gray-600">
+                  Access psychological therapy sessions, mental health assessments, and support resources for this patient.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Collapsible Consultation History */}
           <Collapsible
@@ -4294,7 +4398,32 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         <TabsContent value="procedures" className="space-y-4">
           <PatientProcedures patientId={patient.id} />
         </TabsContent>
+
+        {/* Psychological Therapy Tab */}
+        <TabsContent value="psychological-therapy" className="space-y-4">
+          <PsychologicalTherapyAssessment patientId={patient.id} />
+        </TabsContent>
       </Tabs>
+
+      {/* Psychological Therapy Dialog */}
+      <Dialog open={showPsychologicalTherapyDialog} onOpenChange={setShowPsychologicalTherapyDialog}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Brain className="w-5 h-5 text-indigo-600" />
+              Record Psychological Therapy Session
+            </DialogTitle>
+            <p className="text-sm text-gray-600">
+              Patient: {formatPatientName(patient)}
+            </p>
+          </DialogHeader>
+          <PsychologicalTherapyAssessment 
+            patientId={patient.id}
+            visitId={undefined}
+            onSuccess={() => setShowPsychologicalTherapyDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Patient Modal */}
       <EditPatientModal

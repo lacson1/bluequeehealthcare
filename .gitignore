@@ -12,3 +12,4 @@ server.log
 .cursor/
 .specstory/
 uploads/
+DEPLOYMENT_SECRETS.txt

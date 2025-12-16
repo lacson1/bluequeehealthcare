@@ -270,7 +270,7 @@ export function VaccinationCertificate({ patient, onClose }: VaccinationCertific
             </h1>
           </div>
           <p className="text-slate-500">Official Immunization Record</p>
-          <p className="text-sm text-slate-400 mt-1">ClinicConnect Healthcare System</p>
+          <p className="text-sm text-slate-400 mt-1">Bluequee Health Management</p>
         </div>
 
         {/* Patient Information */}
@@ -387,7 +387,7 @@ export function VaccinationCertificate({ patient, onClose }: VaccinationCertific
             <p>Generated: {new Date().toLocaleString()}</p>
             <p className="mt-2 text-emerald-600">
               <CheckCircle2 className="h-3 w-3 inline mr-1" />
-              Verified by ClinicConnect
+              Verified by Bluequee
             </p>
           </div>
         </div>

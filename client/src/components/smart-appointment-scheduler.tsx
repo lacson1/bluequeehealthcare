@@ -80,8 +80,10 @@ export default function SmartAppointmentScheduler({ patientId, defaultDate }: Sm
       appointmentDate: selectedDate,
       status: 'scheduled'
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    onSuccess: async () => {
+      // Invalidate and refetch appointments to ensure calendar view updates
+      await queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/appointments"] });
       setIsBooking(false);
       setNewAppointment({
         patientId: patientId || '',

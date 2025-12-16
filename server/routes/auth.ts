@@ -12,6 +12,35 @@ import { sendSuccess, sendError, ApiError, asyncHandler } from '../lib/api-respo
 const router = Router();
 
 /**
+ * POST /api/auth/clear-rate-limit (Development only)
+ * Clear rate limits for development/testing
+ */
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/clear-rate-limit', async (req: Request, res: Response) => {
+    try {
+      // Import the limiter instance
+      const { limiter } = await import('../middleware/rate-limit');
+      const ip = req.ip || req.socket.remoteAddress || 'unknown';
+      const key = `auth:${ip}`;
+      
+      // Clear rate limit for this IP
+      limiter.clear(key);
+      
+      console.log('[AUTH] Rate limit cleared for IP:', ip, 'key:', key);
+      
+      return sendSuccess(res, { 
+        message: 'Rate limit cleared for your IP',
+        ip,
+        key 
+      });
+    } catch (error: any) {
+      console.error('[AUTH] Error clearing rate limit:', error);
+      return sendError(res, ApiError.internal('Failed to clear rate limit'));
+    }
+  });
+}
+
+/**
  * Helper function to get organization details
  */
 async function getOrganizationDetails(orgId: number) {
@@ -30,6 +59,8 @@ async function getOrganizationDetails(orgId: number) {
 router.post('/login', validateBody(loginSchema), asyncHandler(async (req: Request, res: Response) => {
   const { username, password } = req.body;
 
+  console.log('[AUTH] Login attempt for username:', username);
+
   // Check login attempts for rate limiting
   const attemptCheck = SecurityManager.checkLoginAttempts(username);
   if (!attemptCheck.allowed) {
@@ -37,10 +68,49 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req: Reques
   }
 
   // Find user in database
-  const [user] = await db.select()
-    .from(users)
-    .where(eq(users.username, username))
-    .limit(1);
+  let user;
+  try {
+    const userResult = await db.select()
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+    user = userResult[0];
+    console.log('[AUTH] User lookup result:', user ? `Found user ID ${user.id}` : 'User not found');
+  } catch (error: any) {
+    console.error('[AUTH] Database error during user lookup:', error);
+    console.error('[AUTH] Database error details:', {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+      name: error?.name
+    });
+    
+    // Provide more helpful error messages based on error type
+    let errorMessage = 'Database connection failed';
+    let setupInstructions = '';
+    
+    if (error?.code === '28000' || error?.message?.includes('does not exist') || error?.message?.includes('role')) {
+      errorMessage = 'Database user does not exist. The database needs to be set up.';
+      setupInstructions = 'Run: bash setup-dev-db.sh (requires Docker) or update DATABASE_URL to use an existing database user.';
+    } else if (error?.code === 'ECONNREFUSED' || error?.message?.includes('connection') || error?.message?.includes('connect')) {
+      errorMessage = 'Cannot connect to database. Please ensure the database server is running.';
+      setupInstructions = 'Start your database server or run: bash setup-dev-db.sh to set up a local database.';
+    } else if (error?.code === '3D000' || error?.message?.includes('database')) {
+      errorMessage = 'Database does not exist. Please create the database first.';
+      setupInstructions = 'Run: bash setup-dev-db.sh to automatically set up the database.';
+    } else if (error?.message) {
+      errorMessage = `Database error: ${error.message}`;
+    }
+    
+    // Log detailed error for debugging
+    console.error('[AUTH] Database setup issue detected:', {
+      errorCode: error?.code,
+      errorMessage: error?.message,
+      setupInstructions
+    });
+    
+    throw ApiError.databaseError(`${errorMessage} ${setupInstructions}`);
+  }
 
   if (!user) {
     SecurityManager.recordLoginAttempt(username, false);
@@ -56,15 +126,27 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req: Reques
   // Verify password using bcrypt
   let passwordValid = false;
   
-  // SECURITY: Demo passwords only work in development mode
-  if (process.env.NODE_ENV !== 'production') {
-    const demoPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'receptionist123', 'password123', 'pharmacy123', 'physio123', 'lab123'];
-    passwordValid = demoPasswords.includes(password);
-  }
+  try {
+    // SECURITY: Demo passwords only work in development mode
+    if (process.env.NODE_ENV !== 'production') {
+      const demoPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'receptionist123', 'password123', 'pharmacy123', 'physio123', 'lab123'];
+      passwordValid = demoPasswords.includes(password);
+      console.log('[AUTH] Demo password check:', passwordValid ? 'Valid' : 'Invalid');
+    }
 
-  // Check against the stored bcrypt hash
-  if (!passwordValid && user.password) {
-    passwordValid = await bcrypt.compare(password, user.password);
+    // Check against the stored bcrypt hash
+    if (!passwordValid && user.password) {
+      try {
+        passwordValid = await bcrypt.compare(password, user.password);
+        console.log('[AUTH] Bcrypt password check:', passwordValid ? 'Valid' : 'Invalid');
+      } catch (bcryptError) {
+        console.error('[AUTH] Bcrypt comparison error:', bcryptError);
+        // Continue - password will be invalid
+      }
+    }
+  } catch (error) {
+    console.error('[AUTH] Password verification error:', error);
+    throw ApiError.internal('Password verification failed');
   }
 
   if (!passwordValid) {
@@ -74,15 +156,37 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req: Reques
 
   // Successful login - record and update user
   SecurityManager.recordLoginAttempt(username, true);
-  await SecurityManager.updateLastLogin(user.id);
+  
+  // Update last login (non-blocking - errors are logged but don't fail login)
+  try {
+    await SecurityManager.updateLastLogin(user.id);
+  } catch (error) {
+    console.error('[AUTH] Failed to update last login (non-critical):', error);
+    // Continue with login even if this fails
+  }
 
   // Check if user has multiple organizations
-  const userOrgs = await db
-    .select()
-    .from(userOrganizations)
-    .where(eq(userOrganizations.userId, user.id));
+  let userOrgs = [];
+  try {
+    userOrgs = await db
+      .select()
+      .from(userOrganizations)
+      .where(eq(userOrganizations.userId, user.id));
+  } catch (error) {
+    console.error('[AUTH] Failed to fetch user organizations:', error);
+    // Continue with empty array - user can still login
+    userOrgs = [];
+  }
 
-  const org = user.organizationId ? await getOrganizationDetails(user.organizationId) : null;
+  let org = null;
+  if (user.organizationId) {
+    try {
+      org = await getOrganizationDetails(user.organizationId);
+    } catch (error) {
+      console.error('[AUTH] Failed to fetch organization details:', error);
+      // Continue without org - user can still login
+    }
+  }
 
   // Determine current organization
   let currentOrgId = user.organizationId;
@@ -93,33 +197,122 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req: Reques
 
   // Ensure session is available
   if (!req.session) {
+    console.error('[AUTH] Session not available on request object');
+    console.error('[AUTH] Request headers:', req.headers);
+    console.error('[AUTH] Session middleware check - req.session type:', typeof req.session);
     throw ApiError.internal('Session not available. Please ensure session middleware is configured.');
   }
 
-  // Set user session with activity tracking
-  req.session.user = {
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    roleId: user.roleId,
-    organizationId: user.organizationId,
-    currentOrganizationId: currentOrgId
-  };
+  console.log('[AUTH] Setting user session for user ID:', user.id);
+  console.log('[AUTH] Session ID before save:', req.session.id);
 
-  // Initialize session activity tracking
-  req.session.lastActivity = new Date();
+  // Set user session with activity tracking
+  try {
+    req.session.user = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      roleId: user.roleId,
+      organizationId: user.organizationId,
+      currentOrganizationId: currentOrgId
+    };
+
+    // Initialize session activity tracking
+    req.session.lastActivity = new Date();
+    console.log('[AUTH] Session data set, saving session...');
+  } catch (error: any) {
+    console.error('[AUTH] Error setting session data:', error);
+    console.error('[AUTH] Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name
+    });
+    throw ApiError.internal('Failed to set session data');
+  }
 
   // Save session before sending response
-  await new Promise<void>((resolve, reject) => {
-    req.session!.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-        reject(err);
+  // Use a more robust session save with proper error handling
+  try {
+    // First, try to manually trigger session save
+    if (req.session && typeof req.session.save === 'function') {
+      await new Promise<void>((resolve, reject) => {
+        if (!req.session) {
+          return reject(new Error('Session was lost before save'));
+        }
+        
+        // Add timeout to prevent hanging (5 seconds)
+        const timeout = setTimeout(() => {
+          console.error('[AUTH] Session save timeout - session store may not be responding');
+          reject(new Error('Session save timeout after 5 seconds'));
+        }, 5000);
+        
+        try {
+          req.session.save((err) => {
+            clearTimeout(timeout);
+            if (err) {
+              console.error('[AUTH] Session save error:', err);
+              console.error('[AUTH] Session save error details:', {
+                message: err.message,
+                stack: err.stack,
+                sessionId: req.session?.id,
+                code: (err as any)?.code,
+                name: err.name
+              });
+              reject(err);
+            } else {
+              console.log('[AUTH] Session saved successfully, session ID:', req.session?.id);
+              resolve();
+            }
+          });
+        } catch (saveError: any) {
+          clearTimeout(timeout);
+          console.error('[AUTH] Exception during session.save() call:', saveError);
+          reject(saveError);
+        }
+      });
+    } else {
+      // Fallback: if save method doesn't exist, try to regenerate session
+      console.warn('[AUTH] Session save method not available, attempting to regenerate session');
+      if (req.session && typeof req.session.regenerate === 'function') {
+        await new Promise<void>((resolve, reject) => {
+          req.session!.regenerate((err) => {
+            if (err) {
+              console.error('[AUTH] Session regenerate error:', err);
+              reject(err);
+            } else {
+              console.log('[AUTH] Session regenerated successfully');
+              resolve();
+            }
+          });
+        });
       } else {
-        resolve();
+        console.warn('[AUTH] Session save/regenerate not available - session may not persist');
+        // Continue anyway - session middleware might handle it automatically
       }
+    }
+  } catch (error: any) {
+    console.error('[AUTH] Failed to save session:', error);
+    console.error('[AUTH] Session save failure details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code,
+      sessionAvailable: !!req.session,
+      sessionId: req.session?.id
     });
-  });
+    
+    // Provide more helpful error message
+    let errorMessage = 'Failed to create session';
+    if (error?.message?.includes('timeout')) {
+      errorMessage = 'Session store is not responding. Please check your database connection.';
+    } else if (error?.code === 'ECONNREFUSED' || error?.message?.includes('connection')) {
+      errorMessage = 'Cannot connect to session store. Please ensure the database is running.';
+    } else if (error?.message) {
+      errorMessage = `Failed to create session: ${error.message}`;
+    }
+    
+    throw ApiError.internal(errorMessage);
+  }
 
   return sendSuccess(res, {
     user: {

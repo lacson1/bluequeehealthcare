@@ -149,7 +149,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       
-      if (errorMessage.includes('Backend server') || errorMessage.includes('not running')) {
+      // Handle network/fetch errors
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+        toast({
+          title: "Cannot Connect to Server",
+          description: "The backend server is not running. Please start it with: npm run dev",
+          variant: "destructive",
+          duration: 10000,
+        });
+      } else if (errorMessage.includes('Backend server') || errorMessage.includes('not running')) {
         toast({
           title: "Backend Server Unavailable",
           description: errorMessage + ". Make sure DATABASE_URL is set and the server is running.",

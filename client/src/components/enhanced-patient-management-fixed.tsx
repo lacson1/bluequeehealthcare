@@ -380,7 +380,7 @@ export default function EnhancedPatientManagementFixed({ user, onPatientSelect }
                   placeholder="Search patients by name, phone, or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-11"
+                  className="pl-10 h-11 text-base"
                 />
               </div>
               
