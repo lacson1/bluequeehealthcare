@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPatientSchema, type InsertPatient } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Building2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,12 @@ import AllergyAutocomplete from "./allergy-autocomplete";
 import MedicalConditionAutocomplete from "./medical-condition-autocomplete";
 import { NIGERIA_STATE_NAMES, getLgasForState, NIGERIA_LANGUAGES } from "@/lib/nigeria-data";
 
+interface Organization {
+  id: number;
+  name: string;
+  type: string;
+}
+
 interface PatientRegistrationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -65,6 +72,20 @@ export default function PatientRegistrationModal({
   const [selectedState, setSelectedState] = useState<string>("");
   const [showNigerianAddress, setShowNigerianAddress] = useState(false);
   const [showNigerianId, setShowNigerianId] = useState(false);
+  
+  // Selected organization state
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState<string>(
+    user?.organizationId?.toString() || ""
+  );
+  
+  // Check if user is superadmin (can select any organization)
+  const isSuperAdmin = user?.role === 'superadmin';
+  
+  // Fetch organizations for dropdown (only for superadmin)
+  const { data: organizations = [] } = useQuery<Organization[]>({
+    queryKey: ['/api/organizations-dropdown'],
+    enabled: open && isSuperAdmin,
+  });
 
   const form = useForm<InsertPatient>({
     resolver: zodResolver(insertPatientSchema),
@@ -95,10 +116,14 @@ export default function PatientRegistrationModal({
 
   const registerPatientMutation = useMutation({
     mutationFn: async (data: InsertPatient) => {
-      // Include organizationId from user context
+      // Include organizationId - from selection for superadmin, from user context for others
+      const orgId = isSuperAdmin && selectedOrganizationId 
+        ? parseInt(selectedOrganizationId) 
+        : user?.organizationId;
+      
       const requestData = {
         ...data,
-        organizationId: user?.organizationId,
+        organizationId: orgId,
       };
       const response = await apiRequest("/api/patients", "POST", requestData);
       return await response.json();
@@ -117,6 +142,7 @@ export default function PatientRegistrationModal({
       setSelectedState("");
       setShowNigerianAddress(false);
       setShowNigerianId(false);
+      setSelectedOrganizationId(user?.organizationId?.toString() || "");
       onOpenChange(false);
     },
     onError: (error: any) => {
@@ -204,11 +230,17 @@ export default function PatientRegistrationModal({
   };
 
   const onSubmit = (data: InsertPatient) => {
-    // Validate that user has an organizationId
-    if (!user?.organizationId) {
+    // Validate that an organization is selected
+    const effectiveOrgId = isSuperAdmin && selectedOrganizationId 
+      ? parseInt(selectedOrganizationId) 
+      : user?.organizationId;
+    
+    if (!effectiveOrgId) {
       toast({
         title: "Organization Required",
-        description: "Your account is not assigned to an organization. Please contact your administrator.",
+        description: isSuperAdmin 
+          ? "Please select an organization for this patient."
+          : "Your account is not assigned to an organization. Please contact your administrator.",
         variant: "destructive",
       });
       return;
@@ -228,6 +260,49 @@ export default function PatientRegistrationModal({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Organization Selection (for superadmin) */}
+            {isSuperAdmin && (
+              <div className="p-4 border border-purple-200 rounded-lg bg-purple-50/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building2 className="h-5 w-5 text-purple-600" />
+                  <h3 className="text-lg font-medium text-purple-800">Organization Assignment</h3>
+                </div>
+                <FormItem>
+                  <FormLabel>Healthcare Organization *</FormLabel>
+                  <Select 
+                    value={selectedOrganizationId} 
+                    onValueChange={setSelectedOrganizationId}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select organization for this patient" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Array.isArray(organizations) && organizations.map((org: Organization) => (
+                        <SelectItem key={org.id} value={org.id.toString()}>
+                          {org.name} ({org.type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription className="text-xs text-purple-600">
+                    As a super admin, you can register patients to any organization
+                  </FormDescription>
+                </FormItem>
+              </div>
+            )}
+            
+            {/* Show current organization for non-superadmin users */}
+            {!isSuperAdmin && user?.organizationId && (
+              <div className="p-3 border border-slate-200 rounded-lg bg-slate-50/50 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-slate-500" />
+                <span className="text-sm text-slate-600">
+                  Patient will be registered to your organization
+                </span>
+              </div>
+            )}
+
             {/* Personal Information */}
             <div>
               <h3 className="text-lg font-medium text-slate-800 mb-4">Personal Information</h3>
