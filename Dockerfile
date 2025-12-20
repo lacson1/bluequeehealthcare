@@ -85,7 +85,9 @@ COPY --from=builder /app/drizzle.config.ts ./
 
 # Copy runtime files
 COPY shared ./shared
-COPY server/migrations ./server/migrations 2>/dev/null || true
+
+# Copy migrations from builder (they exist there from the COPY server step)
+COPY --from=builder /app/server/migrations ./server/migrations
 
 # Create uploads directory with proper permissions
 RUN mkdir -p uploads/documents uploads/medical uploads/organizations uploads/patients uploads/staff && \
