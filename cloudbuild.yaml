@@ -1,28 +1,24 @@
 # Google Cloud Build configuration for ClinicConnect
-# Deploy to Cloud Run with Cloud SQL connection
+# Deploy to Cloud Run with external database (Neon PostgreSQL)
 #
 # Usage:
+#   gcloud builds submit --config cloudbuild.yaml \
+#     --substitutions=_DATABASE_URL="your-database-url"
+#
+# Or set up secrets in Secret Manager first, then:
 #   gcloud builds submit --config cloudbuild.yaml
-#
-# Required substitution variables (set in Cloud Build trigger or command line):
-#   _REGION: Cloud Run region (e.g., us-central1)
-#   _SERVICE_NAME: Cloud Run service name (e.g., clinicconnect)
-#   _CLOUD_SQL_CONNECTION: Cloud SQL connection string (project:region:instance)
-#
-# Required secrets in Secret Manager:
-#   - DATABASE_URL: PostgreSQL connection string
-#   - SESSION_SECRET: Session encryption key
-#   - (Optional) SENDGRID_API_KEY, OPENAI_API_KEY, etc.
 
 substitutions:
   _REGION: us-central1
   _SERVICE_NAME: clinicconnect
-  _CLOUD_SQL_CONNECTION: gen-lang-client-0373573464:us-central1:clinicconnect-db
   _MIN_INSTANCES: "0"
   _MAX_INSTANCES: "10"
   _MEMORY: 1Gi
   _CPU: "1"
   _CONCURRENCY: "80"
+  # These can be overridden via --substitutions flag
+  _DATABASE_URL: ""
+  _SESSION_SECRET: ""
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -31,7 +27,6 @@ options:
 
 steps:
   # Step 1: Build the Docker image
-  # Use BUILD_ID as tag for manual builds (COMMIT_SHA may be empty)
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -86,23 +81,17 @@ steps:
       - '${_MIN_INSTANCES}'
       - '--max-instances'
       - '${_MAX_INSTANCES}'
-      # Request timeout (how long a single request can take)
+      # Request timeout
       - '--timeout'
       - '300s'
       # Startup CPU boost for faster cold starts
       - '--cpu-boost'
-      # Cloud SQL connection
-      - '--add-cloudsql-instances'
-      - '${_CLOUD_SQL_CONNECTION}'
-      # Port configuration - explicit is better
+      # Port configuration
       - '--port'
       - '8080'
-      # Environment variables
+      # Environment variables (DATABASE_URL and SESSION_SECRET passed directly)
       - '--set-env-vars'
-      - 'NODE_ENV=production,PORT=8080,SKIP_MIGRATIONS=true'
-      # Secrets from Secret Manager
-      - '--set-secrets'
-      - 'DATABASE_URL=DATABASE_URL:latest,SESSION_SECRET=SESSION_SECRET:latest'
+      - 'NODE_ENV=production,PORT=8080,SKIP_MIGRATIONS=true,DATABASE_URL=${_DATABASE_URL},SESSION_SECRET=${_SESSION_SECRET}'
       # Allow unauthenticated access (public API)
       - '--allow-unauthenticated'
     id: 'deploy'
