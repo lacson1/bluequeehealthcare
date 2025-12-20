@@ -115,8 +115,8 @@ export function BodyCompositionForm({
       };
       
       const response = await apiRequest(
-        "POST",
         `/api/patients/${patientId}/body-composition`,
+        "POST",
         submitData
       );
       return response.json();

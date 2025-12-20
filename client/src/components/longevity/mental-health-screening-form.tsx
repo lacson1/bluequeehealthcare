@@ -149,8 +149,8 @@ export function MentalHealthScreeningForm({
       };
       
       const response = await apiRequest(
-        "POST",
         `/api/patients/${patientId}/mental-health-screenings`,
+        "POST",
         submitData
       );
       return response.json();

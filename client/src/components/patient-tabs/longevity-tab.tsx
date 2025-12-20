@@ -1624,6 +1624,27 @@ export function LongevityTab({ patient }: LongevityTabProps) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Form Modals */}
+      <LifestyleAssessmentForm
+        patientId={patient.id}
+        open={showLifestyleForm}
+        onOpenChange={setShowLifestyleForm}
+        existingData={longevityData?.lifestyle || null}
+      />
+
+      <MentalHealthScreeningForm
+        patientId={patient.id}
+        open={showMentalHealthForm}
+        onOpenChange={setShowMentalHealthForm}
+      />
+
+      <BodyCompositionForm
+        patientId={patient.id}
+        open={showBodyCompositionForm}
+        onOpenChange={setShowBodyCompositionForm}
+        existingData={longevityData?.bodyComposition || null}
+      />
     </TooltipProvider>
   );
 }

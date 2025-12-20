@@ -75,8 +75,9 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only + drizzle-kit for migrations
+# Install production dependencies + drizzle-kit for migrations
 RUN npm ci --only=production --legacy-peer-deps && \
+    npm install drizzle-kit --legacy-peer-deps && \
     npm cache clean --force
 
 # Copy built assets
@@ -91,6 +92,10 @@ RUN mkdir -p ./server/migrations
 
 # Copy migrations from builder (they exist there from the COPY server step)
 COPY --from=builder /app/server/migrations ./server/migrations
+
+# Copy startup script
+COPY scripts/start.sh ./start.sh
+RUN chmod +x ./start.sh
 
 # Create uploads directory with proper permissions
 RUN mkdir -p uploads/documents uploads/medical uploads/organizations uploads/patients uploads/staff && \
@@ -115,6 +120,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 # Use dumb-init for proper signal handling (SIGTERM for graceful shutdown)
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the application
-CMD ["node", "dist/index.js"]
+# Start the application (with migrations)
+CMD ["./start.sh"]
 

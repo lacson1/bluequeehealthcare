@@ -122,8 +122,8 @@ export function LifestyleAssessmentForm({
   const mutation = useMutation({
     mutationFn: async (data: LifestyleFormData) => {
       const response = await apiRequest(
-        "POST",
         `/api/patients/${patientId}/lifestyle-assessments`,
+        "POST",
         data
       );
       return response.json();
