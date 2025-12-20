@@ -66,7 +66,9 @@ RUN apk add --no-cache \
     # Health check utility
     curl \
     # For proper signal handling
-    dumb-init
+    dumb-init \
+    # For timeout command in start.sh
+    coreutils
 
 # Create non-root user for security (Cloud Run best practice)
 RUN addgroup -g 1001 -S nodejs && \

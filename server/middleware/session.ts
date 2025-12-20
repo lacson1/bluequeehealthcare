@@ -28,57 +28,75 @@ const isDevelopment = !isProduction;
 
 let sessionStore: session.Store | undefined;
 
-if (!isDevelopment && process.env.DATABASE_URL) {
-  // Use PostgreSQL session store in production
-  try {
-    const connectPgSimple = require('connect-pg-simple');
-    const pg = require('pg');
-    const PgSession = connectPgSimple(session);
-    
-    // Create a pool with SSL support for managed databases
-    const pgPool = new pg.Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false, // Accept self-signed certificates
-      },
-      // Connection pool settings
-      max: 5, // Smaller pool for session store
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-    });
-    
-    // Test the connection before creating session store
-    pgPool.on('error', (err: Error) => {
-      console.error('Session store pool error:', err.message);
-    });
+// Detect Cloud SQL Unix socket connection (format: /cloudsql/PROJECT:REGION:INSTANCE)
+const isCloudSQLSocket = process.env.DATABASE_URL?.includes('/cloudsql/') ||
+  process.env.INSTANCE_UNIX_SOCKET !== undefined;
 
-    sessionStore = new PgSession({
-      pool: pgPool,
-      tableName: 'sessions', // Must match Drizzle schema in shared/schema.ts
-      createTableIfMissing: true,
-      pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 minutes
-      errorLog: (err: Error) => {
-        // Suppress "already exists" errors (expected during table creation)
-        if (!err.message?.includes('already exists')) {
-          logger.error('Session store error:', err.message);
-        }
-      },
-    });
-    
-    logger.info('Using PostgreSQL session store with SSL');
-  } catch (error: any) {
-    logger.warn('Failed to initialize PostgreSQL session store:', error?.message || error);
-    logger.warn('Falling back to MemoryStore (not recommended for production)');
-    logger.warn('Ensure the sessions table exists in your database.');
-    sessionStore = undefined;
-  }
-} else {
-  if (isDevelopment) {
-    logger.debug('Using in-memory session store (development mode)');
+// Initialize session store asynchronously to prevent blocking server startup
+function initializeSessionStore(): session.Store | undefined {
+  if (!isDevelopment && process.env.DATABASE_URL) {
+    // Use PostgreSQL session store in production
+    try {
+      const connectPgSimple = require('connect-pg-simple');
+      const pg = require('pg');
+      const PgSession = connectPgSimple(session);
+      
+      // SSL config - Cloud SQL sockets don't need SSL
+      const sslConfig = isCloudSQLSocket ? false : {
+        rejectUnauthorized: false, // Accept self-signed certificates
+      };
+      
+      // Create a pool with SSL support for managed databases
+      const pgPool = new pg.Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: sslConfig,
+        // Connection pool settings - keep small for session store
+        max: 3,
+        idleTimeoutMillis: 15000,
+        connectionTimeoutMillis: 5000, // Faster timeout for Cloud Run cold starts
+      });
+      
+      // Handle pool errors gracefully
+      pgPool.on('error', (err: Error) => {
+        // Log but don't crash - sessions will fall back gracefully
+        logger.warn('Session store pool error:', err.message);
+      });
+
+      const store = new PgSession({
+        pool: pgPool,
+        tableName: 'sessions', // Must match Drizzle schema in shared/schema.ts
+        createTableIfMissing: true,
+        pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 minutes
+        errorLog: (err: Error) => {
+          // Suppress "already exists" errors (expected during table creation)
+          if (!err.message?.includes('already exists')) {
+            logger.error('Session store error:', err.message);
+          }
+        },
+      });
+      
+      logger.info('Using PostgreSQL session store');
+      if (isCloudSQLSocket) {
+        logger.info('Connected via Cloud SQL Unix socket');
+      }
+      return store;
+    } catch (error: any) {
+      logger.warn('Failed to initialize PostgreSQL session store:', error?.message || error);
+      logger.warn('Falling back to MemoryStore (not recommended for production)');
+      return undefined;
+    }
   } else {
-    logger.warn('Using in-memory session store - DATABASE_URL not set');
+    if (isDevelopment) {
+      logger.debug('Using in-memory session store (development mode)');
+    } else {
+      logger.warn('Using in-memory session store - DATABASE_URL not set');
+    }
+    return undefined;
   }
 }
+
+// Initialize store (may be undefined if using MemoryStore)
+sessionStore = initializeSessionStore();
 
 // Session configuration with environment-based security
 export const sessionConfig = session({

@@ -85,15 +85,20 @@ steps:
       - '${_MIN_INSTANCES}'
       - '--max-instances'
       - '${_MAX_INSTANCES}'
-      # Startup
+      # Request timeout (how long a single request can take)
       - '--timeout'
       - '300s'
-      # Cloud SQL connection (if provided)
+      # Startup CPU boost for faster cold starts
+      - '--cpu-boost'
+      # Cloud SQL connection
       - '--add-cloudsql-instances'
       - '${_CLOUD_SQL_CONNECTION}'
+      # Port configuration - explicit is better
+      - '--port'
+      - '8080'
       # Environment variables
       - '--set-env-vars'
-      - 'NODE_ENV=production'
+      - 'NODE_ENV=production,PORT=8080,SKIP_MIGRATIONS=true'
       # Secrets from Secret Manager
       - '--set-secrets'
       - 'DATABASE_URL=DATABASE_URL:latest,SESSION_SECRET=SESSION_SECRET:latest'

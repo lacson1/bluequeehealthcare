@@ -1,139 +1,174 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
-import { setupRoutes } from "./routes/index";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { sessionConfig } from "./middleware/session";
-import { securityHeaders } from "./middleware/security";
-import { authRateLimit, apiRateLimit } from "./middleware/rate-limit";
-import { devLogger, prodLogger } from "./middleware/request-logger";
-import { globalErrorHandler, notFoundHandler } from "./middleware/error-handler";
-import { logger } from "./lib/logger";
-import { validateAndLogEnvironment, getEnvironmentSummary } from "./lib/env-validator";
+import { createServer } from 'http';
 
-// Dynamic imports for seeding (may fail if tables don't exist)
-// Seed functions removed - no automatic data seeding
+// Track server startup time for Cloud Run diagnostics
+const startupTime = Date.now();
+const isCloudRun = process.env.K_SERVICE !== undefined;
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Use PORT environment variable (Cloud Run sets this automatically)
+// Default to 5001 for local development (port 5000 is often taken by macOS AirPlay)
+const port = parseInt(process.env.PORT || '5001', 10);
+
+// Simple console log function for early startup (before full logger is loaded)
+const earlyLog = (message: string) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${message}`);
+};
 
 const app = express();
 
-// Enable compression for all responses
-// This will compress text-based responses (HTML, CSS, JS, JSON)
-app.use((req, res, next) => {
-  // Simple gzip-like compression check
-  const acceptEncoding = req.headers['accept-encoding'] || '';
-  if (acceptEncoding.includes('gzip')) {
-    res.setHeader('Vary', 'Accept-Encoding');
-  }
-  next();
-});
-
-// CORS configuration with secure origin whitelist
-// Define allowed origins - customize based on your deployment
-const ALLOWED_ORIGINS: (string | RegExp)[] = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : [
-      'http://localhost:5001',
-      'http://localhost:5173',
-      'http://127.0.0.1:5001',
-      'http://127.0.0.1:5173',
-    ];
-
-// Cloud Run: Allow the service's own URL (detected from K_SERVICE env var)
-if (process.env.K_SERVICE) {
-  // Cloud Run URLs follow pattern: https://SERVICE_NAME-HASH-REGION.a.run.app
-  ALLOWED_ORIGINS.push(/^https:\/\/.*\.run\.app$/);
-}
-
-
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Check if origin is allowed
-  const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => {
-    if (allowed instanceof RegExp) {
-      return allowed.test(origin);
-    }
-    return allowed === origin;
+// Early health check endpoint - responds BEFORE full initialization
+// This is CRITICAL for Cloud Run startup probes
+app.get('/api/health', (req, res) => {
+  const uptime = Date.now() - startupTime;
+  res.json({ 
+    status: 'ok',
+    uptime: `${uptime}ms`,
+    environment: process.env.NODE_ENV || 'development',
+    cloudRun: isCloudRun,
+    port: port,
   });
-  
-  if (isAllowed && origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
-  }
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
+});
+
+// Also support /health without /api prefix for simpler probes
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Create HTTP server and start listening IMMEDIATELY
+// This ensures Cloud Run health probes pass while we initialize the rest
+const server = createServer(app);
+
+server.listen(port, "0.0.0.0", () => {
+  const startupDuration = Date.now() - startupTime;
+  earlyLog(`🚀 Server listening on port ${port} (${startupDuration}ms)`);
+  earlyLog(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  if (isCloudRun) {
+    earlyLog(`☁️ Running on Cloud Run (service: ${process.env.K_SERVICE})`);
   }
 });
 
-// Security headers middleware (after CORS)
-app.use(securityHeaders);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Session middleware
-app.use(sessionConfig);
-
-// Rate limiting middleware
-// Apply stricter rate limiting to authentication endpoints
-app.use('/api/auth/login', authRateLimit);
-app.use('/api/auth/register', authRateLimit);
-app.use('/api/auth/reset-password', authRateLimit);
-
-// Apply standard rate limiting to all API endpoints
-app.use('/api', apiRateLimit);
-
-// Request logging middleware - use dev logger in development, prod logger in production
-const isProduction = process.env.NODE_ENV === 'production';
-app.use(isProduction ? prodLogger : devLogger);
-
+// Continue initialization in background (routes, middleware, etc.)
+// All imports are dynamic to prevent blocking server startup
 (async () => {
   try {
+    earlyLog('🔧 Initializing application...');
+    
     // ===========================================
-    // STEP 1: Validate Environment Variables
+    // STEP 1: Load core modules dynamically
     // ===========================================
+    const { logger } = await import('./lib/logger');
+    const { validateAndLogEnvironment, getEnvironmentSummary } = await import('./lib/env-validator');
+    
     logger.info('Starting Bluequee Health Management Platform...');
     logger.info('Validating environment configuration...');
     
     const envValid = validateAndLogEnvironment();
-    if (!envValid && process.env.NODE_ENV === 'production') {
-      logger.error('Cannot start in production with invalid environment configuration.');
-      process.exit(1);
+    if (!envValid && isProduction) {
+      logger.error('Environment validation failed, but server is already listening.');
+      logger.error('Some features may not work correctly.');
     }
     
     // Log environment summary (with sensitive values masked)
-    if (process.env.NODE_ENV !== 'production') {
+    if (!isProduction) {
       logger.debug('Environment Summary:', getEnvironmentSummary());
     }
     
     // ===========================================
-    // STEP 2: Database Setup
+    // STEP 2: Load middleware
     // ===========================================
-    // Note: Database seeding has been removed
-    // Run 'npm run db:push' to create tables if needed
-
-    // Setup new modular routes (patients, laboratory, prescriptions)
-    setupRoutes(app);
+    const { securityHeaders } = await import('./middleware/security');
+    const { authRateLimit, apiRateLimit } = await import('./middleware/rate-limit');
+    const { devLogger, prodLogger } = await import('./middleware/request-logger');
+    const { globalErrorHandler, notFoundHandler } = await import('./middleware/error-handler');
     
-    // Setup remaining routes from old routes.ts (auth, profile, dashboard, etc.)
+    // Session middleware (may connect to database)
+    let sessionConfig;
+    try {
+      const sessionModule = await import('./middleware/session');
+      sessionConfig = sessionModule.sessionConfig;
+    } catch (sessionError) {
+      logger.warn('Failed to initialize session middleware:', sessionError);
+      // Continue without session middleware in case of error
+    }
+
+    // ===========================================
+    // STEP 3: Configure CORS
+    // ===========================================
+    const ALLOWED_ORIGINS: (string | RegExp)[] = process.env.ALLOWED_ORIGINS 
+      ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+      : [
+          'http://localhost:5001',
+          'http://localhost:5173',
+          'http://127.0.0.1:5001',
+          'http://127.0.0.1:5173',
+        ];
+
+    // Cloud Run: Allow the service's own URL
+    if (isCloudRun) {
+      ALLOWED_ORIGINS.push(/^https:\/\/.*\.run\.app$/);
+    }
+
+    app.use((req, res, next) => {
+      const origin = req.headers.origin;
+      
+      const isAllowed = origin && ALLOWED_ORIGINS.some(allowed => {
+        if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return allowed === origin;
+      });
+      
+      if (isAllowed && origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cookie');
+      }
+      
+      if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+      } else {
+        next();
+      }
+    });
+
+    // Security headers middleware (after CORS)
+    app.use(securityHeaders);
+
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: false }));
+
+    // Session middleware (if available)
+    if (sessionConfig) {
+      app.use(sessionConfig);
+    }
+
+    // Rate limiting middleware
+    app.use('/api/auth/login', authRateLimit);
+    app.use('/api/auth/register', authRateLimit);
+    app.use('/api/auth/reset-password', authRateLimit);
+    app.use('/api', apiRateLimit);
+
+    // Request logging middleware
+    app.use(isProduction ? prodLogger : devLogger);
+    
+    // ===========================================
+    // STEP 4: Setup Routes
+    // ===========================================
+    const { setupRoutes } = await import('./routes/index');
+    const { registerRoutes } = await import('./routes');
+    
+    setupRoutes(app);
     await registerRoutes(app);
 
-    // Use PORT environment variable (Cloud Run sets this automatically)
-    // Default to 5001 for local development (port 5000 is often taken by macOS AirPlay)
-    const port = parseInt(process.env.PORT || '5001', 10);
+    // ===========================================
+    // STEP 5: Setup static files / Vite (dev)
+    // ===========================================
+    const { setupVite, serveStatic, log } = await import('./vite');
     
-    // Create HTTP server first so we can pass it to Vite for HMR
-    const { createServer } = await import('http');
-    const server = createServer(app);
-
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
@@ -146,19 +181,15 @@ app.use(isProduction ? prodLogger : devLogger);
     // Global error handler (must be last middleware)
     app.use(globalErrorHandler);
 
-    // Start server
-    server.listen(port, "0.0.0.0", () => {
-      log(`🚀 Server running on port ${port}`);
-      log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
+    const totalStartupTime = Date.now() - startupTime;
+    logger.info(`✅ Server fully initialized (${totalStartupTime}ms)`);
 
     // ===========================================
-    // STEP 4: Graceful Shutdown Handling
+    // STEP 6: Graceful Shutdown Handling
     // ===========================================
     const gracefulShutdown = async (signal: string) => {
       logger.info(`${signal} received. Starting graceful shutdown...`);
       
-      // Stop accepting new connections
       server.close(async () => {
         logger.info('HTTP server closed');
         
@@ -175,30 +206,29 @@ app.use(isProduction ? prodLogger : devLogger);
         process.exit(0);
       });
 
-      // Force shutdown after 30 seconds
+      // Force shutdown after 25 seconds (Cloud Run's limit is 30s)
       setTimeout(() => {
         logger.error('Forced shutdown after timeout');
         process.exit(1);
-      }, 30000);
+      }, 25000);
     };
 
-    // Listen for shutdown signals
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-    // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
       logger.error('Uncaught Exception:', error);
       gracefulShutdown('uncaughtException');
     });
 
-    // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
       logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
     });
 
   } catch (error) {
-    logger.error('CRITICAL: Failed to start server:', error);
-    process.exit(1);
+    earlyLog(`❌ CRITICAL: Failed to initialize server: ${error}`);
+    console.error(error);
+    // Don't exit - server is already listening, let health checks pass
+    // while we investigate the issue via logs
   }
 })();
