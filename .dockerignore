@@ -1,26 +1,47 @@
-# Dependencies
+# ==================================================
+# Docker Ignore for Cloud Run / Container Builds
+# ==================================================
+
+# Dependencies (rebuilt in container)
 node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.npm
+.pnpm-store
 
-# Development files
-*.md
-!README.md
+# Version control
 .git
 .gitignore
+.gitattributes
+
+# IDE and editor files
 .vscode
 .cursor
 .idea
+*.swp
+*.swo
+*~
 
-# Documentation and guides
+# Documentation (not needed in production)
+*.md
+DEPLOY*.md
 *_GUIDE.md
 *_SUMMARY.md
 *_FIXED.md
 *_ANALYSIS.md
+*_COMPLETE.md
+*_PROGRESS.md
+*_PLAN.md
+*_REVIEW.md
+*_STATUS.md
+*_RESULTS.md
+*_REPORT.md
+docs/
 
 # Test files
-cypress
+cypress/
+tests/
 *.cy.js
 *.test.ts
 *.test.tsx
@@ -28,39 +49,68 @@ cypress
 *.spec.tsx
 test-*.js
 test-*.mjs
+test-*.ts
+test-*.sh
+test-*.html
+vitest.config.ts
+cypress.config.js
+coverage/
 
-# Build artifacts
-dist
+# Build artifacts (rebuilt in container)
+dist/
 .cache
-*.log
+*.tsbuildinfo
 
-# Environment files (these should be set in production)
+# Environment files (set via Cloud Run secrets/env vars)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# Uploads (these should be in persistent volumes)
+# Uploads (use Cloud Storage in production)
 uploads/*
 !uploads/.gitkeep
 
-# Scripts not needed in production
+# Development scripts
 scripts/export-for-developers.js
 setup-dev-db.sh
 start-backend.sh
+start-backend-debug.sh
+clear-rate-limit.sh
+FIX_*.sh
+LOGIN_*.sh
+START_*.sh
+*.sh
+!docker-entrypoint.sh
 
-# SQL seed files (run separately)
+# SQL files (run migrations separately)
 *.sql
 !server/migrations/*.sql
 
-# Server logs
-server.log
+# Logs
 *.log
+server.log
+logs/
 
 # Temporary files
-tmp
-temp
+tmp/
+temp/
 *.tmp
-*.swp
-*.swo
-*~
+
+# Docker files for other platforms
+docker-compose*.yml
+Dockerfile.optimized
+Dockerfile.cloudrun
+
+# Cloud deployment configs for other platforms
+nginx*.conf
+certbot/
+ssl/
+
+# Misc development files
+*.local
+.DS_Store
+Thumbs.db
+attached_assets/*.png
+attached_assets/*.jpg
+attached_assets/*.gif
 
