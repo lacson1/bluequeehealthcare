@@ -110,7 +110,4 @@ ssl/
 *.local
 .DS_Store
 Thumbs.db
-attached_assets/*.png
-attached_assets/*.jpg
-attached_assets/*.gif
 
