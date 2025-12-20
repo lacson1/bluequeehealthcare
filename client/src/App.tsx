@@ -221,33 +221,9 @@ const TelemedicinePage = lazy(() =>
     };
   })
 );
-const PhysiotherapyPage = lazy(() => {
-  // #region agent log
-  try {
-    fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:223',message:'Lazy import attempt for PhysiotherapyPage',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  } catch (e) {
-    console.error('Debug log error:', e);
-  }
-  // #endregion
-  return import("@/pages/physiotherapy").then(module => {
-    // #region agent log
-    try {
-      fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:223',message:'Lazy import success for PhysiotherapyPage',data:{hasDefault:!!module.default},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    } catch (e) {
-      console.error('Debug log error:', e);
-    }
-    // #endregion
-    return module;
-  }).catch(error => {
-    // #region agent log
-    try {
-      fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:223',message:'Lazy import error for PhysiotherapyPage',data:{error:error?.message,stack:error?.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    } catch (e) {
-      console.error('Debug log error:', e);
-    }
-    // #endregion
+const PhysiotherapyPage = lazy(() =>
+  import("@/pages/physiotherapy").catch(error => {
     logger.error("Failed to load PhysiotherapyPage module", { error: error?.message });
-    // Return a fallback component that shows an error message
     return {
       default: () => (
         <div className="flex items-center justify-center h-screen bg-background">
@@ -271,8 +247,8 @@ const PhysiotherapyPage = lazy(() => {
         </div>
       )
     };
-  });
-});
+  })
+);
 const PsychologicalTherapyPage = lazy(() => import("@/pages/psychological-therapy"));
 const MentalHealthPage = lazy(() => import("@/pages/mental-health"));
 const ExerciseLeafletsPage = lazy(() => import("@/pages/exercise-leaflets"));
@@ -458,12 +434,7 @@ function AuthenticatedApp() {
             <div className="w-full">
               {/* Page Content with Smooth Transitions */}
               <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 ease-out relative">
-                <Suspense fallback={(() => {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:423',message:'Suspense fallback triggered',data:{pathname:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                  // #endregion
-                  return <PageLoader />;
-                })()}>
+                <Suspense fallback={<PageLoader />}>
                   <Switch>
                     <Route path="/" component={Dashboard} />
                     <Route path="/select-organization" component={OrganizationSelector} />

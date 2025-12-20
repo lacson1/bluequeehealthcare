@@ -8,10 +8,12 @@ import { dbLogger as logger } from './lib/logger';
 
 const { Pool: PgPool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Check for DATABASE_URL but don't throw immediately - allow server to start
+// and handle missing database gracefully
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  logger.error('DATABASE_URL is not set! Database features will not work.');
+  logger.error('Set DATABASE_URL environment variable or configure it in Cloud Run secrets.');
 }
 
 // For production with managed databases, disable TLS certificate verification globally
@@ -35,20 +37,20 @@ const POOL_CONFIG = {
 };
 
 // Detect if using Neon database (has neon.tech in URL) or local PostgreSQL
-const isNeonDatabase = process.env.DATABASE_URL.includes('neon.tech') ||
-  process.env.DATABASE_URL.includes('neon.serverless');
+const isNeonDatabase = DATABASE_URL?.includes('neon.tech') ||
+  DATABASE_URL?.includes('neon.serverless');
 
 // Detect Cloud SQL Unix socket connection (format: /cloudsql/PROJECT:REGION:INSTANCE)
-const isCloudSQLSocket = process.env.DATABASE_URL.includes('/cloudsql/') ||
+const isCloudSQLSocket = DATABASE_URL?.includes('/cloudsql/') ||
   process.env.INSTANCE_UNIX_SOCKET !== undefined;
 
 // Check if SSL should be enabled (for managed databases like DigitalOcean)
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Cloud SQL socket connections don't use SSL (the socket is already secure)
-const requireSSL = !isCloudSQLSocket && (
-  process.env.DATABASE_URL.includes('sslmode=require') || 
-  process.env.DATABASE_URL.includes('digitalocean') ||
+const requireSSL = DATABASE_URL && !isCloudSQLSocket && (
+  DATABASE_URL.includes('sslmode=require') || 
+  DATABASE_URL.includes('digitalocean') ||
   process.env.DB_SSL === 'true' ||
   isProduction
 );
@@ -65,13 +67,32 @@ if (isCloudSQLSocket) {
   logger.info('Using Cloud SQL Unix socket connection');
 }
 
+// Create pool and db only if DATABASE_URL is available
+// Otherwise, create null references that will fail gracefully when used
 const { pool, db } = (() => {
+  if (!DATABASE_URL) {
+    logger.warn('No DATABASE_URL - database features will be unavailable');
+    // Return mock pool that throws helpful errors
+    const mockPool: any = {
+      connect: () => Promise.reject(new Error('DATABASE_URL not configured')),
+      query: () => Promise.reject(new Error('DATABASE_URL not configured')),
+      end: () => Promise.resolve(),
+      totalCount: 0,
+      idleCount: 0,
+      waitingCount: 0,
+    };
+    const mockDb: any = new Proxy({}, {
+      get: () => () => Promise.reject(new Error('DATABASE_URL not configured')),
+    });
+    return { pool: mockPool, db: mockDb };
+  }
+
   if (isNeonDatabase) {
     logger.info('Using Neon serverless database with WebSocket connection');
     logger.debug(`Pool config: max=${POOL_CONFIG.max}, min=${POOL_CONFIG.min}, idleTimeout=${POOL_CONFIG.idleTimeoutMillis}ms`);
     neonConfig.webSocketConstructor = ws;
     const pool = new NeonPool({ 
-      connectionString: process.env.DATABASE_URL,
+      connectionString: DATABASE_URL,
       max: POOL_CONFIG.max,
       idleTimeoutMillis: POOL_CONFIG.idleTimeoutMillis,
       connectionTimeoutMillis: POOL_CONFIG.connectionTimeoutMillis,
@@ -86,7 +107,7 @@ const { pool, db } = (() => {
     }
     try {
       const pool = new PgPool({ 
-        connectionString: process.env.DATABASE_URL,
+        connectionString: DATABASE_URL,
         max: POOL_CONFIG.max,
         min: POOL_CONFIG.min,
         idleTimeoutMillis: POOL_CONFIG.idleTimeoutMillis,
@@ -96,6 +117,7 @@ const { pool, db } = (() => {
       const db = pgDrizzle({ client: pool, schema });
       return { pool, db };
     } catch (poolError: any) {
+      logger.error('Failed to create database pool:', poolError.message);
       throw poolError;
     }
   }

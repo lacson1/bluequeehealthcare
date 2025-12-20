@@ -1,36 +1,15 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useState, useEffect, ReactNode, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { createLogger } from '@/lib/logger';
+// Import shared types and context from the hook file to avoid circular dependencies
+import { AuthContext, User, AuthContextType } from '@/hooks/useAuth';
 
 const logger = createLogger('auth');
 
-interface User {
-  id: number;
-  username: string;
-  role: string;
-  roleId?: number; // RBAC role ID
-  title?: string;
-  firstName?: string;
-  lastName?: string;
-  organizationId?: number;
-  organization?: {
-    id: number;
-    name: string;
-    type: string;
-    themeColor: string;
-  };
-}
-
-interface AuthContextType {
-  user: User | null;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-  refreshUser: () => Promise<void>;
-  isLoading: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Re-export types for backwards compatibility
+export type { User, AuthContextType };
+export { AuthContext };
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -264,25 +243,6 @@ export function AuthProvider({ children, initialUser }: AuthProviderProps) {
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    // Provide a helpful error message with component stack info
-    const error = new Error(
-      'useAuth must be used within an AuthProvider. ' +
-      'Make sure your component is rendered inside the <AuthProvider> component. ' +
-      'Check the component tree to ensure AuthProvider wraps all components that use useAuth.'
-    );
-    
-    // Log helpful debugging info
-    if (process.env.NODE_ENV === 'development') {
-      console.error('useAuth hook called outside AuthProvider context');
-      console.error('Stack trace:', new Error().stack);
-      console.error('Make sure the component using useAuth is wrapped in <AuthProvider>');
-      console.error('The AuthProvider should be at the root of your app, wrapping the Router component');
-    }
-    
-    throw error;
-  }
-  return context;
-}
+// Re-export hooks from the dedicated hook file for backwards compatibility
+// This allows existing imports to continue working while fixing HMR issues
+export { useAuth, useAuthSafe } from '@/hooks/useAuth';

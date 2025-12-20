@@ -1,10 +1,15 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+
+// Get __dirname equivalent in ESM (works in both dev and production/bundled)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const viteLogger = createLogger();
 
@@ -72,7 +77,7 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const clientTemplate = path.resolve(
-        import.meta.dirname,
+        __dirname,
         "..",
         "client",
         "index.html",
@@ -94,11 +99,36 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // In production, static files are in dist/public
+  // __dirname in bundled code is the dist folder
+  const distPath = path.resolve(__dirname, "public");
 
   if (!fs.existsSync(distPath)) {
+    // Log helpful debug info
+    console.error(`Static files directory not found: ${distPath}`);
+    console.error(`__dirname: ${__dirname}`);
+    console.error(`Current working directory: ${process.cwd()}`);
+    
+    // Try alternative paths
+    const altPaths = [
+      path.resolve(process.cwd(), "dist/public"),
+      path.resolve(process.cwd(), "public"),
+      "/app/dist/public",
+    ];
+    
+    for (const altPath of altPaths) {
+      if (fs.existsSync(altPath)) {
+        console.log(`Found static files at alternative path: ${altPath}`);
+        app.use(express.static(altPath));
+        app.use("*", (_req, res) => {
+          res.sendFile(path.resolve(altPath, "index.html"));
+        });
+        return;
+      }
+    }
+    
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `Could not find the build directory: ${distPath}, make sure to build the client first. Tried: ${altPaths.join(', ')}`,
     );
   }
 

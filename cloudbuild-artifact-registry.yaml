@@ -19,7 +19,9 @@ substitutions:
   _REGION: us-central1
   _REPOSITORY: clinicconnect
   _SERVICE_NAME: clinicconnect
-  _CLOUD_SQL_CONNECTION: ""
+  # Cloud SQL connection - set this when deploying with Cloud SQL
+  # Example: gen-lang-client-0373573464:us-central1:clinicconnect-db
+  _CLOUD_SQL_CONNECTION: gen-lang-client-0373573464:us-central1:clinicconnect-db
   _MIN_INSTANCES: "0"
   _MAX_INSTANCES: "10"
   _MEMORY: 1Gi
@@ -94,9 +96,12 @@ steps:
       # Cloud SQL connection (if provided)
       - '--add-cloudsql-instances'
       - '${_CLOUD_SQL_CONNECTION}'
+      # Port configuration (Cloud Run injects PORT but we set it explicitly for clarity)
+      - '--port'
+      - '8080'
       # Environment variables
       - '--set-env-vars'
-      - 'NODE_ENV=production'
+      - 'NODE_ENV=production,PORT=8080'
       # Secrets from Secret Manager
       - '--set-secrets'
       - 'DATABASE_URL=DATABASE_URL:latest,SESSION_SECRET=SESSION_SECRET:latest'

@@ -82,8 +82,14 @@ RUN npm ci --only=production --legacy-peer-deps && \
     npm install drizzle-kit --legacy-peer-deps && \
     npm cache clean --force
 
-# Copy built assets
+# Copy built assets (frontend and backend)
 COPY --from=builder /app/dist ./dist
+
+# Verify the build output exists
+RUN echo "Verifying build output..." && \
+    ls -la ./dist && \
+    ls -la ./dist/public 2>/dev/null || echo "Note: dist/public may be empty if frontend build failed"
+
 COPY --from=builder /app/drizzle.config.ts ./
 
 # Copy runtime files

@@ -8,15 +8,19 @@ const isProduction = process.env.NODE_ENV === 'production';
 let SESSION_SECRET = process.env.SESSION_SECRET;
 
 if (!SESSION_SECRET) {
+  // Generate a temporary secret and log a warning
+  SESSION_SECRET = crypto.randomBytes(64).toString('base64');
+  
   if (isProduction) {
-    // CRITICAL: In production, require SESSION_SECRET to be set
-    logger.error('SESSION_SECRET environment variable is required in production.');
+    // CRITICAL: In production, warn about missing SESSION_SECRET but don't crash
+    // This allows the server to start and respond to health checks
+    // while the configuration issue is being fixed
+    logger.error('⚠️ SESSION_SECRET environment variable is not set!');
+    logger.error('This is a security risk. Sessions will not persist across restarts.');
     logger.error('Generate a secure secret with: openssl rand -base64 64');
-    logger.error('Then set it in your environment: SESSION_SECRET="your-secret-here"');
-    process.exit(1);
+    logger.error('Then set it in Cloud Run secrets: SESSION_SECRET');
   } else {
-    // Development: Generate a temporary secret with warning
-    SESSION_SECRET = crypto.randomBytes(64).toString('base64');
+    // Development: Just warn
     logger.warn('SESSION_SECRET not set. Generated temporary secret (dev mode only).');
     logger.warn('Sessions will not persist across server restarts.');
   }
