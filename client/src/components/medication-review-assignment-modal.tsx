@@ -183,7 +183,7 @@ export function MedicationReviewAssignmentModal({
             <div className="space-y-2">
               <Label htmlFor="prescription">Prescription (Optional)</Label>
               <Select
-                value={formData.prescriptionId?.toString() || ""}
+                value={formData.prescriptionId?.toString() || undefined}
                 onValueChange={(value) => setFormData(prev => ({ 
                   ...prev, 
                   prescriptionId: value && value !== "all" ? parseInt(value) : undefined 
@@ -194,14 +194,20 @@ export function MedicationReviewAssignmentModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Medications</SelectItem>
-                  {prescriptions?.map((prescription: Prescription) => (
-                    <SelectItem key={prescription.id} value={prescription.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <Pill className="h-4 w-4" />
-                        <span>{prescription.medicationName} - {prescription.dosage}</span>
-                      </div>
+                  {prescriptions && prescriptions.length > 0 ? (
+                    (Array.isArray(prescriptions) ? prescriptions : []).map((prescription: Prescription) => (
+                      <SelectItem key={prescription.id} value={prescription.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <Pill className="h-4 w-4" />
+                          <span>{prescription.medicationName} - {prescription.dosage}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-prescriptions" disabled>
+                      No prescriptions available
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -219,7 +225,7 @@ export function MedicationReviewAssignmentModal({
                 <SelectValue placeholder="Select reviewer" />
               </SelectTrigger>
               <SelectContent>
-                {reviewers?.map((reviewer: any) => (
+                {(Array.isArray(reviewers) ? reviewers : []).map((reviewer: any) => (
                   <SelectItem key={reviewer.id} value={reviewer.id.toString()}>
                     <div className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />

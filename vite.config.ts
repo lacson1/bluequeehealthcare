@@ -6,14 +6,19 @@ export default defineConfig({
   plugins: [
     react(),
   ],
+  base: "/",
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
+    preserveSymlinks: false,
   },
   root: path.resolve(import.meta.dirname, "client"),
+  optimizeDeps: {
+    include: ["react", "react-dom"],
+  },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
@@ -50,6 +55,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
   },
   server: {
+    port: 5173,
+    strictPort: false,
     proxy: {
       '/api': {
         target: 'http://localhost:5001',

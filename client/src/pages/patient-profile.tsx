@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute } from "wouter";
-import { AlertCircle, Edit, Stethoscope, Pill, FlaskRound, Plus, History, Printer, CheckCircle, Download, Eye, ClipboardCheck, TestTube } from "lucide-react";
+import { AlertCircle, Edit, Stethoscope, Pill, FlaskRound, Plus, History, Printer, CheckCircle, Download, Eye, ClipboardCheck, TestTube, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +17,10 @@ import PsychologicalTherapyAssessment from "@/components/psychological-therapy-a
 import { PatientSummaryPrintable } from "@/components/patient-summary-printable";
 import { ModernPatientOverview } from "@/components/modern-patient-overview";
 import { FloatingActionMenu } from "@/components/floating-action-menu";
+import { EditPatientModal } from "@/components/edit-patient-modal";
 import { useRole } from "@/components/role-guard";
 import { formatPatientName, getPatientInitials } from "@/lib/patient-utils";
+import { formatDate, formatDateOfBirth, formatDateMedium, calculateAge } from "@/lib/date-utils";
 import { LetterheadService } from "@/services/letterhead-service";
 import type { Patient, Visit, LabResultFromOrder, Prescription, Organization } from "@shared/schema";
 
@@ -33,6 +35,7 @@ export default function PatientProfile() {
   const [selectedOrderItem, setSelectedOrderItem] = useState<any>(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [showPsychologicalTherapyDialog, setShowPsychologicalTherapyDialog] = useState(false);
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -63,7 +66,10 @@ export default function PatientProfile() {
         const data = await response.json();
         // Handle both array and object responses
         return Array.isArray(data) ? data : (data.data || []);
-      }
+      },
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
     });
 
     // Results are already filtered by patient ID in the backend
@@ -130,7 +136,7 @@ export default function PatientProfile() {
                       </div>
                       <div>
                         <span className="font-medium text-muted-foreground">Completed:</span>
-                        <p>{new Date(result.completedDate).toLocaleDateString()}</p>
+                        <p>{formatDateMedium(result.completedDate)}</p>
                       </div>
                       <div>
                         <span className="font-medium text-muted-foreground">Reviewed By:</span>
@@ -146,7 +152,7 @@ export default function PatientProfile() {
                     )}
 
                     <div className="mt-2 text-xs text-muted-foreground">
-                      Order #{result.orderId} • Completed {new Date(result.completedDate).toLocaleDateString()}
+                      Order #{result.orderId} • Completed {formatDateMedium(result.completedDate)}
                     </div>
                   </div>
 
@@ -243,6 +249,9 @@ export default function PatientProfile() {
         return items;
       },
       enabled: expandedOrders.size > 0,
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
     });
 
     const toggleOrder = (orderId: number) => {
@@ -301,7 +310,7 @@ export default function PatientProfile() {
                     </Button>
                   </div>
                   <p className="text-sm text-slate-600 mt-1">
-                    <strong>Ordered:</strong> {new Date(order.createdAt).toLocaleDateString()}
+                    <strong>Ordered:</strong> {formatDateMedium(order.createdAt)}
                   </p>
                   <p className="text-sm text-slate-600">
                     <strong>Status:</strong> {order.status}
@@ -517,38 +526,56 @@ export default function PatientProfile() {
   const { data: patient, isLoading: patientLoading } = useQuery<Patient>({
     queryKey: [`/api/patients/${patientId}`],
     enabled: !!patientId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Fetch organization data for printable documents
   const { data: organization } = useQuery<Organization>({
     queryKey: ['/api/organizations', (user as any)?.organizationId],
     queryFn: () => fetch(`/api/organizations/${(user as any)?.organizationId}`).then(res => res.json()),
-    enabled: !!(user as any)?.organizationId
+    enabled: !!(user as any)?.organizationId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - static data
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Fetch visits
   const { data: visits, isLoading: visitsLoading } = useQuery<Visit[]>({
     queryKey: [`/api/patients/${patientId}/visits`],
     enabled: !!patientId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Fetch lab orders for this patient
   const { data: labOrders = [], isLoading: labOrdersLoading } = useQuery({
     queryKey: [`/api/patients/${patientId}/lab-orders`],
     enabled: !!patientId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Fetch prescriptions
   const { data: prescriptions, isLoading: prescriptionsLoading } = useQuery<Prescription[]>({
     queryKey: [`/api/patients/${patientId}/prescriptions`],
     enabled: !!patientId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Lab results using React Query (same pattern as working sidebar)
   const { data: labResults = [], isLoading: labsLoading, error: labsError } = useQuery<LabResultFromOrder[]>({
     queryKey: [`/api/patients/${patientId}/labs`],
     enabled: !!patientId,
-    retry: 2
+    retry: 2,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Mutation for adding lab results
@@ -622,16 +649,6 @@ export default function PatientProfile() {
     );
   }
 
-  const getPatientAge = (dateOfBirth: string) => {
-    const birth = new Date(dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
 
   const printPrescription = async (prescription: any, patient: any) => {
     try {
@@ -644,119 +661,163 @@ export default function PatientProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30">
-      {/* Industry-Standard Patient Banner */}
-      <header className="bg-white shadow-sm border-b border-slate-200 px-4 py-3 sticky top-0 z-10">
-        <div className="max-w-full flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {/* Patient Avatar */}
-            <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center ring-2 ring-primary/20">
-              <span className="text-white font-semibold text-xl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-cyan-50/20">
+      {/* Enhanced Patient Banner with Better Visual Hierarchy */}
+      <header className="bg-white/95 backdrop-blur-sm shadow-md border-b border-slate-200/80 px-4 sm:px-6 py-2 sticky top-0 z-10">
+        <div className="max-w-full">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {/* Enhanced Patient Avatar with Gradient */}
+            <div className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary via-primary/90 to-primary/80 rounded-full flex items-center justify-center ring-2 ring-primary/10 shadow-md flex-shrink-0">
+              <span className="text-white font-bold text-sm sm:text-base tracking-tight">
                 {getPatientInitials(patient)}
               </span>
             </div>
 
-            {/* Patient Identification - Industry Standard Format */}
-            <div className="flex flex-col">
-              {/* Primary Line: Name + Code Status */}
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold text-slate-800">
-                  {formatPatientName(patient)}
-                </h2>
-                {(patient as any).codeStatus && (patient as any).codeStatus !== 'full' && (
-                  <span className={`px-2 py-0.5 text-xs font-bold rounded ${(patient as any).codeStatus === 'dnr' || (patient as any).codeStatus === 'dnr_dni'
-                      ? 'bg-red-600 text-white'
-                      : (patient as any).codeStatus === 'comfort'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-orange-500 text-white'
-                    }`}>
-                    {(patient as any).codeStatus.toUpperCase().replace('_', '/')}
-                  </span>
-                )}
-              </div>
-
-              {/* Secondary Line: DOB (critical), Age, Sex, MRN */}
-              <div className="flex items-center gap-2 text-sm text-slate-600 mt-0.5">
-                <span className="font-semibold text-slate-700">
-                  DOB: {new Date(patient.dateOfBirth).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}
-                </span>
-                <span className="text-slate-400">|</span>
-                <span>{getPatientAge(patient.dateOfBirth)}y {patient.gender?.charAt(0).toUpperCase()}</span>
-                <span className="text-slate-400">|</span>
-                <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
-                  MRN: HC{patient.id?.toString().padStart(6, "0")}
-                </span>
-                {(patient as any).bloodType && (
-                  <>
-                    <span className="text-slate-400">|</span>
-                    <span className="text-red-600 font-semibold bg-red-50 px-1.5 py-0.5 rounded text-xs">
-                      🩸 {(patient as any).bloodType}
+            {/* Patient Information - Enhanced Layout with Better Typography */}
+            <div className="flex-1 min-w-0">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 lg:gap-4">
+                {/* Left Column: Name and Demographics - Enhanced Typography */}
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 truncate tracking-tight">
+                      {formatPatientName(patient)}
+                    </h2>
+                    {(patient as any).codeStatus && (patient as any).codeStatus !== 'full' && (
+                      <span className={`px-2.5 py-1 text-xs font-bold rounded-md flex-shrink-0 shadow-sm ${(patient as any).codeStatus === 'dnr' || (patient as any).codeStatus === 'dnr_dni'
+                          ? 'bg-red-600 text-white border border-red-700'
+                          : (patient as any).codeStatus === 'comfort'
+                            ? 'bg-purple-600 text-white border border-purple-700'
+                            : 'bg-orange-500 text-white border border-orange-600'
+                        }`}>
+                        {(patient as any).codeStatus.toUpperCase().replace('_', '/')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-600 flex-wrap">
+                    <span className="font-semibold text-slate-800 whitespace-nowrap">
+                      DOB: <span className="font-normal text-slate-600">{formatDateOfBirth(patient.dateOfBirth)}</span>
                     </span>
-                  </>
-                )}
-              </div>
+                    <span className="text-slate-300 font-light">•</span>
+                    <span className="text-slate-700 whitespace-nowrap font-medium">
+                      {calculateAge(patient.dateOfBirth)}y {patient.gender?.charAt(0).toUpperCase()}
+                    </span>
+                    {(patient as any).bloodType && (
+                      <>
+                        <span className="text-slate-300 font-light">•</span>
+                        <span className="text-red-700 font-semibold bg-red-50 border border-red-200 px-2 py-0.5 rounded-md text-xs whitespace-nowrap shadow-sm">
+                          🩸 {(patient as any).bloodType}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
 
-              {/* Third Line: PCP, Language, Emergency Contact indicators */}
-              <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                {(patient as any).preferredLanguage && (patient as any).preferredLanguage !== 'English' && (
-                  <span className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                    🌐 {(patient as any).preferredLanguage}
-                    {(patient as any).interpreterNeeded && <span className="text-orange-600">(Interpreter)</span>}
-                  </span>
-                )}
-                {(patient as any).emergencyContactName && (
-                  <span className="flex items-center gap-1 text-emerald-600">
-                    📞 EC: {(patient as any).emergencyContactName}
-                  </span>
-                )}
+                {/* Middle Column: Medical Record Number - Enhanced Styling */}
+                <div className="flex items-center gap-2 lg:justify-center">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-300/60 px-3 py-1.5 rounded-lg font-bold text-slate-800 whitespace-nowrap shadow-sm">
+                      MRN: HC{patient.id?.toString().padStart(6, "0")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Column: Contact Information - Enhanced with Icons */}
+                <div className="flex flex-col gap-1 lg:items-end">
+                  {patient?.phone && (
+                    <a 
+                      href={`tel:${patient.phone.replace(/\s+/g, '')}`}
+                      className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-primary hover:underline transition-all duration-200 cursor-pointer whitespace-nowrap group"
+                      title={`Call ${patient.phone}`}
+                    >
+                      <Phone className="h-4 w-4 flex-shrink-0 text-slate-500 group-hover:text-primary transition-colors" />
+                      <span>{patient.phone}</span>
+                    </a>
+                  )}
+                  {patient?.email && (
+                    <a 
+                      href={`mailto:${patient.email}`}
+                      className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-primary hover:underline transition-all duration-200 cursor-pointer min-w-0 group"
+                      title={`Send email to ${patient.email}`}
+                    >
+                      <Mail className="h-4 w-4 flex-shrink-0 text-slate-500 group-hover:text-primary transition-colors" />
+                      <span className="truncate max-w-[200px]">{patient.email}</span>
+                    </a>
+                  )}
+                  {(patient as any).preferredLanguage && (patient as any).preferredLanguage !== 'English' && (
+                    <span className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 px-2.5 py-1 rounded-md text-xs whitespace-nowrap flex-shrink-0 shadow-sm font-medium">
+                      🌐 <span className="hidden sm:inline">{(patient as any).preferredLanguage}</span>
+                      <span className="sm:hidden">{(patient as any).preferredLanguage.substring(0, 3)}</span>
+                      {(patient as any).interpreterNeeded && <span className="text-orange-700 hidden sm:inline">(Interpreter)</span>}
+                    </span>
+                  )}
+                  {(patient as any).emergencyContactName && (
+                    <span className="flex items-center gap-1.5 text-emerald-700 font-semibold text-xs whitespace-nowrap flex-shrink-0">
+                      📞 <span className="hidden lg:inline">EC: </span>{(patient as any).emergencyContactName}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          
+          {/* Enhanced Action Buttons Row with Better Spacing */}
+          <div className="flex flex-wrap items-center gap-2 mt-2 lg:mt-0 lg:justify-end">
             {(user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse') && (
-              <Button variant="outline">
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Info
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEditPatientModal(true)}
+                className="text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <Edit className="mr-1.5 h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Edit Info</span>
+                <span className="sm:hidden">Edit</span>
               </Button>
             )}
 
             {user?.role === 'doctor' && (
               <>
-                <Button onClick={() => setShowVisitModal(true)}>
-                  <Stethoscope className="mr-2 h-4 w-4" />
-                  Record Visit
+                <Button size="sm" onClick={() => setShowVisitModal(true)} className="text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+                  <Stethoscope className="mr-1.5 h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Record Visit</span>
+                  <span className="sm:hidden">Visit</span>
                 </Button>
-                <Button variant="outline" onClick={() => setShowPrescriptionModal(true)}>
-                  <Pill className="mr-2 h-4 w-4" />
-                  Add Prescription
+                <Button variant="outline" size="sm" onClick={() => setShowPrescriptionModal(true)} className="text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200">
+                  <Pill className="mr-1.5 h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Add Prescription</span>
+                  <span className="sm:hidden">Rx</span>
                 </Button>
               </>
             )}
 
             {(user?.role === 'nurse' || user?.role === 'doctor') && (
-              <Button variant="outline" onClick={() => setShowLabModal(true)}>
-                <FlaskRound className="mr-2 h-4 w-4" />
-                Add Lab Result
+              <Button variant="outline" size="sm" onClick={() => setShowLabModal(true)} className="text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200">
+                <FlaskRound className="mr-1.5 h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Add Lab Result</span>
+                <span className="sm:hidden">Lab</span>
               </Button>
             )}
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 max-w-full">
-        <div className="w-full max-w-none">
-          <ModernPatientOverview
-            patient={patient}
-            visits={visits || []}
-            recentLabs={labResults || []}
-            activePrescriptions={prescriptions || []}
-            onAddPrescription={() => setShowPrescriptionModal(true)}
-          />
+      {/* Main Content - Enhanced Layout with Better Spacing */}
+      <main className="flex-1 overflow-y-auto relative min-h-0">
+        {/* Enhanced Container with Better Padding and Spacing */}
+        <div className="w-full max-w-full min-w-0 h-full px-3 sm:px-4 md:px-6 py-4 sm:py-6">
+          {/* Content Wrapper with Subtle Background Gradient */}
+          <div className="relative w-full max-w-full min-w-0 h-full">
+            {/* Main Content with Enhanced Visual Flow */}
+            <div className="relative w-full max-w-full min-w-0 h-full overflow-x-hidden">
+              <ModernPatientOverview
+                patient={patient}
+                visits={visits || []}
+                recentLabs={labResults || []}
+                activePrescriptions={prescriptions || []}
+                onAddPrescription={() => setShowPrescriptionModal(true)}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Floating Action Menu */}
@@ -815,6 +876,21 @@ export default function PatientProfile() {
             />
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Edit Patient Modal */}
+      {patient && (
+        <EditPatientModal
+          open={showEditPatientModal}
+          onOpenChange={setShowEditPatientModal}
+          patient={patient}
+          onPatientUpdated={async () => {
+            // Force refetch patient data to update the banner immediately
+            await queryClient.refetchQueries({ queryKey: [`/api/patients/${patientId}`] });
+            // Also invalidate the patients list for other components
+            queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+          }}
+        />
       )}
 
       {/* Hidden Printable Patient Summary */}

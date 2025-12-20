@@ -28,11 +28,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -52,8 +58,13 @@ import {
   CheckCircle,
   Clock,
   FileText,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Briefcase
 } from 'lucide-react';
+import { NIGERIA_HMOS, NHIS_CATEGORIES, RELATIONSHIP_TO_PRINCIPAL } from '@/lib/nigeria-data';
 
 interface PatientInsurance {
   id: number;
@@ -77,6 +88,17 @@ interface PatientInsurance {
   coverageDetails?: string;
   preAuthRequired?: boolean;
   referralRequired?: boolean;
+  // NHIS-specific fields
+  isNhis?: boolean;
+  nhisEnrolleeId?: string;
+  nhisCategory?: string;
+  hmoProvider?: string;
+  primaryHealthcareFacility?: string;
+  principalMemberName?: string;
+  relationshipToPrincipal?: string;
+  employerName?: string;
+  employerNhisCode?: string;
+  dependantsCount?: number;
   organizationId?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -106,6 +128,17 @@ const insuranceFormSchema = z.object({
   coverageDetails: z.string().optional(),
   preAuthRequired: z.boolean().default(false),
   referralRequired: z.boolean().default(false),
+  // NHIS-specific optional fields
+  isNhis: z.boolean().default(false),
+  nhisEnrolleeId: z.string().optional(),
+  nhisCategory: z.string().optional(),
+  hmoProvider: z.string().optional(),
+  primaryHealthcareFacility: z.string().optional(),
+  principalMemberName: z.string().optional(),
+  relationshipToPrincipal: z.string().optional(),
+  employerName: z.string().optional(),
+  employerNhisCode: z.string().optional(),
+  dependantsCount: z.number().optional(),
 });
 
 type InsuranceFormValues = z.infer<typeof insuranceFormSchema>;
@@ -120,7 +153,13 @@ export function PatientInsuranceTab({ patientId }: PatientInsuranceTabProps) {
 
   const { data: insuranceRecords = [], isLoading, isError, refetch } = useQuery<PatientInsurance[]>({
     queryKey: [`/api/patients/${patientId}/insurance`],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    enabled: !!patientId,
   });
+
+  const [showNhisSection, setShowNhisSection] = useState(false);
 
   const form = useForm<InsuranceFormValues>({
     resolver: zodResolver(insuranceFormSchema),
@@ -144,6 +183,17 @@ export function PatientInsuranceTab({ patientId }: PatientInsuranceTabProps) {
       coverageDetails: '',
       preAuthRequired: false,
       referralRequired: false,
+      // NHIS fields
+      isNhis: false,
+      nhisEnrolleeId: '',
+      nhisCategory: '',
+      hmoProvider: '',
+      primaryHealthcareFacility: '',
+      principalMemberName: '',
+      relationshipToPrincipal: '',
+      employerName: '',
+      employerNhisCode: '',
+      dependantsCount: undefined,
     },
   });
 
@@ -245,6 +295,7 @@ export function PatientInsuranceTab({ patientId }: PatientInsuranceTabProps) {
 
   const handleEdit = (insurance: PatientInsurance) => {
     setSelectedInsurance(insurance);
+    setShowNhisSection(insurance.isNhis || false);
     form.reset({
       provider: insurance.provider,
       policyNumber: insurance.policyNumber,
@@ -265,6 +316,17 @@ export function PatientInsuranceTab({ patientId }: PatientInsuranceTabProps) {
       coverageDetails: insurance.coverageDetails || '',
       preAuthRequired: insurance.preAuthRequired || false,
       referralRequired: insurance.referralRequired || false,
+      // NHIS fields
+      isNhis: insurance.isNhis || false,
+      nhisEnrolleeId: insurance.nhisEnrolleeId || '',
+      nhisCategory: insurance.nhisCategory || '',
+      hmoProvider: insurance.hmoProvider || '',
+      primaryHealthcareFacility: insurance.primaryHealthcareFacility || '',
+      principalMemberName: insurance.principalMemberName || '',
+      relationshipToPrincipal: insurance.relationshipToPrincipal || '',
+      employerName: insurance.employerName || '',
+      employerNhisCode: insurance.employerNhisCode || '',
+      dependantsCount: insurance.dependantsCount || undefined,
     });
     setIsEditDialogOpen(true);
   };
@@ -297,7 +359,10 @@ export function PatientInsuranceTab({ patientId }: PatientInsuranceTabProps) {
               <p className="text-sm text-muted-foreground">Policy #{insurance.policyNumber}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {insurance.isNhis && (
+              <Badge className="bg-green-100 text-green-800 border-green-300">NHIS</Badge>
+            )}
             {getCoverageBadge(insurance.coverageType)}
             {getStatusBadge(insurance.policyStatus, insurance.expirationDate)}
             <DropdownMenu>
@@ -408,6 +473,59 @@ export function PatientInsuranceTab({ patientId }: PatientInsuranceTabProps) {
             </Badge>
           )}
         </div>
+
+        {/* NHIS Details Section */}
+        {insurance.isNhis && (insurance.hmoProvider || insurance.nhisEnrolleeId || insurance.nhisCategory) && (
+          <div className="mt-3 pt-3 border-t border-green-200">
+            <p className="text-xs font-medium text-green-700 flex items-center gap-1 mb-2">
+              <Shield className="w-3 h-3" /> NHIS Details
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-2 bg-green-50 rounded-lg">
+              {insurance.nhisEnrolleeId && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Enrollee ID</p>
+                  <p className="text-sm font-medium">{insurance.nhisEnrolleeId}</p>
+                </div>
+              )}
+              {insurance.hmoProvider && (
+                <div>
+                  <p className="text-xs text-muted-foreground">HMO</p>
+                  <p className="text-sm font-medium">{insurance.hmoProvider}</p>
+                </div>
+              )}
+              {insurance.nhisCategory && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Category</p>
+                  <p className="text-sm font-medium capitalize">{insurance.nhisCategory.replace('_', ' ')}</p>
+                </div>
+              )}
+              {insurance.primaryHealthcareFacility && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Primary Facility</p>
+                  <p className="text-sm font-medium">{insurance.primaryHealthcareFacility}</p>
+                </div>
+              )}
+              {insurance.employerName && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Employer</p>
+                  <p className="text-sm font-medium">{insurance.employerName}</p>
+                </div>
+              )}
+              {insurance.relationshipToPrincipal && insurance.relationshipToPrincipal !== 'self' && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Relationship</p>
+                  <p className="text-sm font-medium capitalize">{insurance.relationshipToPrincipal}</p>
+                </div>
+              )}
+              {insurance.dependantsCount !== undefined && insurance.dependantsCount > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Dependants</p>
+                  <p className="text-sm font-medium">{insurance.dependantsCount}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {insurance.notes && (
           <div className="mt-3 pt-3 border-t">
@@ -702,6 +820,237 @@ export function PatientInsuranceTab({ patientId }: PatientInsuranceTabProps) {
             )}
           />
         </div>
+
+        {/* NHIS Section (Optional, Collapsible) */}
+        <Collapsible open={showNhisSection} onOpenChange={setShowNhisSection}>
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-between border-dashed border-green-300 bg-green-50/50 hover:bg-green-50"
+            >
+              <span className="flex items-center gap-2 text-green-700">
+                <Shield className="h-4 w-4" />
+                NHIS / Nigerian Health Insurance (Optional)
+              </span>
+              {showNhisSection ? (
+                <ChevronUp className="h-4 w-4 text-green-600" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-green-600" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4 p-4 border border-green-200 rounded-lg bg-green-50/30 space-y-4">
+            <FormField
+              control={form.control}
+              name="isNhis"
+              render={({ field }) => (
+                <FormItem className="flex items-center gap-2 pb-2 border-b">
+                  <FormControl>
+                    <Switch 
+                      checked={field.value} 
+                      onCheckedChange={field.onChange} 
+                      data-testid="switch-is-nhis" 
+                    />
+                  </FormControl>
+                  <FormLabel className="!mt-0 font-medium">This is an NHIS Policy</FormLabel>
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="nhisEnrolleeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>NHIS Enrollee ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="XXX-XXXXXXX" {...field} data-testid="input-nhis-enrollee-id" />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Format: XXX-XXXXXXX
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="nhisCategory"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>NHIS Category</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-nhis-category">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {NHIS_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="hmoProvider"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      HMO Provider
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-hmo-provider">
+                          <SelectValue placeholder="Select HMO" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-[300px]">
+                        {NIGERIA_HMOS.map((hmo) => (
+                          <SelectItem key={hmo} value={hmo}>
+                            {hmo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="primaryHealthcareFacility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Primary Healthcare Facility</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Registered primary facility" {...field} data-testid="input-primary-facility" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="relationshipToPrincipal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Relationship to Principal
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-relationship">
+                          <SelectValue placeholder="Select relationship" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {RELATIONSHIP_TO_PRINCIPAL.map((rel) => (
+                          <SelectItem key={rel.value} value={rel.value}>
+                            {rel.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="principalMemberName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Principal Member Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="If patient is a dependant" {...field} data-testid="input-principal-name" />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Leave empty if patient is the principal
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="employerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      Employer Name
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="For formal sector NHIS" {...field} data-testid="input-employer-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="employerNhisCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employer NHIS Code</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Employer registration code" {...field} data-testid="input-employer-code" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="dependantsCount"
+              render={({ field }) => (
+                <FormItem className="w-1/2">
+                  <FormLabel>Number of Dependants</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min="0"
+                      placeholder="0" 
+                      value={field.value ?? ''} 
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                      data-testid="input-dependants-count" 
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    Number of dependants covered under this policy
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CollapsibleContent>
+        </Collapsible>
 
         <FormField
           control={form.control}

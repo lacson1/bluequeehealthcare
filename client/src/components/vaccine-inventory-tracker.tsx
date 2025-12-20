@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -125,13 +125,43 @@ const MOCK_INVENTORY: VaccineStock[] = [
   },
 ];
 
+const STORAGE_KEY = 'vaccine_inventory_data';
+
+// Load inventory from localStorage or use mock data
+const loadInventoryFromStorage = (): VaccineStock[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Validate that it's an array
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading inventory from storage:', error);
+  }
+  // Return mock data if nothing in storage
+  return MOCK_INVENTORY;
+};
+
+// Save inventory to localStorage
+const saveInventoryToStorage = (inventory: VaccineStock[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+  } catch (error) {
+    console.error('Error saving inventory to storage:', error);
+  }
+};
+
 export function VaccineInventoryTracker() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [inventory, setInventory] = useState<VaccineStock[]>(MOCK_INVENTORY);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [inventory, setInventory] = useState<VaccineStock[]>(() => loadInventoryFromStorage());
 
   const form = useForm<InventoryForm>({
     resolver: zodResolver(inventorySchema),
@@ -194,6 +224,11 @@ export function VaccineInventoryTracker() {
     return <Badge className="bg-emerald-500"><CheckCircle2 className="w-3 h-3 mr-1" /> In Stock</Badge>;
   };
 
+  // Save to localStorage whenever inventory changes
+  useEffect(() => {
+    saveInventoryToStorage(inventory);
+  }, [inventory]);
+
   const onSubmit = (data: InventoryForm) => {
     const newItem: VaccineStock = {
       id: Date.now(),
@@ -202,10 +237,48 @@ export function VaccineInventoryTracker() {
       receivedDate: new Date().toISOString().split('T')[0],
       status: 'active',
     };
-    setInventory(prev => [...prev, newItem]);
+    setInventory(prev => {
+      const updated = [...prev, newItem];
+      return updated;
+    });
     setShowAddDialog(false);
     form.reset();
     toast({ title: 'Success', description: 'Vaccine stock added to inventory' });
+  };
+
+  const handleClearInventory = () => {
+    setInventory([]);
+    localStorage.removeItem(STORAGE_KEY); // Also remove from storage
+    setShowClearDialog(false);
+    toast({ 
+      title: 'Inventory Cleared', 
+      description: 'All vaccine inventory records have been removed',
+      variant: 'default'
+    });
+  };
+
+  const handleResetToDefault = () => {
+    setInventory(MOCK_INVENTORY);
+    saveInventoryToStorage(MOCK_INVENTORY); // Save default to storage
+    setShowClearDialog(false);
+    toast({ 
+      title: 'Inventory Reset', 
+      description: 'Inventory has been reset to default mock data',
+      variant: 'default'
+    });
+  };
+
+  const handleRemoveExpired = () => {
+    const today = new Date();
+    const activeInventory = inventory.filter(item => new Date(item.expiryDate) >= today);
+    const removedCount = inventory.length - activeInventory.length;
+    setInventory(activeInventory);
+    // Storage will be updated by useEffect
+    toast({ 
+      title: 'Expired Items Removed', 
+      description: `${removedCount} expired vaccine(s) have been removed from inventory`,
+      variant: 'default'
+    });
   };
 
   return (
@@ -302,6 +375,64 @@ export function VaccineInventoryTracker() {
                   <SelectItem value="expired">Expired</SelectItem>
                 </SelectContent>
               </Select>
+              <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                    <Archive className="h-4 w-4 mr-2" />
+                    Clean Inventory
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-amber-600" />
+                      Clean Vaccine Inventory
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <p className="text-sm text-muted-foreground">
+                      Choose an action to clean the vaccine inventory database:
+                    </p>
+                    <div className="space-y-2">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={handleRemoveExpired}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove Expired Items Only
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          ({inventory.filter(item => new Date(item.expiryDate) < new Date()).length} expired)
+                        </span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={handleResetToDefault}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Reset to Default Mock Data
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-start"
+                        onClick={handleClearInventory}
+                      >
+                        <Archive className="h-4 w-4 mr-2" />
+                        Clear All Inventory
+                        <span className="ml-auto text-xs">
+                          ({inventory.length} items)
+                        </span>
+                      </Button>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowClearDialog(false)}>
+                      Cancel
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                 <DialogTrigger asChild>
                   <Button className="bg-purple-600 hover:bg-purple-700">

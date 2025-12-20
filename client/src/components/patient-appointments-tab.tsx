@@ -127,10 +127,64 @@ export function PatientAppointmentsTab({ patientId }: PatientAppointmentsTabProp
         description: "Appointment scheduled successfully",
       });
     },
-    onError: (error: any) => {
+    onError: async (error: any) => {
+      let errorTitle = "Error";
+      let errorMessage = "Failed to schedule appointment";
+
+      if (error?.message) {
+        const errorText = error.message;
+
+        // Check for time slot conflict (409 error)
+        if (errorText.includes('409') || errorText.includes('Time slot conflict') || errorText.includes('conflicts with an existing appointment')) {
+          errorTitle = 'Time Slot Conflict';
+          const match = errorText.match(/{"message":"([^"]+)","error":"([^"]+)"/);
+          if (match && match[2]) {
+            errorMessage = match[2];
+          } else if (errorText.includes('conflicts with an existing appointment')) {
+            const conflictMatch = errorText.match(/conflicts with an existing appointment at ([0-9:]+)/);
+            if (conflictMatch) {
+              errorMessage = `This time slot conflicts with an existing appointment at ${conflictMatch[1]}. Please choose a different time.`;
+            } else {
+              errorMessage = 'This time slot is already booked. Please choose a different time.';
+            }
+          } else {
+            errorMessage = 'This time slot is already booked. Please choose a different time.';
+          }
+        }
+        // Check for validation errors (400)
+        else if (errorText.includes('400') || errorText.includes('Validation error') || errorText.includes('required')) {
+          errorTitle = 'Validation Error';
+          try {
+            const jsonMatch = errorText.match(/\{.*\}/);
+            if (jsonMatch) {
+              const errorData = JSON.parse(jsonMatch[0]);
+              if (errorData.details && Array.isArray(errorData.details)) {
+                const validationErrors = errorData.details.map((d: any) => 
+                  `${d.path?.join('.') || 'Field'}: ${d.message || 'Invalid value'}`
+                ).join(', ');
+                errorMessage = `Please check: ${validationErrors}`;
+              } else if (errorData.message) {
+                errorMessage = errorData.message;
+              }
+            }
+          } catch (e) {
+            errorMessage = errorText.replace(/^\d+:\s*/, '').replace(/^Validation error:\s*/i, '');
+          }
+        }
+        // Check for permission errors (403)
+        else if (errorText.includes('403') || errorText.includes('permission') || errorText.includes('Access denied')) {
+          errorTitle = 'Access Denied';
+          errorMessage = 'You do not have permission to schedule appointments.';
+        }
+        // Generic error handling
+        else {
+          errorMessage = errorText.replace(/^\d+:\s*/, '');
+        }
+      }
+
       toast({
-        title: "Error",
-        description: error.message || "Failed to schedule appointment",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     }

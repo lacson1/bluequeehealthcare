@@ -5,6 +5,67 @@ import { eq, and, or, inArray } from 'drizzle-orm';
 import { authenticateToken, type AuthRequest } from '../middleware/auth';
 import { tenantMiddleware, type TenantRequest } from '../middleware/tenant';
 
+// System tabs configuration - matches the registry
+const SYSTEM_TABS = [
+  { key: 'overview', label: 'Overview', icon: 'User', contentType: 'builtin_component', displayOrder: 10, category: 'clinical' },
+  { key: 'visits', label: 'Visits', icon: 'Calendar', contentType: 'builtin_component', displayOrder: 20, category: 'clinical' },
+  { key: 'lab', label: 'Lab Results', icon: 'TestTube', contentType: 'builtin_component', displayOrder: 30, category: 'clinical' },
+  { key: 'medications', label: 'Medications', icon: 'Pill', contentType: 'builtin_component', displayOrder: 40, category: 'clinical' },
+  { key: 'vitals', label: 'Vitals', icon: 'Activity', contentType: 'builtin_component', displayOrder: 50, category: 'clinical' },
+  { key: 'documents', label: 'Documents', icon: 'FileText', contentType: 'builtin_component', displayOrder: 60, category: 'administrative' },
+  { key: 'billing', label: 'Billing', icon: 'CreditCard', contentType: 'builtin_component', displayOrder: 70, category: 'administrative' },
+  { key: 'insurance', label: 'Insurance', icon: 'Shield', contentType: 'builtin_component', displayOrder: 80, category: 'administrative' },
+  { key: 'appointments', label: 'Appointments', icon: 'CalendarDays', contentType: 'builtin_component', displayOrder: 90, category: 'administrative' },
+  { key: 'history', label: 'History', icon: 'History', contentType: 'builtin_component', displayOrder: 100, category: 'clinical' },
+  { key: 'med-reviews', label: 'Reviews', icon: 'FileCheck', contentType: 'builtin_component', displayOrder: 110, category: 'clinical' },
+  { key: 'communication', label: 'Chat', icon: 'MessageSquare', contentType: 'builtin_component', displayOrder: 120, category: 'administrative' },
+  { key: 'immunizations', label: 'Vaccines', icon: 'Syringe', contentType: 'builtin_component', displayOrder: 130, category: 'clinical' },
+  { key: 'timeline', label: 'Timeline', icon: 'Clock', contentType: 'builtin_component', displayOrder: 140, category: 'clinical' },
+  { key: 'safety', label: 'Safety', icon: 'Shield', contentType: 'builtin_component', displayOrder: 150, category: 'clinical' },
+  { key: 'specialty', label: 'Specialty', icon: 'Stethoscope', contentType: 'builtin_component', displayOrder: 160, category: 'clinical' },
+  { key: 'allergies', label: 'Allergies', icon: 'AlertTriangle', contentType: 'builtin_component', displayOrder: 170, category: 'clinical' },
+  { key: 'imaging', label: 'Imaging', icon: 'Scan', contentType: 'builtin_component', displayOrder: 180, category: 'clinical' },
+  { key: 'procedures', label: 'Procedures', icon: 'Scissors', contentType: 'builtin_component', displayOrder: 190, category: 'clinical' },
+  { key: 'referrals', label: 'Referrals', icon: 'Users', contentType: 'builtin_component', displayOrder: 200, category: 'clinical' },
+  { key: 'care-plans', label: 'Care Plans', icon: 'ClipboardList', contentType: 'builtin_component', displayOrder: 210, category: 'clinical' },
+  { key: 'notes', label: 'Notes', icon: 'BookOpen', contentType: 'builtin_component', displayOrder: 220, category: 'clinical' },
+  { key: 'longevity', label: 'Longevity', icon: 'Timer', contentType: 'builtin_component', displayOrder: 230, category: 'clinical' },
+];
+
+// Auto-seed system tabs if they don't exist
+async function ensureSystemTabsSeeded() {
+  try {
+    const existingTabs = await db
+      .select()
+      .from(tabConfigs)
+      .where(and(eq(tabConfigs.scope, 'system'), eq(tabConfigs.isSystemDefault, true)));
+    
+    const existingKeys = new Set(existingTabs.map(t => t.key));
+    const tabsToInsert = SYSTEM_TABS.filter(tab => !existingKeys.has(tab.key));
+    
+    if (tabsToInsert.length > 0) {
+      await db.insert(tabConfigs).values(
+        tabsToInsert.map(tab => ({
+          ...tab,
+          scope: 'system' as const,
+          isSystemDefault: true,
+          isVisible: true,
+          isMandatory: false,
+          settings: {},
+          organizationId: null,
+          roleId: null,
+          userId: null,
+          createdBy: null,
+        }))
+      );
+      console.log(`✅ Auto-seeded ${tabsToInsert.length} system tabs`);
+    }
+  } catch (error) {
+    console.error('⚠️  Error auto-seeding tabs (non-critical):', error);
+    // Don't throw - this is a non-critical operation
+  }
+}
+
 type TabScope = 'system' | 'organization' | 'role' | 'user';
 
 // Combined type for tenant + auth requests
@@ -32,15 +93,40 @@ interface CombinedRequest extends Request {
 }
 
 export function setupTabConfigRoutes(app: Express) {
+  // Auto-seed tabs on first request (non-blocking)
+  let seedingPromise: Promise<void> | null = null;
+  const ensureSeeded = () => {
+    if (!seedingPromise) {
+      seedingPromise = ensureSystemTabsSeeded();
+    }
+    return seedingPromise;
+  };
+
   // Get tab configurations with scope hierarchy resolution
   app.get('/api/tab-configs', authenticateToken, tenantMiddleware, async (req: CombinedRequest, res: Response) => {
+    // Ensure tabs are seeded (non-blocking)
+    ensureSeeded().catch(() => {});
+    
     try {
       const organizationId = req.tenant?.id;
       const userId = req.user?.id;
       const roleId = req.user?.roleId;
 
+      // If no organization context, return system tabs only (fallback)
       if (!organizationId) {
-        return res.status(403).json({ error: 'Organization context required' });
+        console.warn('No organization context, returning system tabs only');
+        const systemTabs = await db
+          .select()
+          .from(tabConfigs)
+          .where(
+            and(
+              eq(tabConfigs.scope, 'system'),
+              eq(tabConfigs.isSystemDefault, true),
+              eq(tabConfigs.isVisible, true)
+            )
+          )
+          .orderBy(tabConfigs.displayOrder);
+        return res.json(systemTabs);
       }
 
       // Fetch tabs in hierarchy order: system -> organization -> role -> user
@@ -218,10 +304,12 @@ export function setupTabConfigRoutes(app: Express) {
           }
         }
 
-        // Count visible tabs in merged view
+        // Count visible tabs in merged view (after simulating the hide)
         const mergedTabs = Array.from(tabMap.values());
         const visibleCount = mergedTabs.filter(t => t.isVisible).length;
         
+        // Only prevent hiding if it would leave zero visible tabs
+        // This allows maximum flexibility while ensuring at least one tab remains visible
         if (visibleCount === 0) {
           return res.status(400).json({ 
             error: 'Cannot hide last visible tab',

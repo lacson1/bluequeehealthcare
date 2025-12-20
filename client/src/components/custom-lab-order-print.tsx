@@ -5,6 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useQuery } from '@tanstack/react-query';
 import { MedicalIcons } from '@/lib/medical-icons';
 import { exportToPDF, printElement, generateClinicHeader, formatDocumentDate } from './print-export-utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
+import { AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface LabOrder {
   id: number;
@@ -51,12 +55,35 @@ interface CustomLabOrderPrintProps {
 
 export default function CustomLabOrderPrint({ labOrders, patient, onClose }: CustomLabOrderPrintProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const { user, refreshUser, isLoading } = useAuth();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
-  // Fetch active organization data
-  const { data: organization } = useQuery<Organization>({
-    queryKey: ['/api/print/organization'],
+  // Some user types (e.g. fallback superadmin) may not have organizationId, but they can still
+  // carry an organization object (including id 0). Treat that as valid org context for printing.
+  const hasOrganizationContext =
+    user?.organizationId !== undefined && user?.organizationId !== null
+      ? true
+      : user?.organization?.id !== undefined && user?.organization?.id !== null;
+
+  // Fetch org data for printing. Avoid /api/organizations/:id (not implemented in modular router);
+  // use the print-specific endpoint which returns the best available org for the current session.
+  const { data: fetchedOrganization, isLoading: isLoadingOrg, error: orgError } = useQuery<Organization>({
+    queryKey: ['/api/print/organization', user?.organizationId, user?.organization?.id],
+    queryFn: async () => {
+      const res = await fetch('/api/print/organization', { credentials: 'include' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || body?.message || `Failed to fetch organization: ${res.statusText}`);
+      }
+      return res.json();
+    },
+    enabled: !!user && !isLoading,
     retry: false,
   });
+
+  // Prefer org from auth context (e.g. fallback superadmin), otherwise use fetched print org.
+  const organization: Organization | undefined = (user?.organization as any) || fetchedOrganization;
 
   const pendingOrders = labOrders.filter(order => order.status === 'pending' || order.status === 'ordered');
 
@@ -96,7 +123,82 @@ export default function CustomLabOrderPrint({ labOrders, patient, onClose }: Cus
     }
   };
 
-  if (!organization) {
+  // Don't show "no org assigned" while auth is still resolving; it causes a confusing flash.
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <CardContent>
+          <div className="text-center">
+            <MedicalIcons.refresh className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p>Loading user session...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If we truly have no org context (neither organizationId nor organization object), block printing.
+  if (!hasOrganizationContext) {
+    const handleGoToUserManagement = () => {
+      setLocation('/user-management');
+    };
+
+    const handleRefresh = async () => {
+      await refreshUser();
+      toast({
+        title: 'Refreshed',
+        description: 'Checking for organization assignment...',
+      });
+    };
+
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'super_admin';
+
+    return (
+      <Card className="p-6">
+        <CardContent>
+          <div className="text-center space-y-4">
+            <div className="flex justify-center mb-2">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <div>
+              <p className="text-destructive font-medium">No organization assigned to your account.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                An organization assignment is required to print lab orders.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRefresh}
+                className="h-8 text-xs"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Refresh
+              </Button>
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  onClick={handleGoToUserManagement}
+                  className="h-8 text-xs"
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Assign via Admin Panel
+                </Button>
+              )}
+            </div>
+            {!isAdmin && (
+              <p className="text-xs text-muted-foreground pt-2">
+                Please contact an administrator to assign you to an organization.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoadingOrg) {
     return (
       <Card className="p-6">
         <CardContent>
@@ -109,36 +211,70 @@ export default function CustomLabOrderPrint({ labOrders, patient, onClose }: Cus
     );
   }
 
+  if (orgError || !organization) {
+    return (
+      <Card className="p-6">
+        <CardContent>
+          <div className="text-center">
+            <p className="text-destructive">Failed to load organization details.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {orgError instanceof Error ? orgError.message : 'Please try again later.'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex justify-between items-center">
-            <span>Laboratory Order Print Preview</span>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handlePrint} disabled={isGenerating}>
-                <MedicalIcons.print className="w-4 h-4 mr-2" />
+      <DialogContent className="max-w-[650px] w-full max-h-[95vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-4 border-b mb-4">
+          <div className="flex items-center justify-between gap-4">
+            <DialogTitle className="text-base sm:text-lg font-semibold flex-shrink-0">
+              Laboratory Order Print Preview
+            </DialogTitle>
+            <div className="flex gap-2 flex-shrink-0">
+              <Button 
+                variant="outline" 
+                onClick={handlePrint} 
+                disabled={isGenerating}
+                size="sm"
+                className="h-8 px-3 text-xs sm:text-sm"
+              >
+                <MedicalIcons.print className="w-3.5 h-3.5 mr-1.5" />
                 Print
               </Button>
-              <Button onClick={handleExportPDF} disabled={isGenerating}>
-                <MedicalIcons.download className="w-4 h-4 mr-2" />
+              <Button 
+                onClick={handleExportPDF} 
+                disabled={isGenerating}
+                size="sm"
+                className="h-8 px-3 text-xs sm:text-sm"
+              >
+                <MedicalIcons.download className="w-3.5 h-3.5 mr-1.5" />
                 Export PDF
               </Button>
             </div>
-          </DialogTitle>
+          </div>
         </DialogHeader>
 
         {/* Print Content - Force light mode with explicit styles */}
-        <div 
-          id="lab-order-print-content" 
-          className="bg-white dark:bg-white text-gray-900 dark:text-gray-900 p-8 print:p-0" 
-          style={{ 
-            minHeight: '297mm', 
-            colorScheme: 'light',
-            backgroundColor: 'white',
-            color: '#1f2937'
-          }}
-        >
+        <div className="flex justify-center">
+          <div 
+            id="lab-order-print-content" 
+            className="bg-white dark:bg-white text-gray-900 dark:text-gray-900 p-8 print:p-0" 
+            style={{ 
+              width: '210mm',
+              minHeight: '297mm',
+              maxWidth: '210mm',
+              aspectRatio: '210 / 297',
+              colorScheme: 'light',
+              backgroundColor: 'white',
+              color: '#1f2937',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              borderRadius: '4px'
+            }}
+          >
         {/* Organization Header */}
         {generateClinicHeader(organization)}
 
@@ -300,7 +436,8 @@ export default function CustomLabOrderPrint({ labOrders, patient, onClose }: Cus
           <p>Results will be available within the specified turnaround time and communicated as per protocol.</p>
           <p className="mt-2">Generated on {new Date().toLocaleString()} | {organization.name}</p>
         </div>
-      </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -10,6 +10,7 @@ import { format } from "date-fns";
 interface LabOrdersListProps {
   patientId: number;
   showPendingOnly?: boolean;
+  showCompletedOnly?: boolean; // Show completed results that haven't been reviewed
   showAll?: boolean;
 }
 
@@ -31,7 +32,7 @@ interface LabOrderItem {
   testName: string;
 }
 
-export default function LabOrdersList({ patientId, showPendingOnly, showAll }: LabOrdersListProps) {
+export default function LabOrdersList({ patientId, showPendingOnly, showCompletedOnly, showAll }: LabOrdersListProps) {
   const [expandedOrders, setExpandedOrders] = useState<number[]>([]);
 
   const { data: labOrders = [], isLoading } = useQuery<LabOrder[]>({
@@ -43,6 +44,10 @@ export default function LabOrdersList({ patientId, showPendingOnly, showAll }: L
     .filter(order => {
       if (showPendingOnly) {
         return order.status === 'pending' || order.status === 'in_progress';
+      }
+      if (showCompletedOnly) {
+        // Show completed orders that haven't been reviewed (no reviewedBy field)
+        return order.status === 'completed' && !(order as any).reviewedBy;
       }
       if (showAll) {
         return true; // Show all orders
@@ -76,9 +81,11 @@ export default function LabOrdersList({ patientId, showPendingOnly, showAll }: L
   if (filteredLabOrders.length === 0) {
     const emptyMessage = showPendingOnly 
       ? "No pending laboratory orders found for this patient."
-      : showAll 
-        ? "No laboratory orders found for this patient."
-        : "No recent laboratory orders found for this patient.";
+      : showCompletedOnly
+        ? "No completed results awaiting review found for this patient."
+        : showAll 
+          ? "No laboratory orders found for this patient."
+          : "No recent laboratory orders found for this patient.";
         
     return (
       <Card>

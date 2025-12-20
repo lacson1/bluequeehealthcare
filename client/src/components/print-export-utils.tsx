@@ -113,6 +113,7 @@ export const printElement = (elementId?: string) => {
       const computedStyles = window.getComputedStyle(element);
       const bgColor = computedStyles.backgroundColor || '#f0fdf4';
       
+      printWindow.document.open();
       printWindow.document.write(`
         <html>
           <head>
@@ -299,17 +300,38 @@ export const printElement = (elementId?: string) => {
       `);
       printWindow.document.close();
       
-      // Wait for content to load before printing
-      printWindow.onload = () => {
-        printWindow.print();
-        printWindow.close();
+      // Wait for the window to be ready before printing
+      const tryPrint = () => {
+        try {
+          if (printWindow && !printWindow.closed) {
+            printWindow.focus();
+            printWindow.print();
+            // Close after a short delay to allow print dialog to show
+            setTimeout(() => {
+              if (printWindow && !printWindow.closed) {
+                printWindow.close();
+              }
+            }, 100);
+          }
+        } catch (error) {
+          console.error('Print error:', error);
+        }
       };
+
+      // Check if already loaded
+      if (printWindow.document.readyState === 'complete') {
+        setTimeout(tryPrint, 100);
+      } else {
+        // Wait for load event
+        printWindow.addEventListener('load', () => {
+          setTimeout(tryPrint, 250);
+        }, { once: true });
+      }
       
-      // Fallback if onload doesn't fire
+      // Fallback timeout if load event doesn't fire
       setTimeout(() => {
-        if (!printWindow.closed) {
-      printWindow.print();
-      printWindow.close();
+        if (printWindow && !printWindow.closed) {
+          tryPrint();
         }
       }, 500);
     } else {

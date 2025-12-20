@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { MedicalCalculator } from '@/components/medical-calculator';
 import { PatientCommunicationHub } from '@/components/patient-communication-hub';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calculator, MessageSquare } from 'lucide-react';
 
-export function MedicalToolsPage() {
+export default function MedicalToolsPage() {
   const [activeTab, setActiveTab] = useState("calculators");
 
   return (

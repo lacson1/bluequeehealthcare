@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { User, Phone, Mail, MapPin, Calendar, UserCheck, Pill, AlertTriangle } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Calendar, UserCheck, Pill, AlertTriangle, CreditCard, ChevronDown, ChevronUp } from 'lucide-react';
+import { NIGERIA_STATE_NAMES, getLgasForState, NIGERIA_LANGUAGES } from '@/lib/nigeria-data';
 
 interface Patient {
   id: number;
@@ -23,6 +25,17 @@ interface Patient {
   medicalHistory?: string;
   title?: string;
   organizationId?: number;
+  // Nigerian optional fields
+  state?: string;
+  lga?: string;
+  town?: string;
+  streetAddress?: string;
+  landmark?: string;
+  postalCode?: string;
+  ninNumber?: string;
+  bvnNumber?: string;
+  secondaryPhone?: string;
+  preferredLanguage?: string;
 }
 
 interface Organization {
@@ -41,6 +54,8 @@ interface EditPatientModalProps {
 export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated }: EditPatientModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showNigerianFields, setShowNigerianFields] = useState(false);
+  const [selectedState, setSelectedState] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -54,6 +69,17 @@ export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated
     allergies: '',
     medicalHistory: '',
     organizationId: '',
+    // Nigerian optional fields
+    state: '',
+    lga: '',
+    town: '',
+    streetAddress: '',
+    landmark: '',
+    postalCode: '',
+    ninNumber: '',
+    bvnNumber: '',
+    secondaryPhone: '',
+    preferredLanguage: 'English',
   });
 
   // Fetch organizations for selection
@@ -65,6 +91,9 @@ export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated
   // Update form data when patient changes or modal opens
   useEffect(() => {
     if (patient && open) {
+      const patientState = patient.state || '';
+      setSelectedState(patientState);
+      setShowNigerianFields(!!(patient.state || patient.ninNumber || patient.lga));
       setFormData({
         title: patient.title || '',
         firstName: patient.firstName || '',
@@ -77,6 +106,17 @@ export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated
         allergies: patient.allergies || '',
         medicalHistory: patient.medicalHistory || '',
         organizationId: patient.organizationId?.toString() || '',
+        // Nigerian optional fields
+        state: patientState,
+        lga: patient.lga || '',
+        town: patient.town || '',
+        streetAddress: patient.streetAddress || '',
+        landmark: patient.landmark || '',
+        postalCode: patient.postalCode || '',
+        ninNumber: patient.ninNumber || '',
+        bvnNumber: patient.bvnNumber || '',
+        secondaryPhone: patient.secondaryPhone || '',
+        preferredLanguage: patient.preferredLanguage || 'English',
       });
     }
   }, [patient, open]);
@@ -87,15 +127,19 @@ export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated
         ...data,
         organizationId: data.organizationId ? parseInt(data.organizationId) : null
       };
-      return apiRequest(`/api/patients/${patient.id}`, "PATCH", payload);
+      const response = await apiRequest(`/api/patients/${patient.id}`, "PATCH", payload);
+      return response.json(); // Parse the response to get actual patient data
     },
-    onSuccess: async () => {
+    onSuccess: async (updatedPatient: Patient) => {
       toast({
         title: "Success",
         description: "Patient information updated successfully!",
       });
       
-      // Comprehensive cache invalidation for immediate UI updates
+      // Immediately update the cache with the new patient data for instant UI updates
+      queryClient.setQueryData([`/api/patients/${patient.id}`], updatedPatient);
+      
+      // Also invalidate queries to ensure any other components get fresh data
       await queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
       await queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}`] });
       
@@ -323,7 +367,177 @@ export function EditPatientModal({ open, onOpenChange, patient, onPatientUpdated
                 rows={2}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="secondaryPhone">Secondary Phone</Label>
+              <Input
+                id="secondaryPhone"
+                value={formData.secondaryPhone}
+                onChange={(e) => handleInputChange('secondaryPhone', e.target.value)}
+                placeholder="Alternative phone number"
+              />
+            </div>
           </div>
+
+          {/* Nigerian Details Section (Optional, Collapsible) */}
+          <Collapsible open={showNigerianFields} onOpenChange={setShowNigerianFields}>
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between border-dashed border-green-300 bg-green-50/50 hover:bg-green-50"
+              >
+                <span className="flex items-center gap-2 text-green-700">
+                  <MapPin className="h-4 w-4" />
+                  Nigerian Address & ID Details (Optional)
+                </span>
+                {showNigerianFields ? (
+                  <ChevronUp className="h-4 w-4 text-green-600" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-green-600" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4 p-4 border border-green-200 rounded-lg bg-green-50/30 space-y-4">
+              {/* Nigerian Address */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Select
+                    value={formData.state}
+                    onValueChange={(value) => {
+                      handleInputChange('state', value);
+                      setSelectedState(value);
+                      handleInputChange('lga', ''); // Reset LGA when state changes
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select State" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {NIGERIA_STATE_NAMES.map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lga">Local Government Area (LGA)</Label>
+                  <Select
+                    value={formData.lga}
+                    onValueChange={(value) => handleInputChange('lga', value)}
+                    disabled={!selectedState}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={selectedState ? "Select LGA" : "Select State first"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {getLgasForState(selectedState).map((lga) => (
+                        <SelectItem key={lga} value={lga}>
+                          {lga}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="town">Town/City</Label>
+                  <Input
+                    id="town"
+                    value={formData.town}
+                    onChange={(e) => handleInputChange('town', e.target.value)}
+                    placeholder="e.g., Ikeja, Lekki"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="postalCode">Postal Code</Label>
+                  <Input
+                    id="postalCode"
+                    value={formData.postalCode}
+                    onChange={(e) => handleInputChange('postalCode', e.target.value)}
+                    placeholder="e.g., 100271"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="streetAddress">Street Address</Label>
+                <Input
+                  id="streetAddress"
+                  value={formData.streetAddress}
+                  onChange={(e) => handleInputChange('streetAddress', e.target.value)}
+                  placeholder="e.g., 12 Adeola Odeku Street"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="landmark">Landmark</Label>
+                <Input
+                  id="landmark"
+                  value={formData.landmark}
+                  onChange={(e) => handleInputChange('landmark', e.target.value)}
+                  placeholder="e.g., Behind GTBank, Near Shoprite"
+                />
+              </div>
+
+              {/* Nigerian Identification */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <CreditCard className="h-4 w-4 text-blue-600" />
+                  <h4 className="font-medium text-slate-700">National Identification</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ninNumber">NIN (National Identification Number)</Label>
+                    <Input
+                      id="ninNumber"
+                      value={formData.ninNumber}
+                      onChange={(e) => handleInputChange('ninNumber', e.target.value)}
+                      placeholder="11-digit NIN"
+                      maxLength={11}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bvnNumber">BVN (Bank Verification Number)</Label>
+                    <Input
+                      id="bvnNumber"
+                      value={formData.bvnNumber}
+                      onChange={(e) => handleInputChange('bvnNumber', e.target.value)}
+                      placeholder="11-digit BVN"
+                      maxLength={11}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor="preferredLanguage">Preferred Language</Label>
+                  <Select
+                    value={formData.preferredLanguage}
+                    onValueChange={(value) => handleInputChange('preferredLanguage', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NIGERIA_LANGUAGES.map((lang) => (
+                        <SelectItem key={lang} value={lang}>
+                          {lang}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Medical Information Section */}
           <div className="space-y-4">

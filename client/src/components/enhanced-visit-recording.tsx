@@ -121,6 +121,9 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [suggestedMedications, setSuggestedMedications] = useState<MedicationSuggestion[]>([]);
   const [treatmentInstructions, setTreatmentInstructions] = useState<string>("");
+  const [aiDiagnosticSuggestions, setAiDiagnosticSuggestions] = useState<any[]>([]);
+  const [isLoadingAiDiagnostics, setIsLoadingAiDiagnostics] = useState(false);
+  const [showAiDiagnosticsDialog, setShowAiDiagnosticsDialog] = useState(false);
 
 
   const form = useForm<VisitFormData>({
@@ -558,6 +561,7 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
   const categories = ["All", ...getAllCategories()];
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -1043,14 +1047,97 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
                               <Sparkles className="h-4 w-4 text-blue-500" />
                               Primary Diagnosis (with smart suggestions) *
                             </FormLabel>
-                            <FormControl>
-                              <Input
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                placeholder="Primary diagnosis..."
-                              />
-                            </FormControl>
-                            <FormMessage />
+                            <div className="space-y-2">
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input
+                                    value={field.value || ""}
+                                    onChange={field.onChange}
+                                    placeholder="Primary diagnosis..."
+                                    className="flex-1"
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    const formData = form.getValues();
+                                    if (!formData.chiefComplaint && !formData.historyOfPresentIllness) {
+                                      toast({
+                                        title: "Missing Information",
+                                        description: "Please enter chief complaint or symptoms to get AI diagnostic suggestions.",
+                                        variant: "destructive",
+                                      });
+                                      return;
+                                    }
+                                    
+                                    setIsLoadingAiDiagnostics(true);
+                                    try {
+                                      const response = await apiRequest("/api/suggestions/ai-diagnostics", "POST", {
+                                        chiefComplaint: formData.chiefComplaint,
+                                        symptoms: formData.chiefComplaint,
+                                        historyOfPresentIllness: formData.historyOfPresentIllness,
+                                        patientAge: patient?.dateOfBirth ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear() : undefined,
+                                        patientGender: patient?.gender,
+                                        medicalHistory: patient?.medicalHistory,
+                                        allergies: patient?.allergies,
+                                        vitalSigns: {
+                                          bloodPressure: formData.bloodPressure,
+                                          heartRate: formData.heartRate ? parseInt(formData.heartRate) : undefined,
+                                          temperature: formData.temperature ? parseFloat(formData.temperature) : undefined,
+                                          respiratoryRate: formData.respiratoryRate ? parseInt(formData.respiratoryRate) : undefined,
+                                          oxygenSaturation: formData.oxygenSaturation ? parseInt(formData.oxygenSaturation) : undefined,
+                                          weight: formData.weight ? parseFloat(formData.weight) : undefined,
+                                        },
+                                        physicalExamination: {
+                                          generalAppearance: formData.generalAppearance,
+                                          cardiovascularSystem: formData.cardiovascularSystem,
+                                          respiratorySystem: formData.respiratorySystem,
+                                          gastrointestinalSystem: formData.gastrointestinalSystem,
+                                          neurologicalSystem: formData.neurologicalSystem,
+                                          musculoskeletalSystem: formData.musculoskeletalSystem,
+                                        },
+                                      });
+                                      
+                                      const data = await response.json();
+                                      if (data.suggestions && data.suggestions.length > 0) {
+                                        setAiDiagnosticSuggestions(data.suggestions);
+                                        setShowAiDiagnosticsDialog(true);
+                                      } else {
+                                        toast({
+                                          title: "No Suggestions",
+                                          description: "AI could not generate diagnostic suggestions. Please try again or enter diagnosis manually.",
+                                        });
+                                      }
+                                    } catch (error: any) {
+                                      console.error("AI diagnostic error:", error);
+                                      toast({
+                                        title: "AI Diagnostics Unavailable",
+                                        description: error.message || "AI diagnostic suggestions are not available. Please enter diagnosis manually.",
+                                        variant: "destructive",
+                                      });
+                                    } finally {
+                                      setIsLoadingAiDiagnostics(false);
+                                    }
+                                  }}
+                                  disabled={isLoadingAiDiagnostics}
+                                >
+                                  {isLoadingAiDiagnostics ? (
+                                    <>
+                                      <Cloud className="h-4 w-4 mr-2 animate-spin" />
+                                      Analyzing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles className="h-4 w-4 mr-2" />
+                                      AI Diagnose
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                              <FormMessage />
+                            </div>
                           </FormItem>
                         )}
                       />
@@ -1339,5 +1426,116 @@ export function EnhancedVisitRecording({ patientId, open, onOpenChange, onSave }
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* AI Diagnostic Suggestions Dialog */}
+    <Dialog open={showAiDiagnosticsDialog} onOpenChange={setShowAiDiagnosticsDialog}>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-blue-500" />
+            AI-Powered Diagnostic Suggestions
+          </DialogTitle>
+        </DialogHeader>
+        
+        {aiDiagnosticSuggestions.length > 0 && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Based on the clinical presentation, here are AI-generated diagnostic suggestions. Review and select the most appropriate diagnosis.
+            </p>
+            
+            <div className="space-y-3">
+              {aiDiagnosticSuggestions.map((suggestion, index) => (
+                <div
+                  key={index}
+                  className={`p-4 rounded-lg border-2 ${
+                    suggestion.confidence === 'high'
+                      ? 'border-green-300 bg-green-50'
+                      : suggestion.confidence === 'medium'
+                      ? 'border-yellow-300 bg-yellow-50'
+                      : 'border-gray-300 bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-lg">{suggestion.diagnosis}</h4>
+                        {suggestion.icdCode && (
+                          <Badge variant="outline" className="text-xs">
+                            {suggestion.icdCode}
+                          </Badge>
+                        )}
+                        <Badge
+                          variant={
+                            suggestion.confidence === 'high'
+                              ? 'default'
+                              : suggestion.confidence === 'medium'
+                              ? 'secondary'
+                              : 'outline'
+                          }
+                          className="text-xs"
+                        >
+                          {suggestion.probability}% probability
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-2">{suggestion.reasoning}</p>
+                      
+                      {suggestion.redFlags && suggestion.redFlags.length > 0 && (
+                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                          <div className="flex items-center gap-2 mb-1">
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                            <span className="text-sm font-semibold text-red-900">Red Flags:</span>
+                          </div>
+                          <ul className="list-disc list-inside text-sm text-red-800">
+                            {suggestion.redFlags.map((flag: string, i: number) => (
+                              <li key={i}>{flag}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {suggestion.recommendedTests && suggestion.recommendedTests.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs font-semibold text-gray-600 mb-1">Recommended Tests:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {suggestion.recommendedTests.map((test: string, i: number) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {test}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (suggestion.icdCode) {
+                        form.setValue("diagnosis", `${suggestion.diagnosis} (${suggestion.icdCode})`);
+                      } else {
+                        form.setValue("diagnosis", suggestion.diagnosis);
+                      }
+                      setShowAiDiagnosticsDialog(false);
+                      toast({
+                        title: "Diagnosis Applied",
+                        description: `Selected: ${suggestion.diagnosis}`,
+                      });
+                    }}
+                    className="mt-2"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Use This Diagnosis
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

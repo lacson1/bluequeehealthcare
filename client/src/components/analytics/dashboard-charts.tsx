@@ -33,9 +33,10 @@ interface AnalyticsData {
 }
 
 export function DashboardCharts() {
-  const { data: analytics, isLoading } = useQuery<AnalyticsData>({
+  const { data: analytics, isLoading, error } = useQuery<AnalyticsData>({
     queryKey: ['/api/analytics/dashboard'],
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 2,
   });
 
   const stats = useMemo(() => {
@@ -56,6 +57,21 @@ export function DashboardCharts() {
       totalVisits: latestVisits,
     };
   }, [analytics]);
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <p className="text-red-600 mb-2">Failed to load analytics data</p>
+              <p className="text-sm text-gray-500">Please try refreshing the page</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading || !analytics || !stats) {
     return (
@@ -265,10 +281,20 @@ export function DashboardCharts() {
 
 // Mini Line Chart Component
 function MiniLineChart({ data, color }: { data: ChartDataPoint[]; color: string }) {
-  const max = Math.max(...data.map(d => d.value));
+  if (!data || data.length === 0) {
+    return (
+      <div className="relative h-24 w-full flex items-center justify-center">
+        <p className="text-sm text-gray-400">No data available</p>
+      </div>
+    );
+  }
+
+  const max = Math.max(...data.map(d => d.value), 1); // Ensure at least 1 to avoid division by zero
+  const divisor = data.length > 1 ? data.length - 1 : 1; // Avoid division by zero
+  
   const points = data.map((point, index) => {
-    const x = (index / (data.length - 1)) * 100;
-    const y = 100 - (point.value / max) * 100;
+    const x = (index / divisor) * 100;
+    const y = max > 0 ? 100 - (point.value / max) * 100 : 100;
     return `${x},${y}`;
   }).join(' ');
 
@@ -298,8 +324,8 @@ function MiniLineChart({ data, color }: { data: ChartDataPoint[]; color: string 
         
         {/* Data points */}
         {data.map((point, index) => {
-          const x = (index / (data.length - 1)) * 100;
-          const y = 100 - (point.value / max) * 100;
+          const x = (index / divisor) * 100;
+          const y = max > 0 ? 100 - (point.value / max) * 100 : 100;
           return (
             <circle
               key={index}

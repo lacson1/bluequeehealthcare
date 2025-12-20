@@ -42,15 +42,18 @@ export function setupVisitRoutes(): Router {
         delete cleanedData.treatmentPlan;
       }
       
-      // Validate and create visit
-      const visitData = insertVisitSchema.parse({ 
-        ...cleanedData, 
+      // Prepare visit data
+      const visitData = {
+        ...cleanedData,
         patientId,
         doctorId: req.user.id,
         organizationId: req.user.organizationId
-      });
+      };
       
-      const visit = await storage.createVisit(visitData);
+      // Use VisitService to create visit
+      const { VisitService } = await import("../services/VisitService");
+      const visit = await VisitService.createVisit(visitData);
+      
       res.json(visit);
     } catch (error: any) {
       console.error('Visit creation error:', error);
@@ -66,8 +69,13 @@ export function setupVisitRoutes(): Router {
   router.get("/patients/:id/visits", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      const visits = await storage.getVisitsByPatient(patientId);
-      res.json(visits);
+      const userOrgId = req.user?.organizationId;
+      
+      // Use VisitService to get patient visits
+      const { VisitService } = await import("../services/VisitService");
+      const patientVisits = await VisitService.getVisitsByPatient(patientId, userOrgId);
+      
+      res.json(patientVisits);
     } catch (error) {
       console.error('Error fetching visits:', error);
       res.status(500).json({ message: "Failed to fetch visits" });
@@ -79,10 +87,19 @@ export function setupVisitRoutes(): Router {
     try {
       const patientId = parseInt(req.params.patientId);
       const visitId = parseInt(req.params.visitId);
-      const visit = await storage.getVisitById(visitId);
+      const userOrgId = req.user?.organizationId;
+      
+      // Use VisitService to get visit
+      const { VisitService } = await import("../services/VisitService");
+      const visit = await VisitService.getVisitById(visitId);
       
       if (!visit || visit.patientId !== patientId) {
         return res.status(404).json({ message: "Visit not found" });
+      }
+      
+      // Verify organization if provided
+      if (userOrgId && visit.organizationId !== userOrgId) {
+        return res.status(403).json({ message: "Access denied" });
       }
       
       res.json(visit);
@@ -119,18 +136,13 @@ export function setupVisitRoutes(): Router {
         delete cleanedData.treatmentPlan;
       }
       
-      // Update visit
-      const [updatedVisit] = await db.update(visits)
-        .set({
-          ...cleanedData,
-          updatedAt: new Date()
-        })
-        .where(and(
-          eq(visits.id, visitId),
-          eq(visits.patientId, patientId),
-          eq(visits.organizationId, req.user.organizationId)
-        ))
-        .returning();
+      // Use VisitService to update visit
+      const { VisitService } = await import("../services/VisitService");
+      const updatedVisit = await VisitService.updateVisit(
+        visitId,
+        cleanedData,
+        req.user.organizationId
+      );
       
       if (!updatedVisit) {
         return res.status(404).json({ message: "Visit not found" });
@@ -146,21 +158,15 @@ export function setupVisitRoutes(): Router {
   // Finalize visit (change status from draft to final)
   router.post("/patients/:patientId/visits/:visitId/finalize", authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
     try {
-      const patientId = parseInt(req.params.patientId);
       const visitId = parseInt(req.params.visitId);
       
-      if (!req.user) {
+      if (!req.user?.organizationId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const [updatedVisit] = await db.update(visits)
-        .set({ status: 'final' })
-        .where(and(
-          eq(visits.id, visitId),
-          eq(visits.patientId, patientId),
-          eq(visits.organizationId, req.user.organizationId)
-        ))
-        .returning();
+      // Use VisitService to finalize visit
+      const { VisitService } = await import("../services/VisitService");
+      const updatedVisit = await VisitService.finalizeVisit(visitId, req.user.organizationId);
       
       if (!updatedVisit) {
         return res.status(404).json({ message: "Visit not found" });
@@ -183,23 +189,15 @@ export function setupVisitRoutes(): Router {
       const { status, patientId, doctorId, limit = '50' } = req.query;
       const limitNum = Math.min(parseInt(limit as string), 100);
       
-      let whereConditions = [eq(visits.organizationId, req.user.organizationId)];
-      
-      if (status) {
-        whereConditions.push(eq(visits.status, status as string));
-      }
-      if (patientId) {
-        whereConditions.push(eq(visits.patientId, parseInt(patientId as string)));
-      }
-      if (doctorId) {
-        whereConditions.push(eq(visits.doctorId, parseInt(doctorId as string)));
-      }
-      
-      const visitList = await db.select()
-        .from(visits)
-        .where(and(...whereConditions))
-        .orderBy(desc(visits.visitDate))
-        .limit(limitNum);
+      // Use VisitService to get visits
+      const { VisitService } = await import("../services/VisitService");
+      const visitList = await VisitService.getVisits({
+        organizationId: req.user.organizationId,
+        status: status as string | undefined,
+        patientId: patientId ? parseInt(patientId as string) : undefined,
+        doctorId: doctorId ? parseInt(doctorId as string) : undefined,
+        limit: limitNum
+      });
       
       res.json(visitList);
     } catch (error) {

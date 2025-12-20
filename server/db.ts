@@ -21,14 +21,16 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Database connection pool configuration
+// Optimized for Cloud Run (scales to zero, so use lower min connections)
+const isCloudRun = process.env.K_SERVICE !== undefined;
 const POOL_CONFIG = {
   // Maximum number of connections in the pool
-  max: parseInt(process.env.DB_POOL_MAX || '20', 10),
-  // Minimum number of connections to keep open
-  min: parseInt(process.env.DB_POOL_MIN || '2', 10),
-  // Close idle connections after this many milliseconds
-  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
-  // Return an error after this many milliseconds if connection cannot be established
+  max: parseInt(process.env.DB_POOL_MAX || (isCloudRun ? '5' : '20'), 10),
+  // Minimum connections (0 for Cloud Run to allow cold starts, 2 for always-on)
+  min: parseInt(process.env.DB_POOL_MIN || (isCloudRun ? '0' : '2'), 10),
+  // Close idle connections quickly on Cloud Run (15s vs 30s)
+  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || (isCloudRun ? '15000' : '30000'), 10),
+  // Faster connection timeout for Cloud Run cold starts
   connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '10000', 10),
 };
 
@@ -36,17 +38,32 @@ const POOL_CONFIG = {
 const isNeonDatabase = process.env.DATABASE_URL.includes('neon.tech') ||
   process.env.DATABASE_URL.includes('neon.serverless');
 
+// Detect Cloud SQL Unix socket connection (format: /cloudsql/PROJECT:REGION:INSTANCE)
+const isCloudSQLSocket = process.env.DATABASE_URL.includes('/cloudsql/') ||
+  process.env.INSTANCE_UNIX_SOCKET !== undefined;
+
 // Check if SSL should be enabled (for managed databases like DigitalOcean)
 const isProduction = process.env.NODE_ENV === 'production';
-const requireSSL = process.env.DATABASE_URL.includes('sslmode=require') || 
+
+// Cloud SQL socket connections don't use SSL (the socket is already secure)
+const requireSSL = !isCloudSQLSocket && (
+  process.env.DATABASE_URL.includes('sslmode=require') || 
   process.env.DATABASE_URL.includes('digitalocean') ||
   process.env.DB_SSL === 'true' ||
-  isProduction;
+  isProduction
+);
 
 // SSL configuration for managed databases (accepts self-signed certificates)
 const sslConfig = requireSSL ? {
   rejectUnauthorized: false, // Accept self-signed certificates (DigitalOcean, etc.)
 } : false;
+
+if (isCloudRun) {
+  logger.info('Running on Cloud Run - using optimized pool settings');
+}
+if (isCloudSQLSocket) {
+  logger.info('Using Cloud SQL Unix socket connection');
+}
 
 const { pool, db } = (() => {
   if (isNeonDatabase) {

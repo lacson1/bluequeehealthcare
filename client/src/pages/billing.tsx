@@ -18,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { openPrintWindowWithLetterhead } from "@/utils/organization-print";
 
 // Form schemas
 const invoiceSchema = z.object({
@@ -196,336 +197,235 @@ export default function BillingPage() {
   };
 
   // Print Invoice Function
-  const printInvoice = (invoice: any) => {
-    const org = organizationData || {
-      name: 'Bluequee Health Management',
-      type: 'clinic',
-      address: '123 Healthcare Avenue',
-      phone: '+234 802 123 4567',
-      email: 'info@clinic.com'
-    };
-    
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: "Error",
-        description: "Unable to open print window. Please allow popups.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const printContent = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice ${invoice.invoiceNumber} - ${org.name}</title>
-    <style>
-        @media print {
-            @page { size: A4; margin: 0.75in; }
-            body { margin: 0; padding: 0; }
-            .no-print { display: none; }
-        }
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            line-height: 1.6;
-            color: #1f2937;
-            margin: 0;
-            padding: 20px;
-            background: #f9fafb;
-        }
-        .invoice-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        .clinic-info {
-            flex: 1;
-        }
-        .clinic-name {
-            font-size: 28px;
-            font-weight: bold;
-            color: #2563eb;
-            margin: 0 0 5px 0;
-        }
-        .clinic-type {
-            font-size: 14px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-        .clinic-details {
-            font-size: 13px;
-            color: #4b5563;
-            line-height: 1.5;
-        }
-        .invoice-badge {
+  const printInvoice = async (invoice: any) => {
+    try {
+      const invoiceContent = `
+        <style>
+          .invoice-badge {
             background: #2563eb;
             color: white;
             padding: 15px 25px;
             text-align: center;
             border-radius: 8px;
-        }
-        .invoice-badge h2 {
+            margin-bottom: 30px;
+          }
+          .invoice-badge h2 {
             margin: 0;
             font-size: 16px;
             letter-spacing: 2px;
-        }
-        .invoice-badge .number {
+          }
+          .invoice-badge .number {
             font-size: 18px;
             font-weight: bold;
             margin-top: 5px;
-        }
-        .info-section {
+          }
+          .info-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin-bottom: 30px;
-        }
-        .info-box {
+          }
+          .info-box {
             background: #f9fafb;
             padding: 20px;
             border-radius: 8px;
             border: 1px solid #e5e7eb;
-        }
-        .info-box h3 {
+          }
+          .info-box h3 {
             margin: 0 0 15px 0;
             font-size: 14px;
             text-transform: uppercase;
             color: #6b7280;
             border-bottom: 1px solid #e5e7eb;
             padding-bottom: 10px;
-        }
-        .info-row {
+          }
+          .info-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 8px;
             font-size: 14px;
-        }
-        .info-label {
+          }
+          .info-label {
             color: #6b7280;
-        }
-        .info-value {
+          }
+          .info-value {
             font-weight: 600;
             color: #1f2937;
-        }
-        .items-table {
+          }
+          .items-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 30px;
-        }
-        .items-table th {
+          }
+          .items-table th {
             background: #2563eb;
             color: white;
             padding: 12px 15px;
             text-align: left;
             font-size: 13px;
             text-transform: uppercase;
-        }
-        .items-table td {
+          }
+          .items-table td {
             padding: 15px;
             border-bottom: 1px solid #e5e7eb;
             font-size: 14px;
-        }
-        .items-table tr:nth-child(even) {
+          }
+          .items-table tr:nth-child(even) {
             background: #f9fafb;
-        }
-        .items-table .amount {
+          }
+          .items-table .amount {
             text-align: right;
             font-weight: 600;
-        }
-        .totals-section {
+          }
+          .totals-section {
             display: flex;
             justify-content: flex-end;
             margin-bottom: 30px;
-        }
-        .totals-box {
+          }
+          .totals-box {
             width: 300px;
             background: #f9fafb;
             padding: 20px;
             border-radius: 8px;
             border: 1px solid #e5e7eb;
-        }
-        .total-row {
+          }
+          .total-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 10px;
             padding-bottom: 10px;
             border-bottom: 1px solid #e5e7eb;
-        }
-        .total-row:last-child {
+          }
+          .total-row:last-child {
             border-bottom: none;
             margin-bottom: 0;
             font-weight: bold;
             font-size: 18px;
             color: #2563eb;
-        }
-        .status-badge {
+          }
+          .status-badge {
             display: inline-block;
             padding: 5px 15px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
-        }
-        .status-draft { background: #e5e7eb; color: #374151; }
-        .status-sent { background: #dbeafe; color: #1d4ed8; }
-        .status-paid { background: #d1fae5; color: #059669; }
-        .status-partial { background: #fef3c7; color: #d97706; }
-        .status-overdue { background: #fee2e2; color: #dc2626; }
-        .footer {
-            text-align: center;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 12px;
-            color: #6b7280;
-        }
-        .print-button {
-            display: block;
-            margin: 20px auto;
-            padding: 12px 30px;
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .print-button:hover {
-            background: #1d4ed8;
-        }
-    </style>
-</head>
-<body>
-    <div class="invoice-container">
-        <div class="header">
-            <div class="clinic-info">
-                <h1 class="clinic-name">${org.name}</h1>
-                <div class="clinic-type">${org.type || 'Healthcare Facility'}</div>
-                <div class="clinic-details">
-                    ${org.address || ''}<br>
-                    ${org.phone ? 'Tel: ' + org.phone : ''}${org.email ? ' | Email: ' + org.email : ''}<br>
-                    ${org.website ? 'Web: ' + org.website : ''}
-                </div>
-            </div>
-            <div class="invoice-badge">
-                <h2>INVOICE</h2>
-                <div class="number">${invoice.invoiceNumber}</div>
-            </div>
+          }
+          .status-draft { background: #e5e7eb; color: #374151; }
+          .status-sent { background: #dbeafe; color: #1d4ed8; }
+          .status-paid { background: #d1fae5; color: #059669; }
+          .status-partial { background: #fef3c7; color: #d97706; }
+          .status-overdue { background: #fee2e2; color: #dc2626; }
+        </style>
+        
+        <div class="invoice-badge">
+          <h2>INVOICE</h2>
+          <div class="number">${invoice.invoiceNumber}</div>
         </div>
 
         <div class="info-section">
-            <div class="info-box">
-                <h3>Bill To</h3>
-                <div class="info-row">
-                    <span class="info-label">Patient:</span>
-                    <span class="info-value">${invoice.patientName || 'N/A'}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Patient ID:</span>
-                    <span class="info-value">${invoice.patientId || 'N/A'}</span>
-                </div>
+          <div class="info-box">
+            <h3>Bill To</h3>
+            <div class="info-row">
+              <span class="info-label">Patient:</span>
+              <span class="info-value">${invoice.patientName || 'N/A'}</span>
             </div>
-            <div class="info-box">
-                <h3>Invoice Details</h3>
-                <div class="info-row">
-                    <span class="info-label">Issue Date:</span>
-                    <span class="info-value">${new Date(invoice.issueDate).toLocaleDateString()}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Due Date:</span>
-                    <span class="info-value">${new Date(invoice.dueDate).toLocaleDateString()}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Status:</span>
-                    <span class="status-badge status-${invoice.status}">${invoice.status?.toUpperCase() || 'DRAFT'}</span>
-                </div>
+            <div class="info-row">
+              <span class="info-label">Patient ID:</span>
+              <span class="info-value">${invoice.patientId || 'N/A'}</span>
             </div>
+          </div>
+          <div class="info-box">
+            <h3>Invoice Details</h3>
+            <div class="info-row">
+              <span class="info-label">Issue Date:</span>
+              <span class="info-value">${new Date(invoice.issueDate).toLocaleDateString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Due Date:</span>
+              <span class="info-value">${new Date(invoice.dueDate).toLocaleDateString()}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Status:</span>
+              <span class="status-badge status-${invoice.status}">${invoice.status?.toUpperCase() || 'DRAFT'}</span>
+            </div>
+          </div>
         </div>
 
         <table class="items-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Description</th>
-                    <th>Service Type</th>
-                    <th style="text-align: center;">Qty</th>
-                    <th style="text-align: right;">Unit Price</th>
-                    <th style="text-align: right;">Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${(invoice.items || []).map((item: any, index: number) => `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${item.description || 'Service'}</td>
-                        <td>${item.serviceType || 'General'}</td>
-                        <td style="text-align: center;">${item.quantity || 1}</td>
-                        <td class="amount">₦${parseFloat(item.unitPrice || 0).toLocaleString()}</td>
-                        <td class="amount">₦${(parseFloat(item.unitPrice || 0) * parseFloat(item.quantity || 1)).toLocaleString()}</td>
-                    </tr>
-                `).join('')}
-                ${(!invoice.items || invoice.items.length === 0) ? `
-                    <tr>
-                        <td colspan="6" style="text-align: center; color: #6b7280;">No items in this invoice</td>
-                    </tr>
-                ` : ''}
-            </tbody>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Description</th>
+              <th>Service Type</th>
+              <th style="text-align: center;">Qty</th>
+              <th style="text-align: right;">Unit Price</th>
+              <th style="text-align: right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(invoice.items || []).map((item: any, index: number) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${item.description || 'Service'}</td>
+                <td>${item.serviceType || 'General'}</td>
+                <td style="text-align: center;">${item.quantity || 1}</td>
+                <td class="amount">₦${parseFloat(item.unitPrice || 0).toLocaleString()}</td>
+                <td class="amount">₦${(parseFloat(item.unitPrice || 0) * parseFloat(item.quantity || 1)).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+            ${(!invoice.items || invoice.items.length === 0) ? `
+              <tr>
+                <td colspan="6" style="text-align: center; color: #6b7280;">No items in this invoice</td>
+              </tr>
+            ` : ''}
+          </tbody>
         </table>
 
         <div class="totals-section">
-            <div class="totals-box">
-                <div class="total-row">
-                    <span>Subtotal:</span>
-                    <span>₦${parseFloat(invoice.totalAmount || 0).toLocaleString()}</span>
-                </div>
-                <div class="total-row">
-                    <span>Amount Paid:</span>
-                    <span style="color: #059669;">₦${parseFloat(invoice.paidAmount || 0).toLocaleString()}</span>
-                </div>
-                <div class="total-row">
-                    <span>Balance Due:</span>
-                    <span>₦${parseFloat(invoice.balanceAmount || 0).toLocaleString()}</span>
-                </div>
+          <div class="totals-box">
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <span>₦${parseFloat(invoice.totalAmount || 0).toLocaleString()}</span>
             </div>
+            <div class="total-row">
+              <span>Amount Paid:</span>
+              <span style="color: #059669;">₦${parseFloat(invoice.paidAmount || 0).toLocaleString()}</span>
+            </div>
+            <div class="total-row">
+              <span>Balance Due:</span>
+              <span>₦${parseFloat(invoice.balanceAmount || 0).toLocaleString()}</span>
+            </div>
+          </div>
         </div>
 
         ${invoice.notes ? `
-            <div class="info-box" style="margin-bottom: 20px;">
-                <h3>Notes</h3>
-                <p style="margin: 0; font-size: 14px;">${invoice.notes}</p>
-            </div>
+          <div class="info-box" style="margin-bottom: 20px;">
+            <h3>Notes</h3>
+            <p style="margin: 0; font-size: 14px;">${invoice.notes}</p>
+          </div>
         ` : ''}
+      `;
 
-        <div class="footer">
-            <p>Thank you for choosing ${org.name}. Your health is our priority.</p>
-            <p>Generated on ${new Date().toLocaleString()}</p>
-        </div>
-    </div>
-
-    <button class="print-button no-print" onclick="window.print()">
-        Print Invoice
-    </button>
-</body>
-</html>
-    `;
-
-    printWindow.document.write(printContent);
-    printWindow.document.close();
+      await openPrintWindowWithLetterhead(
+        invoiceContent,
+        `Invoice ${invoice.invoiceNumber}`,
+        {
+          documentId: invoice.invoiceNumber,
+          documentDate: invoice.issueDate,
+          organizationId: user?.organizationId,
+          organization: organizationData,
+          pageSize: 'A4',
+          autoPrint: true
+        }
+      );
+    } catch (error: any) {
+      toast({
+        title: "Print Error",
+        description: error?.message || "Unable to open print window. Please allow popups.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

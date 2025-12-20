@@ -28,7 +28,7 @@ export function MobileNavigation({ currentPath, onNavigate, className }: MobileN
   const navigationItems = [
     { path: '/dashboard', icon: Home, label: 'Home' },
     { path: '/patients', icon: Users, label: 'Patients' },
-    { path: '/visits', icon: Calendar, label: 'Visits' },
+    { path: '/visits', icon: Calendar, label: 'Workflow' },
     { path: '/lab-results', icon: Activity, label: 'Labs' },
     { path: '/pharmacy', icon: Pill, label: 'Pharmacy' },
   ];

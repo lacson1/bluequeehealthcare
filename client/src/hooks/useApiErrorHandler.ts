@@ -18,7 +18,13 @@ export const useApiErrorHandler = () => {
     let status = 500;
     let message = 'An unexpected error occurred. Please try again.';
 
-    if (error.message?.includes('401:')) {
+    // Check for organization context errors first
+    if (error.message?.includes('Organization context required') || 
+        error.message?.includes('Organization access required') ||
+        error.message?.includes('organization context')) {
+      status = 403;
+      message = 'Your account is not assigned to an organization. Please contact an administrator or use the admin panel to assign yourself to an organization.';
+    } else if (error.message?.includes('401:')) {
       status = 401;
       message = 'Your session has expired. Please log in again.';
     } else if (error.message?.includes('403:')) {

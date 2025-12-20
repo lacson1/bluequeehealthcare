@@ -93,7 +93,7 @@ export function setupLaboratoryRoutes(): Router {
         referenceRange: test.referenceRange || 'See lab standards',
         units: test.units || '',
         cost: test.cost || 0,
-        turnaroundTime: test.turnaroundTime || '1-2 days',
+        turnaroundTime: '1-2 days', // Default turnaround time
         description: test.description || ''
       }));
       res.json(convertedResults);
@@ -117,11 +117,11 @@ export function setupLaboratoryRoutes(): Router {
   router.post('/lab-tests', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
       const validatedData = insertLabTestSchema.parse(req.body);
-      
+
       const [labTest] = await db.insert(labTests)
-        .values(validatedData)
+        .values(validatedData as any)
         .returning();
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Lab Test Created", {
@@ -129,7 +129,7 @@ export function setupLaboratoryRoutes(): Router {
         labTestName: labTest.name,
         category: labTest.category
       });
-      
+
       res.status(201).json(labTest);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -185,31 +185,31 @@ export function setupLaboratoryRoutes(): Router {
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       console.log('🔬 Processing lab order:', { patientId, tests, labTestIds, userOrgId });
-      
+
       // Verify patient exists (organization alignment already handled)
       const [patient] = await db.select().from(patients).where(
         eq(patients.id, patientId)
       ).limit(1);
-      
+
       if (!patient) {
         console.log('❌ Patient not found:', patientId);
         return res.status(404).json({ message: "Patient not found" });
       }
-      
+
       console.log('✅ Patient found:', patient);
-      
+
       // Handle both 'tests' and 'labTestIds' fields for compatibility
       const testIds = tests || labTestIds;
-      
+
       if (!testIds || !Array.isArray(testIds) || testIds.length === 0) {
         console.log('❌ Invalid test IDs:', testIds);
         return res.status(400).json({ message: "Tests array is required" });
       }
-      
+
       console.log('🧪 Creating lab order with tests:', testIds);
-      
+
       // Create the lab order with organization context
       const [labOrder] = await db.insert(labOrders)
         .values({
@@ -217,18 +217,18 @@ export function setupLaboratoryRoutes(): Router {
           orderedBy: req.user!.id,
           organizationId: userOrgId,
           status: 'pending'
-        })
+        } as any)
         .returning();
-      
+
       // Create lab order items for each test
       const orderItems = testIds.map((testId: number) => ({
         labOrderId: labOrder.id,
         labTestId: testId,
         status: 'pending'
       }));
-      
+
       await db.insert(labOrderItems).values(orderItems);
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logPatientAction("Lab Order Created", patientId, {
@@ -237,7 +237,7 @@ export function setupLaboratoryRoutes(): Router {
         testIds: testIds,
         notes: notes
       });
-      
+
       res.status(201).json(labOrder);
     } catch (error) {
       console.error('Lab order creation error:', error);
@@ -252,7 +252,7 @@ export function setupLaboratoryRoutes(): Router {
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const pendingOrders = await db.select({
         id: labOrders.id,
         patientId: labOrders.patientId,
@@ -265,12 +265,15 @@ export function setupLaboratoryRoutes(): Router {
         orderedByUsername: users.username,
         orderedByRole: users.role
       })
-      .from(labOrders)
-      .leftJoin(patients, eq(labOrders.patientId, patients.id))
-      .leftJoin(users, eq(labOrders.orderedBy, users.id))
-      .where(eq(labOrders.status, 'pending'))
-      .orderBy(labOrders.createdAt);
-      
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .leftJoin(users, eq(labOrders.orderedBy, users.id))
+        .where(and(
+          eq(labOrders.status, 'pending'),
+          eq(labOrders.organizationId, userOrgId)
+        ))
+        .orderBy(labOrders.createdAt);
+
       // Transform the data to match frontend expectations
       const transformedOrders = pendingOrders.map(order => ({
         id: order.id,
@@ -285,11 +288,188 @@ export function setupLaboratoryRoutes(): Router {
           dateOfBirth: order.patientDateOfBirth
         }
       }));
-      
+
       res.json(transformedOrders);
     } catch (error) {
       console.error("Error fetching pending lab orders:", error);
       res.status(500).json({ message: "Failed to fetch pending lab orders" });
+    }
+  });
+
+  // Get completed lab orders
+  router.get('/lab-orders/completed', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const userOrgId = req.user?.organizationId;
+      if (!userOrgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+
+      const completedOrders = await db.select({
+        id: labOrders.id,
+        patientId: labOrders.patientId,
+        orderedBy: labOrders.orderedBy,
+        createdAt: labOrders.createdAt,
+        completedAt: labOrders.completedAt,
+        status: labOrders.status,
+        patientFirstName: patients.firstName,
+        patientLastName: patients.lastName,
+        patientDateOfBirth: patients.dateOfBirth,
+        orderedByUsername: users.username,
+        orderedByRole: users.role
+      })
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .leftJoin(users, eq(labOrders.orderedBy, users.id))
+        .where(and(
+          eq(labOrders.status, 'completed'),
+          eq(labOrders.organizationId, userOrgId)
+        ))
+        .orderBy(desc(labOrders.completedAt));
+
+      // Transform the data to match frontend expectations
+      const transformedOrders = completedOrders.map(order => ({
+        id: order.id,
+        patientId: order.patientId,
+        orderedBy: order.orderedByUsername || `User #${order.orderedBy}`,
+        orderedByRole: order.orderedByRole,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt,
+        status: order.status,
+        patient: {
+          firstName: order.patientFirstName,
+          lastName: order.patientLastName,
+          dateOfBirth: order.patientDateOfBirth
+        }
+      }));
+
+      res.json(transformedOrders);
+    } catch (error) {
+      console.error("Error fetching completed lab orders:", error);
+      res.status(500).json({ message: "Failed to fetch completed lab orders" });
+    }
+  });
+
+  // Get enhanced lab orders with patient and test details
+  router.get('/lab-orders/enhanced', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
+      const { status, priority } = req.query;
+
+      if (!userOrgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+
+      let query = db.select({
+        id: labOrders.id,
+        patientId: labOrders.patientId,
+        status: labOrders.status,
+        priority: labOrders.priority,
+        createdAt: labOrders.createdAt,
+        clinicalNotes: labOrders.clinicalNotes,
+        diagnosis: labOrders.diagnosis,
+        patient: {
+          firstName: patients.firstName,
+          lastName: patients.lastName,
+          dateOfBirth: patients.dateOfBirth,
+          phone: patients.phone
+        },
+        orderedByUser: {
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role
+        },
+        itemCount: sql<number>`(SELECT COUNT(*) FROM lab_order_items WHERE lab_order_id = ${labOrders.id})`,
+        completedItems: sql<number>`(SELECT COUNT(*) FROM lab_order_items WHERE lab_order_id = ${labOrders.id} AND status = 'completed')`,
+        totalCost: sql<string>`(SELECT SUM(CAST(cost AS DECIMAL)) FROM lab_order_items loi JOIN lab_tests lt ON loi.lab_test_id = lt.id WHERE loi.lab_order_id = ${labOrders.id})`
+      })
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .leftJoin(users, eq(labOrders.orderedBy, users.id));
+
+      const orderConditions: any[] = [eq(labOrders.organizationId, userOrgId)];
+      if (status && status !== 'all') {
+        orderConditions.push(eq(labOrders.status, status as string));
+      }
+      if (priority && priority !== 'all') {
+        orderConditions.push(eq(labOrders.priority, priority as string));
+      }
+
+      if (orderConditions.length > 0) {
+        query = (query as any).where(and(...orderConditions));
+      }
+
+      const orders = await query.orderBy(desc(labOrders.createdAt));
+      return res.json(orders);
+    } catch (error) {
+      console.error('Error fetching enhanced lab orders:', error);
+      return res.status(500).json({ message: "Failed to fetch lab orders" });
+    }
+  });
+
+  // Get lab orders with items (for detailed view)
+  router.get('/lab-orders-with-items', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const userOrgId = req.user?.organizationId;
+      if (!userOrgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+
+      // Get all lab orders for the organization
+      const orders = await db.select({
+        id: labOrders.id,
+        patientId: labOrders.patientId,
+        orderedBy: labOrders.orderedBy,
+        status: labOrders.status,
+        priority: labOrders.priority,
+        createdAt: labOrders.createdAt,
+        completedAt: labOrders.completedAt,
+        patientFirstName: patients.firstName,
+        patientLastName: patients.lastName,
+        orderedByUsername: users.username
+      })
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .leftJoin(users, eq(labOrders.orderedBy, users.id))
+        .where(eq(labOrders.organizationId, userOrgId))
+        .orderBy(desc(labOrders.createdAt));
+
+      // Get items for each order
+      const ordersWithItems = await Promise.all(orders.map(async (order) => {
+        const items = await db.select({
+          id: labOrderItems.id,
+          labOrderId: labOrderItems.labOrderId,
+          labTestId: labOrderItems.labTestId,
+          result: labOrderItems.result,
+          remarks: labOrderItems.remarks,
+          status: labOrderItems.status,
+          completedBy: labOrderItems.completedBy,
+          completedAt: labOrderItems.completedAt,
+          testName: labTests.name,
+          testCategory: labTests.category,
+          referenceRange: labTests.referenceRange,
+          units: labTests.units
+        })
+          .from(labOrderItems)
+          .leftJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
+          .where(eq(labOrderItems.labOrderId, order.id))
+          .orderBy(labTests.name);
+
+        return {
+          ...order,
+          patient: {
+            firstName: order.patientFirstName,
+            lastName: order.patientLastName
+          },
+          orderedBy: order.orderedByUsername || `User #${order.orderedBy}`,
+          items
+        };
+      }));
+
+      res.json(ordersWithItems);
+    } catch (error) {
+      console.error("Error fetching lab orders with items:", error);
+      res.status(500).json({ message: "Failed to fetch lab orders with items" });
     }
   });
 
@@ -300,9 +480,9 @@ export function setupLaboratoryRoutes(): Router {
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const patientId = parseInt(req.params.id);
-      
+
       const orders = await db.select({
         id: labOrders.id,
         patientId: labOrders.patientId,
@@ -326,14 +506,14 @@ export function setupLaboratoryRoutes(): Router {
           eq(labOrders.organizationId, userOrgId)
         ))
         .orderBy(labOrders.createdAt);
-      
+
       // Set no-cache headers to ensure fresh data
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
       });
-      
+
       res.json(orders);
     } catch (error) {
       console.error('Error fetching patient lab orders:', error);
@@ -346,19 +526,19 @@ export function setupLaboratoryRoutes(): Router {
     console.log('=== LAB ORDER DETAILS ROUTE HIT ===');
     console.log('URL params:', req.params);
     console.log('User org ID:', req.user?.organizationId);
-    
+
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
         console.log('ERROR: No organization context');
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const patientId = parseInt(req.params.patientId);
       const orderId = parseInt(req.params.orderId);
-      
+
       console.log('Looking for lab order:', { patientId, orderId, userOrgId });
-      
+
       // Get lab order details - using simple select to avoid Drizzle field selection issues
       const labOrderResults = await db.select()
         .from(labOrders)
@@ -415,9 +595,9 @@ export function setupLaboratoryRoutes(): Router {
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const labOrderId = parseInt(req.params.id);
-      
+
       // Verify lab order belongs to user's organization
       const labOrder = await db.select().from(labOrders).where(
         and(
@@ -425,11 +605,11 @@ export function setupLaboratoryRoutes(): Router {
           eq(labOrders.organizationId, userOrgId)
         )
       ).limit(1);
-      
+
       if (labOrder.length === 0) {
         return res.status(404).json({ message: "Lab order not found in your organization" });
       }
-      
+
       const orderItems = await db.select({
         id: labOrderItems.id,
         labOrderId: labOrderItems.labOrderId,
@@ -444,18 +624,18 @@ export function setupLaboratoryRoutes(): Router {
         referenceRange: labTests.referenceRange,
         units: labTests.units
       })
-      .from(labOrderItems)
-      .leftJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
-      .where(eq(labOrderItems.labOrderId, labOrderId))
-      .orderBy(labTests.name);
-      
+        .from(labOrderItems)
+        .leftJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
+        .where(eq(labOrderItems.labOrderId, labOrderId))
+        .orderBy(labTests.name);
+
       // Set no-cache headers to ensure fresh data
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
       });
-      
+
       res.json(orderItems);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch lab order items" });
@@ -497,18 +677,18 @@ export function setupLaboratoryRoutes(): Router {
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const { patientId, page = '1', limit = '25' } = req.query;
       const pageNum = parseInt(page as string);
       const limitNum = Math.min(parseInt(limit as string), 100); // Max 100 items per page
       const offset = (pageNum - 1) * limitNum;
-      
+
       // Build optimized query with indexed columns
       let whereConditions = [eq(labResults.organizationId, userOrgId)];
       if (patientId) {
         whereConditions.push(eq(labResults.patientId, parseInt(patientId as string)));
       }
-      
+
       // Use Promise.all for parallel execution
       const [reviewedResults, totalCount] = await Promise.all([
         db.select({
@@ -523,20 +703,20 @@ export function setupLaboratoryRoutes(): Router {
           notes: labResults.notes,
           createdAt: labResults.createdAt
         })
-        .from(labResults)
-        .innerJoin(patients, eq(labResults.patientId, patients.id))
-        .where(and(...whereConditions))
-        .orderBy(desc(labResults.createdAt))
-        .limit(limitNum)
-        .offset(offset),
-        
+          .from(labResults)
+          .innerJoin(patients, eq(labResults.patientId, patients.id))
+          .where(and(...whereConditions))
+          .orderBy(desc(labResults.createdAt))
+          .limit(limitNum)
+          .offset(offset),
+
         db.select({ count: sql<number>`count(*)` })
-        .from(labResults)
-        .innerJoin(patients, eq(labResults.patientId, patients.id))
-        .where(and(...whereConditions))
-        .then(result => result[0]?.count || 0)
+          .from(labResults)
+          .innerJoin(patients, eq(labResults.patientId, patients.id))
+          .where(and(...whereConditions))
+          .then(result => result[0]?.count || 0)
       ]);
-      
+
       // Transform data efficiently
       const transformedResults = reviewedResults.map(result => ({
         id: result.id,
@@ -553,7 +733,7 @@ export function setupLaboratoryRoutes(): Router {
         units: '',
         remarks: result.notes
       }));
-      
+
       // Add performance headers
       res.set({
         'Cache-Control': 'private, max-age=30',
@@ -561,7 +741,7 @@ export function setupLaboratoryRoutes(): Router {
         'X-Page': pageNum.toString(),
         'X-Per-Page': limitNum.toString()
       });
-      
+
       res.json({
         data: transformedResults,
         pagination: {
@@ -584,7 +764,7 @@ export function setupLaboratoryRoutes(): Router {
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const { results } = req.body;
       if (!Array.isArray(results) || results.length === 0) {
         return res.status(400).json({ message: "Results array is required" });
@@ -656,7 +836,7 @@ export function setupLaboratoryRoutes(): Router {
     try {
       const { q } = req.query;
       const searchTerm = (q as string) || "";
-      
+
       if (!searchTerm || searchTerm.length < 2) {
         return res.json([]);
       }

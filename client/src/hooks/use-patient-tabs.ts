@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import { t } from '@/lib/i18n';
+import { SYSTEM_TAB_REGISTRY, getTabLabel } from '@/components/patient-tabs/dynamic-tab-registry';
 
 export interface TabConfig {
   id: number;
@@ -15,20 +17,32 @@ export interface TabConfig {
   category?: string;
 }
 
-const FALLBACK_TABS: TabConfig[] = [
-  { id: -1, key: 'overview', label: 'Overview', icon: 'LayoutGrid', contentType: 'builtin_component', settings: {}, displayOrder: 10, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -2, key: 'visits', label: 'Visits', icon: 'Calendar', contentType: 'builtin_component', settings: {}, displayOrder: 20, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -3, key: 'lab', label: 'Lab Results', icon: 'TestTube', contentType: 'builtin_component', settings: {}, displayOrder: 30, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -4, key: 'medications', label: 'Medications', icon: 'Pill', contentType: 'builtin_component', settings: {}, displayOrder: 40, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -5, key: 'vitals', label: 'Vitals', icon: 'Activity', contentType: 'builtin_component', settings: {}, displayOrder: 50, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -6, key: 'documents', label: 'Documents', icon: 'FileText', contentType: 'builtin_component', settings: {}, displayOrder: 60, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -7, key: 'timeline', label: 'Timeline', icon: 'Clock', contentType: 'builtin_component', settings: {}, displayOrder: 70, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -8, key: 'safety', label: 'Safety', icon: 'Shield', contentType: 'builtin_component', settings: {}, displayOrder: 80, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -9, key: 'imaging', label: 'Imaging', icon: 'Scan', contentType: 'builtin_component', settings: {}, displayOrder: 90, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -10, key: 'allergies', label: 'Allergies', icon: 'AlertTriangle', contentType: 'builtin_component', settings: {}, displayOrder: 100, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -11, key: 'immunizations', label: 'Immunizations', icon: 'Syringe', contentType: 'builtin_component', settings: {}, displayOrder: 110, isVisible: true, isSystemDefault: true, scope: 'system' },
-  { id: -12, key: 'procedures', label: 'Procedures', icon: 'Scissors', contentType: 'builtin_component', settings: {}, displayOrder: 120, isVisible: true, isSystemDefault: true, scope: 'system' },
-];
+/**
+ * Get fallback tabs with internationalized labels
+ */
+function getFallbackTabs(): TabConfig[] {
+  const tabKeys = ['overview', 'visits', 'lab', 'medications', 'vitals', 'documents', 'billing', 'insurance', 'appointments', 'history', 'med-reviews', 'communication', 'immunizations', 'timeline', 'safety', 'specialty', 'allergies', 'imaging', 'procedures', 'referrals', 'care-plans', 'notes'];
+  const icons = ['User', 'Calendar', 'TestTube', 'Pill', 'Activity', 'FileText', 'CreditCard', 'Shield', 'CalendarDays', 'History', 'FileCheck', 'MessageSquare', 'Syringe', 'Clock', 'Shield', 'Stethoscope', 'AlertTriangle', 'Scan', 'Scissors', 'Users', 'ClipboardList', 'BookOpen'];
+  const displayOrders = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220];
+  
+  return tabKeys.map((key, index) => {
+    const systemTab = SYSTEM_TAB_REGISTRY[key];
+    const label = systemTab ? getTabLabel(systemTab) : t(`tab.${key}`);
+    
+    return {
+      id: -(index + 1),
+      key,
+      label,
+      icon: icons[index],
+      contentType: 'builtin_component',
+      settings: {},
+      displayOrder: displayOrders[index],
+      isVisible: true,
+      isSystemDefault: true,
+      scope: 'system',
+    };
+  });
+}
 
 // Bidirectional key mapping
 const SERVER_TO_UI_KEY_MAP: Record<string, string> = {
@@ -52,17 +66,32 @@ export function mapUiKeyToServerKey(uiKey: string): string {
 export function usePatientTabs() {
   const { data: tabs, isLoading, isError } = useQuery<TabConfig[]>({
     queryKey: ['/api/tab-configs'],
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    // Don't fail completely if API errors - use fallback
+    throwOnError: false,
   });
 
-  const effectiveTabs = (isError || !tabs || tabs.length === 0) ? FALLBACK_TABS : tabs;
+  const fallbackTabs = getFallbackTabs();
+  // Use fallback if API fails or returns empty array
+  const effectiveTabs = (isError || !tabs || tabs.length === 0) ? fallbackTabs : tabs;
   
   const visibleTabs = effectiveTabs
     .filter(tab => tab.isVisible)
     .sort((a, b) => a.displayOrder - b.displayOrder)
-    .map(tab => ({
-      ...tab,
-      key: mapServerKeyToUiKey(tab.key),
-    }));
+    .map(tab => {
+      // Translate label if it's a system tab and hasn't been customized
+      const systemTab = SYSTEM_TAB_REGISTRY[tab.key];
+      const translatedLabel = systemTab && tab.isSystemDefault 
+        ? getTabLabel(systemTab)
+        : tab.label;
+      
+      return {
+        ...tab,
+        key: mapServerKeyToUiKey(tab.key),
+        label: translatedLabel,
+      };
+    });
 
   const defaultTabKey = visibleTabs.length > 0 ? visibleTabs[0].key : 'overview';
 

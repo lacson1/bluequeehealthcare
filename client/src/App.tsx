@@ -11,6 +11,7 @@ import { TopBarConfigProvider } from "@/hooks/use-topbar-config";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { Search } from "lucide-react";
 import GlobalErrorBoundary from "@/components/GlobalErrorBoundary";
+import { logger } from "@/lib/logger";
 
 // Core components loaded immediately
 import OnboardingTour from "@/components/onboarding-tour";
@@ -21,35 +22,257 @@ import OfflineStatusBar from "@/components/offline-status-bar";
 import { GlobalSearch } from "@/components/global-search";
 import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { useGlobalShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { OrganizationAssignmentBanner } from "@/components/organization-assignment-banner";
 
 
-// Lazy load pages for better code splitting
-const Dashboard = lazy(() => import("@/pages/dashboard"));
+// Import Dashboard directly instead of lazy loading to avoid module resolution issues
+import Dashboard from "@/pages/dashboard";
 const Patients = lazy(() => import("@/pages/patients"));
-const PatientProfile = lazy(() => import("@/pages/patient-profile"));
+const PatientProfile = lazy(() =>
+  import("@/pages/patient-profile").catch((error) => {
+    logger.error("Failed to load PatientProfile module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The patient profile page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 const Visits = lazy(() => import("@/pages/visits"));
+const AdminWorkflow = lazy(() => import("@/pages/admin-workflow"));
 const EnhancedPharmacy = lazy(() => import("@/pages/pharmacy-enhanced"));
 const InventoryPage = lazy(() => import("@/pages/inventory"));
 const Referrals = lazy(() => import("@/pages/referrals"));
-const ProfilePage = lazy(() => import("@/pages/profile"));
+const ProfilePage = lazy(() =>
+  import("@/pages/profile").catch((error) => {
+    logger.error("Failed to load ProfilePage module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The profile page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 const UserManagementSimple = lazy(() => import("@/pages/user-management-simple"));
 const AIClinicalInsights = lazy(() => import("@/pages/ai-clinical-insights"));
 const AuditLogs = lazy(() => import("@/pages/audit-logs"));
 const FormBuilder = lazy(() => import("@/pages/form-builder"));
 const ClinicalPerformance = lazy(() => import("@/pages/clinical-performance"));
 const OrganizationManagement = lazy(() => import("@/pages/organization-management"));
-const MedicalToolsPage = lazy(() => import("@/pages/medical-tools").then(m => ({ default: m.MedicalToolsPage })));
+const MedicalToolsPage = lazy(() =>
+  import("@/pages/medical-tools").catch((error) => {
+    logger.error("Failed to load MedicalToolsPage module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The medical tools page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </Button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 const PatientPortal = lazy(() => import("@/pages/patient-portal"));
 const RecordVisitPage = lazy(() => import("@/pages/record-visit"));
-const NewLabOrderPage = lazy(() => import("@/pages/new-lab-order"));
+const NewLabOrderPage = lazy(() =>
+  import("@/pages/new-lab-order").catch((error) => {
+    logger.error("Failed to load NewLabOrderPage module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The lab order page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </Button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
+const NewPrescriptionPage = lazy(() => import("@/pages/new-prescription"));
 const EditVisit = lazy(() => import("@/pages/edit-visit"));
 const VisitDetail = lazy(() => import("@/pages/visit-detail"));
-const AppointmentsPage = lazy(() => import("@/pages/appointments"));
+const AppointmentsPage = lazy(() =>
+  import("@/pages/appointments").catch((error) => {
+    logger.error("Failed to load AppointmentsPage module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The appointments page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </Button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 const LaboratoryUnified = lazy(() => import("@/pages/laboratory-unified"));
 const DocumentsPage = lazy(() => import("@/pages/documents"));
 const RevenueAnalytics = lazy(() => import("@/pages/revenue-analytics"));
-const TelemedicinePage = lazy(() => import("@/pages/telemedicine"));
-const PhysiotherapyPage = lazy(() => import("@/pages/physiotherapy"));
+const TelemedicinePage = lazy(() =>
+  import("@/pages/telemedicine").catch((error) => {
+    logger.error("Failed to load TelemedicinePage module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The telemedicine page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </Button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
+const PhysiotherapyPage = lazy(() => {
+  // #region agent log
+  try {
+    fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:223',message:'Lazy import attempt for PhysiotherapyPage',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  } catch (e) {
+    console.error('Debug log error:', e);
+  }
+  // #endregion
+  return import("@/pages/physiotherapy").then(module => {
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:223',message:'Lazy import success for PhysiotherapyPage',data:{hasDefault:!!module.default},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    } catch (e) {
+      console.error('Debug log error:', e);
+    }
+    // #endregion
+    return module;
+  }).catch(error => {
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:223',message:'Lazy import error for PhysiotherapyPage',data:{error:error?.message,stack:error?.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    } catch (e) {
+      console.error('Debug log error:', e);
+    }
+    // #endregion
+    logger.error("Failed to load PhysiotherapyPage module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The physiotherapy page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </Button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  });
+});
 const PsychologicalTherapyPage = lazy(() => import("@/pages/psychological-therapy"));
 const MentalHealthPage = lazy(() => import("@/pages/mental-health"));
 const ExerciseLeafletsPage = lazy(() => import("@/pages/exercise-leaflets"));
@@ -64,7 +287,6 @@ const PsychiatryOutcomes = lazy(() => import("@/pages/psychiatry-outcomes"));
 const PatientAccessCards = lazy(() => import("@/pages/patient-access-cards"));
 const Settings = lazy(() => import("@/pages/settings"));
 const PerformancePage = lazy(() => import("@/pages/performance-page").then(m => ({ default: m.PerformancePage })));
-const Profile = lazy(() => import("@/pages/profile"));
 const SuperAdminAnalytics = lazy(() => import("@/pages/superadmin-analytics"));
 const SuperAdminControlPanel = lazy(() => import("@/pages/super-admin-control-panel"));
 const SuperAdminControl = lazy(() => import("@/pages/super-admin-control"));
@@ -73,21 +295,111 @@ const ConsentManagement = lazy(() => import("@/pages/consent-management"));
 const StaffMessages = lazy(() => import("@/pages/staff-messages"));
 const BillingPage = lazy(() => import("@/pages/billing"));
 const CompliancePage = lazy(() => import("@/pages/compliance"));
-// Login is imported directly (not lazy) since it's needed immediately for unauthenticated users
+// Login and Signup are imported directly (not lazy) since they're needed immediately for unauthenticated users
 import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 const NotFound = lazy(() => import("@/pages/not-found"));
-const ConsultationRecordDetails = lazy(() => import("@/pages/consultation-record-details"));
+const ForgotPassword = lazy(() => import("@/pages/forgot-password"));
+const ResetPassword = lazy(() => import("@/pages/reset-password"));
+
+const ConsultationRecordDetails = lazy(() =>
+  import("@/pages/consultation-record-details").catch((error) => {
+    logger.error("Failed to load ConsultationRecordDetails module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The consultation record details page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </Button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 const HelpAndSupport = lazy(() => import("@/pages/help-support"));
 const RoleManagement = lazy(() => import("@/pages/role-management"));
+const RolePermissions = lazy(() => import("@/pages/role-permissions"));
 const StaffAccessControl = lazy(() => import("@/pages/staff-access-control"));
 const OrganizationSelector = lazy(() => import("@/pages/organization-selector"));
 const OrganizationStaff = lazy(() => import("@/pages/organization-staff"));
 const AiConsultationsListPage = lazy(() => import("@/pages/ai-consultations-list"));
-const AiConsultationPage = lazy(() => import("@/pages/ai-consultation"));
+const AiConsultationPage = lazy(() =>
+  import("@/pages/ai-consultation").catch((error) => {
+    logger.error("Failed to load AiConsultationPage module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The AI consultation page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </Button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 const PatientCommunicationPage = lazy(() => import("@/pages/patient-communication"));
 const AdminDashboardEnhanced = lazy(() => import("@/pages/admin-dashboard-enhanced"));
 const AuditLogsEnhanced = lazy(() => import("@/pages/audit-logs-enhanced"));
 const VaccinationManagement = lazy(() => import("@/pages/vaccination-management"));
+const ErrorMonitoring = lazy(() =>
+  import("@/pages/error-monitoring").catch((error) => {
+    logger.error("Failed to load ErrorMonitoring module", { error: error?.message });
+    // Return a fallback component that shows an error message
+    return {
+      default: () => (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center p-8 max-w-md">
+            <h2 className="text-xl font-semibold mb-2 text-destructive">Failed to Load Page</h2>
+            <p className="text-muted-foreground mb-4">
+              The error monitoring page could not be loaded. This may be due to a module loading error.
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </button>
+              <p className="text-xs text-muted-foreground mt-4">
+                Error: {error?.message || "Unknown error"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    };
+  })
+);
 
 // Loading component
 const PageLoader = () => (
@@ -107,7 +419,7 @@ function AuthenticatedApp() {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const {
     showTour,
-    isNewUser,
+    isNewUser: _isNewUser,
     completeTour,
     startTour,
     skipTour
@@ -133,6 +445,7 @@ function AuthenticatedApp() {
       <Sidebar onStartTour={startTour} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar />
+        <OrganizationAssignmentBanner />
         <main className="flex-1 flex flex-col overflow-hidden bg-background relative">
           {/* Subtle Background Pattern */}
           <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
@@ -145,7 +458,12 @@ function AuthenticatedApp() {
             <div className="w-full">
               {/* Page Content with Smooth Transitions */}
               <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500 ease-out relative">
-                <Suspense fallback={<PageLoader />}>
+                <Suspense fallback={(() => {
+                  // #region agent log
+                  fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:423',message:'Suspense fallback triggered',data:{pathname:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                  // #endregion
+                  return <PageLoader />;
+                })()}>
                   <Switch>
                     <Route path="/" component={Dashboard} />
                     <Route path="/select-organization" component={OrganizationSelector} />
@@ -158,8 +476,11 @@ function AuthenticatedApp() {
                     <Route path="/patients/:patientId/lab-orders/new" component={NewLabOrderPage} />
                     <Route path="/patients/:patientId/visits/:visitId/edit" component={EditVisit} />
                     <Route path="/patients/:patientId/visits/:visitId" component={VisitDetail} />
+                    <Route path="/patients/:patientId/prescriptions/new" component={NewPrescriptionPage} />
+                    <Route path="/patients/:patientId/lab-orders/new" component={NewLabOrderPage} />
                     <Route path="/consultation-records/:id" component={ConsultationRecordDetails} />
                     <Route path="/visits" component={Visits} />
+                    <Route path="/admin-workflow" component={AdminWorkflow} />
                     <Route path="/laboratory" component={LaboratoryUnified} />
                     <Route path="/lab-results" component={LaboratoryUnified} />
                     <Route path="/lab-orders" component={LaboratoryUnified} />
@@ -194,13 +515,14 @@ function AuthenticatedApp() {
                     <Route path="/medical-tools" component={MedicalToolsPage} />
                     <Route path="/clinical-performance" component={ClinicalPerformance} />
                     <Route path="/profile" component={ProfilePage} />
-                    <Route path="/my-profile" component={Profile} />
+                    <Route path="/my-profile" component={ProfilePage} />
                     <Route path="/settings" component={Settings} />
                     <Route path="/help" component={HelpAndSupport} />
                     <Route path="/user-management" component={UserManagementSimple} />
                     <Route path="/ai-clinical-insights" component={AIClinicalInsights} />
                     <Route path="/audit-logs" component={AuditLogs} />
                     <Route path="/audit-logs-enhanced" component={AuditLogsEnhanced} />
+                    <Route path="/error-monitoring" component={ErrorMonitoring} />
                     <Route path="/performance" component={PerformancePage} />
                     <Route path="/organization-management" component={OrganizationManagement} />
                     <Route path="/organization-staff" component={OrganizationStaff} />
@@ -213,6 +535,7 @@ function AuthenticatedApp() {
                     <Route path="/super-admin-control-panel" component={SuperAdminControlPanel} />
                     <Route path="/super-admin-control" component={SuperAdminControl} />
                     <Route path="/role-management" component={RoleManagement} />
+                    <Route path="/role-permissions" component={RolePermissions} />
                     <Route path="/staff-access-control" component={StaffAccessControl} />
                     <Route path="/vaccination-management" component={VaccinationManagement} />
                     <Route path="/vaccinations" component={VaccinationManagement} />
@@ -265,7 +588,10 @@ function Router() {
     <Suspense fallback={<PageLoader />}>
       <Switch>
         <Route path="/patient-portal" component={PatientPortal} />
-        <Route path="/login" component={Login} />
+                    <Route path="/login" component={Login} />
+                    <Route path="/signup" component={Signup} />
+                    <Route path="/forgot-password" component={ForgotPassword} />
+                    <Route path="/reset-password" component={ResetPassword} />
         <Route>
           {() => {
             // Show loading state while checking authentication

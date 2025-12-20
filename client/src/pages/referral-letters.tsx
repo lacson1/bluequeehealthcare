@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +7,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, Download, Printer, Search, User, Building, Phone, Mail, Globe, UserCheck, Stethoscope, Clock, Save } from 'lucide-react';
+import { FileText, Download, Printer, Search, User, Building, Phone, Mail, Globe, UserCheck, Stethoscope, Clock, Save, Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { formatDateOfBirth } from '@/lib/date-utils';
+import { SPECIALTY_OPTIONS } from '@/lib/medical-specialties';
+
+interface Prescription {
+  id: number;
+  medicationName: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  status: string;
+}
+
+interface MedicalHistoryItem {
+  id: number;
+  condition: string;
+  type: string;
+  status: string;
+  description: string;
+  dateOccurred: string;
+}
+
+interface LabResult {
+  id: number;
+  testName: string;
+  result: string;
+  status: string;
+  createdAt: string;
+}
 
 interface Patient {
   id: number;
@@ -51,6 +79,97 @@ export default function ReferralLettersPage() {
     queryFn: () => fetch(`/api/organizations/${user?.organizationId}`).then(res => res.json()),
     enabled: !!user?.organizationId
   });
+
+  // Fetch patient's prescriptions for auto-populate
+  const { data: patientPrescriptions, isLoading: loadingPrescriptions } = useQuery<Prescription[]>({
+    queryKey: [`/api/patients/${selectedPatient?.id}/prescriptions`],
+    enabled: !!selectedPatient?.id
+  });
+
+  // Fetch patient's medical history for auto-populate
+  const { data: patientMedicalHistory, isLoading: loadingHistory } = useQuery<MedicalHistoryItem[]>({
+    queryKey: [`/api/patients/${selectedPatient?.id}/medical-history`],
+    enabled: !!selectedPatient?.id
+  });
+
+  // Fetch patient's lab results for auto-populate
+  const { data: patientLabResults, isLoading: loadingLabs } = useQuery<LabResult[]>({
+    queryKey: [`/api/patients/${selectedPatient?.id}/labs`],
+    enabled: !!selectedPatient?.id
+  });
+
+  const isAutoPopulateLoading = loadingPrescriptions || loadingHistory || loadingLabs;
+
+  // Function to auto-populate form fields from patient data
+  const autoPopulateFromPatient = () => {
+    if (!selectedPatient) {
+      toast({
+        title: "No Patient Selected",
+        description: "Please select a patient first before auto-populating.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let populatedFields = 0;
+
+    // Auto-populate current medications from prescriptions
+    if (patientPrescriptions && patientPrescriptions.length > 0) {
+      const activeMeds = patientPrescriptions
+        .filter(p => p.status === 'active')
+        .map(p => `• ${p.medicationName} ${p.dosage} - ${p.frequency}${p.duration ? ` for ${p.duration}` : ''}`)
+        .join('\n');
+      
+      if (activeMeds) {
+        setCurrentMedications(activeMeds);
+        populatedFields++;
+      }
+    }
+
+    // Auto-populate clinical history from medical history
+    if (patientMedicalHistory && patientMedicalHistory.length > 0) {
+      const historyText = patientMedicalHistory
+        .map(h => {
+          const date = new Date(h.dateOccurred).toLocaleDateString();
+          return `• ${h.condition} (${h.type}, ${h.status}) - ${date}\n  ${h.description}`;
+        })
+        .join('\n\n');
+      
+      if (historyText) {
+        setClinicalHistory(historyText);
+        populatedFields++;
+      }
+    }
+
+    // Auto-populate relevant investigations from lab results
+    if (patientLabResults && patientLabResults.length > 0) {
+      const recentLabs = patientLabResults
+        .slice(0, 10) // Last 10 results
+        .map(l => {
+          const date = new Date(l.createdAt).toLocaleDateString();
+          return `• ${l.testName}: ${l.result} (${date})`;
+        })
+        .join('\n');
+      
+      if (recentLabs) {
+        setRelevantInvestigations(recentLabs);
+        populatedFields++;
+      }
+    }
+
+    if (populatedFields > 0) {
+      toast({
+        title: "Form Auto-Populated",
+        description: `Successfully filled ${populatedFields} field(s) from patient records.`,
+      });
+    } else {
+      toast({
+        title: "No Data Found",
+        description: "No medical records found to auto-populate. You can fill in the fields manually.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Save referral letter as document mutation
   const saveReferralMutation = useMutation({
@@ -165,21 +284,7 @@ export default function ReferralLettersPage() {
   ) || [];
 
   const referralTypes = [
-    { value: 'cardiology', label: 'Cardiology' },
-    { value: 'dermatology', label: 'Dermatology' },
-    { value: 'endocrinology', label: 'Endocrinology' },
-    { value: 'gastroenterology', label: 'Gastroenterology' },
-    { value: 'neurology', label: 'Neurology' },
-    { value: 'orthopedics', label: 'Orthopedics' },
-    { value: 'psychiatry', label: 'Psychiatry' },
-    { value: 'surgery', label: 'Surgery' },
-    { value: 'urology', label: 'Urology' },
-    { value: 'ophthalmology', label: 'Ophthalmology' },
-    { value: 'ent', label: 'ENT (Ear, Nose, Throat)' },
-    { value: 'oncology', label: 'Oncology' },
-    { value: 'rheumatology', label: 'Rheumatology' },
-    { value: 'nephrology', label: 'Nephrology' },
-    { value: 'pulmonology', label: 'Pulmonology' },
+    ...SPECIALTY_OPTIONS,
     { value: 'general', label: 'General Consultation' }
   ];
 
@@ -376,12 +481,39 @@ export default function ReferralLettersPage() {
         {/* Clinical Information */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Clinical Information
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Clinical Information
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={autoPopulateFromPatient}
+                disabled={!selectedPatient || isAutoPopulateLoading}
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200"
+              >
+                {isAutoPopulateLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                )}
+                <span className="text-purple-700">Auto-Fill from Patient Record</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {selectedPatient && (
+              <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 mb-4">
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <Sparkles className="w-4 h-4" />
+                  <span>
+                    Click "Auto-Fill" to populate fields with {selectedPatient.firstName}'s medical history, 
+                    medications, and lab results automatically.
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="clinical-history">Clinical History</Label>
@@ -539,7 +671,7 @@ export default function ReferralLettersPage() {
                         Re: {selectedPatient?.title || ''} {selectedPatient?.firstName} {selectedPatient?.lastName}
                       </h3>
                       <div className="bg-gray-50 p-4 rounded-lg grid grid-cols-2 gap-4 text-sm">
-                        <div><strong>DOB:</strong> {selectedPatient?.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'N/A'}</div>
+                        <div><strong>DOB:</strong> {selectedPatient?.dateOfBirth ? formatDateOfBirth(selectedPatient.dateOfBirth) : 'N/A'}</div>
                         <div><strong>Gender:</strong> {selectedPatient?.gender || 'Not specified'}</div>
                         <div><strong>Phone:</strong> {selectedPatient?.phone}</div>
                         <div><strong>Specialty Required:</strong> {referralTypes.find(t => t.value === referralType)?.label}</div>

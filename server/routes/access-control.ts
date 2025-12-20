@@ -82,25 +82,310 @@ router.get('/roles/:id', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+// Seed permissions (public endpoint - safe because it checks if empty first)
+router.post('/permissions/seed', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    // Check if permissions already exist
+    const existingCount = await db.select({ count: sql<number>`COUNT(*)` }).from(permissions);
+    const count = existingCount[0]?.count || 0;
+    
+    if (count > 0) {
+      return res.json({ 
+        message: 'Permissions already exist',
+        count
+      });
+    }
+
+    console.log('🌱 Seeding permissions via POST endpoint...');
+    // Insert permissions
+    const permissionsData = [
+      { name: 'viewPatients', description: 'View patient data' },
+      { name: 'editPatients', description: 'Edit patient data' },
+      { name: 'createPatients', description: 'Create new patient profiles' },
+      { name: 'createVisit', description: 'Create patient visits' },
+      { name: 'viewVisits', description: 'View visit records' },
+      { name: 'editVisits', description: 'Edit visit records' },
+      { name: 'createLabOrder', description: 'Create lab orders' },
+      { name: 'viewLabResults', description: 'View lab results' },
+      { name: 'editLabResults', description: 'Update lab results' },
+      { name: 'createConsultation', description: 'Create specialist consultations' },
+      { name: 'viewConsultation', description: 'View consultation records' },
+      { name: 'createConsultationForm', description: 'Create consultation form templates' },
+      { name: 'viewMedications', description: 'View prescribed medications' },
+      { name: 'manageMedications', description: 'Manage and dispense medications' },
+      { name: 'createPrescription', description: 'Create prescriptions' },
+      { name: 'viewPrescriptions', description: 'View prescription records' },
+      { name: 'createReferral', description: 'Create patient referrals' },
+      { name: 'viewReferrals', description: 'View referral records' },
+      { name: 'manageReferrals', description: 'Accept/reject referrals' },
+      { name: 'manageUsers', description: 'Manage staff and user roles' },
+      { name: 'viewUsers', description: 'View staff information' },
+      { name: 'manageOrganizations', description: 'Manage organization settings' },
+      { name: 'viewOrganizations', description: 'View organization information' },
+      { name: 'uploadFiles', description: 'Upload files and documents' },
+      { name: 'viewFiles', description: 'View and download files' },
+      { name: 'deleteFiles', description: 'Delete files' },
+      { name: 'viewDashboard', description: 'Access the dashboard' },
+      { name: 'viewReports', description: 'View analytics and performance reports' },
+      { name: 'viewAuditLogs', description: 'View system audit logs' },
+      { name: 'viewAppointments', description: 'View appointment schedules' },
+      { name: 'createAppointments', description: 'Create and schedule appointments' },
+      { name: 'editAppointments', description: 'Modify existing appointments' },
+      { name: 'cancelAppointments', description: 'Cancel appointments' },
+      { name: 'viewBilling', description: 'View invoices and billing information' },
+      { name: 'createInvoice', description: 'Create invoices for patients' },
+      { name: 'processPayment', description: 'Process and record payments' },
+    ];
+
+    try {
+      await db.insert(permissions).values(permissionsData);
+      const verifyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(permissions);
+      const finalCount = verifyCount[0]?.count || 0;
+      
+      console.log(`✅ Seeded ${permissionsData.length} permissions. Total in DB: ${finalCount}`);
+      
+      res.json({ 
+        message: 'Permissions seeded successfully',
+        count: finalCount,
+        seeded: permissionsData.length
+      });
+    } catch (insertError: any) {
+      console.error('❌ Error inserting permissions:', insertError);
+      console.error('Error details:', {
+        message: insertError.message,
+        code: insertError.code,
+        detail: insertError.detail,
+        constraint: insertError.constraint,
+      });
+      res.status(500).json({ 
+        message: "Failed to seed permissions",
+        error: insertError.message,
+        code: insertError.code
+      });
+    }
+  } catch (error: any) {
+    console.error("Error in seed endpoint:", error);
+    res.status(500).json({ 
+      message: "Failed to seed permissions",
+      error: error.message 
+    });
+  }
+});
+
 // Get all permissions grouped by category
 router.get('/permissions', authenticateToken, async (req: AuthRequest, res) => {
   try {
+    // Auto-seed if permissions table is empty
+    const existingCount = await db.select({ count: sql<number>`COUNT(*)` }).from(permissions);
+    const count = existingCount[0]?.count || 0;
+    
+    if (count === 0) {
+      console.log('⚠️  Permissions table is empty. Auto-seeding permissions...');
+      const permissionsData = [
+        { name: 'viewPatients', description: 'View patient data' },
+        { name: 'editPatients', description: 'Edit patient data' },
+        { name: 'createPatients', description: 'Create new patient profiles' },
+        { name: 'createVisit', description: 'Create patient visits' },
+        { name: 'viewVisits', description: 'View visit records' },
+        { name: 'editVisits', description: 'Edit visit records' },
+        { name: 'createLabOrder', description: 'Create lab orders' },
+        { name: 'viewLabResults', description: 'View lab results' },
+        { name: 'editLabResults', description: 'Update lab results' },
+        { name: 'createConsultation', description: 'Create specialist consultations' },
+        { name: 'viewConsultation', description: 'View consultation records' },
+        { name: 'createConsultationForm', description: 'Create consultation form templates' },
+        { name: 'viewMedications', description: 'View prescribed medications' },
+        { name: 'manageMedications', description: 'Manage and dispense medications' },
+        { name: 'createPrescription', description: 'Create prescriptions' },
+        { name: 'viewPrescriptions', description: 'View prescription records' },
+        { name: 'createReferral', description: 'Create patient referrals' },
+        { name: 'viewReferrals', description: 'View referral records' },
+        { name: 'manageReferrals', description: 'Accept/reject referrals' },
+        { name: 'manageUsers', description: 'Manage staff and user roles' },
+        { name: 'viewUsers', description: 'View staff information' },
+        { name: 'manageOrganizations', description: 'Manage organization settings' },
+        { name: 'viewOrganizations', description: 'View organization information' },
+        { name: 'uploadFiles', description: 'Upload files and documents' },
+        { name: 'viewFiles', description: 'View and download files' },
+        { name: 'deleteFiles', description: 'Delete files' },
+        { name: 'viewDashboard', description: 'Access the dashboard' },
+        { name: 'viewReports', description: 'View analytics and performance reports' },
+        { name: 'viewAuditLogs', description: 'View system audit logs' },
+        { name: 'viewAppointments', description: 'View appointment schedules' },
+        { name: 'createAppointments', description: 'Create and schedule appointments' },
+        { name: 'editAppointments', description: 'Modify existing appointments' },
+        { name: 'cancelAppointments', description: 'Cancel appointments' },
+        { name: 'viewBilling', description: 'View invoices and billing information' },
+        { name: 'createInvoice', description: 'Create invoices for patients' },
+        { name: 'processPayment', description: 'Process and record payments' },
+      ];
+      
+      try {
+        console.log(`📝 Attempting to insert ${permissionsData.length} permissions...`);
+        await db.insert(permissions).values(permissionsData);
+        console.log('✅ Insert completed, verifying...');
+        
+        const verifyCount = await db.select({ count: sql<number>`COUNT(*)` }).from(permissions);
+        const finalCount = verifyCount[0]?.count || 0;
+        console.log(`✅ Auto-seeded ${permissionsData.length} permissions. Total in DB: ${finalCount}`);
+        
+        if (finalCount === 0) {
+          console.error('⚠️  CRITICAL: Seed completed but no permissions found! Database issue?');
+        }
+      } catch (seedError: any) {
+        console.error('❌ Error during auto-seed:', seedError);
+        console.error('Error details:', {
+          message: seedError.message,
+          code: seedError.code,
+          detail: seedError.detail,
+          constraint: seedError.constraint,
+          stack: seedError.stack?.substring(0, 500),
+        });
+        // Continue to return empty array if seed fails
+      }
+    } else {
+      console.log(`📊 Found ${count} existing permissions in database`);
+    }
+
+    // Fetch permissions after potential seeding
     const allPermissions = await db
       .select()
       .from(permissions)
       .orderBy(permissions.name);
+    
+    console.log(`📋 GET /permissions: Returning ${allPermissions.length} permissions`);
 
-    // Group permissions by category (prefix before dot)
+    // Group permissions by category based on name patterns
+    const categoryMap: Record<string, string> = {
+      // Patient-related
+      'viewPatients': 'patients',
+      'editPatients': 'patients',
+      'createPatients': 'patients',
+      'deletePatients': 'patients',
+      
+      // Visit-related
+      'createVisit': 'visits',
+      'viewVisits': 'visits',
+      'editVisits': 'visits',
+      
+      // Lab-related
+      'createLabOrder': 'lab',
+      'viewLabResults': 'lab',
+      'editLabResults': 'lab',
+      
+      // Consultation-related
+      'createConsultation': 'consultations',
+      'viewConsultation': 'consultations',
+      'createConsultationForm': 'consultations',
+      
+      // Medication-related
+      'viewMedications': 'medications',
+      'manageMedications': 'medications',
+      'createPrescription': 'medications',
+      'viewPrescriptions': 'medications',
+      
+      // Referral-related
+      'createReferral': 'referrals',
+      'viewReferrals': 'referrals',
+      'manageReferrals': 'referrals',
+      
+      // User-related
+      'manageUsers': 'users',
+      'viewUsers': 'users',
+      
+      // Organization-related
+      'manageOrganizations': 'organizations',
+      'viewOrganizations': 'organizations',
+      
+      // File-related
+      'uploadFiles': 'files',
+      'viewFiles': 'files',
+      'deleteFiles': 'files',
+      
+      // Dashboard & Analytics
+      'viewDashboard': 'dashboard',
+      'viewReports': 'dashboard',
+      'viewAuditLogs': 'dashboard',
+      
+      // Appointment-related
+      'viewAppointments': 'appointments',
+      'createAppointments': 'appointments',
+      'editAppointments': 'appointments',
+      'cancelAppointments': 'appointments',
+      
+      // Billing-related
+      'viewBilling': 'billing',
+      'createInvoice': 'billing',
+      'processPayment': 'billing',
+    };
+
+    // Group permissions by category
     const grouped = allPermissions.reduce((acc: any, perm) => {
-      const category = perm.name.split('.')[0];
+      // Try to get category from map, or infer from name
+      let category = categoryMap[perm.name];
+      
+      if (!category) {
+        // Infer category from permission name patterns
+        const nameLower = perm.name.toLowerCase();
+        if (nameLower.includes('patient')) {
+          category = 'patients';
+        } else if (nameLower.includes('visit')) {
+          category = 'visits';
+        } else if (nameLower.includes('lab')) {
+          category = 'lab';
+        } else if (nameLower.includes('consultation')) {
+          category = 'consultations';
+        } else if (nameLower.includes('medication') || nameLower.includes('prescription')) {
+          category = 'medications';
+        } else if (nameLower.includes('referral')) {
+          category = 'referrals';
+        } else if (nameLower.includes('user')) {
+          category = 'users';
+        } else if (nameLower.includes('organization')) {
+          category = 'organizations';
+        } else if (nameLower.includes('file')) {
+          category = 'files';
+        } else if (nameLower.includes('dashboard') || nameLower.includes('report') || nameLower.includes('audit')) {
+          category = 'dashboard';
+        } else if (nameLower.includes('appointment')) {
+          category = 'appointments';
+        } else if (nameLower.includes('billing') || nameLower.includes('invoice') || nameLower.includes('payment')) {
+          category = 'billing';
+        } else {
+          // Default category for unmatched permissions
+          category = 'other';
+        }
+      }
+      
       if (!acc[category]) {
         acc[category] = [];
       }
       acc[category].push(perm);
       return acc;
     }, {});
+    
+    console.log(`📊 Grouped permissions into ${Object.keys(grouped).length} categories:`, Object.keys(grouped));
+    console.log(`📋 Sample grouping:`, Object.entries(grouped).slice(0, 3).map(([cat, perms]: [string, any]) => ({ category: cat, count: perms.length, permissions: perms.map((p: any) => p.name) })));
 
-    res.json({ all: allPermissions, grouped });
+    // Sort categories and permissions within categories
+    const sortedGrouped: Record<string, any[]> = {};
+    const categoryOrder = ['patients', 'visits', 'lab', 'consultations', 'medications', 'referrals', 'appointments', 'users', 'organizations', 'files', 'billing', 'dashboard', 'other'];
+    
+    categoryOrder.forEach(cat => {
+      if (grouped[cat]) {
+        sortedGrouped[cat] = grouped[cat].sort((a, b) => a.name.localeCompare(b.name));
+      }
+    });
+    
+    // Add any remaining categories not in the order
+    Object.keys(grouped).forEach(cat => {
+      if (!sortedGrouped[cat]) {
+        sortedGrouped[cat] = grouped[cat].sort((a, b) => a.name.localeCompare(b.name));
+      }
+    });
+
+    console.log(`✅ Final grouped structure has ${Object.keys(sortedGrouped).length} categories:`, Object.keys(sortedGrouped));
+    res.json({ all: allPermissions, grouped: sortedGrouped });
   } catch (error) {
     console.error("Error fetching permissions:", error);
     res.status(500).json({ message: "Failed to fetch permissions" });
@@ -270,11 +555,28 @@ router.put('/users/:userId/role', authenticateToken, async (req: AuthRequest, re
       return res.status(403).json({ message: 'Insufficient permissions' });
     }
 
-    // Update user's role
+    // Validate roleId is provided and not null/empty
+    if (roleId === undefined || roleId === null || roleId === '') {
+      return res.status(400).json({ message: 'Role ID is required and cannot be cleared' });
+    }
+
+    const parsedRoleId = parseInt(roleId);
+    if (isNaN(parsedRoleId)) {
+      return res.status(400).json({ message: 'Invalid role ID format' });
+    }
+
+    // Verify the role exists
+    const [roleRecord] = await db.select().from(roles).where(eq(roles.id, parsedRoleId)).limit(1);
+    if (!roleRecord) {
+      return res.status(404).json({ message: 'Role not found' });
+    }
+
+    // Update user's role (both roleId and legacy role for backward compatibility)
     const [updatedUser] = await db
       .update(users)
       .set({
-        roleId: roleId || null,
+        roleId: parsedRoleId,
+        role: roleRecord.name.toLowerCase(), // Set legacy role for backward compatibility
         updatedAt: new Date()
       })
       .where(
@@ -294,7 +596,7 @@ router.put('/users/:userId/role', authenticateToken, async (req: AuthRequest, re
       action: 'ASSIGN_ROLE',
       entityType: 'user',
       entityId: userId,
-      details: JSON.stringify({ roleId, targetUserId: userId }),
+      details: JSON.stringify({ roleId: parsedRoleId, roleName: roleRecord.name, targetUserId: userId }),
       ipAddress: req.ip || '',
       userAgent: req.headers['user-agent'] || ''
     });

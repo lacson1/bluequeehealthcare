@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { formatPatientName } from '@/lib/patient-utils';
 import { Pill, AlertTriangle, BookOpen, Clock } from 'lucide-react';
 
 interface PharmacyReviewProps {
@@ -19,13 +20,19 @@ interface PharmacyReviewProps {
 export default function PharmacyReview({ patientId, visitId }: PharmacyReviewProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
+  // Fetch patient data to display name
+  const { data: patient } = useQuery({
+    queryKey: [`/api/patients/${patientId}`],
+    enabled: !!patientId,
+  });
+
   // Fetch patient's current prescriptions for review
   const { data: prescriptions = [] } = useQuery({
     queryKey: ['/api/patients', patientId, 'prescriptions'],
     enabled: !!patientId,
   });
-  
+
   const [reviewData, setReviewData] = useState({
     drugInteractions: '',
     allergyCheck: '',
@@ -101,11 +108,11 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
           <Pill className="w-5 h-5" />
           Pharmacy Review & Counseling
           <Badge variant="outline" className="ml-auto bg-orange-100 text-orange-700">
-            Patient #{patientId}
+            {patient ? formatPatientName(patient) : `Patient #${patientId}`}
           </Badge>
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="p-6">
         {/* Current Prescriptions Summary */}
         {prescriptions.length > 0 && (
@@ -133,7 +140,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
               <AlertTriangle className="w-4 h-4" />
               Safety Assessment
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="drugInteractions" className="text-sm font-medium">Drug Interactions Check</Label>
@@ -146,7 +153,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="allergyCheck" className="text-sm font-medium">Allergy & Sensitivity Check</Label>
                 <Textarea
@@ -158,7 +165,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="dosageReview" className="text-sm font-medium">Dosage Review</Label>
                 <Textarea
@@ -170,7 +177,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="contraindications" className="text-sm font-medium">Contraindications</Label>
                 <Textarea
@@ -188,7 +195,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
           {/* Clinical Review */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Clinical Review</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="medicationReconciliation" className="text-sm font-medium">Medication Reconciliation</Label>
@@ -201,7 +208,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="adherenceAssessment" className="text-sm font-medium">Adherence Assessment</Label>
                 <Textarea
@@ -213,7 +220,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="sideEffectsMonitoring" className="text-sm font-medium">Side Effects Monitoring</Label>
                 <Textarea
@@ -225,7 +232,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="therapeuticAlternatives" className="text-sm font-medium">Therapeutic Alternatives</Label>
                 <Textarea
@@ -246,7 +253,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
               <BookOpen className="w-4 h-4" />
               Patient Counseling & Education
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="patientCounseling" className="text-sm font-medium">Counseling Provided</Label>
@@ -259,7 +266,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="dispensingInstructions" className="text-sm font-medium">Dispensing Instructions</Label>
                 <Textarea
@@ -280,7 +287,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
               <Clock className="w-4 h-4" />
               Recommendations & Follow-up
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="pharmacistRecommendations" className="text-sm font-medium">Pharmacist Recommendations</Label>
@@ -293,7 +300,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="followUpRequired" className="text-sm font-medium">Follow-up Required</Label>
                 <Textarea
@@ -305,7 +312,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="costConsiderations" className="text-sm font-medium">Cost Considerations</Label>
                 <Input
@@ -316,7 +323,7 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="clinicalNotes" className="text-sm font-medium">Additional Clinical Notes</Label>
                 <Input
@@ -353,8 +360,8 @@ export default function PharmacyReview({ patientId, visitId }: PharmacyReviewPro
             >
               Clear Form
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={saveMutation.isPending}
               className="bg-orange-600 hover:bg-orange-700"
             >

@@ -3,16 +3,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Heart, Plus, Calendar, User, Syringe } from 'lucide-react';
+import { Heart, Plus, Calendar, User, Syringe, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 const vaccinationSchema = z.object({
   vaccineName: z.string().min(1, 'Vaccine name is required'),
@@ -45,7 +47,10 @@ interface VaccinationManagementProps {
 
 export default function VaccinationManagement({ patientId, canEdit }: VaccinationManagementProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingVaccination, setEditingVaccination] = useState<VaccinationRecord | null>(null);
+  const [deletingVaccination, setDeletingVaccination] = useState<VaccinationRecord | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: vaccinations, isLoading } = useQuery<VaccinationRecord[]>({
     queryKey: [`/api/patients/${patientId}/vaccinations`],
@@ -71,11 +76,103 @@ export default function VaccinationManagement({ patientId, canEdit }: Vaccinatio
       queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/vaccinations`] });
       setIsAddModalOpen(false);
       form.reset();
+      toast({
+        title: "Vaccination Added",
+        description: "Vaccination record has been added successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to add vaccination record",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateVaccinationMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: VaccinationForm }) => {
+      // Handle empty date strings
+      const processedData = {
+        ...data,
+        nextDueDate: data.nextDueDate === '' ? undefined : data.nextDueDate,
+      };
+      return apiRequest(`/api/patients/${patientId}/vaccinations/${id}`, 'PATCH', processedData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/vaccinations`] });
+      setEditingVaccination(null);
+      form.reset();
+      toast({
+        title: "Vaccination Updated",
+        description: "Vaccination record has been updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to update vaccination record",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteVaccinationMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest(`/api/patients/${patientId}/vaccinations/${id}`, 'DELETE'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/vaccinations`] });
+      setDeletingVaccination(null);
+      toast({
+        title: "Vaccination Deleted",
+        description: "Vaccination record has been deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete vaccination record",
+        variant: "destructive",
+      });
     },
   });
 
   const onSubmit = (data: VaccinationForm) => {
-    addVaccinationMutation.mutate(data);
+    if (editingVaccination) {
+      updateVaccinationMutation.mutate({ id: editingVaccination.id, data });
+    } else {
+      addVaccinationMutation.mutate(data);
+    }
+  };
+
+  const handleEdit = (vaccination: VaccinationRecord) => {
+    setEditingVaccination(vaccination);
+    form.reset({
+      vaccineName: vaccination.vaccineName,
+      dateAdministered: vaccination.dateAdministered.split('T')[0], // Format date for input
+      administeredBy: vaccination.administeredBy,
+      batchNumber: vaccination.batchNumber || '',
+      manufacturer: vaccination.manufacturer || '',
+      notes: vaccination.notes || '',
+      nextDueDate: vaccination.nextDueDate ? vaccination.nextDueDate.split('T')[0] : '',
+    });
+    setIsAddModalOpen(true);
+  };
+
+  const handleDelete = (vaccination: VaccinationRecord) => {
+    setDeletingVaccination(vaccination);
+  };
+
+  const confirmDelete = () => {
+    if (deletingVaccination) {
+      deleteVaccinationMutation.mutate(deletingVaccination.id);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsAddModalOpen(false);
+    setEditingVaccination(null);
+    form.reset();
   };
 
   if (isLoading) {
@@ -101,16 +198,18 @@ export default function VaccinationManagement({ patientId, canEdit }: Vaccinatio
             Vaccination History
           </span>
           {canEdit && (
-            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+            <Dialog open={isAddModalOpen} onOpenChange={handleCloseModal}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" onClick={() => setEditingVaccination(null)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Vaccination
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Add Vaccination Record</DialogTitle>
+                  <DialogTitle>
+                    {editingVaccination ? 'Edit Vaccination Record' : 'Add Vaccination Record'}
+                  </DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -232,21 +331,25 @@ export default function VaccinationManagement({ patientId, canEdit }: Vaccinatio
                       )}
                     />
 
-                    <div className="flex justify-end space-x-2">
+                    <DialogFooter>
                       <Button 
                         type="button" 
                         variant="outline" 
-                        onClick={() => setIsAddModalOpen(false)}
+                        onClick={handleCloseModal}
+                        disabled={addVaccinationMutation.isPending || updateVaccinationMutation.isPending}
                       >
                         Cancel
                       </Button>
                       <Button 
                         type="submit" 
-                        disabled={addVaccinationMutation.isPending}
+                        disabled={addVaccinationMutation.isPending || updateVaccinationMutation.isPending}
                       >
-                        {addVaccinationMutation.isPending ? 'Adding...' : 'Add Vaccination'}
+                        {editingVaccination 
+                          ? (updateVaccinationMutation.isPending ? 'Updating...' : 'Update Vaccination')
+                          : (addVaccinationMutation.isPending ? 'Adding...' : 'Add Vaccination')
+                        }
                       </Button>
-                    </div>
+                    </DialogFooter>
                   </form>
                 </Form>
               </DialogContent>
@@ -261,10 +364,35 @@ export default function VaccinationManagement({ patientId, canEdit }: Vaccinatio
               <div key={vaccination.id} className="border rounded-lg p-4 bg-green-50">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h4 className="font-medium text-green-900 flex items-center">
-                      <Syringe className="mr-2 h-4 w-4" />
-                      {vaccination.vaccineName}
-                    </h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-green-900 flex items-center">
+                        <Syringe className="mr-2 h-4 w-4" />
+                        {vaccination.vaccineName}
+                      </h4>
+                      {canEdit && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(vaccination)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(vaccination)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3 text-sm text-green-800">
                       <div className="flex items-center">
@@ -318,6 +446,44 @@ export default function VaccinationManagement({ patientId, canEdit }: Vaccinatio
           </div>
         )}
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deletingVaccination} onOpenChange={(open) => !open && setDeletingVaccination(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Vaccination Record</DialogTitle>
+          </DialogHeader>
+          {deletingVaccination && (
+            <div className="space-y-2 py-4">
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete this vaccination record? This action cannot be undone.
+              </p>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{deletingVaccination.vaccineName}</p>
+                <p className="text-sm text-muted-foreground">
+                  Administered: {new Date(deletingVaccination.dateAdministered).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeletingVaccination(null)}
+              disabled={deleteVaccinationMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              disabled={deleteVaccinationMutation.isPending}
+            >
+              {deleteVaccinationMutation.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

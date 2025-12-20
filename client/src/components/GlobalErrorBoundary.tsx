@@ -1,7 +1,4 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -10,6 +7,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  errorId?: string;
 }
 
 class GlobalErrorBoundary extends Component<Props, State> {
@@ -19,22 +17,26 @@ class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return {
+      hasError: true,
+      error,
+      errorId: Date.now().toString(36)
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Healthcare App Error Boundary caught an error:', error, errorInfo);
-    
+
     // Log error for healthcare compliance and debugging
     const errorData = {
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
       timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      url: typeof globalThis !== 'undefined' && 'location' in globalThis ? (globalThis as any).location.href : 'unknown'
     };
-    
+
     // In production, send to error logging service
     if (process.env.NODE_ENV === 'production') {
       // Send to logging service (e.g., Sentry, LogRocket)
@@ -47,52 +49,166 @@ class GlobalErrorBoundary extends Component<Props, State> {
   };
 
   handleReload = () => {
-    window.location.reload();
+    if (typeof globalThis !== 'undefined' && 'location' in globalThis) {
+      (globalThis as any).location.reload();
+    }
   };
 
   render() {
     if (this.state.hasError) {
+      // Use plain HTML/CSS to avoid any React hook dependencies
+      // This ensures the error boundary works even if React itself has issues
+      const errorId = this.state.errorId || Date.now().toString(36);
+      const errorMessage = this.state.error?.message || 'Unknown error occurred';
+
       return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
+        <div style={{
+          minHeight: '100vh',
+          backgroundColor: '#f9fafb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          fontFamily: 'system-ui, -apple-system, sans-serif'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '28rem',
+            backgroundColor: 'white',
+            borderRadius: '0.5rem',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+            padding: '1.5rem'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{
+                margin: '0 auto 1rem',
+                width: '3rem',
+                height: '3rem',
+                backgroundColor: '#fee2e2',
+                borderRadius: '9999px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#dc2626"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                  <path d="M12 9v4" />
+                  <path d="M12 17h.01" />
+                </svg>
               </div>
-              <CardTitle className="text-red-600">System Error</CardTitle>
-              <CardDescription>
-                An unexpected error occurred in the healthcare system. 
+              <h1 style={{
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                color: '#dc2626',
+                marginBottom: '0.5rem'
+              }}>
+                System Error
+              </h1>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                marginBottom: '1.5rem'
+              }}>
+                An unexpected error occurred in the healthcare system.
                 Your data is safe and no patient information was affected.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-sm text-gray-600 bg-gray-100 p-3 rounded-md">
-                <strong>Error:</strong> {this.state.error?.message || 'Unknown error occurred'}
-              </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  onClick={this.handleRetry} 
-                  variant="outline" 
-                  className="flex-1"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Try Again
-                </Button>
-                <Button 
-                  onClick={this.handleReload} 
-                  className="flex-1"
-                >
-                  Reload Page
-                </Button>
-              </div>
-              
-              <p className="text-xs text-gray-500 text-center">
-                If this error persists, please contact your system administrator.
-                Error ID: {Date.now().toString(36)}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div style={{
+              fontSize: '0.875rem',
+              color: '#374151',
+              backgroundColor: '#f3f4f6',
+              padding: '0.75rem',
+              borderRadius: '0.375rem',
+              marginBottom: '1rem'
+            }}>
+              <strong>Error:</strong> {errorMessage}
+            </div>
+
+            <div style={{
+              display: 'flex',
+              gap: '0.5rem',
+              marginBottom: '1rem'
+            }}>
+              <button
+                onClick={this.handleRetry}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem 1rem',
+                  backgroundColor: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#374151',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9fafb';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white';
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9fafb';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white';
+                }}
+              >
+                Try Again
+              </button>
+              <button
+                onClick={this.handleReload}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#2563eb',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1d4ed8';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2563eb';
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1d4ed8';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2563eb';
+                }}
+              >
+                Reload Page
+              </button>
+            </div>
+
+            <p style={{
+              fontSize: '0.75rem',
+              color: '#6b7280',
+              textAlign: 'center',
+              margin: 0
+            }}>
+              If this error persists, please contact your system administrator.
+              Error ID: {errorId}
+            </p>
+          </div>
         </div>
       );
     }

@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { appointments, patients, users } from "@shared/schema";
-import { eq, desc, and, ne, sql } from "drizzle-orm";
+import { eq, desc, asc, and, ne, sql } from "drizzle-orm";
 import { insertAppointmentSchema } from "@shared/schema";
 import type { InsertAppointment } from "@shared/schema";
 
@@ -144,7 +144,8 @@ export class AppointmentService {
       query = query.where(and(...whereConditions)) as any;
     }
     
-    let result = await query.orderBy(appointments.appointmentDate, appointments.appointmentTime);
+    // Note: orderBy with multiple columns needs to be chained
+    let result = await query.orderBy(asc(appointments.appointmentDate)).orderBy(asc(appointments.appointmentTime));
     
     // Filter by date if provided (client-side filter for simplicity)
     if (date) {

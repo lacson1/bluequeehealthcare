@@ -365,8 +365,97 @@ Content-Type: application/json
 
 ## Support
 
+## Technical Details
+
+### How the Tab System Works
+
+The tab system uses a database-driven configuration system that allows dynamic tab management:
+
+1. **Tab Configurations**: Stored in `tab_configs` table
+2. **Tab Presets**: Pre-configured layouts stored in `tab_presets` table
+3. **Tab Registry**: System tabs are registered in `dynamic-tab-registry.tsx`
+4. **Dynamic Renderer**: Tabs are rendered dynamically based on configuration
+
+### Tab Content Types
+
+- **`markdown`**: Markdown content tabs (custom tabs)
+- **`builtin_component`**: System components (Overview, Visits, etc.)
+- **`query_widget`**: Database query widgets (coming soon)
+- **`iframe`**: Embedded iframe content (coming soon)
+
+### File Locations
+
+- **Tab Configurations Seed**: `server/seedTabConfigs.ts`
+- **Tab Registry**: `client/src/components/patient-tabs/dynamic-tab-registry.tsx`
+- **Tab Manager Component**: `client/src/components/tab-manager.tsx`
+- **Dynamic Tab Renderer**: `client/src/components/patient-tabs/DynamicTabRenderer.tsx`
+- **API Routes**: `server/routes/tab-configs.ts`
+- **Database Schema**: `shared/schema.ts` (search for `tabConfigs`)
+
+### Adding Consultation Forms as Tabs
+
+Consultation forms are available under the **"Specialty" tab** (system tab key: `consultation`). To add individual form tabs:
+
+```javascript
+POST /api/tab-configs
+{
+  "scope": "user",
+  "key": "hypertension-form",
+  "label": "Hypertension",
+  "icon": "Heart",
+  "contentType": "builtin_component",
+  "settings": {
+    "componentName": "ConsultationForm",
+    "formId": 1  // Specific form ID
+  },
+  "isVisible": true,
+  "displayOrder": 165
+}
+```
+
+### Custom Form Integration
+
+To integrate your own forms into tabs:
+
+1. **Create Form Component**: Add to `client/src/components/`
+2. **Register in Tab Registry**: Add to `SYSTEM_TAB_REGISTRY` in `dynamic-tab-registry.tsx`
+3. **Seed Tab Config**: Add to `seedTabConfigs.ts`
+
+### Error Messages Explained
+
+| Error | Meaning | Solution |
+|-------|---------|----------|
+| "Organization context required" | Not logged in or no organization selected | Log in and ensure organization is set |
+| "Validation error" | Missing required fields | Check all required fields are provided |
+| "Cannot delete system default tabs" | Trying to delete built-in tab | You can only hide system tabs, not delete them |
+| "Cannot hide mandatory tab" | Trying to hide required tab | Some tabs are mandatory and always visible |
+| "Cannot hide last visible tab" | Trying to hide the only visible tab | At least one tab must remain visible |
+
+### Troubleshooting Additional Issues
+
+#### Tabs Not Loading
+**Problem:** Tab Manager shows "Loading tabs..." indefinitely
+
+**Solution:**
+1. Refresh the browser page
+2. Check your internet connection
+3. Clear browser cache
+4. Check server logs for "Successfully seeded X system tabs"
+5. Verify database: System tabs should exist in `tab_configs` table
+
+#### Cannot Add Tabs?
+1. **Check authentication**: You must be logged in
+2. **Check organization context**: Tab creation requires organization context
+3. **Check console errors**: Open browser DevTools → Console
+
+#### Tabs Showing Empty?
+1. **Check tab content type**: Ensure proper content type is set
+2. **For custom tabs**: Verify markdown or settings are configured
+3. **For system tabs**: Ensure component name matches registry
+
+---
+
 ### Need Help?
-- **Documentation:** See TAB_SYSTEM_GUIDE.md for technical details
 - **Admin Support:** Contact your system administrator
 - **Bug Reports:** Report issues to development team
 - **Feature Requests:** Submit via feedback form

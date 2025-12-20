@@ -175,14 +175,19 @@ export default function Pharmacy() {
           {/* Inventory Tab */}
           <TabsContent value="inventory" className="flex-1 overflow-hidden m-0 p-0">
             <div className="h-full flex flex-col">
-              <div className="px-6 py-4 bg-white border-b flex items-center justify-between">
+              <div className="px-6 py-4 bg-white border-b flex-shrink-0 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-slate-800">Medicine Inventory</h3>
+                  <h3 className="text-lg font-semibold text-slate-800">Medicine Inventory</h3>
+                  <p className="text-sm text-slate-600 hidden sm:block">Manage medication stock and inventory</p>
                 </div>
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                   <DialogTrigger asChild>
-                    <Button title="Add Medicine">
+                    <Button 
+                      title="Add Medicine"
+                      className="flex items-center gap-2"
+                    >
                       <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Add Medicine</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">

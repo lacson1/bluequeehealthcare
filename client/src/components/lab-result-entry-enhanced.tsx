@@ -22,7 +22,8 @@ import {
   Calendar,
   FileText,
   TrendingUp,
-  Activity
+  Activity,
+  Mail
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -192,7 +193,27 @@ export default function LabResultEntryEnhanced({
                     </h3>
                     <p className="text-sm text-gray-600">
                       DOB: {format(new Date(selectedPatient.dateOfBirth), 'PP')} | 
-                      Phone: {selectedPatient.phone}
+                      Phone: {selectedPatient.phone ? (
+                        <a 
+                          href={`tel:${selectedPatient.phone.replace(/\s+/g, '')}`}
+                          className="text-blue-600 hover:text-blue-700 hover:underline transition-colors cursor-pointer"
+                          title={`Call ${selectedPatient.phone}`}
+                        >
+                          {selectedPatient.phone}
+                        </a>
+                      ) : 'N/A'}
+                      {selectedPatient.email && (
+                        <>
+                          {' | Email: '}
+                          <a 
+                            href={`mailto:${selectedPatient.email}`}
+                            className="text-blue-600 hover:text-blue-700 hover:underline transition-colors cursor-pointer"
+                            title={`Send email to ${selectedPatient.email}`}
+                          >
+                            {selectedPatient.email}
+                          </a>
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>

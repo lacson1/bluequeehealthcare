@@ -324,7 +324,7 @@ export default function ConsentCapture({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {staff.map((member: any) => (
+                            {(Array.isArray(staff) ? staff : []).map((member: any) => (
                               <SelectItem key={member.id} value={member.id.toString()}>
                                 {member.title} {member.firstName} {member.lastName} ({member.role})
                               </SelectItem>

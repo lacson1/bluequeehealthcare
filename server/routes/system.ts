@@ -1,6 +1,9 @@
 import { Router } from "express";
-import { authenticateToken, type AuthRequest } from "../middleware/auth";
+import { authenticateToken, requireRole, type AuthRequest } from "../middleware/auth";
 import type { Response } from "express";
+import { db } from "../db";
+import { auditLogs, users } from "@shared/schema";
+import { eq, desc, and } from "drizzle-orm";
 
 const router = Router();
 
@@ -185,6 +188,68 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         details: error.message,
         hasApiKey: !!process.env.ANTHROPIC_API_KEY
       });
+    }
+  });
+
+  // =====================
+  // AUDIT LOGS ROUTES
+  // =====================
+
+  // Get audit logs (Admin only)
+  router.get('/audit-logs', authenticateToken, requireRole('admin'), async (req: AuthRequest, res: Response) => {
+    try {
+      const { limit = '100', userId, action, entityType, startDate, endDate } = req.query;
+      const limitNum = parseInt(limit as string) || 100;
+
+      const conditions = [];
+      
+      if (userId) {
+        conditions.push(eq(auditLogs.userId, parseInt(userId as string)));
+      }
+      
+      if (action) {
+        conditions.push(eq(auditLogs.action, action as string));
+      }
+      
+      if (entityType) {
+        conditions.push(eq(auditLogs.entityType, entityType as string));
+      }
+      
+      if (startDate) {
+        conditions.push(sql`${auditLogs.timestamp} >= ${new Date(startDate as string)}`);
+      }
+      
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        conditions.push(sql`${auditLogs.timestamp} <= ${end}`);
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      const logs = await db
+        .select({
+          id: auditLogs.id,
+          userId: auditLogs.userId,
+          username: users.username,
+          action: auditLogs.action,
+          entityType: auditLogs.entityType,
+          entityId: auditLogs.entityId,
+          details: auditLogs.details,
+          timestamp: auditLogs.timestamp,
+          ipAddress: auditLogs.ipAddress,
+          userAgent: auditLogs.userAgent
+        })
+        .from(auditLogs)
+        .leftJoin(users, eq(auditLogs.userId, users.id))
+        .where(whereClause)
+        .orderBy(desc(auditLogs.timestamp))
+        .limit(limitNum);
+
+      return res.json(logs);
+    } catch (error) {
+      console.error('Error fetching audit logs:', error);
+      return res.status(500).json({ message: 'Failed to fetch audit logs' });
     }
   });
 

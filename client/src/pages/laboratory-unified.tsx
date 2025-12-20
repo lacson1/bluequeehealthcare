@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,10 @@ import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { LabOrdersTab } from "@/components/lab/lab-orders-tab";
+import { LabResultsTab } from "@/components/lab/lab-results-tab";
+import { LabAnalyticsSection } from "@/components/lab/lab-analytics-section";
+import { LabFiltersSection } from "@/components/lab/lab-filters-section";
 import {
   TestTube,
   Clock,
@@ -37,12 +41,16 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  List,
+  Grid3x3,
+  LayoutGrid
 } from "lucide-react";
 import { format } from "date-fns";
 import LetterheadService from "@/services/letterhead-service";
 import { apiRequest } from "@/lib/queryClient";
 import { useApiErrorHandler } from "@/hooks/useApiErrorHandler";
+import { t } from "@/lib/i18n";
 
 // Form schemas
 const labOrderSchema = z.object({
@@ -160,8 +168,24 @@ export default function LaboratoryUnified() {
   // Selection state for results
   const [selectedResults, setSelectedResults] = useState<Set<number>>(new Set());
   const [selectedOrders, setSelectedOrders] = useState<Set<number>>(new Set());
+  
+  // View mode state
+  const [viewMode, setViewMode] = useState<"list" | "grid" | "compact">("compact");
+  
+  // Pagination state
+  const [currentPageOrders, setCurrentPageOrders] = useState(1);
+  const [currentPageResults, setCurrentPageResults] = useState(1);
 
   const queryClient = useQueryClient();
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPageOrders(1);
+  }, [searchTerm, selectedPatient, statusFilter, categoryFilter]);
+
+  useEffect(() => {
+    setCurrentPageResults(1);
+  }, [searchTerm, selectedPatient, categoryFilter]);
 
   // Upload existing results mutation
   const uploadExistingMutation = useMutation({
@@ -229,7 +253,7 @@ export default function LaboratoryUnified() {
   };
 
   // Print selected results
-  const printSelectedResults = () => {
+  const printSelectedResults = async () => {
     if (selectedResults.size === 0) {
       toast({
         title: "No results selected",
@@ -239,19 +263,33 @@ export default function LaboratoryUnified() {
       return;
     }
 
-    const selectedResultData = filteredResults.filter(result => selectedResults.has(result.id));
-    const combinedPrintContent = generateCombinedResultsPrintContent(selectedResultData);
-
-    const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes');
-    if (printWindow) {
-      printWindow.document.write(combinedPrintContent);
-      printWindow.document.close();
-      printWindow.focus();
+    try {
+      const selectedResultData = filteredResults.filter(result => selectedResults.has(result.id));
+      const combinedPrintContent = generateCombinedResultsPrintContent(selectedResultData);
+      
+      const { openPrintWindowWithLetterhead } = await import('@/utils/organization-print');
+      await openPrintWindowWithLetterhead(
+        combinedPrintContent.replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/, '').replace(/<\/body>[\s\S]*<\/html>/, ''),
+        `Laboratory Results Report - ${selectedResultData.length} Result${selectedResultData.length !== 1 ? 's' : ''}`,
+        {
+          documentId: `LAB-RESULTS-${Date.now()}`,
+          organizationId: userProfile?.organizationId,
+          organization: organizationData,
+          pageSize: 'A4',
+          autoPrint: false
+        }
+      );
+    } catch (error: any) {
+      toast({
+        title: "Print Error",
+        description: error?.message || "Unable to open print window. Please allow popups.",
+        variant: "destructive"
+      });
     }
   };
 
   // Print selected orders
-  const printSelectedOrders = () => {
+  const printSelectedOrders = async () => {
     if (selectedOrders.size === 0) {
       toast({
         title: "No orders selected",
@@ -261,28 +299,61 @@ export default function LaboratoryUnified() {
       return;
     }
 
-    const selectedOrderData = filteredOrders.filter(order => selectedOrders.has(order.id));
-    const combinedPrintContent = generateCombinedOrdersPrintContent(selectedOrderData);
-
-    const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes');
-    if (printWindow) {
-      printWindow.document.write(combinedPrintContent);
-      printWindow.document.close();
-      printWindow.focus();
+    try {
+      const selectedOrderData = filteredOrders.filter(order => selectedOrders.has(order.id));
+      const combinedPrintContent = generateCombinedOrdersPrintContent(selectedOrderData);
+      
+      const { openPrintWindowWithLetterhead } = await import('@/utils/organization-print');
+      await openPrintWindowWithLetterhead(
+        combinedPrintContent.replace(/<!DOCTYPE html>[\s\S]*?<body[^>]*>/, '').replace(/<\/body>[\s\S]*<\/html>/, ''),
+        `Laboratory Orders - ${selectedOrderData.length} Order${selectedOrderData.length !== 1 ? 's' : ''}`,
+        {
+          documentId: `LAB-ORDERS-${Date.now()}`,
+          organizationId: userProfile?.organizationId,
+          organization: organizationData,
+          pageSize: 'A4',
+          autoPrint: true
+        }
+      );
+    } catch (error: any) {
+      console.error('Print error:', error);
+      toast({
+        title: "Print Error",
+        description: error?.message || "Failed to generate print content",
+        variant: "destructive"
+      });
     }
   };
 
   // Print functionality
   const handlePrintOrder = (order: LabOrder) => {
-    const printContent = generateLabOrderPrintContent(order);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 250);
+    try {
+      const printContent = generateLabOrderPrintContent(order);
+      const printWindow = window.open('', '_blank', 'width=800,height=900');
+      if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        // Wait for content to load before printing
+        setTimeout(() => {
+          printWindow.focus();
+          printWindow.print();
+          // Don't close immediately - let user see the print preview
+          // printWindow.close();
+        }, 500);
+      } else {
+        toast({
+          title: "Print Error",
+          description: "Unable to open print window. Please allow popups for this site.",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error('Print error:', error);
+      toast({
+        title: "Print Error",
+        description: error?.message || "Failed to generate print content",
+        variant: "destructive"
+      });
     }
   };
 
@@ -320,15 +391,33 @@ export default function LaboratoryUnified() {
 
   // Enhanced print function with letterhead
   const handlePrintOrderWithLetterhead = (order: LabOrder) => {
-    const printContent = generateLabOrderPrintContent(order);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 250);
+    try {
+      const printContent = generateLabOrderPrintContent(order);
+      const printWindow = window.open('', '_blank', 'width=800,height=900');
+      if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        // Wait for content to load before printing
+        setTimeout(() => {
+          printWindow.focus();
+          printWindow.print();
+          // Don't close immediately - let user see the print preview
+          // printWindow.close();
+        }, 500);
+      } else {
+        toast({
+          title: "Print Error",
+          description: "Unable to open print window. Please allow popups for this site.",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error('Print error:', error);
+      toast({
+        title: "Print Error",
+        description: error?.message || "Failed to generate print content",
+        variant: "destructive"
+      });
     }
   };
 
@@ -532,12 +621,15 @@ export default function LaboratoryUnified() {
     `;
   };
 
-  // Data queries
-  const { data: labOrders = [], isLoading: ordersLoading } = useQuery<LabOrder[]>({
-    queryKey: ['/api/lab-orders/enhanced']
+  // Data queries with optimized caching
+  const { data: labOrders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery<LabOrder[]>({
+    queryKey: ['/api/lab-orders/enhanced'],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
-  // Fetch items for each lab order
+  // Fetch items for each lab order - only when needed
   const labOrdersWithItems = useQuery({
     queryKey: ['/api/lab-orders-with-items'],
     queryFn: async () => {
@@ -555,39 +647,66 @@ export default function LaboratoryUnified() {
       );
       return ordersWithItems;
     },
-    enabled: labOrders.length > 0
+    enabled: labOrders.length > 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
+  // Static data - cache for longer
   const { data: patients = [] } = useQuery<Patient[]>({
-    queryKey: ['/api/patients']
+    queryKey: ['/api/patients'],
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: labTests = [] } = useQuery<LabTest[]>({
-    queryKey: ['/api/lab-tests']
+    queryKey: ['/api/lab-tests'],
+    staleTime: 10 * 60 * 1000, // 10 minutes - static data
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: labResultsResponse } = useQuery({
-    queryKey: ['/api/lab-results/reviewed']
+    queryKey: ['/api/lab-results/reviewed'],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Extract the data array from the API response
   const labResults = labResultsResponse?.data || [];
 
   const { data: analytics } = useQuery({
-    queryKey: ['/api/lab-analytics']
+    queryKey: ['/api/lab-analytics'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
+  // User profile - cache for longer
   const { data: userProfile } = useQuery({
-    queryKey: ['/api/profile']
+    queryKey: ['/api/profile'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
+  // Organizations - static data
   const { data: organizations = [] } = useQuery({
-    queryKey: ['/api/organizations']
+    queryKey: ['/api/organizations'],
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: organizationData } = useQuery({
     queryKey: ['/api/organizations', (userProfile as any)?.organizationId],
-    enabled: !!(userProfile as any)?.organizationId
+    enabled: !!(userProfile as any)?.organizationId,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Forms
@@ -618,11 +737,41 @@ export default function LaboratoryUnified() {
     mutationFn: async (data: any) => {
       return apiRequest(`/api/patients/${data.patientId}/lab-orders`, 'POST', data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/lab-orders/enhanced'] });
+    onSuccess: async (response) => {
+      // Invalidate and refetch queries
+      await queryClient.invalidateQueries({ queryKey: ['/api/lab-orders/enhanced'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/lab-orders-with-items'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/lab-analytics'] });
+      
+      // Ensure we're on the orders tab
+      setActiveTab('orders');
+      
+      // Clear any filters that might hide the new order
+      setStatusFilter('all');
+      setCategoryFilter('all');
+      setSelectedPatient(null);
+      setSearchTerm('');
+      
       setShowOrderDialog(false);
       orderForm.reset();
-      toast({ title: "Lab order created successfully" });
+      
+      // Show success message with location info
+      const orderData = await response.json();
+      toast({ 
+        title: "Lab order created successfully!",
+        description: `Order #${orderData.id || 'created'} is now visible in the Lab Orders tab.`,
+        duration: 5000
+      });
+      
+      // Refetch orders to show the new one
+      queryClient.refetchQueries({ queryKey: ['/api/lab-orders/enhanced'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to create lab order",
+        description: error?.message || "Please try again",
+        variant: "destructive"
+      });
     }
   });
 
@@ -797,694 +946,272 @@ export default function LaboratoryUnified() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <>
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 0.5in;
+          }
+          body {
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .no-print {
+            display: none !important;
+          }
+          /* Ensure all content is visible */
+          * {
+            visibility: visible !important;
+            color: #000 !important;
+            background: white !important;
+          }
+          /* Show cards and content */
+          [class*="Card"],
+          [class*="card"],
+          [class*="space-y"],
+          [class*="grid"],
+          [class*="flex"] {
+            display: block !important;
+            visibility: visible !important;
+            page-break-inside: avoid;
+          }
+          /* Table styles */
+          table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+          }
+          th, td {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+            text-align: left !important;
+          }
+          /* Hide interactive elements */
+          button:not(.print-visible),
+          [role="button"]:not(.print-visible),
+          .no-print,
+          nav,
+          header:not(.print-visible) {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <div className="p-4 max-w-7xl mx-auto space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-xl">
-              <Microscope className="w-8 h-8 text-blue-600" />
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Microscope className="w-6 h-6 text-blue-600" />
             </div>
             Laboratory Management
           </h1>
-          <p className="text-gray-600 mt-1">Comprehensive lab orders, results, and analytics</p>
+          <p className="text-sm text-gray-600 mt-0.5">Comprehensive lab orders, results, and analytics</p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button
             onClick={() => setShowOrderDialog(true)}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all"
+            size="default"
             title="New Lab Order"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
           </Button>
           <Button
             onClick={uploadExistingResults}
             variant="outline"
-            className="border-green-600 text-green-600 hover:bg-green-50"
+            size="sm"
+            className="text-gray-600 hover:text-gray-900 h-8 px-2 text-xs"
           >
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Existing Results
+            <Upload className="w-3.5 h-3.5 mr-1" />
+            Upload
           </Button>
         </div>
       </div>
 
-      {/* Analytics Cards */}
-      {analytics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">{(analytics as any).metrics?.totalOrders || ''}</p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <TestTube className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold text-green-600">{(analytics as any).metrics?.completedOrders || ''}</p>
-                </div>
-                <div className="p-3 bg-green-100 rounded-full">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending</p>
-                  <p className="text-2xl font-bold text-yellow-600">{(analytics as any).metrics?.pendingOrders || ''}</p>
-                </div>
-                <div className="p-3 bg-yellow-100 rounded-full">
-                  <Clock className="w-6 h-6 text-yellow-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Critical Results</p>
-                  <p className="text-2xl font-bold text-red-600">{(analytics as any).metrics?.criticalResults || ''}</p>
-                </div>
-                <div className="p-3 bg-red-100 rounded-full">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Search & Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            {/* Search Bar */}
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search patients, tests, or order numbers..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-10"
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCustomViewDialog(true)}
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Custom View
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedPatient(null);
-                  setStatusFilter('all');
-                  setCategoryFilter('all');
-                }}
-              >
-                Clear
-              </Button>
-            </div>
-
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Select value={selectedPatient?.toString() || "all"} onValueChange={(value) => setSelectedPatient(value === "all" ? null : Number.parseInt(value, 10))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Patients" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  <SelectItem value="all">All Patients</SelectItem>
-                  {patients.map((patient) => (
-                    <SelectItem key={patient.id} value={patient.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-blue-600">
-                            {patient.firstName.charAt(0)}{patient.lastName.charAt(0)}
-                          </span>
-                        </div>
-                        <span>{patient.firstName} {patient.lastName}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                      Pending
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="processing">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500" />
-                      Processing
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="completed">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      Completed
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="cancelled">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-red-500" />
-                      Cancelled
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Specialties" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  <SelectItem value="all">All Specialties</SelectItem>
-                  {testCategories.sort().map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <LabFiltersSection
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedPatient={selectedPatient}
+        onPatientChange={setSelectedPatient}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
+        patients={patients}
+        testCategories={testCategories}
+        onShowCustomView={() => setShowCustomViewDialog(true)}
+        onClearFilters={() => {
+          setSearchTerm('');
+          setSelectedPatient(null);
+          setStatusFilter('all');
+          setCategoryFilter('all');
+        }}
+      />
 
       {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="orders" className="flex items-center gap-2">
-            <FlaskRound className="w-4 h-4" />
-            Lab Orders
-          </TabsTrigger>
-          <TabsTrigger value="results" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Results
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
+        <div className="flex items-center justify-between">
+          <TabsList className="grid w-auto grid-cols-3 h-10">
+            <TabsTrigger value="orders" className="flex items-center gap-2 text-sm">
+              <FlaskRound className="w-4 h-4" />
+              Lab Orders
+              {filteredOrders.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {filteredOrders.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="results" className="flex items-center gap-2 text-sm">
+              <FileText className="w-4 h-4" />
+              Results
+              {filteredResults.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {filteredResults.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2 text-sm">
+              <BarChart3 className="w-4 h-4" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
+          <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1 border rounded-md p-1 bg-gray-50">
+              <Button
+                variant={viewMode === "compact" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("compact")}
+                className={`h-7 px-2 ${viewMode === "compact" ? "bg-blue-600 text-white hover:bg-blue-700" : ""}`}
+                title="Compact View"
+              >
+                <List className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className={`h-7 px-2 ${viewMode === "list" ? "bg-blue-600 text-white hover:bg-blue-700" : ""}`}
+                title="List View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className={`h-7 px-2 ${viewMode === "grid" ? "bg-blue-600 text-white hover:bg-blue-700" : ""}`}
+                title="Grid View"
+              >
+                <Grid3x3 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ['/api/lab-orders/enhanced'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/lab-orders-with-items'] });
+                queryClient.refetchQueries({ queryKey: ['/api/lab-orders/enhanced'] });
+              }}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              <RefreshCw className="w-4 h-4 mr-1.5" />
+              Refresh
+            </Button>
+          </div>
+        </div>
 
         {/* Lab Orders Tab */}
-        <TabsContent value="orders" className="space-y-4">
-          {ordersLoading ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600">Loading lab orders...</p>
-              </CardContent>
-            </Card>
-          ) : filteredOrders.length === 0 ? (
-            <Card>
-              <CardContent className="p-4">
-                <NoLabOrders onCreate={() => setShowOrderDialog(true)} />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {/* Selection Toolbar */}
-              <Card className="bg-blue-50 border-blue-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={selectedOrders.size === filteredOrders.length && filteredOrders.length > 0}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              selectAllOrders();
-                            } else {
-                              clearOrderSelection();
-                            }
-                          }}
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          Select All ({filteredOrders.length})
-                        </span>
-                      </div>
-                      {selectedOrders.size > 0 && (
-                        <Badge variant="secondary">
-                          {selectedOrders.size} selected
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {selectedOrders.size > 0 && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={printSelectedOrders}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            <Printer className="w-4 h-4 mr-2" />
-                            Print Selected ({selectedOrders.size})
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={clearOrderSelection}
-                          >
-                            Clear Selection
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-4">
-                {filteredOrders.map((order) => (
-                  <Card key={order.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            checked={selectedOrders.has(order.id)}
-                            onCheckedChange={() => toggleOrderSelection(order.id)}
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="p-2 bg-blue-50 rounded-lg">
-                                <User className="w-5 h-5 text-blue-600" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">
-                                  {order.patient.title} {order.patient.firstName} {order.patient.lastName}
-                                </h3>
-                                <p className="text-sm text-gray-600">
-                                  Order #{order.id} • {format(new Date(order.createdAt), 'MMM dd, yyyy')}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              <Badge className={getStatusColor(order.status)} variant="outline">
-                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                              </Badge>
-                              {Array.isArray(order.items) && order.items.length > 0 && order.items[0] && order.items[0].priority && (
-                                <Badge className={getPriorityColor(order.items[0].priority)} variant="outline">
-                                  {order.items[0].priority.charAt(0).toUpperCase() + order.items[0].priority.slice(1)}
-                                </Badge>
-                              )}
-                              <Badge variant="secondary">
-                                {Array.isArray(order.items) ? order.items.length : 0} test{(Array.isArray(order.items) ? order.items.length : 0) !== 1 ? 's' : ''}
-                              </Badge>
-                            </div>
-
-                            <div className="space-y-3">
-                              {Array.isArray(order.items) && order.items.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-md shadow-sm">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <div className="p-1.5 bg-blue-100 rounded-full">
-                                        <TestTube className="w-4 h-4 text-blue-600" />
-                                      </div>
-                                      <div>
-                                        <p className="font-semibold text-base text-gray-900">{item.labTest?.name || item.testName || 'Full Blood Count (FBC)'}</p>
-                                        <p className="text-xs text-blue-600 font-medium">{item.labTest?.category || item.testCategory || 'Hematology'}</p>
-                                      </div>
-                                    </div>
-                                    {item.labTest?.referenceRange || item.referenceRange ? (
-                                      <p className="text-xs text-gray-700 mt-1 bg-white p-1.5 rounded">
-                                        <strong>Range:</strong> {item.labTest?.referenceRange || item.referenceRange}
-                                      </p>
-                                    ) : null}
-                                  </div>
-
-                                  <div className="flex items-center gap-3">
-                                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 px-2 py-0.5 text-xs font-medium">
-                                      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                                    </Badge>
-
-                                    {item.status === 'pending' && (
-                                      <Button
-                                        size="sm"
-                                        onClick={() => openResultDialog(item)}
-                                        className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 text-sm shadow-md"
-                                      >
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        Add Result
-                                      </Button>
-                                    )}
-
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handlePrintOrder(order)}
-                                      className="text-blue-600 hover:text-blue-800 border-blue-300"
-                                    >
-                                      <Printer className="w-3 h-3 mr-1" />
-                                      Print
-                                    </Button>
-
-                                    {item.result && (
-                                      <div className="text-right bg-white p-2 rounded">
-                                        <p className="text-sm font-medium text-gray-900">{item.result}</p>
-                                        {item.resultDate && (
-                                          <p className="text-xs text-gray-500">
-                                            {format(new Date(item.resultDate), 'MMM dd')}
-                                          </p>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-
-                            {order.notes && (
-                              <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                                <p className="text-sm text-gray-700">
-                                  <strong>Notes:</strong> {order.notes}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setShowViewDialog(true);
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePrintOrderWithLetterhead(order)}
-                          >
-                            <Printer className="w-4 h-4 mr-1" />
-                            Print
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+        <TabsContent value="orders" className="space-y-2 mt-3">
+          <LabOrdersTab
+            orders={labOrders}
+            filteredOrders={filteredOrders}
+            ordersLoading={ordersLoading}
+            viewMode={viewMode}
+            selectedOrders={selectedOrders}
+            onToggleOrderSelection={toggleOrderSelection}
+            onSelectAllOrders={selectAllOrders}
+            onClearOrderSelection={clearOrderSelection}
+            onPrintSelectedOrders={printSelectedOrders}
+            onViewOrder={(order) => {
+              setSelectedOrder(order);
+              setShowViewDialog(true);
+            }}
+            onPrintOrder={handlePrintOrderWithLetterhead}
+            onAddResult={openResultDialog}
+            onCreateOrder={() => setShowOrderDialog(true)}
+            getStatusColor={getStatusColor}
+            getPriorityColor={getPriorityColor}
+            customViewSettings={customViewSettings}
+            currentPage={currentPageOrders}
+            onPageChange={setCurrentPageOrders}
+          />
         </TabsContent>
 
+        {/* OLD ORDERS TAB CODE REMOVED - Now using LabOrdersTab component */}
+
         {/* Results Tab */}
-        <TabsContent value="results" className="space-y-4">
-          {filteredResults.length === 0 ? (
-            <Card>
-              <CardContent className="p-4">
-                <EmptyState
-                  icon={FileText}
-                  title="No lab results found"
-                  description="Lab results will appear here once orders are processed"
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {/* Results Selection Toolbar */}
-              <Card className="bg-green-50 border-green-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={selectedResults.size === filteredResults.length && filteredResults.length > 0}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              selectAllResults();
-                            } else {
-                              clearResultSelection();
-                            }
-                          }}
-                        />
-                        <span className="text-sm font-medium text-gray-700">
-                          Select All ({filteredResults.length})
-                        </span>
-                      </div>
-                      {selectedResults.size > 0 && (
-                        <Badge variant="secondary">
-                          {selectedResults.size} selected
-                        </Badge>
-                      )}
-                    </div>
+        <TabsContent value="results" className="space-y-2 mt-3">
+          <LabResultsTab
+            results={labResults}
+            filteredResults={filteredResults}
+            selectedResults={selectedResults}
+            onToggleResultSelection={toggleResultSelection}
+            onSelectAllResults={selectAllResults}
+            onClearResultSelection={clearResultSelection}
+            onPrintSelectedResults={printSelectedResults}
+            onViewResult={(result) => {
+              const resultContent = generateLabResultPrintContent(result);
+              const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes');
+              if (printWindow) {
+                printWindow.document.write(resultContent);
+                printWindow.document.close();
+                printWindow.focus();
+              }
+            }}
+            onPrintResult={(result) => {
+              const resultContent = generateLabResultPrintContent(result);
+              const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes');
+              if (printWindow) {
+                printWindow.document.write(resultContent);
+                printWindow.document.close();
+                printWindow.focus();
+              }
+            }}
+            generateLabResultPrintContent={generateLabResultPrintContent}
+            customViewSettings={customViewSettings}
+            currentPage={currentPageResults}
+            onPageChange={setCurrentPageResults}
+          />
+        </TabsContent>
 
-                    <div className="flex items-center gap-2">
-                      {selectedResults.size > 0 && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={printSelectedResults}
-                            className="bg-green-600 hover:bg-green-700 text-white"
-                          >
-                            <Printer className="w-4 h-4 mr-2" />
-                            Print Selected ({selectedResults.size})
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={clearResultSelection}
-                          >
-                            Clear Selection
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-4">
-                {filteredResults.map((result) => (
-                  <Card key={result.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            checked={selectedResults.has(result.id)}
-                            onCheckedChange={() => toggleResultSelection(result.id)}
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="p-2 bg-green-50 rounded-lg">
-                                <CheckCircle className="w-5 h-5 text-green-600" />
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">
-                                  {result.patientName || 'Unknown Patient'}
-                                </h3>
-                                <p className="text-sm text-gray-600">
-                                  {result.testName || 'Unknown Test'} • {result.category || 'General'}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div>
-                                <p className="text-sm font-medium text-gray-600">Result</p>
-                                <p className="text-lg font-semibold text-gray-900">{result.result}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-600">Reference Range</p>
-                                <p className="text-sm text-gray-700">{result.normalRange || 'N/A'}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-600">Status</p>
-                                <Badge className={
-                                  result.status === 'normal' ? 'bg-green-100 text-green-800' :
-                                    result.status === 'abnormal' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-red-100 text-red-800'
-                                }>
-                                  {result.status.charAt(0).toUpperCase() + result.status.slice(1)}
-                                </Badge>
-                              </div>
-                            </div>
-
-                            {result.notes && (
-                              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-gray-700">
-                                  <strong>Notes:</strong> {result.notes}
-                                </p>
-                              </div>
-                            )}
-
-                            {result.reviewedBy && (
-                              <div className="mt-2 text-xs text-gray-500">
-                                Reviewed by {result.reviewedBy} on {result.reviewedAt && format(new Date(result.reviewedAt), 'MMM dd, yyyy')}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              // Generate and show preview for review
-                              const resultContent = generateLabResultPrintContent(result);
-                              const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes');
-                              if (printWindow) {
-                                printWindow.document.write(resultContent);
-                                printWindow.document.close();
-                                printWindow.focus();
-                              }
-                            }}
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Preview & Print
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const resultContent = generateLabResultPrintContent(result);
-                              const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes');
-                              if (printWindow) {
-                                printWindow.document.write(resultContent);
-                                printWindow.document.close();
-                                printWindow.focus();
-                              }
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Result
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-2 mt-3">
+          <LabAnalyticsSection
+            analytics={analytics}
+            testCategories={testCategories}
+            labOrders={labOrders}
+          />
         </TabsContent>
       </Tabs>
 
-      {/* Analytics Section */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-md">
-            <BarChart3 className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
-            <p className="text-gray-600">Laboratory performance insights and metrics</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Test Volume by Category
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {testCategories.slice(0, 5).map((category) => {
-                  const categoryCount = labOrders.reduce((count, order) =>
-                    count + (order.items?.filter(item => item.labTest?.category === category)?.length || 0), 0
-                  );
-                  const percentage = labOrders.length > 0 ? (categoryCount / labOrders.length * 100) : 0;
-
-                  return (
-                    <div key={category} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium">{category}</span>
-                        <span className="text-gray-600">{categoryCount} tests</span>
-                      </div>
-                      <div className="h-2 bg-gray-200 rounded-full">
-                        <div
-                          className="h-2 bg-blue-600 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min(percentage, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {labOrders.slice(0, 5).map((order) => (
-                  <div key={order.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="p-2 bg-blue-100 rounded-full">
-                      <TestTube className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        New order for {order.patient.firstName} {order.patient.lastName}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {format(new Date(order.createdAt), 'MMM dd, yyyy HH:mm')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
       {/* New Lab Order Dialog */}
       <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New Lab Order</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-semibold">Create New Lab Order</DialogTitle>
+            <DialogDescription className="text-sm text-gray-600">
               Select a patient and lab tests to create a new order
             </DialogDescription>
           </DialogHeader>
 
           <Form {...orderForm}>
-            <form onSubmit={orderForm.handleSubmit(handleOrderSubmit)} className="space-y-6">
+            <form onSubmit={orderForm.handleSubmit(handleOrderSubmit)} className="space-y-4">
               <FormField
                 control={orderForm.control}
                 name="patientId"
@@ -1546,12 +1273,12 @@ export default function LaboratoryUnified() {
                     {/* Search and Category Filter Controls */}
                     <div className="space-y-3 mb-4">
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
                         <Input
                           placeholder="Search tests by name or category..."
                           value={testSearchQuery}
                           onChange={(e) => setTestSearchQuery(e.target.value)}
-                          className="pl-10"
+                          className="pl-10 h-10"
                         />
                       </div>
 
@@ -1630,23 +1357,26 @@ export default function LaboratoryUnified() {
                     </div>
 
                     {/* Test Selection with Collapsible Categories */}
-                    <div className="max-h-80 overflow-y-auto border rounded-lg p-4 space-y-3">
+                    <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg bg-white">
                       {Object.entries(groupedTests).map(([category, tests]) => (
-                        <div key={category} className="space-y-2">
+                        <div key={category} className="border-b border-gray-100 last:border-b-0">
                           <div
-                            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+                            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-3 transition-colors"
                             onClick={() => toggleCategoryCollapse(category)}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-1">
                               {collapsedCategories[category] ? (
-                                <ChevronRight className="w-4 h-4 text-gray-500" />
+                                <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                               ) : (
-                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                                <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
                               )}
-                              <h4 className="font-medium text-gray-900">{category}</h4>
-                              <Badge variant="secondary" className="text-xs">
-                                {tests.length}
-                              </Badge>
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <TestTube className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                                <h4 className="font-semibold text-sm text-gray-900 truncate">{category}</h4>
+                                <Badge variant="secondary" className="text-xs px-1.5 py-0 flex-shrink-0">
+                                  {tests.length} {tests.length === 1 ? 'test' : 'tests'}
+                                </Badge>
+                              </div>
                             </div>
                             <Button
                               type="button"
@@ -1661,15 +1391,19 @@ export default function LaboratoryUnified() {
                                   field.onChange([...field.value, ...categoryTests]);
                                 }
                               }}
+                              className="text-xs h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                             >
                               Select All
                             </Button>
                           </div>
 
                           {!collapsedCategories[category] && (
-                            <div className="pl-6 space-y-2">
+                            <div className="bg-gray-50/50 pl-8 pr-3 py-2 space-y-1">
                               {tests.map((test) => (
-                                <div key={test.id} className="flex items-center space-x-2 py-1">
+                                <div 
+                                  key={test.id} 
+                                  className="flex items-start gap-3 p-2 rounded hover:bg-white transition-colors group"
+                                >
                                   <Checkbox
                                     id={`test-${test.id}`}
                                     checked={field.value.some(t => t.id === test.id)}
@@ -1680,18 +1414,30 @@ export default function LaboratoryUnified() {
                                         field.onChange(field.value.filter(t => t.id !== test.id));
                                       }
                                     }}
+                                    className="mt-0.5"
                                   />
                                   <label
                                     htmlFor={`test-${test.id}`}
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
+                                    className="flex-1 cursor-pointer min-w-0"
                                   >
-                                    {test.name}
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                                          {test.name}
+                                        </p>
+                                        {test.description && (
+                                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                                            {test.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {test.units && (
+                                        <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                                          {test.units}
+                                        </span>
+                                      )}
+                                    </div>
                                   </label>
-                                  {test.description && (
-                                    <span className="text-xs text-gray-500 truncate max-w-32">
-                                      {test.description}
-                                    </span>
-                                  )}
                                 </div>
                               ))}
                             </div>
@@ -1721,9 +1467,9 @@ export default function LaboratoryUnified() {
 
                     {/* Selected Tests Summary */}
                     {field.value.length > 0 && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-blue-900">
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-blue-900">
                             {field.value.length} test{field.value.length === 1 ? '' : 's'} selected
                           </span>
                           <Button
@@ -1731,20 +1477,20 @@ export default function LaboratoryUnified() {
                             variant="ghost"
                             size="sm"
                             onClick={() => field.onChange([])}
-                            className="text-blue-700 hover:text-blue-900"
+                            className="text-xs h-6 px-2 text-blue-700 hover:text-blue-900 hover:bg-blue-100"
                           >
                             Clear All
                           </Button>
                         </div>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {field.value.slice(0, 3).map((test) => (
-                            <Badge key={test.id} variant="outline" className="text-xs">
+                        <div className="flex flex-wrap gap-1.5">
+                          {field.value.slice(0, 5).map((test) => (
+                            <Badge key={test.id} variant="outline" className="text-xs px-2 py-0.5 bg-white border-blue-300 text-blue-700">
                               {test.name}
                             </Badge>
                           ))}
-                          {field.value.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{field.value.length - 3} more
+                          {field.value.length > 5 && (
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 bg-white border-blue-300 text-blue-700">
+                              +{field.value.length - 5} more
                             </Badge>
                           )}
                         </div>
@@ -1761,7 +1507,7 @@ export default function LaboratoryUnified() {
                 name="clinicalNotes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Clinical Notes</FormLabel>
+                    <FormLabel>{t('notes.clinicalNotes')}</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Enter clinical notes or special instructions..."
@@ -1806,17 +1552,17 @@ export default function LaboratoryUnified() {
 
           {selectedOrderItem && (
             <Form {...resultForm}>
-              <form onSubmit={resultForm.handleSubmit(handleResultSubmit)} className="space-y-6">
+              <form onSubmit={resultForm.handleSubmit(handleResultSubmit)} className="space-y-4">
                 {/* FBC Specific Fields */}
                 {selectedOrderItem.labTest?.name?.toLowerCase().includes('blood count') ||
                   selectedOrderItem.labTest?.name?.toLowerCase().includes('fbc') ? (
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="space-y-3">
+                    <div className="bg-blue-50 p-3 rounded-lg">
                       <h4 className="font-semibold text-blue-900 mb-2">Full Blood Count (FBC) Results</h4>
                       <p className="text-sm text-blue-700">Enter individual component values with units and status</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {/* WBC */}
                       <div className="space-y-2">
                         <label htmlFor="wbc-value" className="text-sm font-medium">White Blood Cells (WBC)</label>
@@ -1900,8 +1646,8 @@ export default function LaboratoryUnified() {
                     </div>
 
                     {/* Clinical Assessment */}
-                    <div className="space-y-4">
-                      <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="space-y-3">
+                      <div className="bg-green-50 p-3 rounded-lg">
                         <h4 className="font-semibold text-green-900 mb-2">Clinical Assessment</h4>
                         <p className="text-sm text-green-700">Review results and provide clinical interpretation</p>
                       </div>
@@ -1975,7 +1721,7 @@ export default function LaboratoryUnified() {
                   </div>
                 ) : (
                   // Generic test result fields
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <FormField
                       control={resultForm.control}
                       name="result"
@@ -2057,9 +1803,9 @@ export default function LaboratoryUnified() {
           </DialogHeader>
 
           {selectedOrder && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Order Header */}
-              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Order ID</p>
                   <p className="text-lg font-semibold">#{selectedOrder.id}</p>
@@ -2097,7 +1843,7 @@ export default function LaboratoryUnified() {
                   <User className="w-5 h-5" />
                   Patient Information
                 </h3>
-                <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg">
+                <div className="grid grid-cols-2 gap-3 p-3 border rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Name</p>
                     <p className="font-medium">{selectedOrder.patient?.firstName} {selectedOrder.patient?.lastName}</p>
@@ -2169,7 +1915,7 @@ export default function LaboratoryUnified() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-500 p-4 text-center">No tests ordered</p>
+                    <p className="text-sm text-gray-500 p-3 text-center">No tests ordered</p>
                   )}
                 </div>
               </div>
@@ -2179,9 +1925,9 @@ export default function LaboratoryUnified() {
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg flex items-center gap-2">
                     <FileText className="w-5 h-5" />
-                    Clinical Notes
+                    {t('notes.clinicalNotes')}
                   </h3>
-                  <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="p-3 bg-blue-50 rounded-lg">
                     <p className="text-sm text-gray-700">{selectedOrder.clinicalNotes}</p>
                   </div>
                 </div>
@@ -2191,7 +1937,7 @@ export default function LaboratoryUnified() {
               {selectedOrder.diagnosis && (
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">Diagnosis</h3>
-                  <div className="p-4 bg-purple-50 rounded-lg">
+                  <div className="p-3 bg-purple-50 rounded-lg">
                     <p className="text-sm text-gray-700">{selectedOrder.diagnosis}</p>
                   </div>
                 </div>
@@ -2200,7 +1946,7 @@ export default function LaboratoryUnified() {
               {/* Ordered By */}
               <div className="space-y-2">
                 <h3 className="font-semibold text-lg">Order Information</h3>
-                <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg">
+                <div className="grid grid-cols-2 gap-3 p-3 border rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Ordered By</p>
                     <p className="font-medium">
@@ -2257,14 +2003,14 @@ export default function LaboratoryUnified() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-4 py-3">
             {/* Display Options */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                 <Eye className="w-4 h-4" />
                 Display Options
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="showPatientInfo"
@@ -2334,14 +2080,14 @@ export default function LaboratoryUnified() {
                     }
                   />
                   <Label htmlFor="showNotes" className="text-sm cursor-pointer">
-                    Clinical Notes
+                    {t('notes.clinicalNotes')}
                   </Label>
                 </div>
               </div>
             </div>
 
             {/* Layout Options */}
-            <div className="space-y-4 border-t pt-4">
+            <div className="space-y-3 border-t pt-3">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Layout Options
@@ -2382,7 +2128,7 @@ export default function LaboratoryUnified() {
             </div>
 
             {/* Quick Presets */}
-            <div className="space-y-4 border-t pt-4">
+            <div className="space-y-3 border-t pt-3">
               <h3 className="text-sm font-semibold text-gray-700">Quick Presets</h3>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -2459,6 +2205,9 @@ export default function LaboratoryUnified() {
             </Button>
             <Button onClick={() => {
               setShowCustomViewDialog(false);
+              // Reset pagination when settings change
+              setCurrentPageOrders(1);
+              setCurrentPageResults(1);
               toast({
                 title: "View settings updated",
                 description: "Your custom view preferences have been applied"
@@ -2471,6 +2220,7 @@ export default function LaboratoryUnified() {
       </Dialog>
 
     </div>
+    </>
   );
 }
 

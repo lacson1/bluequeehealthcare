@@ -104,44 +104,62 @@ router.get('/', authenticateToken, asyncHandler(async (req: AuthRequest, res: Re
       phone: null,
       organization: {
         id: 0,
-        name: 'System Administration',
+        name: 'Demo Clinic',
         type: 'system',
         themeColor: '#DC2626'
       }
     });
   }
 
-  const [user] = await db.select()
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  try {
+    const [user] = await db.select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-  if (!user) {
-    throw ApiError.notFound('User');
+    if (!user) {
+      throw ApiError.notFound('User');
+    }
+
+    // Use currentOrganizationId from session if available, fallback to user's organizationId
+    const currentOrgId = req.user.currentOrganizationId || user.organizationId;
+    let org = null;
+    
+    if (currentOrgId) {
+      try {
+        org = await getOrganizationDetails(currentOrgId);
+      } catch (orgError) {
+        // Log but don't fail if organization lookup fails
+        console.error('Error fetching organization details:', orgError);
+      }
+    }
+
+    return sendSuccess(res, {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      roleId: user.roleId || null, // Include RBAC roleId
+      organizationId: currentOrgId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      title: user.title,
+      email: user.email,
+      phone: user.phone,
+      photoUrl: user.photoUrl,
+      organization: org ? {
+        id: org.id,
+        name: org.name,
+        type: org.type || 'clinic',
+        themeColor: org.themeColor || '#3B82F6'
+      } : null
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw ApiError.databaseError('Failed to fetch user profile');
   }
-
-  // Use currentOrganizationId from session if available, fallback to user's organizationId
-  const currentOrgId = req.user.currentOrganizationId || user.organizationId;
-  const org = currentOrgId ? await getOrganizationDetails(currentOrgId) : null;
-
-  return sendSuccess(res, {
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    organizationId: currentOrgId,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    title: user.title,
-    email: user.email,
-    phone: user.phone,
-    photoUrl: user.photoUrl,
-    organization: org ? {
-      id: org.id,
-      name: org.name,
-      type: org.type || 'clinic',
-      themeColor: org.themeColor || '#3B82F6'
-    } : null
-  });
 }));
 
 /**

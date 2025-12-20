@@ -42,6 +42,8 @@ import {
   AlertTriangle,
   Sparkles
 } from 'lucide-react';
+import { formatDateLong, formatDateMedium, formatDateOfBirth } from '@/lib/date-utils';
+import { t } from '@/lib/i18n';
 
 interface Visit {
   id: number;
@@ -168,7 +170,7 @@ function TimelineItem({ visit, isActive }: { visit: Visit; isActive: boolean }) 
           {visit.visitType || 'General Visit'}
         </p>
         <p className="text-xs text-muted-foreground">
-          {new Date(visit.visitDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          {formatDateMedium(visit.visitDate)}
         </p>
       </div>
       <ChevronRight className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground/50'}`} />
@@ -215,22 +217,22 @@ export default function VisitDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 p-6">
+      <div className="min-h-screen bg-background p-6">
         <div className="max-w-7xl mx-auto">
           {/* Skeleton Header */}
           <div className="animate-pulse space-y-6">
             <div className="flex items-center gap-4">
-              <div className="h-10 w-32 bg-slate-200 rounded-lg" />
-              <div className="h-8 w-48 bg-slate-200 rounded-lg" />
+              <div className="h-10 w-32 bg-muted rounded-lg" />
+              <div className="h-8 w-48 bg-muted rounded-lg" />
             </div>
             
             {/* Hero Skeleton */}
-            <div className="h-64 bg-gradient-to-r from-slate-200 to-slate-100 rounded-3xl" />
+            <div className="h-64 bg-gradient-to-r from-muted to-muted/50 rounded-3xl" />
             
             {/* Cards Skeleton */}
             <div className="grid grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-32 bg-slate-200 rounded-2xl" />
+                <div key={i} className="h-32 bg-muted rounded-2xl" />
               ))}
             </div>
           </div>
@@ -241,16 +243,16 @@ export default function VisitDetail() {
 
   if (!visit || !patient) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex items-center justify-center p-6">
-        <Card className="max-w-md w-full text-center p-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="w-8 h-8 text-amber-600" />
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="max-w-md w-full text-center p-8 shadow-xl border border-border bg-card">
+          <div className="w-16 h-16 bg-warning-light rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-warning" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Visit Not Found</h2>
-          <p className="text-slate-500 mb-6">The requested visit record could not be located in the system.</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Visit Not Found</h2>
+          <p className="text-muted-foreground mb-6">The requested visit record could not be located in the system.</p>
           <Button
             onClick={() => navigate(`/patients/${patientId}`)}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            className="bg-primary hover:bg-primary-hover"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Return to Patient Profile
@@ -260,28 +262,6 @@ export default function VisitDetail() {
     );
   }
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'N/A';
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatShortDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'N/A';
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
 
   const getStatusConfig = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -316,10 +296,10 @@ export default function VisitDetail() {
         };
       default:
         return { 
-          bg: 'bg-slate-500', 
-          text: 'text-slate-700',
-          light: 'bg-slate-50',
-          border: 'border-slate-200',
+          bg: 'bg-muted-foreground', 
+          text: 'text-muted-foreground',
+          light: 'bg-muted',
+          border: 'border-border',
           label: status || 'Unknown',
           icon: Clock 
         };
@@ -336,10 +316,10 @@ export default function VisitDetail() {
   };
 
   const getBMICategory = (bmi: number) => {
-    if (bmi < 18.5) return { text: 'Underweight', color: 'text-blue-600', progress: 25 };
-    if (bmi < 25) return { text: 'Normal', color: 'text-emerald-600', progress: 50 };
-    if (bmi < 30) return { text: 'Overweight', color: 'text-amber-600', progress: 75 };
-    return { text: 'Obese', color: 'text-red-600', progress: 100 };
+    if (bmi < 18.5) return { text: 'Underweight', color: 'text-info', progress: 25 };
+    if (bmi < 25) return { text: 'Normal', color: 'text-success', progress: 50 };
+    if (bmi < 30) return { text: 'Overweight', color: 'text-warning', progress: 75 };
+    return { text: 'Obese', color: 'text-destructive', progress: 100 };
   };
 
   const parseNotesJSON = (notes: string | undefined) => {
@@ -362,13 +342,13 @@ ${'='.repeat(50)}
 
 PATIENT INFORMATION
 Name: ${patient?.firstName} ${patient?.lastName}
-Date of Birth: ${formatShortDate(patient?.dateOfBirth || '')}
+Date of Birth: ${formatDateOfBirth(patient?.dateOfBirth || '')}
 Gender: ${patient?.gender || 'N/A'}
 Contact: ${patient?.phone || 'N/A'}
 
 VISIT DETAILS
 Visit ID: #${visit.id}
-Date: ${formatDate(visit.visitDate)}
+Date: ${formatDateLong(visit.visitDate)}
 Type: ${visit.visitType || 'General Consultation'}
 Status: ${statusConfig.label}
 
@@ -389,7 +369,7 @@ ${visit.diagnosis || 'Not documented'}
 TREATMENT PLAN
 ${visit.treatment || 'Not documented'}
 
-${visit.followUpDate ? `FOLLOW-UP: ${formatDate(visit.followUpDate)}` : ''}
+${visit.followUpDate ? `FOLLOW-UP: ${formatDateLong(visit.followUpDate)}` : ''}
 
 ${'='.repeat(50)}
 Generated: ${new Date().toLocaleString()}
@@ -431,9 +411,9 @@ Generated: ${new Date().toLocaleString()}
   ).slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+    <div className="min-h-screen bg-background">
       {/* Top Actions Bar */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-200/60">
+      <div className="sticky top-0 z-40 bg-card/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -441,24 +421,24 @@ Generated: ${new Date().toLocaleString()}
                 onClick={() => navigate(`/patients/${patientId}`)}
                 variant="ghost"
                 size="sm"
-                className="gap-2 text-slate-600 hover:text-slate-900"
+                className="gap-2 text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Patient
               </Button>
               
-              <div className="h-6 w-px bg-slate-300" />
+              <div className="h-6 w-px bg-border" />
               
               <nav className="flex items-center gap-1.5 text-sm">
-                <button onClick={() => navigate('/patients')} className="text-slate-500 hover:text-primary transition-colors">
+                <button onClick={() => navigate('/patients')} className="text-muted-foreground hover:text-primary transition-colors">
                   Patients
                 </button>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                <button onClick={() => navigate(`/patients/${patientId}`)} className="text-slate-500 hover:text-primary transition-colors">
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                <button onClick={() => navigate(`/patients/${patientId}`)} className="text-muted-foreground hover:text-primary transition-colors">
                   {patient.firstName} {patient.lastName}
                 </button>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-slate-900 font-medium">Visit #{visit.id}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-foreground font-medium">Visit #{visit.id}</span>
               </nav>
             </div>
 
@@ -473,7 +453,7 @@ Generated: ${new Date().toLocaleString()}
               </Button>
               <Button
                 onClick={() => navigate(`/patients/${patientId}/visits/${visitId}/edit`)}
-                className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="gap-2 bg-primary hover:bg-primary-hover"
                 size="sm"
               >
                 <Edit className="w-4 h-4" />
@@ -484,78 +464,72 @@ Generated: ${new Date().toLocaleString()}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Hero Section with Patient + Visit Info */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-8 mb-8 shadow-2xl">
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mt-48 -mr-48 blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-400/20 rounded-full -mb-32 -ml-32 blur-2xl" />
-          <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-violet-400/20 rounded-full blur-xl" />
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Compact Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary-dark p-6 mb-6 shadow-lg">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mt-32 -mr-32 blur-3xl" />
           
           <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-start gap-8">
-              {/* Patient Info */}
-              <div className="flex items-start gap-5">
-                <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl font-bold text-white shadow-lg ring-4 ring-white/20">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Patient Info - Compact */}
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold text-white shadow-md">
                   {patient.firstName?.charAt(0)}{patient.lastName?.charAt(0)}
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-white mb-1">
+                  <h1 className="text-2xl font-bold text-white mb-1">
                     {patient.firstName} {patient.lastName}
                   </h1>
-                  <div className="flex items-center gap-4 text-blue-100">
-                    <span className="flex items-center gap-1.5">
-                      <User className="w-4 h-4" />
+                  <div className="flex flex-wrap items-center gap-3 text-white/90 text-sm">
+                    <span className="flex items-center gap-1">
+                      <User className="w-3.5 h-3.5" />
                       {calculateAge(patient.dateOfBirth)} yrs, {patient.gender || 'N/A'}
                     </span>
                     {patient.phone && (
-                      <span className="flex items-center gap-1.5">
-                        <Phone className="w-4 h-4" />
+                      <span className="flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5" />
                         {patient.phone}
                       </span>
                     )}
                     {patient.bloodType && (
-                      <span className="flex items-center gap-1.5 bg-white/20 px-2.5 py-0.5 rounded-full text-sm font-medium">
-                        <Droplets className="w-3.5 h-3.5" />
+                      <span className="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <Droplets className="w-3 h-3" />
                         {patient.bloodType}
                       </span>
                     )}
+                    {patient.allergies && (
+                      <span className="flex items-center gap-1 text-warning-light text-xs">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        {patient.allergies}
+                      </span>
+                    )}
                   </div>
-                  {patient.allergies && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-300" />
-                      <span className="text-amber-200 text-sm">Allergies: {patient.allergies}</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Visit Status Card */}
-              <div className="lg:ml-auto bg-white/10 backdrop-blur-sm rounded-2xl p-5 min-w-[280px]">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`p-2 rounded-lg ${statusConfig.light}`}>
-                    <StatusIcon className={`w-5 h-5 ${statusConfig.text}`} />
+              {/* Visit Info - Compact */}
+              <div className="flex items-center gap-6 sm:gap-8">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-lg ${statusConfig.light}`}>
+                    <StatusIcon className={`w-4 h-4 ${statusConfig.text}`} />
                   </div>
                   <div>
-                    <p className="text-blue-100 text-sm">Visit Status</p>
-                    <p className="text-white font-semibold">{statusConfig.label}</p>
+                    <p className="text-white/70 text-xs">Status</p>
+                    <p className="text-white font-semibold text-sm">{statusConfig.label}</p>
                   </div>
                 </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-4 h-4 text-blue-200" />
-                    <div>
-                      <p className="text-blue-200 text-xs">Visit Date</p>
-                      <p className="text-white font-medium">{formatShortDate(visit.visitDate)}</p>
-                    </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-white/80" />
+                  <div>
+                    <p className="text-white/70 text-xs">Date</p>
+                    <p className="text-white font-medium text-sm">{formatDateMedium(visit.visitDate)}</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Stethoscope className="w-4 h-4 text-blue-200" />
-                    <div>
-                      <p className="text-blue-200 text-xs">Visit Type</p>
-                      <p className="text-white font-medium">{visit.visitType || 'General Consultation'}</p>
-                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="w-4 h-4 text-white/80" />
+                  <div>
+                    <p className="text-white/70 text-xs">Type</p>
+                    <p className="text-white font-medium text-sm">{visit.visitType || 'Consultation'}</p>
                   </div>
                 </div>
               </div>
@@ -564,19 +538,19 @@ Generated: ${new Date().toLocaleString()}
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-12 gap-5">
           {/* Main Content - Left Side */}
-          <div className="col-span-12 lg:col-span-8 space-y-6">
+          <div className="col-span-12 lg:col-span-8 space-y-5">
             {/* Vital Signs Grid */}
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600">
-                  <Activity className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg bg-primary">
+                  <Activity className="w-4 h-4 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">Vital Signs</h2>
+                <h2 className="text-lg font-bold text-foreground">Vital Signs</h2>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {visit.bloodPressure && (
                   <VitalCard
                     icon={Heart}
@@ -678,52 +652,51 @@ Generated: ${new Date().toLocaleString()}
               </div>
               
               {!visit.bloodPressure && !visit.heartRate && !visit.temperature && !visit.weight && (
-                <div className="rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center">
-                  <Activity className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium">No vital signs recorded</p>
-                  <p className="text-slate-400 text-sm mt-1">Vital signs will appear here when documented</p>
+                <div className="rounded-xl border-2 border-dashed border-border p-6 text-center">
+                  <Activity className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground font-medium text-sm">No vital signs recorded</p>
                 </div>
               )}
             </div>
 
             {/* Tabs for Clinical Details */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="bg-slate-100/80 p-1 rounded-xl w-full justify-start gap-1">
-                <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
+              <TabsList className="bg-muted/80 p-1 rounded-xl w-full justify-start gap-1">
+                <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <Eye className="w-4 h-4 mr-2" />
                   Overview
                 </TabsTrigger>
-                <TabsTrigger value="examination" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <TabsTrigger value="examination" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <Stethoscope className="w-4 h-4 mr-2" />
                   Examination
                 </TabsTrigger>
-                <TabsTrigger value="prescriptions" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <TabsTrigger value="prescriptions" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <Pill className="w-4 h-4 mr-2" />
                   Prescriptions
                 </TabsTrigger>
-                <TabsTrigger value="labs" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <TabsTrigger value="labs" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
                   <FlaskRound className="w-4 h-4 mr-2" />
                   Lab Results
                 </TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
-              <TabsContent value="overview" className="space-y-4 mt-4">
+              <TabsContent value="overview" className="space-y-3 mt-3">
                 {/* Chief Complaint */}
-                <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
-                  <div className="h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-3 text-lg">
-                      <div className="p-2 rounded-lg bg-blue-50">
-                        <Clipboard className="w-5 h-5 text-blue-600" />
+                <Card className="border border-border shadow-sm bg-card overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-primary to-accent" />
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <div className="p-1.5 rounded-lg bg-primary-light">
+                        <Clipboard className="w-4 h-4 text-primary" />
                       </div>
                       Chief Complaint
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-slate-700 leading-relaxed">
+                  <CardContent className="px-4 pb-4">
+                    <p className="text-foreground text-sm leading-relaxed">
                       {visit.complaint || (
-                        <span className="text-slate-400 italic">No chief complaint documented</span>
+                        <span className="text-muted-foreground italic">No chief complaint documented</span>
                       )}
                     </p>
                   </CardContent>
@@ -731,18 +704,18 @@ Generated: ${new Date().toLocaleString()}
 
                 {/* History of Present Illness */}
                 {parsedNotes?.historyOfPresentIllness && (
-                  <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
-                    <div className="h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-3 text-lg">
-                        <div className="p-2 rounded-lg bg-violet-50">
-                          <History className="w-5 h-5 text-violet-600" />
+                  <Card className="border border-border shadow-sm bg-card overflow-hidden">
+                    <div className="h-1 bg-gradient-to-r from-primary/80 to-accent/80" />
+                    <CardHeader className="pb-2 pt-4 px-4">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <div className="p-1.5 rounded-lg bg-primary-light">
+                          <History className="w-4 h-4 text-primary" />
                         </div>
                         History of Present Illness
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    <CardContent className="px-4 pb-4">
+                      <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
                         {parsedNotes.historyOfPresentIllness}
                       </p>
                     </CardContent>
@@ -750,49 +723,49 @@ Generated: ${new Date().toLocaleString()}
                 )}
 
                 {/* Diagnosis */}
-                <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
-                  <div className="h-1 bg-gradient-to-r from-purple-500 to-pink-500" />
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-3 text-lg">
-                      <div className="p-2 rounded-lg bg-purple-50">
-                        <Stethoscope className="w-5 h-5 text-purple-600" />
+                <Card className="border border-border shadow-sm bg-card overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-primary to-primary-dark" />
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <div className="p-1.5 rounded-lg bg-primary-light">
+                        <Stethoscope className="w-4 h-4 text-primary" />
                       </div>
                       Diagnosis
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="px-4 pb-4 space-y-2">
                     <div>
-                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Primary Diagnosis</p>
-                      <p className="text-slate-800 font-medium text-lg">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Primary</p>
+                      <p className="text-foreground font-medium">
                         {visit.diagnosis || (
-                          <span className="text-slate-400 italic font-normal">No diagnosis recorded</span>
+                          <span className="text-muted-foreground italic font-normal text-sm">No diagnosis recorded</span>
                         )}
                       </p>
                     </div>
                     {parsedNotes?.secondaryDiagnoses && (
                       <div>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Secondary Diagnoses</p>
-                        <p className="text-slate-600">{parsedNotes.secondaryDiagnoses}</p>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Secondary</p>
+                        <p className="text-foreground text-sm">{parsedNotes.secondaryDiagnoses}</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
                 {/* Treatment Plan */}
-                <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
-                  <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-3 text-lg">
-                      <div className="p-2 rounded-lg bg-emerald-50">
-                        <FileText className="w-5 h-5 text-emerald-600" />
+                <Card className="border border-border shadow-sm bg-card overflow-hidden">
+                  <div className="h-1 bg-gradient-to-r from-accent to-accent-hover" />
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <div className="p-1.5 rounded-lg bg-accent-light">
+                        <FileText className="w-4 h-4 text-accent" />
                       </div>
                       Treatment Plan
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  <CardContent className="px-4 pb-4">
+                    <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
                       {visit.treatment || (
-                        <span className="text-slate-400 italic">No treatment plan documented</span>
+                        <span className="text-muted-foreground italic">No treatment plan documented</span>
                       )}
                     </p>
                   </CardContent>
@@ -800,18 +773,18 @@ Generated: ${new Date().toLocaleString()}
 
                 {/* Patient Instructions */}
                 {parsedNotes?.patientInstructions && (
-                  <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-50 to-orange-50 overflow-hidden">
-                    <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-3 text-lg">
-                        <div className="p-2 rounded-lg bg-amber-100">
-                          <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <Card className="border border-border shadow-sm bg-warning-light overflow-hidden">
+                    <div className="h-1 bg-gradient-to-r from-warning to-warning/80" />
+                    <CardHeader className="pb-2 pt-4 px-4">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <div className="p-1.5 rounded-lg bg-warning/20">
+                          <AlertCircle className="w-4 h-4 text-warning" />
                         </div>
                         Patient Instructions
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    <CardContent className="px-4 pb-4">
+                      <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
                         {parsedNotes.patientInstructions}
                       </p>
                     </CardContent>
@@ -820,94 +793,93 @@ Generated: ${new Date().toLocaleString()}
               </TabsContent>
 
               {/* Examination Tab */}
-              <TabsContent value="examination" className="space-y-4 mt-4">
+              <TabsContent value="examination" className="space-y-3 mt-3">
                 {parsedNotes?.physicalExamination && Object.values(parsedNotes.physicalExamination).some(v => v) ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {parsedNotes.physicalExamination.generalAppearance && (
-                      <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-slate-600">General Appearance</CardTitle>
+                      <Card className="border border-border shadow-sm bg-card">
+                        <CardHeader className="pb-2 pt-3 px-4">
+                          <CardTitle className="text-xs font-medium text-muted-foreground uppercase">General Appearance</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <p className="text-slate-800">{parsedNotes.physicalExamination.generalAppearance}</p>
+                        <CardContent className="px-4 pb-3">
+                          <p className="text-foreground text-sm">{parsedNotes.physicalExamination.generalAppearance}</p>
                         </CardContent>
                       </Card>
                     )}
                     {parsedNotes.physicalExamination.cardiovascularSystem && (
-                      <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
+                      <Card className="border border-border shadow-sm bg-card">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-slate-600">Cardiovascular System</CardTitle>
+                          <CardTitle className="text-sm font-medium text-muted-foreground">Cardiovascular System</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-slate-800">{parsedNotes.physicalExamination.cardiovascularSystem}</p>
+                          <p className="text-foreground">{parsedNotes.physicalExamination.cardiovascularSystem}</p>
                         </CardContent>
                       </Card>
                     )}
                     {parsedNotes.physicalExamination.respiratorySystem && (
-                      <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
+                      <Card className="border border-border shadow-sm bg-card">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-slate-600">Respiratory System</CardTitle>
+                          <CardTitle className="text-sm font-medium text-muted-foreground">Respiratory System</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-slate-800">{parsedNotes.physicalExamination.respiratorySystem}</p>
+                          <p className="text-foreground">{parsedNotes.physicalExamination.respiratorySystem}</p>
                         </CardContent>
                       </Card>
                     )}
                     {parsedNotes.physicalExamination.gastrointestinalSystem && (
-                      <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
+                      <Card className="border border-border shadow-sm bg-card">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-slate-600">Gastrointestinal System</CardTitle>
+                          <CardTitle className="text-sm font-medium text-muted-foreground">Gastrointestinal System</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-slate-800">{parsedNotes.physicalExamination.gastrointestinalSystem}</p>
+                          <p className="text-foreground">{parsedNotes.physicalExamination.gastrointestinalSystem}</p>
                         </CardContent>
                       </Card>
                     )}
                     {parsedNotes.physicalExamination.neurologicalSystem && (
-                      <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
+                      <Card className="border border-border shadow-sm bg-card">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-slate-600">Neurological System</CardTitle>
+                          <CardTitle className="text-sm font-medium text-muted-foreground">Neurological System</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-slate-800">{parsedNotes.physicalExamination.neurologicalSystem}</p>
+                          <p className="text-foreground">{parsedNotes.physicalExamination.neurologicalSystem}</p>
                         </CardContent>
                       </Card>
                     )}
                     {parsedNotes.physicalExamination.musculoskeletalSystem && (
-                      <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
+                      <Card className="border border-border shadow-sm bg-card">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-sm font-medium text-slate-600">Musculoskeletal System</CardTitle>
+                          <CardTitle className="text-sm font-medium text-muted-foreground">Musculoskeletal System</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-slate-800">{parsedNotes.physicalExamination.musculoskeletalSystem}</p>
+                          <p className="text-foreground">{parsedNotes.physicalExamination.musculoskeletalSystem}</p>
                         </CardContent>
                       </Card>
                     )}
                   </div>
                 ) : (
-                  <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
-                    <CardContent className="py-12 text-center">
-                      <Stethoscope className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                      <p className="text-slate-500 font-medium">No physical examination documented</p>
-                      <p className="text-slate-400 text-sm mt-1">Examination findings will appear here when recorded</p>
+                  <Card className="border border-border shadow-sm bg-card">
+                    <CardContent className="py-8 text-center">
+                      <Stethoscope className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground font-medium text-sm">No physical examination documented</p>
                     </CardContent>
                   </Card>
                 )}
 
                 {/* Clinical Assessment */}
                 {parsedNotes?.assessment && (
-                  <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
-                    <div className="h-1 bg-gradient-to-r from-indigo-500 to-blue-500" />
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-3 text-lg">
-                        <div className="p-2 rounded-lg bg-indigo-50">
-                          <Sparkles className="w-5 h-5 text-indigo-600" />
+                  <Card className="border border-border shadow-sm bg-card overflow-hidden">
+                    <div className="h-1 bg-gradient-to-r from-primary to-accent" />
+                    <CardHeader className="pb-2 pt-4 px-4">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <div className="p-1.5 rounded-lg bg-primary-light">
+                          <Sparkles className="w-4 h-4 text-primary" />
                         </div>
                         Clinical Assessment
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    <CardContent className="px-4 pb-4">
+                      <p className="text-foreground text-sm leading-relaxed whitespace-pre-wrap">
                         {parsedNotes.assessment}
                       </p>
                     </CardContent>
@@ -916,29 +888,29 @@ Generated: ${new Date().toLocaleString()}
               </TabsContent>
 
               {/* Prescriptions Tab */}
-              <TabsContent value="prescriptions" className="mt-4">
+              <TabsContent value="prescriptions" className="mt-3">
                 {visitPrescriptions.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {visitPrescriptions.map((prescription) => (
-                      <Card key={prescription.id} className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
-                        <div className="h-1 bg-gradient-to-r from-orange-500 to-amber-500" />
-                        <CardContent className="p-4">
+                      <Card key={prescription.id} className="border border-border shadow-sm bg-card overflow-hidden">
+                        <div className="h-1 bg-gradient-to-r from-warning to-warning/80" />
+                        <CardContent className="p-3">
                           <div className="flex items-start gap-4">
-                            <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500">
+                            <div className="p-3 rounded-xl bg-warning">
                               <Pill className="w-5 h-5 text-white" />
                             </div>
                             <div className="flex-1">
-                              <h4 className="font-semibold text-slate-800">{prescription.medicationName}</h4>
+                              <h4 className="font-semibold text-foreground">{prescription.medicationName}</h4>
                               <div className="flex flex-wrap gap-2 mt-2">
                                 <Badge variant="secondary">{prescription.dosage}</Badge>
                                 <Badge variant="secondary">{prescription.frequency}</Badge>
                                 <Badge variant="secondary">{prescription.duration}</Badge>
                               </div>
                               {prescription.instructions && (
-                                <p className="text-sm text-slate-600 mt-2">{prescription.instructions}</p>
+                                <p className="text-sm text-muted-foreground mt-2">{prescription.instructions}</p>
                               )}
                             </div>
-                            <Badge className={prescription.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}>
+                            <Badge className={prescription.status === 'active' ? 'bg-success-light text-success' : 'bg-muted text-muted-foreground'}>
                               {prescription.status}
                             </Badge>
                           </div>
@@ -947,12 +919,12 @@ Generated: ${new Date().toLocaleString()}
                     ))}
                   </div>
                 ) : parsedNotes?.medications ? (
-                  <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
-                    <div className="h-1 bg-gradient-to-r from-orange-500 to-amber-500" />
+                  <Card className="border border-border shadow-sm bg-card overflow-hidden">
+                    <div className="h-1 bg-gradient-to-r from-warning to-warning/80" />
                     <CardHeader className="pb-3">
                       <CardTitle className="flex items-center gap-3 text-lg">
-                        <div className="p-2 rounded-lg bg-orange-50">
-                          <Pill className="w-5 h-5 text-orange-600" />
+                        <div className="p-2 rounded-lg bg-warning-light">
+                          <Pill className="w-5 h-5 text-warning" />
                         </div>
                         Prescribed Medications
                       </CardTitle>
@@ -960,51 +932,50 @@ Generated: ${new Date().toLocaleString()}
                     <CardContent>
                       <div className="space-y-2">
                         {parsedNotes.medications.split(',').map((med: string, idx: number) => (
-                          <div key={idx} className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
-                            <CheckCircle2 className="w-5 h-5 text-orange-600 flex-shrink-0" />
-                            <span className="text-slate-700">{med.trim()}</span>
+                          <div key={idx} className="flex items-center gap-3 p-3 bg-warning-light rounded-lg">
+                            <CheckCircle2 className="w-5 h-5 text-warning flex-shrink-0" />
+                            <span className="text-foreground">{med.trim()}</span>
                           </div>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
                 ) : (
-                  <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
-                    <CardContent className="py-12 text-center">
-                      <Pill className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                      <p className="text-slate-500 font-medium">No prescriptions for this visit</p>
-                      <p className="text-slate-400 text-sm mt-1">Medications will appear here when prescribed</p>
+                  <Card className="border border-border shadow-sm bg-card">
+                    <CardContent className="py-8 text-center">
+                      <Pill className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground font-medium text-sm">No prescriptions for this visit</p>
                     </CardContent>
                   </Card>
                 )}
               </TabsContent>
 
               {/* Lab Results Tab */}
-              <TabsContent value="labs" className="mt-4">
+              <TabsContent value="labs" className="mt-3">
                 {labResults && labResults.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {labResults.slice(0, 5).map((lab) => (
-                      <Card key={lab.id} className="border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden">
-                        <div className="h-1 bg-gradient-to-r from-cyan-500 to-teal-500" />
-                        <CardContent className="p-4">
+                      <Card key={lab.id} className="border border-border shadow-sm bg-card overflow-hidden">
+                        <div className="h-1 bg-gradient-to-r from-accent to-accent-hover" />
+                        <CardContent className="p-3">
                           <div className="flex items-start justify-between">
                             <div className="flex items-start gap-4">
-                              <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500">
+                              <div className="p-3 rounded-xl bg-accent">
                                 <FlaskRound className="w-5 h-5 text-white" />
                               </div>
                               <div>
-                                <h4 className="font-semibold text-slate-800">{lab.testName}</h4>
-                                <p className="text-sm text-slate-600 mt-1">Result: <span className="font-medium">{lab.result}</span></p>
+                                <h4 className="font-semibold text-foreground">{lab.testName}</h4>
+                                <p className="text-sm text-muted-foreground mt-1">Result: <span className="font-medium text-foreground">{lab.result}</span></p>
                                 {lab.normalRange && (
-                                  <p className="text-xs text-slate-500 mt-0.5">Normal range: {lab.normalRange}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">Normal range: {lab.normalRange}</p>
                                 )}
                               </div>
                             </div>
                             <div className="text-right">
-                              <Badge className={lab.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
+                              <Badge className={lab.status === 'completed' ? 'bg-success-light text-success' : 'bg-warning-light text-warning'}>
                                 {lab.status}
                               </Badge>
-                              <p className="text-xs text-slate-500 mt-1">{formatShortDate(lab.orderedDate)}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{formatDateMedium(lab.orderedDate)}</p>
                             </div>
                           </div>
                         </CardContent>
@@ -1012,11 +983,10 @@ Generated: ${new Date().toLocaleString()}
                     ))}
                   </div>
                 ) : (
-                  <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
-                    <CardContent className="py-12 text-center">
-                      <FlaskRound className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                      <p className="text-slate-500 font-medium">No lab results available</p>
-                      <p className="text-slate-400 text-sm mt-1">Lab results will appear here when available</p>
+                  <Card className="border border-border shadow-sm bg-card">
+                    <CardContent className="py-8 text-center">
+                      <FlaskRound className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground font-medium text-sm">No lab results available</p>
                     </CardContent>
                   </Card>
                 )}
@@ -1025,26 +995,26 @@ Generated: ${new Date().toLocaleString()}
           </div>
 
           {/* Sidebar - Right Side */}
-          <div className="col-span-12 lg:col-span-4 space-y-6">
+          <div className="col-span-12 lg:col-span-4 space-y-4">
             {/* Follow-up Card */}
             {visit.followUpDate && (
-              <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-50 to-orange-50 overflow-hidden">
-                <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-3 text-base">
-                    <div className="p-2 rounded-lg bg-amber-100">
-                      <Calendar className="w-5 h-5 text-amber-600" />
+              <Card className="border border-border shadow-sm bg-warning-light overflow-hidden">
+                <div className="h-1 bg-gradient-to-r from-warning to-warning/80" />
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <div className="p-1.5 rounded-lg bg-warning/20">
+                      <Calendar className="w-4 h-4 text-warning" />
                     </div>
                     Follow-up Scheduled
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-lg font-semibold text-slate-800">{formatDate(visit.followUpDate)}</p>
+                <CardContent className="px-4 pb-4">
+                  <p className="text-base font-semibold text-foreground">{formatDateLong(visit.followUpDate)}</p>
                   {parsedNotes?.followUpInstructions && (
-                    <p className="text-sm text-slate-600 mt-2">{parsedNotes.followUpInstructions}</p>
+                    <p className="text-xs text-muted-foreground mt-2">{parsedNotes.followUpInstructions}</p>
                   )}
-                  <Button variant="outline" size="sm" className="mt-3 w-full">
-                    <Calendar className="w-4 h-4 mr-2" />
+                  <Button variant="outline" size="sm" className="mt-2 w-full">
+                    <Calendar className="w-3.5 h-3.5 mr-2" />
                     Add to Calendar
                   </Button>
                 </CardContent>
@@ -1052,18 +1022,18 @@ Generated: ${new Date().toLocaleString()}
             )}
 
             {/* Visit Timeline */}
-            <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-3 text-base">
-                  <div className="p-2 rounded-lg bg-slate-100">
-                    <History className="w-5 h-5 text-slate-600" />
+            <Card className="border border-border shadow-sm bg-card">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <div className="p-1.5 rounded-lg bg-muted">
+                    <History className="w-4 h-4 text-muted-foreground" />
                   </div>
                   Recent Visits
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-4">
                 {sortedVisits.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {sortedVisits.map((v) => (
                       <TimelineItem 
                         key={v.id} 
@@ -1073,27 +1043,27 @@ Generated: ${new Date().toLocaleString()}
                     ))}
                   </div>
                 ) : (
-                  <p className="text-slate-500 text-sm text-center py-4">No visit history</p>
+                  <p className="text-muted-foreground text-xs text-center py-3">No visit history</p>
                 )}
                 
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="w-full mt-3 text-primary"
+                  className="w-full mt-2 text-primary text-xs"
                   onClick={() => navigate(`/patients/${patientId}`)}
                 >
                   View All Visits
-                  <ChevronRight className="w-4 h-4 ml-1" />
+                  <ChevronRight className="w-3.5 h-3.5 ml-1" />
                 </Button>
               </CardContent>
             </Card>
 
             {/* Quick Actions */}
-            <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Quick Actions</CardTitle>
+            <Card className="border border-border shadow-sm bg-card">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="px-4 pb-4 space-y-1.5">
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -1135,17 +1105,17 @@ Generated: ${new Date().toLocaleString()}
 
             {/* Additional Notes */}
             {parsedNotes?.additionalNotes && (
-              <Card className="border-0 shadow-sm bg-white/80 backdrop-blur-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-3 text-base">
-                    <div className="p-2 rounded-lg bg-slate-100">
-                      <FileText className="w-5 h-5 text-slate-600" />
+              <Card className="border border-border shadow-sm bg-card">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <div className="p-1.5 rounded-lg bg-muted">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
                     </div>
                     Additional Notes
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-slate-600 text-sm whitespace-pre-wrap">{parsedNotes.additionalNotes}</p>
+                <CardContent className="px-4 pb-4">
+                  <p className="text-muted-foreground text-xs whitespace-pre-wrap">{parsedNotes.additionalNotes}</p>
                 </CardContent>
               </Card>
             )}

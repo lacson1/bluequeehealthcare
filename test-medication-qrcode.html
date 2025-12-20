@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medication QR Code Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1e40af;
+      margin-bottom: 10px;
+    }
+    .test-section {
+      margin: 30px 0;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 6px;
+      border-left: 4px solid #3b82f6;
+    }
+    .test-section h2 {
+      color: #374151;
+      margin-top: 0;
+    }
+    .form-group {
+      margin: 15px 0;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #374151;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin: 5px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    button.secondary {
+      background: #6b7280;
+    }
+    button.secondary:hover {
+      background: #4b5563;
+    }
+    .qr-preview {
+      margin: 20px 0;
+      text-align: center;
+      padding: 20px;
+      background: white;
+      border-radius: 6px;
+      border: 2px solid #e5e7eb;
+    }
+    .qr-preview img {
+      max-width: 300px;
+      border: 2px solid #22c55e;
+      padding: 10px;
+      background: white;
+    }
+    .qr-text {
+      background: #f3f4f6;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 15px 0;
+    }
+    .qr-json {
+      background: #fef3c7;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 15px 0;
+    }
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .info {
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Medication QR Code Test</h1>
+    <p>Test the QR code generation functionality for medication prescriptions</p>
+
+    <div class="test-section">
+      <h2>Test Data</h2>
+      
+      <div class="grid">
+        <div>
+          <h3>Medication Information</h3>
+          <div class="form-group">
+            <label>Medication Name *</label>
+            <input type="text" id="medName" value="Paracetamol 500mg" required>
+          </div>
+          <div class="form-group">
+            <label>Dosage</label>
+            <input type="text" id="medDosage" value="500mg">
+          </div>
+          <div class="form-group">
+            <label>Frequency</label>
+            <input type="text" id="medFrequency" value="Twice daily">
+          </div>
+          <div class="form-group">
+            <label>Duration</label>
+            <input type="text" id="medDuration" value="7 days">
+          </div>
+          <div class="form-group">
+            <label>Instructions</label>
+            <textarea id="medInstructions">Take with food after meals</textarea>
+          </div>
+          <div class="form-group">
+            <label>Prescribed By</label>
+            <input type="text" id="medPrescribedBy" value="Dr. John Doe">
+          </div>
+          <div class="form-group">
+            <label>Prescription ID</label>
+            <input type="number" id="medPrescriptionId" value="12345">
+          </div>
+        </div>
+
+        <div>
+          <h3>Patient Information</h3>
+          <div class="form-group">
+            <label>First Name *</label>
+            <input type="text" id="patientFirstName" value="Jane" required>
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text" id="patientLastName" value="Smith" required>
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="text" id="patientPhone" value="+2348012345678">
+          </div>
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" id="patientDOB" value="1990-05-15">
+          </div>
+          <div class="form-group">
+            <label>Patient ID</label>
+            <input type="number" id="patientId" value="1">
+          </div>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="patientTitle" value="Mrs.">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Actions</h2>
+      <button onclick="generateQRText()">Generate QR Text</button>
+      <button onclick="generateQRCode()">Generate QR Code Image</button>
+      <button onclick="generateQRJSON()">Generate QR JSON Data</button>
+      <button onclick="downloadQRJSON()" class="secondary">Download QR JSON</button>
+      <button onclick="testAll()" style="background: #10b981;">Test All Functions</button>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    function getMedicationData() {
+      return {
+        name: document.getElementById('medName').value,
+        dosage: document.getElementById('medDosage').value,
+        frequency: document.getElementById('medFrequency').value,
+        duration: document.getElementById('medDuration').value,
+        instructions: document.getElementById('medInstructions').value,
+        prescribedBy: document.getElementById('medPrescribedBy').value,
+        prescriptionId: parseInt(document.getElementById('medPrescriptionId').value) || null,
+        startDate: new Date().toISOString(),
+        endDate: null
+      };
+    }
+
+    function getPatientData() {
+      return {
+        firstName: document.getElementById('patientFirstName').value,
+        lastName: document.getElementById('patientLastName').value,
+        phone: document.getElementById('patientPhone').value,
+        dateOfBirth: document.getElementById('patientDOB').value,
+        id: parseInt(document.getElementById('patientId').value) || 1,
+        title: document.getElementById('patientTitle').value
+      };
+    }
+
+    function generateQRText() {
+      const medication = getMedicationData();
+      const patient = getPatientData();
+      
+      const patientName = `${patient.firstName} ${patient.lastName}`;
+      const patientPhone = patient.phone || '';
+      const patientDOB = patient.dateOfBirth || '';
+      
+      const qrText = `PRESCRIPTION FOR DISPENSING
+
+RX NUMBER: ${medication.prescriptionId ? `RX-${medication.prescriptionId}` : `RX-${Date.now()}`}
+PATIENT: ${patientName}
+${patientDOB ? `DOB: ${patientDOB}` : ''}
+${patientPhone ? `PHONE: ${patientPhone}` : ''}
+
+MEDICATION: ${medication.name}
+STRENGTH: ${medication.dosage || 'As prescribed'}
+FREQUENCY: ${medication.frequency || 'As directed'}
+DURATION: ${medication.duration || 'As needed'}
+INSTRUCTIONS: ${medication.instructions || 'Take as directed'}
+
+${medication.prescribedBy ? `PRESCRIBER: ${medication.prescribedBy}` : ''}
+DATE ISSUED: ${new Date().toLocaleDateString()}
+
+Generated: ${new Date().toLocaleString()}
+This is a valid prescription for dispensing at any licensed pharmacy.`;
+
+      displayResult('QR Text Generated', `
+        <div class="qr-text">${qrText}</div>
+        <p><strong>Length:</strong> ${qrText.length} characters</p>
+        <p><strong>Contains medication:</strong> ${qrText.includes(medication.name) ? '✅ Yes' : '❌ No'}</p>
+        <p><strong>Contains patient:</strong> ${qrText.includes(patientName) ? '✅ Yes' : '❌ No'}</p>
+        <p><strong>Contains RX number:</strong> ${qrText.includes('RX-') ? '✅ Yes' : '❌ No'}</p>
+      `, 'success');
+    }
+
+    function generateQRCode() {
+      const medication = getMedicationData();
+      const patient = getPatientData();
+      
+      const patientName = `${patient.firstName} ${patient.lastName}`;
+      const patientPhone = patient.phone || '';
+      const patientDOB = patient.dateOfBirth || '';
+      
+      const qrText = `PRESCRIPTION FOR DISPENSING
+
+RX NUMBER: ${medication.prescriptionId ? `RX-${medication.prescriptionId}` : `RX-${Date.now()}`}
+PATIENT: ${patientName}
+${patientDOB ? `DOB: ${patientDOB}` : ''}
+${patientPhone ? `PHONE: ${patientPhone}` : ''}
+
+MEDICATION: ${medication.name}
+STRENGTH: ${medication.dosage || 'As prescribed'}
+FREQUENCY: ${medication.frequency || 'As directed'}
+DURATION: ${medication.duration || 'As needed'}
+INSTRUCTIONS: ${medication.instructions || 'Take as directed'}
+
+${medication.prescribedBy ? `PRESCRIBER: ${medication.prescribedBy}` : ''}
+DATE ISSUED: ${new Date().toLocaleDateString()}
+
+Generated: ${new Date().toLocaleString()}
+This is a valid prescription for dispensing at any licensed pharmacy.`;
+
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrText)}`;
+      
+      displayResult('QR Code Image Generated', `
+        <div class="qr-preview">
+          <img src="${qrCodeUrl}" alt="Medication QR Code" />
+          <p><strong>QR Code URL:</strong></p>
+          <div class="qr-text">${qrCodeUrl}</div>
+          <p><em>Scan this QR code with any QR code scanner to verify the data</em></p>
+        </div>
+      `, 'success');
+    }
+
+    function generateQRJSON() {
+      const medication = getMedicationData();
+      const patient = getPatientData();
+      
+      const patientName = `${patient.firstName} ${patient.lastName}`;
+      
+      const qrData = {
+        type: 'MEDICATION_PRESCRIPTION',
+        prescriptionId: medication.prescriptionId || null,
+        medication: {
+          name: medication.name,
+          dosage: medication.dosage || 'As prescribed',
+          frequency: medication.frequency || 'As directed',
+          duration: medication.duration || 'As needed',
+          instructions: medication.instructions || 'Take as directed',
+        },
+        patient: {
+          name: patientName,
+          id: patient.id,
+          phone: patient.phone || 'Not provided',
+          dateOfBirth: patient.dateOfBirth || 'Not provided',
+        },
+        prescriber: medication.prescribedBy
+          ? { name: medication.prescribedBy }
+          : null,
+        dates: {
+          startDate: medication.startDate || new Date().toISOString(),
+          endDate: medication.endDate || null,
+        },
+        generatedAt: new Date().toISOString(),
+      };
+
+      const jsonString = JSON.stringify(qrData, null, 2);
+      
+      displayResult('QR JSON Data Generated', `
+        <div class="qr-json">${jsonString}</div>
+        <p><strong>Size:</strong> ${jsonString.length} characters</p>
+        <p><strong>Valid JSON:</strong> ${isValidJSON(jsonString) ? '✅ Yes' : '❌ No'}</p>
+      `, 'success');
+    }
+
+    function downloadQRJSON() {
+      const medication = getMedicationData();
+      const patient = getPatientData();
+      
+      const patientName = `${patient.firstName} ${patient.lastName}`;
+      
+      const qrData = {
+        type: 'MEDICATION_PRESCRIPTION',
+        prescriptionId: medication.prescriptionId || null,
+        medication: {
+          name: medication.name,
+          dosage: medication.dosage || 'As prescribed',
+          frequency: medication.frequency || 'As directed',
+          duration: medication.duration || 'As needed',
+          instructions: medication.instructions || 'Take as directed',
+        },
+        patient: {
+          name: patientName,
+          id: patient.id,
+          phone: patient.phone || 'Not provided',
+          dateOfBirth: patient.dateOfBirth || 'Not provided',
+        },
+        prescriber: medication.prescribedBy
+          ? { name: medication.prescribedBy }
+          : null,
+        dates: {
+          startDate: medication.startDate || new Date().toISOString(),
+          endDate: medication.endDate || null,
+        },
+        generatedAt: new Date().toISOString(),
+      };
+
+      const jsonString = JSON.stringify(qrData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const sanitizedName = medication.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      a.download = `medication-qr-${sanitizedName}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      displayResult('QR JSON Downloaded', `
+        <div class="success">
+          ✅ File downloaded successfully: <strong>${a.download}</strong>
+        </div>
+      `, 'success');
+    }
+
+    function testAll() {
+      const results = [];
+      
+      // Test 1: Generate QR Text
+      try {
+        generateQRText();
+        results.push('✅ QR Text generation: PASSED');
+      } catch (error) {
+        results.push(`❌ QR Text generation: FAILED - ${error.message}`);
+      }
+      
+      // Test 2: Generate QR Code
+      try {
+        generateQRCode();
+        results.push('✅ QR Code image generation: PASSED');
+      } catch (error) {
+        results.push(`❌ QR Code image generation: FAILED - ${error.message}`);
+      }
+      
+      // Test 3: Generate QR JSON
+      try {
+        generateQRJSON();
+        results.push('✅ QR JSON generation: PASSED');
+      } catch (error) {
+        results.push(`❌ QR JSON generation: FAILED - ${error.message}`);
+      }
+      
+      // Test 4: Download QR JSON
+      try {
+        downloadQRJSON();
+        results.push('✅ QR JSON download: PASSED');
+      } catch (error) {
+        results.push(`❌ QR JSON download: FAILED - ${error.message}`);
+      }
+      
+      displayResult('All Tests Completed', `
+        <div class="info">
+          <h3>Test Results:</h3>
+          <ul>
+            ${results.map(r => `<li>${r}</li>`).join('')}
+          </ul>
+        </div>
+      `, 'success');
+    }
+
+    function displayResult(title, content, type) {
+      const resultsDiv = document.getElementById('results');
+      const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+      
+      resultsDiv.innerHTML = `
+        <div class="test-section">
+          <h2>${title}</h2>
+          <div class="${className}">
+            ${content}
+          </div>
+        </div>
+      `;
+    }
+
+    function isValidJSON(str) {
+      try {
+        JSON.parse(str);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Auto-run on load
+    window.addEventListener('load', () => {
+      console.log('Medication QR Code Test Page Loaded');
+      console.log('Use the buttons above to test QR code generation');
+    });
+  </script>
+</body>
+</html>
+

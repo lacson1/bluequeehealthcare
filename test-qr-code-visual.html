@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .qr-display {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .qr-display img {
+            max-width: 300px;
+            border: 3px solid #22c55e;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .info-box {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #22c55e;
+        }
+        
+        .info-box strong {
+            color: #166534;
+        }
+        
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        
+        .button:hover {
+            background: #5568d3;
+        }
+        
+        .button-success {
+            background: #22c55e;
+        }
+        
+        .button-success:hover {
+            background: #16a34a;
+        }
+        
+        .test-result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        
+        .test-result.success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #22c55e;
+        }
+        
+        .test-result.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #dc2626;
+        }
+        
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .instructions {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .instructions h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            color: #78350f;
+        }
+        
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 QR Code Generator Test</h1>
+        <p class="subtitle">Test the medication prescription QR code generation</p>
+        
+        <div class="test-section">
+            <h2>Test Data</h2>
+            <div class="info-box">
+                <strong>Medication:</strong> Paracetamol 500mg<br>
+                <strong>Dosage:</strong> 500mg<br>
+                <strong>Frequency:</strong> Twice daily<br>
+                <strong>Duration:</strong> 7 days<br>
+                <strong>Patient:</strong> Jane Smith<br>
+                <strong>Prescription ID:</strong> RX-12345
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>QR Code Display</h2>
+            <div class="qr-display" id="qrDisplay">
+                <p>Click "Generate QR Code" to display</p>
+            </div>
+            <div style="text-align: center;">
+                <button class="button button-success" onclick="generateQRCode()">
+                    Generate QR Code
+                </button>
+                <button class="button" onclick="testQRData()">
+                    Test QR Data
+                </button>
+                <button class="button" onclick="downloadQRData()">
+                    Download QR Data
+                </button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>QR Code Text</h2>
+            <div id="qrText" style="background: white; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
+                Click "Generate QR Code" to see the text
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Test Results</h2>
+            <div id="testResults"></div>
+        </div>
+        
+        <div class="instructions">
+            <h3>📱 How to Test:</h3>
+            <ol>
+                <li>Click "Generate QR Code" to create a QR code</li>
+                <li>Use your phone's camera app (iOS/Android) to scan the QR code</li>
+                <li>Verify that the scanned data matches the prescription information</li>
+                <li>Click "Test QR Data" to validate the data structure</li>
+                <li>Click "Download QR Data" to download as JSON file</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        const medication = {
+            name: 'Paracetamol 500mg',
+            dosage: '500mg',
+            frequency: 'Twice daily',
+            duration: '7 days',
+            instructions: 'Take with food after meals',
+            prescribedBy: 'Dr. John Doe',
+            startDate: new Date().toISOString(),
+            prescriptionId: 12345
+        };
+        
+        const patient = {
+            firstName: 'Jane',
+            lastName: 'Smith',
+            phone: '+2348012345678',
+            dateOfBirth: '1990-05-15',
+            id: 1
+        };
+        
+        function generateQRText(med, pat) {
+            return `PRESCRIPTION FOR DISPENSING
+
+RX NUMBER: RX-${med.prescriptionId}
+PATIENT: ${pat.firstName} ${pat.lastName}
+PHONE: ${pat.phone}
+DOB: ${pat.dateOfBirth}
+
+MEDICATION: ${med.name}
+STRENGTH: ${med.dosage}
+FREQUENCY: ${med.frequency}
+DURATION: ${med.duration}
+INSTRUCTIONS: ${med.instructions}
+
+PRESCRIBER: ${med.prescribedBy}
+DATE ISSUED: ${new Date(med.startDate).toLocaleDateString()}
+
+Generated: ${new Date().toLocaleString()}
+This is a valid prescription for dispensing at any licensed pharmacy.`;
+        }
+        
+        function generateQRCode() {
+            const qrText = generateQRText(medication, patient);
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrText)}`;
+            
+            const qrDisplay = document.getElementById('qrDisplay');
+            qrDisplay.innerHTML = `
+                <img src="${qrCodeUrl}" alt="QR Code" />
+                <p style="margin-top: 15px; color: #059669; font-weight: bold;">
+                    Scan this QR code with your phone camera
+                </p>
+            `;
+            
+            document.getElementById('qrText').textContent = qrText;
+            
+            showTestResult('success', '✅ QR Code generated successfully! Scan it with your phone camera.');
+        }
+        
+        function testQRData() {
+            const qrText = generateQRText(medication, patient);
+            const tests = [
+                { name: 'Contains medication name', pass: qrText.includes(medication.name) },
+                { name: 'Contains patient name', pass: qrText.includes(`${patient.firstName} ${patient.lastName}`) },
+                { name: 'Contains prescription ID', pass: qrText.includes(`RX-${medication.prescriptionId}`) },
+                { name: 'Contains dosage', pass: qrText.includes(medication.dosage) },
+                { name: 'Contains frequency', pass: qrText.includes(medication.frequency) },
+                { name: 'Contains instructions', pass: qrText.includes(medication.instructions) },
+                { name: 'Contains prescriber', pass: qrText.includes(medication.prescribedBy) },
+                { name: 'Contains patient phone', pass: qrText.includes(patient.phone) },
+            ];
+            
+            const allPassed = tests.every(t => t.pass);
+            const resultsHTML = tests.map(test => `
+                <div class="test-result ${test.pass ? 'success' : 'error'}">
+                    ${test.pass ? '✅' : '❌'} ${test.name}
+                </div>
+            `).join('');
+            
+            document.getElementById('testResults').innerHTML = resultsHTML + `
+                <div class="test-result ${allPassed ? 'success' : 'error'}" style="margin-top: 15px;">
+                    <strong>${allPassed ? '✅ All tests passed!' : '❌ Some tests failed'}</strong>
+                </div>
+            `;
+        }
+        
+        function downloadQRData() {
+            const qrData = {
+                type: 'MEDICATION_PRESCRIPTION',
+                prescriptionId: medication.prescriptionId,
+                medication: {
+                    name: medication.name,
+                    dosage: medication.dosage,
+                    frequency: medication.frequency,
+                    duration: medication.duration,
+                    instructions: medication.instructions,
+                },
+                patient: {
+                    name: `${patient.firstName} ${patient.lastName}`,
+                    id: patient.id,
+                    phone: patient.phone,
+                    dateOfBirth: patient.dateOfBirth,
+                },
+                prescriber: {
+                    name: medication.prescribedBy
+                },
+                dates: {
+                    startDate: medication.startDate,
+                    endDate: null,
+                },
+                generatedAt: new Date().toISOString(),
+            };
+            
+            const blob = new Blob([JSON.stringify(qrData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `medication-qr-${medication.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showTestResult('success', '✅ QR Code data downloaded successfully!');
+        }
+        
+        function showTestResult(type, message) {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.textContent = message;
+            resultDiv.style.marginTop = '15px';
+            
+            const testResults = document.getElementById('testResults');
+            testResults.insertBefore(resultDiv, testResults.firstChild);
+            
+            setTimeout(() => {
+                resultDiv.remove();
+            }, 5000);
+        }
+        
+        // Auto-generate on load
+        window.addEventListener('load', () => {
+            generateQRCode();
+            setTimeout(() => testQRData(), 500);
+        });
+    </script>
+</body>
+</html>
+

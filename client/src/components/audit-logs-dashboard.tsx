@@ -37,22 +37,37 @@ interface AuditLog {
   createdAt: string;
 }
 
+interface AuditResponse {
+  data: AuditLog[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+}
+
+interface AuditStats {
+  todayCount: number;
+  activeUsers: number;
+  patientActions: number;
+  criticalActions: number;
+}
+
 export function AuditLogsDashboard() {
   const [filterAction, setFilterAction] = useState("all");
   const [filterUser, setFilterUser] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState("today");
 
-  const { data: auditResponse, isLoading } = useQuery({
+  const { data: auditResponse, isLoading } = useQuery<AuditResponse>({
     queryKey: ["/api/audit-logs", filterAction, filterUser, dateRange],
     refetchInterval: false, // Disabled auto-refresh
     staleTime: 3 * 60 * 1000, // Cache for 3 minutes
   });
 
   const auditLogs = auditResponse?.data || [];
-  const pagination = auditResponse?.pagination;
 
-  const { data: auditStats } = useQuery({
+  const { data: auditStats } = useQuery<AuditStats>({
     queryKey: ["/api/audit-logs/stats"],
     refetchInterval: false, // Disabled auto-refresh
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes

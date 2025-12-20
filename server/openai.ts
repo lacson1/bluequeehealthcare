@@ -534,3 +534,221 @@ Return a JSON object with this exact structure:
 
   return mappedSuggestions;
 }
+
+/**
+ * AI-Powered Diagnostic Suggestions
+ * Analyzes symptoms, vital signs, and patient history to suggest possible diagnoses
+ */
+export interface DiagnosticSuggestion {
+  diagnosis: string;
+  icdCode?: string;
+  probability: number; // 0-100
+  reasoning: string;
+  confidence: 'low' | 'medium' | 'high';
+  redFlags?: string[];
+  recommendedTests?: string[];
+}
+
+export interface DiagnosticSuggestionContext {
+  chiefComplaint?: string;
+  symptoms?: string;
+  historyOfPresentIllness?: string;
+  patientAge?: number;
+  patientGender?: string;
+  medicalHistory?: string;
+  allergies?: string;
+  currentMedications?: string;
+  vitalSigns?: {
+    bloodPressure?: string;
+    heartRate?: number;
+    temperature?: number;
+    respiratoryRate?: number;
+    oxygenSaturation?: number;
+    weight?: number;
+  };
+  physicalExamination?: {
+    generalAppearance?: string;
+    cardiovascularSystem?: string;
+    respiratorySystem?: string;
+    gastrointestinalSystem?: string;
+    neurologicalSystem?: string;
+    musculoskeletalSystem?: string;
+  };
+  recentLabResults?: Array<{
+    test: string;
+    result: string;
+    isAbnormal?: boolean;
+  }>;
+}
+
+export async function suggestDiagnoses(
+  context: DiagnosticSuggestionContext
+): Promise<DiagnosticSuggestion[]> {
+  if (!isAIAvailable()) {
+    throw new AINotConfiguredError();
+  }
+
+  const {
+    chiefComplaint,
+    symptoms,
+    historyOfPresentIllness,
+    patientAge,
+    patientGender,
+    medicalHistory,
+    allergies,
+    currentMedications,
+    vitalSigns,
+    physicalExamination,
+    recentLabResults
+  } = context;
+
+  // Build comprehensive clinical context
+  let clinicalContext = 'Clinical Presentation:\n';
+  
+  if (chiefComplaint) {
+    clinicalContext += `Chief Complaint: ${chiefComplaint}\n`;
+  }
+  
+  if (symptoms) {
+    clinicalContext += `Symptoms: ${symptoms}\n`;
+  }
+  
+  if (historyOfPresentIllness) {
+    clinicalContext += `History of Present Illness: ${historyOfPresentIllness}\n`;
+  }
+  
+  if (patientAge) {
+    clinicalContext += `Patient Age: ${patientAge} years\n`;
+  }
+  
+  if (patientGender) {
+    clinicalContext += `Patient Gender: ${patientGender}\n`;
+  }
+  
+  if (medicalHistory) {
+    clinicalContext += `Medical History: ${medicalHistory}\n`;
+  }
+  
+  if (allergies) {
+    clinicalContext += `Allergies: ${allergies}\n`;
+  }
+  
+  if (currentMedications) {
+    clinicalContext += `Current Medications: ${currentMedications}\n`;
+  }
+  
+  if (vitalSigns) {
+    clinicalContext += '\nVital Signs:\n';
+    if (vitalSigns.bloodPressure) clinicalContext += `  Blood Pressure: ${vitalSigns.bloodPressure} mmHg\n`;
+    if (vitalSigns.heartRate) clinicalContext += `  Heart Rate: ${vitalSigns.heartRate} bpm\n`;
+    if (vitalSigns.temperature) clinicalContext += `  Temperature: ${vitalSigns.temperature}°C\n`;
+    if (vitalSigns.respiratoryRate) clinicalContext += `  Respiratory Rate: ${vitalSigns.respiratoryRate}/min\n`;
+    if (vitalSigns.oxygenSaturation) clinicalContext += `  Oxygen Saturation: ${vitalSigns.oxygenSaturation}%\n`;
+    if (vitalSigns.weight) clinicalContext += `  Weight: ${vitalSigns.weight} kg\n`;
+  }
+  
+  if (physicalExamination) {
+    clinicalContext += '\nPhysical Examination:\n';
+    if (physicalExamination.generalAppearance) {
+      clinicalContext += `  General Appearance: ${physicalExamination.generalAppearance}\n`;
+    }
+    if (physicalExamination.cardiovascularSystem) {
+      clinicalContext += `  Cardiovascular: ${physicalExamination.cardiovascularSystem}\n`;
+    }
+    if (physicalExamination.respiratorySystem) {
+      clinicalContext += `  Respiratory: ${physicalExamination.respiratorySystem}\n`;
+    }
+    if (physicalExamination.gastrointestinalSystem) {
+      clinicalContext += `  Gastrointestinal: ${physicalExamination.gastrointestinalSystem}\n`;
+    }
+    if (physicalExamination.neurologicalSystem) {
+      clinicalContext += `  Neurological: ${physicalExamination.neurologicalSystem}\n`;
+    }
+    if (physicalExamination.musculoskeletalSystem) {
+      clinicalContext += `  Musculoskeletal: ${physicalExamination.musculoskeletalSystem}\n`;
+    }
+  }
+  
+  if (recentLabResults && recentLabResults.length > 0) {
+    clinicalContext += '\nRecent Lab Results:\n';
+    recentLabResults.forEach(lab => {
+      clinicalContext += `  ${lab.test}: ${lab.result}${lab.isAbnormal ? ' (ABNORMAL)' : ''}\n`;
+    });
+  }
+
+  const systemPrompt = `You are an expert clinical diagnostician providing AI-powered diagnostic suggestions for healthcare providers.
+
+Your role is to analyze clinical presentations and suggest possible diagnoses with:
+- ICD-10 codes where applicable
+- Probability scores (0-100) based on clinical presentation
+- Clear reasoning for each diagnosis
+- Red flags that require immediate attention
+- Recommended diagnostic tests to confirm or rule out diagnoses
+
+CRITICAL INSTRUCTIONS:
+- Focus on diagnoses relevant to Southwest Nigerian healthcare context
+- Consider common conditions in the region (malaria, typhoid, respiratory infections, etc.)
+- Assign realistic probability scores based on clinical presentation
+- Flag serious conditions that need immediate attention
+- Suggest appropriate diagnostic tests
+- Consider patient demographics (age, gender) in your analysis
+- Account for medical history, allergies, and current medications
+- Provide ICD-10 codes for accurate medical coding
+- Confidence levels: low (<50% probability), medium (50-75%), high (>75%)
+
+Return a JSON object with this exact structure:
+{
+  "suggestions": [
+    {
+      "diagnosis": "Primary diagnosis name",
+      "icdCode": "ICD-10 code (e.g., J20.9)",
+      "probability": 85,
+      "reasoning": "Clear clinical reasoning based on symptoms, signs, and patient history",
+      "confidence": "high|medium|low",
+      "redFlags": ["Any red flag symptoms or signs that need immediate attention"],
+      "recommendedTests": ["Lab test or imaging that would help confirm this diagnosis"]
+    }
+  ],
+  "clinicalSummary": "Brief summary of the clinical presentation",
+  "differentialDiagnosis": "Brief explanation of the differential diagnostic approach"
+}`;
+
+  const userPrompt = `${clinicalContext}\n\nPlease provide diagnostic suggestions based on this clinical presentation.`;
+
+  try {
+    const response = await openai!.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3, // Lower temperature for more consistent medical reasoning
+      max_tokens: 2000
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Failed to generate diagnostic suggestions');
+    }
+
+    const parsed = JSON.parse(content);
+    const suggestions = parsed.suggestions || [];
+
+    // Sort by probability (highest first)
+    return suggestions
+      .map((suggestion: any): DiagnosticSuggestion => ({
+        diagnosis: suggestion.diagnosis || '',
+        icdCode: suggestion.icdCode,
+        probability: Math.min(100, Math.max(0, suggestion.probability || 0)),
+        reasoning: suggestion.reasoning || '',
+        confidence: suggestion.confidence || 'medium',
+        redFlags: suggestion.redFlags || [],
+        recommendedTests: suggestion.recommendedTests || []
+      }))
+      .sort((a: DiagnosticSuggestion, b: DiagnosticSuggestion) => b.probability - a.probability);
+  } catch (error) {
+    logger.error('Error generating diagnostic suggestions:', error);
+    throw new Error('Failed to generate diagnostic suggestions. Please try again.');
+  }
+}

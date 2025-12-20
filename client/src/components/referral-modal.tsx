@@ -108,7 +108,7 @@ export default function ReferralModal({ open, onOpenChange, patientId }: Referra
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {patients?.map((patient: any) => (
+                        {(Array.isArray(patients) ? patients : []).map((patient: any) => (
                           <SelectItem key={patient.id} value={patient.id.toString()}>
                             {patient.firstName} {patient.lastName}
                           </SelectItem>

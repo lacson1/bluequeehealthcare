@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { userOrganizations, organizations, users } from '@shared/schema';
-import { eq, and, or, ilike, notExists } from 'drizzle-orm';
-import { authenticateToken, type AuthRequest } from '../middleware/auth';
+import { userOrganizations, organizations, users, patients } from '@shared/schema';
+import { eq, and, or, ilike, notExists, sql, desc } from 'drizzle-orm';
+import { authenticateToken, requireAnyRole, type AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -13,13 +13,50 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    // If user is superadmin, return all organizations
+    // If user is superadmin, return all organizations with counts
     if (req.user.role === 'superadmin') {
       const allOrgs = await db
-        .select()
+        .select({
+          id: organizations.id,
+          name: organizations.name,
+          type: organizations.type,
+          logoUrl: organizations.logoUrl,
+          themeColor: organizations.themeColor,
+          address: organizations.address,
+          phone: organizations.phone,
+          email: organizations.email,
+          website: organizations.website,
+          isActive: organizations.isActive,
+          createdAt: organizations.createdAt,
+          updatedAt: organizations.updatedAt
+        })
         .from(organizations)
         .orderBy(organizations.name);
-      return res.json(allOrgs);
+
+      // Add counts for each organization
+      const orgsWithCounts = await Promise.all(
+        allOrgs.map(async (org) => {
+          const [userCount] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(userOrganizations)
+            .where(eq(userOrganizations.organizationId, org.id));
+
+          const [patientCount] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(patients)
+            .where(eq(patients.organizationId, org.id));
+
+          return {
+            ...org,
+            _count: {
+              users: Number(userCount?.count || 0),
+              patients: Number(patientCount?.count || 0)
+            }
+          };
+        })
+      );
+
+      return res.json(orgsWithCounts);
     }
 
     // Otherwise, return user's organizations
@@ -41,7 +78,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
       .where(eq(userOrganizations.userId, req.user.id))
       .orderBy(organizations.name);
 
-    res.json(userOrgs);
+    return res.json(userOrgs);
   } catch (error) {
     console.error('Error fetching organizations:', error);
     if (error instanceof Error) {
@@ -51,7 +88,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
         name: error.name
       });
     }
-    res.status(500).json({ message: 'Failed to fetch organizations' });
+    return res.status(500).json({ message: 'Failed to fetch organizations' });
   }
 });
 
@@ -60,6 +97,12 @@ router.get('/user-organizations', authenticateToken, async (req: AuthRequest, re
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Handle superadmin - return empty array or all organizations
+    if (req.user.role === 'superadmin') {
+      // Superadmin doesn't need organizations, return empty array
+      return res.json([]);
     }
 
     const userOrgs = await db
@@ -90,10 +133,20 @@ router.get('/user-organizations', authenticateToken, async (req: AuthRequest, re
       }
     }));
 
-    res.json(formattedOrgs);
+    return res.json(formattedOrgs);
   } catch (error) {
     console.error('Error fetching user organizations:', error);
-    res.status(500).json({ message: 'Failed to fetch organizations' });
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+    return res.status(500).json({
+      message: 'Failed to fetch organizations',
+      error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
+    });
   }
 });
 
@@ -120,10 +173,10 @@ router.get('/my-organizations', authenticateToken, async (req: AuthRequest, res)
       .where(eq(userOrganizations.userId, req.user.id))
       .orderBy(userOrganizations.isDefault);
 
-    res.json(userOrgs);
+    return res.json(userOrgs);
   } catch (error) {
     console.error('Error fetching user organizations:', error);
-    res.status(500).json({ message: 'Failed to fetch organizations' });
+    return res.status(500).json({ message: 'Failed to fetch organizations' });
   }
 });
 
@@ -148,10 +201,10 @@ router.get('/current', authenticateToken, async (req: AuthRequest, res) => {
       return res.status(404).json({ message: 'Organization not found' });
     }
 
-    res.json(org);
+    return res.json(org);
   } catch (error) {
     console.error('Error fetching current organization:', error);
-    res.status(500).json({ message: 'Failed to fetch organization' });
+    return res.status(500).json({ message: 'Failed to fetch organization' });
   }
 });
 
@@ -191,17 +244,18 @@ router.post('/switch', authenticateToken, async (req: AuthRequest, res) => {
           console.error('Session save error:', err);
           return res.status(500).json({ message: 'Failed to switch organization' });
         }
-        res.json({
+        return res.json({
           message: 'Organization switched successfully',
           organizationId
         });
       });
+      return undefined;
     } else {
-      res.status(401).json({ message: 'Session not found' });
+      return res.status(401).json({ message: 'Session not found' });
     }
   } catch (error) {
     console.error('Error switching organization:', error);
-    res.status(500).json({ message: 'Failed to switch organization' });
+    return res.status(500).json({ message: 'Failed to switch organization' });
   }
 });
 
@@ -237,17 +291,18 @@ router.post('/switch/:organizationId', authenticateToken, async (req: AuthReques
           console.error('Session save error:', err);
           return res.status(500).json({ message: 'Failed to switch organization' });
         }
-        res.json({
+        return res.json({
           message: 'Organization switched successfully',
           organizationId
         });
       });
+      return undefined;
     } else {
-      res.status(401).json({ message: 'Session not found' });
+      return res.status(401).json({ message: 'Session not found' });
     }
   } catch (error) {
     console.error('Error switching organization:', error);
-    res.status(500).json({ message: 'Failed to switch organization' });
+    return res.status(500).json({ message: 'Failed to switch organization' });
   }
 });
 
@@ -278,13 +333,13 @@ router.post('/set-default/:organizationId', authenticateToken, async (req: AuthR
     // Remove default from all user's organizations
     await db
       .update(userOrganizations)
-      .set({ isDefault: false })
+      .set({ isDefault: false } as any)
       .where(eq(userOrganizations.userId, req.user.id));
 
     // Set new default
     await db
       .update(userOrganizations)
-      .set({ isDefault: true })
+      .set({ isDefault: true } as any)
       .where(
         and(
           eq(userOrganizations.userId, req.user.id),
@@ -292,10 +347,10 @@ router.post('/set-default/:organizationId', authenticateToken, async (req: AuthR
         )
       );
 
-    res.json({ message: 'Default organization updated successfully' });
+    return res.json({ message: 'Default organization updated successfully' });
   } catch (error) {
     console.error('Error setting default organization:', error);
-    res.status(500).json({ message: 'Failed to set default organization' });
+    return res.status(500).json({ message: 'Failed to set default organization' });
   }
 });
 
@@ -353,30 +408,30 @@ router.post('/add-staff', authenticateToken, async (req: AuthRequest, res) => {
     await db.insert(userOrganizations).values({
       userId,
       organizationId,
-      isDefault: setAsDefault || false,
-    });
+      isDefault: (setAsDefault || false) as any,
+    } as any);
 
     // If setting as default, remove default from other orgs
     if (setAsDefault) {
       await db
         .update(userOrganizations)
-        .set({ isDefault: false })
+        .set({ isDefault: false } as any)
         .where(
           and(
             eq(userOrganizations.userId, userId),
-            eq(userOrganizations.organizationId, organizationId)
+            sql`${userOrganizations.organizationId} != ${organizationId}`
           )
         );
     }
 
-    res.json({
+    return res.json({
       message: 'Staff member added to organization successfully',
       userId,
       organizationId
     });
   } catch (error) {
     console.error('Error adding staff to organization:', error);
-    res.status(500).json({ message: 'Failed to add staff to organization' });
+    return res.status(500).json({ message: 'Failed to add staff to organization' });
   }
 });
 
@@ -436,10 +491,10 @@ router.get('/search-staff', authenticateToken, async (req: AuthRequest, res) => 
       )
       .limit(20);
 
-    res.json(searchResults);
+    return res.json(searchResults);
   } catch (error) {
     console.error('Error searching for staff:', error);
-    res.status(500).json({ message: 'Failed to search for staff' });
+    return res.status(500).json({ message: 'Failed to search for staff' });
   }
 });
 
@@ -478,10 +533,10 @@ router.get('/staff-members', authenticateToken, async (req: AuthRequest, res) =>
       .innerJoin(users, eq(userOrganizations.userId, users.id))
       .where(eq(userOrganizations.organizationId, currentOrgId));
 
-    res.json(staffMembers);
+    return res.json(staffMembers);
   } catch (error) {
     console.error('Error fetching staff members:', error);
-    res.status(500).json({ message: 'Failed to fetch staff members' });
+    return res.status(500).json({ message: 'Failed to fetch staff members' });
   }
 });
 
@@ -519,10 +574,10 @@ router.delete('/remove-staff/:userId', authenticateToken, async (req: AuthReques
         )
       );
 
-    res.json({ message: 'Staff member removed from organization successfully' });
+    return res.json({ message: 'Staff member removed from organization successfully' });
   } catch (error) {
     console.error('Error removing staff from organization:', error);
-    res.status(500).json({ message: 'Failed to remove staff from organization' });
+    return res.status(500).json({ message: 'Failed to remove staff from organization' });
   }
 });
 

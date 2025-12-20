@@ -63,7 +63,9 @@ import {
   RefreshCw,
   UserCheck,
   UserX,
-  Crown
+  Crown,
+  Info,
+  CheckCircle2
 } from "lucide-react";
 
 // Schemas
@@ -145,6 +147,7 @@ export default function UserManagement() {
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
   const [isCreateOrgOpen, setIsCreateOrgOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null);
   const [filterRole, setFilterRole] = useState("all");
@@ -172,7 +175,22 @@ export default function UserManagement() {
   });
 
   const { data: organizations = [] } = useQuery<Organization[]>({
-    queryKey: ["/api/organizations"]
+    queryKey: ["/api/organizations"],
+    staleTime: 10 * 60 * 1000, // 10 minutes - static data
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  // Fetch user permissions when viewing a user
+  const { data: userPermissions = [], isLoading: permissionsLoading } = useQuery<Permission[]>({
+    queryKey: ["/api/access-control/users", viewingUser?.id, "permissions"],
+    queryFn: async () => {
+      if (!viewingUser?.id) return [];
+      const response = await apiRequest(`/api/access-control/users/${viewingUser.id}/permissions`, "GET");
+      return response.json();
+    },
+    enabled: !!viewingUser?.id,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   // Mutations
@@ -650,7 +668,16 @@ export default function UserManagement() {
                             <Button
                               size="sm"
                               variant="outline"
+                              onClick={() => setViewingUser(user)}
+                              title="View user details"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => toggleUserStatus(user)}
+                              title={user.isActive !== false ? "Deactivate user" : "Activate user"}
                             >
                               {user.isActive !== false ? (
                                 <UserX className="h-3 w-3" />
@@ -662,6 +689,7 @@ export default function UserManagement() {
                               size="sm"
                               variant="outline"
                               onClick={() => setEditingUser(user)}
+                              title="Edit user"
                             >
                               <Edit className="h-3 w-3" />
                             </Button>
@@ -1006,6 +1034,157 @@ export default function UserManagement() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* View User Dialog */}
+      <Dialog open={!!viewingUser} onOpenChange={(open) => !open && setViewingUser(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              User Details
+            </DialogTitle>
+            <DialogDescription>View complete user information and permissions</DialogDescription>
+          </DialogHeader>
+          {viewingUser && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Full Name</p>
+                      <p className="font-medium">
+                        {viewingUser.title} {viewingUser.firstName} {viewingUser.lastName}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Username</p>
+                      <p className="font-medium">@{viewingUser.username}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Email</p>
+                      <p className="font-medium">{viewingUser.email || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Phone</p>
+                      <p className="font-medium">{viewingUser.phone || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Status</p>
+                      <Badge variant={viewingUser.isActive !== false ? "default" : "secondary"}>
+                        {viewingUser.isActive !== false ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Created At</p>
+                      <p className="font-medium">
+                        {new Date(viewingUser.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Role Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Role Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Role</p>
+                      <Badge className={getRoleColor(viewingUser.roleName || viewingUser.role)}>
+                        {viewingUser.roleName || viewingUser.role}
+                        {(viewingUser.role === 'admin' || viewingUser.roleName === 'admin') && (
+                          <Crown className="h-3 w-3 ml-1" />
+                        )}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Organization</p>
+                      <p className="font-medium">{viewingUser.organizationName || "No organization"}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Permissions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Permissions
+                    {permissionsLoading && (
+                      <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {permissionsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : userPermissions.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No permissions assigned</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600 mb-3">
+                        {userPermissions.length} permission{userPermissions.length !== 1 ? 's' : ''} granted
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-96 overflow-y-auto">
+                        {userPermissions.map((permission) => (
+                          <div
+                            key={permission.id}
+                            className="flex items-start gap-2 p-3 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900">
+                                {permission.name}
+                              </p>
+                              {permission.description && (
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {permission.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setViewingUser(null);
+                    setEditingUser(viewingUser);
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit User
+                </Button>
+                <Button variant="outline" onClick={() => setViewingUser(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>

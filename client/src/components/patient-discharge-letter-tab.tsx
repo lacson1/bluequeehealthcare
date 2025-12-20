@@ -55,8 +55,38 @@ import {
   Eye,
   Printer,
   Activity,
-  HeartPulse
+  HeartPulse,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
+
+interface Prescription {
+  id: number;
+  medicationName: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  status: string;
+}
+
+interface MedicalHistoryItem {
+  id: number;
+  condition: string;
+  type: string;
+  status: string;
+  description: string;
+  treatment?: string;
+  dateOccurred: string;
+}
+
+interface Visit {
+  id: number;
+  diagnosis?: string;
+  treatment?: string;
+  notes?: string;
+  visitDate: string;
+  status: string;
+}
 
 interface DischargeLetter {
   id: number;
@@ -129,6 +159,26 @@ export function PatientDischargeLetterTab({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedLetter, setSelectedLetter] = useState<DischargeLetter | null>(null);
+
+  // Fetch patient's prescriptions for auto-populate
+  const { data: patientPrescriptions, isLoading: loadingPrescriptions } = useQuery<Prescription[]>({
+    queryKey: [`/api/patients/${patientId}/prescriptions`],
+    enabled: !!patientId
+  });
+
+  // Fetch patient's medical history for auto-populate
+  const { data: patientMedicalHistory, isLoading: loadingHistory } = useQuery<MedicalHistoryItem[]>({
+    queryKey: [`/api/patients/${patientId}/medical-history`],
+    enabled: !!patientId
+  });
+
+  // Fetch patient's recent visits for diagnosis and treatment info
+  const { data: patientVisits, isLoading: loadingVisits } = useQuery<Visit[]>({
+    queryKey: [`/api/patients/${patientId}/visits`],
+    enabled: !!patientId
+  });
+
+  const isAutoPopulateLoading = loadingPrescriptions || loadingHistory || loadingVisits;
 
   const handlePrintLetter = (letter: DischargeLetter) => {
     const printWindow = window.open('', '_blank');
@@ -519,14 +569,23 @@ export function PatientDischargeLetterTab({
 
   const finalizeMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/patients/${patientId}/discharge-letters/${id}`, 'PATCH', { status: 'finalized' });
+      const response = await apiRequest(`/api/patients/${patientId}/discharge-letters/${id}`, 'PATCH', { status: 'finalized' });
+      // Try to parse JSON, but don't fail if empty
+      const text = await response.text();
+      return text ? JSON.parse(text) : { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/patients/${patientId}/discharge-letters`] });
-      toast({ title: "Success", description: "Discharge letter finalized" });
+      toast({ title: "Success", description: "Discharge letter finalized successfully" });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to finalize discharge letter", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error('Finalize mutation error:', error);
+      const errorMessage = error.message?.replace(/^\d+:\s*/, '') || "Failed to finalize discharge letter";
+      toast({ 
+        title: "Error", 
+        description: errorMessage, 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -579,6 +638,73 @@ export function PatientDischargeLetterTab({
       status: 'draft',
     });
     setIsAddDialogOpen(true);
+  };
+
+  // Function to auto-populate form fields from patient data
+  const autoPopulateForm = () => {
+    let populatedFields = 0;
+
+    // Auto-populate diagnosis from recent visits or medical history
+    const recentVisit = patientVisits?.[0];
+    const activeConditions = patientMedicalHistory?.filter(h => h.status === 'active') || [];
+    
+    if (recentVisit?.diagnosis || activeConditions.length > 0) {
+      let diagnosisText = '';
+      if (recentVisit?.diagnosis) {
+        diagnosisText = recentVisit.diagnosis;
+      }
+      if (activeConditions.length > 0) {
+        const conditionsList = activeConditions.map(c => `• ${c.condition}`).join('\n');
+        diagnosisText = diagnosisText 
+          ? `${diagnosisText}\n\nActive Conditions:\n${conditionsList}`
+          : conditionsList;
+      }
+      form.setValue('diagnosis', diagnosisText);
+      populatedFields++;
+    }
+
+    // Auto-populate treatment summary from recent visits
+    if (recentVisit?.treatment || recentVisit?.notes) {
+      const treatmentText = [recentVisit.treatment, recentVisit.notes]
+        .filter(Boolean)
+        .join('\n\n');
+      if (treatmentText) {
+        form.setValue('treatmentSummary', treatmentText);
+        populatedFields++;
+      }
+    }
+
+    // Auto-populate medications from active prescriptions
+    if (patientPrescriptions && patientPrescriptions.length > 0) {
+      const activeMeds = patientPrescriptions
+        .filter(p => p.status === 'active')
+        .map(p => `• ${p.medicationName} ${p.dosage} - ${p.frequency}${p.duration ? ` for ${p.duration}` : ''}`)
+        .join('\n');
+      
+      if (activeMeds) {
+        form.setValue('medicationsOnDischarge', activeMeds);
+        populatedFields++;
+      }
+    }
+
+    // Auto-populate admission date from earliest recent visit if available
+    if (recentVisit?.visitDate) {
+      form.setValue('admissionDate', recentVisit.visitDate.split('T')[0]);
+      populatedFields++;
+    }
+
+    if (populatedFields > 0) {
+      toast({
+        title: "Form Auto-Populated",
+        description: `Successfully filled ${populatedFields} field(s) from patient records.`,
+      });
+    } else {
+      toast({
+        title: "No Data Found",
+        description: "No medical records found to auto-populate. You can fill in the fields manually.",
+        variant: "destructive",
+      });
+    }
   };
 
   const onSubmit = (data: DischargeLetterFormValues) => {
@@ -648,6 +774,31 @@ export function PatientDischargeLetterTab({
   const renderForm = () => (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Auto-populate button */}
+        <div className="p-4 bg-gradient-to-r from-purple-50 to-teal-50 rounded-lg border border-purple-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-purple-700">
+              <Sparkles className="w-4 h-4" />
+              <span>Auto-fill from {patientName}'s medical records</span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={autoPopulateForm}
+              disabled={isAutoPopulateLoading}
+              className="bg-white hover:bg-purple-50 border-purple-300"
+            >
+              {isAutoPopulateLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+              )}
+              Auto-Fill
+            </Button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPatientSchema, type InsertPatient } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,10 +33,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AutocompleteInput } from "@/components/autocomplete-input";
-import { Sparkles, Plus, X } from "lucide-react";
+import { Sparkles, Plus, X, MapPin, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import AllergyAutocomplete from "./allergy-autocomplete";
 import MedicalConditionAutocomplete from "./medical-condition-autocomplete";
+import { NIGERIA_STATE_NAMES, getLgasForState, NIGERIA_LANGUAGES } from "@/lib/nigeria-data";
 
 interface PatientRegistrationModalProps {
   open: boolean;
@@ -47,10 +55,16 @@ export default function PatientRegistrationModal({
 }: PatientRegistrationModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   // Smart autocomplete state
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+  
+  // Nigerian address state
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [showNigerianAddress, setShowNigerianAddress] = useState(false);
+  const [showNigerianId, setShowNigerianId] = useState(false);
 
   const form = useForm<InsertPatient>({
     resolver: zodResolver(insertPatientSchema),
@@ -65,12 +79,28 @@ export default function PatientRegistrationModal({
       address: "",
       allergies: "",
       medicalHistory: "",
+      // Nigerian optional fields
+      state: "",
+      lga: "",
+      town: "",
+      streetAddress: "",
+      landmark: "",
+      postalCode: "",
+      ninNumber: "",
+      bvnNumber: "",
+      secondaryPhone: "",
+      preferredLanguage: "English",
     },
   });
 
   const registerPatientMutation = useMutation({
     mutationFn: async (data: InsertPatient) => {
-      const response = await apiRequest("/api/patients", "POST", data);
+      // Include organizationId from user context
+      const requestData = {
+        ...data,
+        organizationId: user?.organizationId,
+      };
+      const response = await apiRequest("/api/patients", "POST", requestData);
       return await response.json();
     },
     onSuccess: () => {
@@ -84,6 +114,9 @@ export default function PatientRegistrationModal({
       form.reset();
       setSelectedAllergies([]);
       setSelectedConditions([]);
+      setSelectedState("");
+      setShowNigerianAddress(false);
+      setShowNigerianId(false);
       onOpenChange(false);
     },
     onError: (error: any) => {
@@ -171,6 +204,15 @@ export default function PatientRegistrationModal({
   };
 
   const onSubmit = (data: InsertPatient) => {
+    // Validate that user has an organizationId
+    if (!user?.organizationId) {
+      toast({
+        title: "Organization Required",
+        description: "Your account is not assigned to an organization. Please contact your administrator.",
+        variant: "destructive",
+      });
+      return;
+    }
     registerPatientMutation.mutate(data);
   };
 
@@ -338,7 +380,266 @@ export default function PatientRegistrationModal({
                   </FormItem>
                 )}
               />
+
+              {/* Secondary Phone */}
+              <FormField
+                control={form.control}
+                name="secondaryPhone"
+                render={({ field }) => (
+                  <FormItem className="mt-4">
+                    <FormLabel>Secondary Phone (Optional)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="+234..." />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Alternative phone number for contact
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
+
+            {/* Nigerian Address Section (Optional, Collapsible) */}
+            <Collapsible open={showNigerianAddress} onOpenChange={setShowNigerianAddress}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between border-dashed border-green-300 bg-green-50/50 hover:bg-green-50"
+                >
+                  <span className="flex items-center gap-2 text-green-700">
+                    <MapPin className="h-4 w-4" />
+                    Nigerian Address Details (Optional)
+                  </span>
+                  {showNigerianAddress ? (
+                    <ChevronUp className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-green-600" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4 p-4 border border-green-200 rounded-lg bg-green-50/30">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              setSelectedState(value);
+                              form.setValue("lga", ""); // Reset LGA when state changes
+                            }} 
+                            value={field.value || ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select State" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-[300px]">
+                              {NIGERIA_STATE_NAMES.map((state) => (
+                                <SelectItem key={state} value={state}>
+                                  {state}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="lga"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Local Government Area (LGA)</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value || ""}
+                            disabled={!selectedState}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={selectedState ? "Select LGA" : "Select State first"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-[300px]">
+                              {getLgasForState(selectedState).map((lga) => (
+                                <SelectItem key={lga} value={lga}>
+                                  {lga}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="town"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Town/City</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., Ikeja, Lekki, Wuse" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="postalCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Postal Code</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 100271" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="streetAddress"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Street Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., 12 Adeola Odeku Street" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="landmark"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Landmark</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., Behind GTBank, Near Shoprite" />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          A nearby landmark helps locate the address easily
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Nigerian Identification Section (Optional, Collapsible) */}
+            <Collapsible open={showNigerianId} onOpenChange={setShowNigerianId}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-50"
+                >
+                  <span className="flex items-center gap-2 text-blue-700">
+                    <CreditCard className="h-4 w-4" />
+                    Nigerian Identification (Optional)
+                  </span>
+                  {showNigerianId ? (
+                    <ChevronUp className="h-4 w-4 text-blue-600" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-blue-600" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4 p-4 border border-blue-200 rounded-lg bg-blue-50/30">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="ninNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>NIN (National Identification Number)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              placeholder="11-digit NIN" 
+                              maxLength={11}
+                            />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            11-digit National Identification Number
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="bvnNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>BVN (Bank Verification Number)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              placeholder="11-digit BVN" 
+                              maxLength={11}
+                            />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            Optional for payment/billing purposes
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="preferredLanguage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preferred Language</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || "English"}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Language" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {NIGERIA_LANGUAGES.map((lang) => (
+                              <SelectItem key={lang} value={lang}>
+                                {lang}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Smart Medical Information with Autocomplete */}
             <div>

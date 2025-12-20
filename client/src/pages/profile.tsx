@@ -33,6 +33,7 @@ const profileSchema = z.object({
 type ProfileForm = z.infer<typeof profileSchema>;
 
 export default function Profile() {
+  // Profile component for user settings and information
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
   const { user, refreshUser } = useAuth();
@@ -89,10 +90,22 @@ export default function Profile() {
         description: "Your profile has been successfully updated."
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      // Extract clean error message
+      let errorMessage = "Failed to update profile. Please try again.";
+      
+      if (error?.message) {
+        // Remove status code prefix (e.g., "500: ")
+        const cleanMessage = error.message.replace(/^\d+:\s*/, '');
+        // Only use the error message if it doesn't contain unrelated toast descriptions
+        if (cleanMessage && !cleanMessage.includes('Direct database management')) {
+          errorMessage = cleanMessage;
+        }
+      }
+      
       toast({
         title: "Update Failed",
-        description: "Failed to update profile. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     }

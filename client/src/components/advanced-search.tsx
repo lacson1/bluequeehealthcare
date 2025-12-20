@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -23,14 +22,12 @@ import {
   Filter,
   X,
   Clock,
-  TrendingUp,
-  Star,
   History,
   Zap,
   ChevronRight
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { format, subDays, subMonths } from "date-fns";
+import { format } from "date-fns";
 
 interface SearchFilter {
   dateRange?: 'today' | 'week' | 'month' | 'all';
@@ -141,16 +138,66 @@ export function AdvancedSearch({ isOpen, onClose }: { isOpen: boolean; onClose: 
     localStorage.setItem('recentSearches', JSON.stringify(updated));
   };
 
-  // Advanced search with filters
+  // Advanced search with filters - use global search endpoint
   const { data: searchResults, isLoading } = useQuery({
-    queryKey: ['/api/search/advanced', searchTerm, activeTab, filters],
+    queryKey: ['/api/search/global', searchTerm, activeTab, filters],
+    queryFn: async () => {
+      if (searchTerm.length < 2) {
+        return { results: [], totalCount: 0 };
+      }
+      const url = new URL('/api/search/global', window.location.origin);
+      url.searchParams.set('q', searchTerm);
+      
+      // Map activeTab to search type
+      let searchType = 'all';
+      if (activeTab === 'patients') {
+        searchType = 'patients';
+      } else if (activeTab === 'records') {
+        // For records, search all types
+        searchType = 'all';
+      }
+      url.searchParams.set('type', searchType);
+      
+      const response = await fetch(url.toString(), {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.statusText}`);
+      }
+      return response.json();
+    },
     enabled: searchTerm.length >= 2,
     staleTime: 1000,
   });
 
-  // Smart suggestions based on partial input
-  const { data: suggestions } = useQuery<SearchSuggestion[]>({
-    queryKey: ['/api/search/suggestions', searchTerm],
+  // Smart suggestions based on partial input - use global search with shorter min length
+  const { data: _suggestions } = useQuery<SearchSuggestion[]>({
+    queryKey: ['/api/search/global', searchTerm],
+    queryFn: async () => {
+      if (searchTerm.length < 1) {
+        return [];
+      }
+      const url = new URL('/api/search/global', window.location.origin);
+      url.searchParams.set('q', searchTerm);
+      url.searchParams.set('type', 'all');
+      const response = await fetch(url.toString(), {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        return [];
+      }
+      const data = await response.json();
+      // Transform results to suggestions format
+      return (data.results || []).slice(0, 5).map((result: any) => ({
+        id: `${result.type}-${result.id}`,
+        type: result.type as 'patient' | 'action' | 'page',
+        title: result.title,
+        subtitle: result.subtitle || '',
+        path: result.type === 'patient' ? `/patients/${result.id}` : '#',
+        icon: null,
+        matchScore: 100,
+      }));
+    },
     enabled: searchTerm.length >= 1 && searchTerm.length < 3,
     staleTime: 2000,
   });
@@ -171,7 +218,7 @@ export function AdvancedSearch({ isOpen, onClose }: { isOpen: boolean; onClose: 
 
   // Keyboard shortcuts
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return undefined;
 
     const handleKeyPress = (e: KeyboardEvent) => {
       // Alt+N: New Patient
@@ -340,9 +387,9 @@ export function AdvancedSearch({ isOpen, onClose }: { isOpen: boolean; onClose: 
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
-              ) : searchResults?.results?.length > 0 ? (
+              ) : (searchResults as any)?.results?.length > 0 ? (
                 <div className="space-y-2">
-                  {searchResults.results.map((result: any) => (
+                  {(searchResults as any).results.map((result: any) => (
                     <button
                       key={result.id}
                       onClick={() => handleNavigate(result.path, searchTerm)}

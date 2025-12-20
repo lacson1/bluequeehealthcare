@@ -35,6 +35,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateMedium, formatDateOfBirth } from "@/lib/date-utils";
+import { t } from "@/lib/i18n";
 import EnhancedBloodTestResults from "@/components/EnhancedBloodTestResults";
 import EnhancedMedicationManager from "@/components/EnhancedMedicationManager";
 import {
@@ -670,7 +672,7 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
                     <h4 className="font-medium text-gray-900 mb-2 text-sm sm:text-base">Personal Information</h4>
                     <div className="space-y-2 text-xs sm:text-sm">
                       <p><strong>Name:</strong> {patient.title} {patient.firstName} {patient.lastName}</p>
-                      <p><strong>Date of Birth:</strong> {new Date(patient.dateOfBirth).toLocaleDateString()}</p>
+                      <p><strong>{t('date.dob')}:</strong> {formatDateOfBirth(patient.dateOfBirth)}</p>
                       <p><strong>Gender:</strong> {patient.gender}</p>
                       <p><strong>Patient ID:</strong> {patient.id}</p>
                     </div>
@@ -786,7 +788,7 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {new Date(appointment.date).toLocaleDateString()}
+                            {formatDateMedium(appointment.date)}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
@@ -855,7 +857,7 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
                         <p className="text-sm text-gray-600">{record.type}</p>
                         <p className="text-sm text-gray-500 mt-1">{record.description}</p>
                         <p className="text-xs text-gray-400 mt-2">
-                          {new Date(record.date).toLocaleDateString()} - Dr. {record.provider}
+                          {formatDateMedium(record.date)} - Dr. {record.provider}
                         </p>
                       </div>
                       <Button variant="outline" size="sm">
@@ -896,7 +898,7 @@ const PatientPortalContent = ({ patient, onLogout }: { patient: any; onLogout: (
                         <p className="text-sm text-gray-600 mb-2">{message.message}</p>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>From: {message.sender}</span>
-                          <span>{new Date(message.date).toLocaleDateString()}</span>
+                          <span>{formatDateMedium(message.date)}</span>
                           <Badge variant="outline">{message.category}</Badge>
                         </div>
                       </div>

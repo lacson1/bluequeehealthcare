@@ -80,18 +80,30 @@ export default function ClinicalPerformance() {
   // Fetch live clinical data from API endpoints
   const { data: clinicalMetrics, isLoading: metricsLoading } = useQuery<ClinicalMetrics>({
     queryKey: ["/api/clinical/metrics", { timeRange }],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: performanceData, isLoading: performanceLoading } = useQuery<PerformanceData[]>({
     queryKey: ["/api/clinical/performance", { timeRange }],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: diagnosisMetrics, isLoading: diagnosisLoading } = useQuery<DiagnosisMetrics[]>({
     queryKey: ["/api/clinical/diagnosis-metrics", { timeRange }],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: staffPerformance, isLoading: staffLoading } = useQuery<StaffPerformance[]>({
     queryKey: ["/api/clinical/staff-performance", { timeRange }],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Use live data with proper loading states and error handling

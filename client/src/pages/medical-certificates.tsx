@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Download, Printer, Search, User, Building, Phone, Mail, Globe, Calendar, Stethoscope } from 'lucide-react';
+import { FileText, Download, Printer, Search, User, Building, Phone, Mail, Globe, Calendar, Stethoscope, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface Patient {
   id: number;
@@ -17,6 +18,24 @@ interface Patient {
   phone: string;
   dateOfBirth: string;
   title?: string;
+}
+
+interface MedicalHistoryItem {
+  id: number;
+  condition: string;
+  type: string;
+  status: string;
+  description: string;
+  dateOccurred: string;
+}
+
+interface Visit {
+  id: number;
+  diagnosis?: string;
+  treatment?: string;
+  notes?: string;
+  visitDate: string;
+  status: string;
 }
 
 export default function MedicalCertificatesPage() {
@@ -31,6 +50,7 @@ export default function MedicalCertificatesPage() {
   const [restrictions, setRestrictions] = useState('');
 
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const { data: patients } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
@@ -42,6 +62,79 @@ export default function MedicalCertificatesPage() {
     queryFn: () => fetch(`/api/organizations/${user?.organizationId}`).then(res => res.json()),
     enabled: !!user?.organizationId
   });
+
+  // Fetch patient's medical history for auto-populate
+  const { data: patientMedicalHistory, isLoading: loadingHistory } = useQuery<MedicalHistoryItem[]>({
+    queryKey: [`/api/patients/${selectedPatient?.id}/medical-history`],
+    enabled: !!selectedPatient?.id
+  });
+
+  // Fetch patient's recent visits for diagnosis info
+  const { data: patientVisits, isLoading: loadingVisits } = useQuery<Visit[]>({
+    queryKey: [`/api/patients/${selectedPatient?.id}/visits`],
+    enabled: !!selectedPatient?.id
+  });
+
+  const isAutoPopulateLoading = loadingHistory || loadingVisits;
+
+  // Function to auto-populate form fields from patient data
+  const autoPopulateFromPatient = () => {
+    if (!selectedPatient) {
+      toast({
+        title: "No Patient Selected",
+        description: "Please select a patient first before auto-populating.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let populatedFields = 0;
+
+    // Auto-populate medical condition from recent visits or medical history
+    const recentVisit = patientVisits?.[0];
+    const activeConditions = patientMedicalHistory?.filter(h => h.status === 'active') || [];
+    
+    if (recentVisit?.diagnosis || activeConditions.length > 0) {
+      let conditionText = '';
+      if (recentVisit?.diagnosis) {
+        conditionText = recentVisit.diagnosis;
+      }
+      if (activeConditions.length > 0) {
+        const conditionsList = activeConditions.map(c => c.condition).join(', ');
+        conditionText = conditionText 
+          ? `${conditionText}; ${conditionsList}`
+          : conditionsList;
+      }
+      if (conditionText) {
+        setMedicalCondition(conditionText);
+        populatedFields++;
+      }
+    }
+
+    // Auto-populate restrictions from recent visit notes if available
+    if (recentVisit?.treatment || recentVisit?.notes) {
+      const notesText = [recentVisit.treatment, recentVisit.notes]
+        .filter(Boolean)
+        .join('\n');
+      if (notesText && !restrictions) {
+        setRestrictions(notesText);
+        populatedFields++;
+      }
+    }
+
+    if (populatedFields > 0) {
+      toast({
+        title: "Form Auto-Populated",
+        description: `Successfully filled ${populatedFields} field(s) from patient records.`,
+      });
+    } else {
+      toast({
+        title: "No Data Found",
+        description: "No medical records found to auto-populate. You can fill in the fields manually.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredPatients = patients?.filter(patient => 
     `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -204,12 +297,38 @@ export default function MedicalCertificatesPage() {
         {/* Certificate Details */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Certificate Details
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Certificate Details
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={autoPopulateFromPatient}
+                disabled={!selectedPatient || isAutoPopulateLoading}
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-purple-200"
+              >
+                {isAutoPopulateLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                )}
+                <span className="text-purple-700">Auto-Fill</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {selectedPatient && (
+              <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 mb-2">
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <Sparkles className="w-4 h-4" />
+                  <span>
+                    Click "Auto-Fill" to populate medical condition from {selectedPatient.firstName}'s records.
+                  </span>
+                </div>
+              </div>
+            )}
             <div>
               <Label htmlFor="certificate-type">Certificate Type</Label>
               <Select value={certificateType} onValueChange={setCertificateType}>

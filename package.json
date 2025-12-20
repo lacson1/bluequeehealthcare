@@ -17,7 +17,14 @@
         "test:coverage": "vitest run --coverage",
         "test:watch": "vitest --watch",
         "test:client": "vitest run client",
-        "test:server": "vitest run server"
+        "test:server": "vitest run server",
+        "seed:specialty-presets": "tsx scripts/seed-specialty-presets.ts",
+        "seed:permissions": "tsx scripts/seed-permissions.ts",
+        "seed:lab-tests": "tsx scripts/seed-lab-tests.ts",
+        "check:permissions": "tsx scripts/check-permissions.ts",
+        "test:tabs": "tsx scripts/test-patient-tabs.ts",
+        "docker:build": "docker build -t clinicconnect -f Dockerfile.cloudrun .",
+        "docker:run": "docker run -p 8080:8080 --env-file .env clinicconnect"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.37.0",

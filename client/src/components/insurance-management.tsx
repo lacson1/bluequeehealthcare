@@ -586,7 +586,7 @@ export default function InsuranceManagement({ patientId }: InsuranceManagementPr
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {insuranceRecords.map((insurance: PatientInsurance) => (
+          {(Array.isArray(insuranceRecords) ? insuranceRecords : []).map((insurance: PatientInsurance) => (
             <Card key={insurance.id} className="relative">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">

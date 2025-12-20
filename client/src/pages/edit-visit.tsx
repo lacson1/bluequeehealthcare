@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { formatDateMedium, formatDateOfBirth } from '@/lib/date-utils';
 import {
   ArrowLeft,
   Save,
@@ -199,7 +200,7 @@ export default function EditVisit() {
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">Edit Visit</h1>
                   <p className="text-sm text-gray-500">
-                    {patient.firstName} {patient.lastName} • {new Date(visit.visitDate).toLocaleDateString()}
+                    {patient.firstName} {patient.lastName} • {formatDateMedium(visit.visitDate)}
                   </p>
                 </div>
               </div>
@@ -230,7 +231,7 @@ export default function EditVisit() {
                 </div>
                 <div>
                   <span className="font-medium text-gray-500">Date of Birth:</span>
-                  <p className="text-gray-900">{new Date(patient.dateOfBirth).toLocaleDateString()}</p>
+                  <p className="text-gray-900">{formatDateOfBirth(patient.dateOfBirth)}</p>
                 </div>
                 <div>
                   <span className="font-medium text-gray-500">Gender:</span>

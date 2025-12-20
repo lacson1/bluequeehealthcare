@@ -65,7 +65,7 @@ import {
   type InsertClinicalNote
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, gte, lte, and, ilike, or, sql } from "drizzle-orm";
+import { eq, desc, gte, lte, and, ilike, or, sql, count } from "drizzle-orm";
 
 export interface IStorage {
   // Patients
@@ -73,6 +73,7 @@ export interface IStorage {
   getPatients(search?: string, organizationId?: number): Promise<Patient[]>;
   createPatient(patient: InsertPatient): Promise<Patient>;
   updatePatient(id: number, data: Partial<InsertPatient>): Promise<Patient | undefined>;
+  deletePatient(id: number, cascade?: boolean): Promise<boolean>;
 
   // Visits
   getVisit(id: number): Promise<Visit | undefined>;
@@ -212,6 +213,17 @@ export interface IStorage {
   getClinicalNoteByConsultation(consultationId: number, organizationId?: number): Promise<ClinicalNote | undefined>;
   createClinicalNote(note: InsertClinicalNote): Promise<ClinicalNote>;
   updateClinicalNote(id: number, updates: Partial<InsertClinicalNote>): Promise<ClinicalNote>;
+  deleteClinicalNote(id: number, organizationId?: number): Promise<void>;
+  getClinicalNotesByPatient(patientId: number, organizationId?: number): Promise<ClinicalNote[]>;
+  getCarePlansByPatient(patientId: number, organizationId?: number): Promise<Array<{
+    id: number;
+    visitDate: Date;
+    treatment: string | null;
+    diagnosis: string | null;
+    followUpDate: Date | null;
+    visitType: string;
+    doctorId: number | null;
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -252,6 +264,46 @@ export class DatabaseStorage implements IStorage {
       .where(eq(patients.id, id))
       .returning();
     return patient || undefined;
+  }
+
+  async deletePatient(id: number, cascade: boolean = false): Promise<boolean> {
+    // Check if patient exists
+    const patient = await this.getPatient(id);
+    if (!patient) {
+      return false;
+    }
+
+    // If cascade is false, check for related records
+    if (!cascade) {
+      const relatedRecords = await db.select({ count: sql<number>`count(*)` })
+        .from(visits)
+        .where(eq(visits.patientId, id));
+      
+      if (relatedRecords[0]?.count && relatedRecords[0].count > 0) {
+        throw new Error('Cannot delete patient with related records. Use cascade=true to delete all related records.');
+      }
+    }
+
+    // If cascade is true, delete related records first
+    if (cascade) {
+      // Delete related records in order (respecting foreign key constraints)
+      // Start with child records that may have their own dependencies
+      await db.delete(visits).where(eq(visits.patientId, id));
+      await db.delete(prescriptions).where(eq(prescriptions.patientId, id));
+      await db.delete(labResults).where(eq(labResults.patientId, id));
+      await db.delete(labOrders).where(eq(labOrders.patientId, id));
+      await db.delete(vaccinations).where(eq(vaccinations.patientId, id));
+      await db.delete(allergies).where(eq(allergies.patientId, id));
+      await db.delete(medicalHistory).where(eq(medicalHistory.patientId, id));
+      await db.delete(consultationRecords).where(eq(consultationRecords.patientId, id));
+      await db.delete(aiConsultations).where(eq(aiConsultations.patientId, id));
+      // Note: Some tables like appointments, referrals, etc. may need to be handled separately
+      // if they have additional foreign key constraints
+    }
+
+    // Delete the patient
+    const result = await db.delete(patients).where(eq(patients.id, id));
+    return true;
   }
 
   // Visits
@@ -670,54 +722,72 @@ export class DatabaseStorage implements IStorage {
     lowStockItems: number;
     pendingLabs: number;
   }> {
-    // Organization-filtered patient count
-    const totalPatientsResult = await db.select()
-      .from(patients)
-      .where(eq(patients.organizationId, organizationId));
-    
-    // Organization-filtered today's visits
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-    
-    const todayVisitsResult = await db.select()
-      .from(visits)
-      .leftJoin(patients, eq(visits.patientId, patients.id))
-      .where(
-        and(
-          eq(patients.organizationId, organizationId),
-          gte(visits.visitDate, startOfDay),
-          lte(visits.visitDate, endOfDay)
-        )
-      );
-    
-    // Organization-filtered low stock medicines
-    const lowStockResult = await db.select()
-      .from(medicines)
-      .where(
-        and(
-          eq(medicines.organizationId, organizationId),
-          lte(medicines.quantity, 10)
-        )
-      );
-    
-    // Organization-filtered pending lab results
-    const pendingLabsResult = await db.select()
-      .from(labResults)
-      .leftJoin(patients, eq(labResults.patientId, patients.id))
-      .where(
-        and(
-          eq(patients.organizationId, organizationId),
-          eq(labResults.status, 'pending')
-        )
-      );
+    try {
+      // Organization-filtered patient count - Use COUNT() for accurate count
+      const [totalPatientsResult] = await db
+        .select({ count: count() })
+        .from(patients)
+        .where(eq(patients.organizationId, organizationId));
+      
+      // Organization-filtered today's visits - Use COUNT() and proper date comparison
+      // visitDate is a timestamp, so we need to compare dates properly
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // Count visits where visitDate is today
+      // visits table has organizationId directly, so no need to join with patients
+      const [todayVisitsResult] = await db
+        .select({ count: count() })
+        .from(visits)
+        .where(
+          and(
+            eq(visits.organizationId, organizationId),
+            gte(visits.visitDate, today),
+            lte(visits.visitDate, tomorrow)
+          )
+        );
+      
+      // Organization-filtered low stock medicines - Use COUNT()
+      const [lowStockResult] = await db
+        .select({ count: count() })
+        .from(medicines)
+        .where(
+          and(
+            eq(medicines.organizationId, organizationId),
+            lte(medicines.quantity, 10)
+          )
+        );
+      
+      // Organization-filtered pending lab results - Use COUNT() and check labOrders
+      // labOrders table should have organizationId directly
+      const [pendingLabsResult] = await db
+        .select({ count: count() })
+        .from(labOrders)
+        .where(
+          and(
+            eq(labOrders.organizationId, organizationId),
+            eq(labOrders.status, 'pending')
+          )
+        );
 
-    return {
-      totalPatients: totalPatientsResult.length,
-      todayVisits: todayVisitsResult.length,
-      lowStockItems: lowStockResult.length,
-      pendingLabs: pendingLabsResult.length,
-    };
+      return {
+        totalPatients: totalPatientsResult?.count || 0,
+        todayVisits: todayVisitsResult?.count || 0,
+        lowStockItems: lowStockResult?.count || 0,
+        pendingLabs: pendingLabsResult?.count || 0,
+      };
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      // Return zeros on error to prevent dashboard from breaking
+      return {
+        totalPatients: 0,
+        todayVisits: 0,
+        lowStockItems: 0,
+        pendingLabs: 0,
+      };
+    }
   }
 
   // Medical Records Implementation
@@ -1134,6 +1204,92 @@ export class DatabaseStorage implements IStorage {
       .where(and(...conditions))
       .returning();
     return note;
+  }
+
+  async deleteClinicalNote(id: number, organizationId?: number): Promise<void> {
+    const conditions = [eq(clinicalNotes.id, id)];
+    if (organizationId) {
+      conditions.push(eq(clinicalNotes.organizationId, organizationId));
+    }
+    
+    await db
+      .delete(clinicalNotes)
+      .where(and(...conditions));
+  }
+
+  // Get all clinical notes for a patient (through consultations)
+  async getClinicalNotesByPatient(patientId: number, organizationId?: number): Promise<ClinicalNote[]> {
+    const conditions = [eq(aiConsultations.patientId, patientId)];
+    if (organizationId) {
+      conditions.push(eq(aiConsultations.organizationId, organizationId));
+    }
+    
+    const notes = await db
+      .select({
+        id: clinicalNotes.id,
+        consultationId: clinicalNotes.consultationId,
+        subjective: clinicalNotes.subjective,
+        objective: clinicalNotes.objective,
+        assessment: clinicalNotes.assessment,
+        plan: clinicalNotes.plan,
+        chiefComplaint: clinicalNotes.chiefComplaint,
+        historyOfPresentIllness: clinicalNotes.historyOfPresentIllness,
+        pastMedicalHistory: clinicalNotes.pastMedicalHistory,
+        medications: clinicalNotes.medications,
+        vitalSigns: clinicalNotes.vitalSigns,
+        diagnosis: clinicalNotes.diagnosis,
+        differentialDiagnoses: clinicalNotes.differentialDiagnoses,
+        icdCodes: clinicalNotes.icdCodes,
+        suggestedLabTests: clinicalNotes.suggestedLabTests,
+        clinicalWarnings: clinicalNotes.clinicalWarnings,
+        confidenceScore: clinicalNotes.confidenceScore,
+        recommendations: clinicalNotes.recommendations,
+        followUpInstructions: clinicalNotes.followUpInstructions,
+        followUpDate: clinicalNotes.followUpDate,
+        addedToPatientRecord: clinicalNotes.addedToPatientRecord,
+        organizationId: clinicalNotes.organizationId,
+        createdAt: clinicalNotes.createdAt,
+        updatedAt: clinicalNotes.updatedAt,
+        consultationDate: aiConsultations.createdAt,
+      })
+      .from(clinicalNotes)
+      .innerJoin(aiConsultations, eq(clinicalNotes.consultationId, aiConsultations.id))
+      .where(and(...conditions))
+      .orderBy(desc(clinicalNotes.createdAt));
+    
+    return notes;
+  }
+
+  // Get care plans for a patient (from visits treatment field)
+  async getCarePlansByPatient(patientId: number, organizationId?: number): Promise<Array<{
+    id: number;
+    visitDate: Date;
+    treatment: string | null;
+    diagnosis: string | null;
+    followUpDate: Date | null;
+    visitType: string;
+    doctorId: number | null;
+  }>> {
+    const conditions = [eq(visits.patientId, patientId)];
+    if (organizationId) {
+      conditions.push(eq(visits.organizationId, organizationId));
+    }
+    
+    const carePlans = await db
+      .select({
+        id: visits.id,
+        visitDate: visits.visitDate,
+        treatment: visits.treatment,
+        diagnosis: visits.diagnosis,
+        followUpDate: visits.followUpDate,
+        visitType: visits.visitType,
+        doctorId: visits.doctorId,
+      })
+      .from(visits)
+      .where(and(...conditions))
+      .orderBy(desc(visits.visitDate));
+    
+    return carePlans.filter(v => v.treatment || v.diagnosis);
   }
 }
 

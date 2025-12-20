@@ -4,7 +4,8 @@ import { storage } from "../storage";
 import { insertPatientSchema, insertVisitSchema, patients, visits, vaccinations, prescriptions, labResults, labOrders } from "@shared/schema";
 import { z } from "zod";
 import { db } from "../db";
-import { eq, desc, or, ilike, and, sql } from "drizzle-orm";
+import { eq, desc, or, ilike, and, sql, inArray } from "drizzle-orm";
+import { AuditLogger } from "../audit";
 
 const router = Router();
 
@@ -13,96 +14,66 @@ const router = Router();
  * Handles: patient CRUD, visits, medical records, search functionality
  */
 export function setupPatientRoutes(): Router {
-  
+
   // Create patient - Allow all authenticated users to register patients
   router.post("/patients", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      console.log('=== PATIENT REGISTRATION REQUEST ===');
-      console.log('req.user:', req.user);
-      console.log('req.body:', req.body);
-      
       // authenticateToken middleware should always set req.user
-      // If it's not set, there's an issue with the middleware
       if (!req.user) {
-        console.error('ERROR: req.user is not set after authenticateToken middleware');
         return res.status(401).json({ message: "Authentication required" });
       }
-      
+
       // Validate organizationId - use from body if provided, otherwise from user context
       const organizationId = req.body.organizationId || req.user?.organizationId;
       if (!organizationId) {
-        return res.status(400).json({ 
-          message: "Organization ID is required. Please provide organizationId in request body or ensure your account is assigned to an organization." 
+        return res.status(400).json({
+          message: "Organization ID is required. Please provide organizationId in request body or ensure your account is assigned to an organization."
         });
       }
-      
-      // Check if patient with same phone already exists in this organization
-      if (req.body.phone) {
-        const existingPatient = await db
-          .select()
-          .from(patients)
-          .where(and(
-            eq(patients.phone, req.body.phone),
-            eq(patients.organizationId, organizationId)
-          ))
-          .limit(1);
-        
-        if (existingPatient.length > 0) {
-          return res.status(400).json({ 
-            message: "A patient with this phone number already exists in this organization." 
-          });
-        }
-      }
-      
-      // Add the staff member's organization ID to ensure proper attribution
-      const patientData = insertPatientSchema.parse({
-        ...req.body,
-        organizationId: organizationId
-      });
-      
-      console.log('Creating patient with data:', patientData);
-      const patient = await storage.createPatient(patientData);
-      console.log('Patient created successfully:', patient.id);
-      
-      res.json(patient);
+
+      // Use PatientService to create patient (handles validation and duplicate checking)
+      const { PatientService } = await import("../services/PatientService");
+      const patient = await PatientService.createPatient(req.body, organizationId);
+
+      return res.json(patient);
     } catch (error) {
       console.error('Patient registration error:', error);
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid patient data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid patient data", errors: error.errors });
       } else if (error instanceof Error) {
-        // Handle database constraint errors
-        if (error.message.includes('duplicate key') || error.message.includes('UNIQUE constraint')) {
-          res.status(400).json({ message: "A patient with this information already exists." });
-        } else if (error.message.includes('foreign key') || error.message.includes('organization_id')) {
-          res.status(400).json({ message: "Invalid organization ID. The specified organization does not exist." });
+        // Handle service layer errors
+        if (error.message.includes('already exists')) {
+          return res.status(400).json({ message: error.message });
+        } else if (error.message.includes('Organization ID')) {
+          return res.status(400).json({ message: error.message });
         } else {
-          res.status(500).json({ message: "Failed to create patient", error: error.message });
+          return res.status(500).json({ message: "Failed to create patient", error: error.message });
         }
       } else {
-        res.status(500).json({ message: "Failed to create patient" });
+        return res.status(500).json({ message: "Failed to create patient" });
       }
     }
   });
 
   // Enhanced patients endpoint with analytics
-  router.get("/patients/enhanced", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
+  router.get("/patients/enhanced", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (_req: AuthRequest, res) => {
     try {
       const patients = await storage.getPatients();
-      res.json(patients);
+      return res.json(patients);
     } catch (error) {
       console.error('Error fetching enhanced patients:', error);
-      res.status(500).json({ message: "Failed to fetch patients" });
+      return res.status(500).json({ message: "Failed to fetch patients" });
     }
   });
 
   // Patient analytics endpoint
-  router.get("/patients/analytics", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
+  router.get("/patients/analytics", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (_req: AuthRequest, res) => {
     try {
       const patients = await storage.getPatients();
-      res.json(patients);
+      return res.json(patients);
     } catch (error) {
       console.error('Error fetching patient analytics:', error);
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      return res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 
@@ -111,10 +82,10 @@ export function setupPatientRoutes(): Router {
     try {
       const userOrgId = req.user?.organizationId;
       const search = req.query.search as string | undefined;
-      
+
       // Organization-filtered patients (if organizationId is null, show all patients - authentication disabled mode)
       let whereClause = userOrgId ? eq(patients.organizationId, userOrgId) : undefined;
-      
+
       if (search) {
         const searchConditions = [
           ilike(patients.firstName, `%${search}%`),
@@ -131,17 +102,17 @@ export function setupPatientRoutes(): Router {
           whereClause = or(...searchConditions);
         }
       }
-      
+
       const patientsResult = await db.select()
         .from(patients)
         .where(whereClause || undefined)
         .orderBy(desc(patients.createdAt));
-      
+
       // Prevent caching to ensure fresh data
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
-      
+
       res.json(patientsResult);
     } catch (error) {
       console.error('Error fetching patients:', error);
@@ -163,11 +134,11 @@ export function setupPatientRoutes(): Router {
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const search = req.query.search as string || "";
-      
+
       let whereClause = eq(patients.organizationId, userOrgId);
-      
+
       if (search) {
         const searchConditions = or(
           ilike(patients.firstName, `%${search}%`),
@@ -177,34 +148,41 @@ export function setupPatientRoutes(): Router {
         );
         whereClause = and(eq(patients.organizationId, userOrgId), searchConditions);
       }
-      
+
       const searchResults = await db.select()
         .from(patients)
         .where(whereClause)
         .limit(20)
         .orderBy(desc(patients.createdAt));
-        
-      res.json(searchResults);
+
+      return res.json(searchResults);
     } catch (error) {
       console.error("Error searching patients:", error);
-      res.status(500).json({ message: "Failed to search patients" });
+      return res.status(500).json({ message: "Failed to search patients" });
     }
   });
 
   // Get patient by ID
-  router.get("/patients/:id", async (req, res) => {
+  router.get("/patients/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
+      const userOrgId = req.user?.organizationId;
+      const isSuperAdmin = req.user?.role === 'superadmin' || req.user?.role === 'super_admin';
+
       const patient = await storage.getPatient(id);
       if (!patient) {
-        res.status(404).json({ message: "Patient not found" });
-        return;
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      // Verify organization access (unless superadmin)
+      if (!isSuperAdmin && userOrgId && patient.organizationId !== userOrgId) {
+        return res.status(403).json({ message: "You don't have permission to access this patient" });
       }
 
       // Calculate age safely with proper null/undefined handling
       const dob = patient.dateOfBirth ? new Date(patient.dateOfBirth) : null;
       let age = null;
-      
+
       if (dob && !isNaN(dob.getTime())) {
         const today = new Date();
         age = today.getFullYear() - dob.getFullYear();
@@ -218,24 +196,32 @@ export function setupPatientRoutes(): Router {
         }
       }
 
-      res.json({
+      return res.json({
         ...patient,
         age: age
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch patient" });
+      console.error('Error fetching patient:', error);
+      return res.status(500).json({ message: "Failed to fetch patient" });
     }
   });
 
   // Quick patient summary for doctor workflow
-  router.get("/patients/:id/summary", authenticateToken, async (req: AuthRequest, res) => {
+  router.get("/patients/:id/summary", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      
+      const userOrgId = req.user?.organizationId;
+      const isSuperAdmin = req.user?.role === 'superadmin' || req.user?.role === 'super_admin';
+
       // Get basic patient info
       const patient = await storage.getPatient(patientId);
       if (!patient) {
         return res.status(404).json({ message: "Patient not found" });
+      }
+
+      // Verify organization access (unless superadmin)
+      if (!isSuperAdmin && userOrgId && patient.organizationId !== userOrgId) {
+        return res.status(403).json({ message: "You don't have permission to access this patient" });
       }
 
       // Get quick counts and latest data
@@ -258,7 +244,7 @@ export function setupPatientRoutes(): Router {
         if (age < 0 || age > 150) age = null;
       }
 
-      res.json({
+      return res.json({
         patient: {
           ...patient,
           age,
@@ -271,10 +257,10 @@ export function setupPatientRoutes(): Router {
           updatedAt: new Date().toISOString()
         }
       });
-      
+
     } catch (error) {
       console.error("Failed to fetch patient summary:", error);
-      res.status(500).json({ message: "Failed to fetch patient summary" });
+      return res.status(500).json({ message: "Failed to fetch patient summary" });
     }
   });
 
@@ -283,7 +269,7 @@ export function setupPatientRoutes(): Router {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
-      
+
       // Remove any undefined fields
       Object.keys(updateData).forEach(key => {
         if (updateData[key] === undefined || updateData[key] === '') {
@@ -293,19 +279,18 @@ export function setupPatientRoutes(): Router {
 
       const updatedPatient = await storage.updatePatient(id, updateData);
       if (!updatedPatient) {
-        res.status(404).json({ message: "Patient not found" });
-        return;
+        return res.status(404).json({ message: "Patient not found" });
       }
 
       // Log the update action
-      await req.auditLogger?.logPatientAction('UPDATE', id, { 
-        updatedFields: Object.keys(updateData) 
+      await req.auditLogger?.logPatientAction('UPDATE', id, {
+        updatedFields: Object.keys(updateData)
       });
 
-      res.json(updatedPatient);
+      return res.json(updatedPatient);
     } catch (error) {
       console.error('Error updating patient:', error);
-      res.status(500).json({ message: "Failed to update patient" });
+      return res.status(500).json({ message: "Failed to update patient" });
     }
   });
 
@@ -314,24 +299,80 @@ export function setupPatientRoutes(): Router {
     try {
       const id = parseInt(req.params.id);
       const { archived } = req.body;
-      
+
       // Note: Archive functionality not fully implemented in schema
       // This endpoint exists for future implementation
       // For now, just log the action and return success
-      
+
       await req.auditLogger?.logPatientAction(
         archived ? 'ARCHIVE' : 'UNARCHIVE',
         id,
         { archived }
       );
 
-      res.json({ 
-        message: `Patient ${archived ? 'archived' : 'unarchived'} successfully (pending implementation)`, 
-        patient: { id } 
+      return res.json({
+        message: `Patient ${archived ? 'archived' : 'unarchived'} successfully (pending implementation)`,
+        patient: { id }
       });
     } catch (error) {
       console.error('Error archiving patient:', error);
-      res.status(500).json({ message: "Failed to archive patient" });
+      return res.status(500).json({ message: "Failed to archive patient" });
+    }
+  });
+
+  // Delete patient
+  router.delete("/patients/:id", authenticateToken, requireAnyRole(['admin', 'doctor']), async (req: AuthRequest, res) => {
+    try {
+      const id = Number.parseInt(req.params.id, 10);
+      const userOrgId = req.user?.organizationId;
+      const isSuperAdmin = req.user?.role === 'superadmin';
+
+      // Check if patient exists and belongs to user's organization (unless superadmin)
+      const patient = await storage.getPatient(id);
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      // Verify organization access (unless superadmin)
+      if (!isSuperAdmin && userOrgId && patient.organizationId !== userOrgId) {
+        return res.status(403).json({ message: "You don't have permission to delete this patient" });
+      }
+
+      // Check for cascade parameter
+      const cascade = req.query.cascade === 'true' || req.body.cascade === true;
+
+      // Attempt to delete patient
+      try {
+        await storage.deletePatient(id, cascade);
+
+        // Log the deletion action
+        const auditLogger = new AuditLogger(req);
+        await auditLogger.logPatientAction('DELETE', id, {
+          cascade,
+          deletedBy: req.user?.id,
+          deletedAt: new Date().toISOString()
+        });
+
+        return res.json({
+          message: "Patient deleted successfully",
+          patientId: id
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('related records')) {
+          return res.status(409).json({
+            message: error.message,
+            error: "Patient has related records (visits, prescriptions, lab results, etc.). Use cascade=true to delete all related records.",
+            patientId: id
+          });
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error deleting patient:', error);
+      return res.status(500).json({
+        message: "Failed to delete patient",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
@@ -345,95 +386,129 @@ export function setupPatientRoutes(): Router {
       console.log('Patient ID:', patientId);
       console.log('Raw request body:', JSON.stringify(req.body, null, 2));
       console.log('User making request:', req.user?.username, 'Role:', req.user?.role);
-      
+
       // Clean up empty strings to undefined for optional fields and fix field mapping
       const cleanedData = { ...req.body };
       if (cleanedData.heartRate === '') cleanedData.heartRate = undefined;
       if (cleanedData.temperature === '') cleanedData.temperature = undefined;
       if (cleanedData.weight === '') cleanedData.weight = undefined;
       if (cleanedData.followUpDate === '') cleanedData.followUpDate = undefined;
-      
+
       // Fix field name mapping - frontend sends chiefComplaint, backend expects complaint
       if (cleanedData.chiefComplaint !== undefined) {
         cleanedData.complaint = cleanedData.chiefComplaint;
         delete cleanedData.chiefComplaint;
       }
-      
+
       // Fix field name mapping - frontend sends treatmentPlan, backend expects treatment
       if (cleanedData.treatmentPlan !== undefined) {
         cleanedData.treatment = cleanedData.treatmentPlan;
         delete cleanedData.treatmentPlan;
       }
-      
+
       console.log('Cleaned data:', JSON.stringify(cleanedData, null, 2));
-      
+
       // Add the staff member's organization ID to ensure proper letterhead attribution
-      const visitData = insertVisitSchema.parse({ 
-        ...cleanedData, 
+      const visitData = insertVisitSchema.parse({
+        ...cleanedData,
         patientId,
         doctorId: req.user?.id,
         organizationId: req.user?.organizationId
       });
       console.log('Parsed visit data:', JSON.stringify(visitData, null, 2));
-      
+
       const visit = await storage.createVisit(visitData);
       console.log('Visit created successfully:', visit);
-      res.json(visit);
+      return res.json(visit);
     } catch (error: any) {
       console.error('=== VISIT CREATION ERROR ===');
       console.error('Error type:', typeof error);
       console.error('Error instance:', error.constructor.name);
       if (error instanceof z.ZodError) {
         console.error('Zod validation errors:', JSON.stringify(error.errors, null, 2));
-        res.status(400).json({ message: "Invalid visit data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid visit data", errors: error.errors });
       } else {
         console.error('Non-Zod error:', error);
-        res.status(500).json({ message: "Failed to create visit", error: error.message });
+        return res.status(500).json({ message: "Failed to create visit", error: error.message });
       }
     }
   });
 
   // Get patient visits
-  router.get("/patients/:id/visits", async (req, res) => {
+  router.get("/patients/:id/visits", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
+      const userOrgId = req.user?.organizationId;
+      const isSuperAdmin = req.user?.role === 'superadmin' || req.user?.role === 'super_admin';
+
+      // Verify patient exists and belongs to user's organization (unless superadmin)
+      const patient = await storage.getPatient(patientId);
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      if (!isSuperAdmin && userOrgId && patient.organizationId !== userOrgId) {
+        return res.status(403).json({ message: "You don't have permission to access this patient's visits" });
+      }
+
       const visits = await storage.getVisitsByPatient(patientId);
-      res.json(visits);
+      return res.json(visits);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch visits" });
+      console.error('Error fetching visits:', error);
+      return res.status(500).json({ message: "Failed to fetch visits" });
     }
   });
 
   // Get individual visit
-  router.get("/patients/:patientId/visits/:visitId", authenticateToken, async (req: AuthRequest, res) => {
+  router.get("/patients/:patientId/visits/:visitId", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.patientId);
       const visitId = parseInt(req.params.visitId);
+      const userOrgId = req.user?.organizationId;
+      const isSuperAdmin = req.user?.role === 'superadmin' || req.user?.role === 'super_admin';
+
       const visit = await storage.getVisitById(visitId);
-      
+
       if (!visit || visit.patientId !== patientId) {
         return res.status(404).json({ message: "Visit not found" });
       }
-      
-      res.json(visit);
+
+      // Verify organization access (unless superadmin)
+      if (!isSuperAdmin && userOrgId && visit.organizationId !== userOrgId) {
+        return res.status(403).json({ message: "You don't have permission to access this visit" });
+      }
+
+      return res.json(visit);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch visit" });
+      console.error('Error fetching visit:', error);
+      return res.status(500).json({ message: "Failed to fetch visit" });
     }
   });
 
   // Update visit
   router.patch("/patients/:patientId/visits/:visitId", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
-      const patientId = parseInt(req.params.patientId);
       const visitId = parseInt(req.params.visitId);
-      
+      const userOrgId = req.user?.organizationId;
+      const isSuperAdmin = req.user?.role === 'superadmin' || req.user?.role === 'super_admin';
+
+      // Verify visit exists and belongs to user's organization (unless superadmin)
+      const existingVisit = await storage.getVisitById(visitId);
+      if (!existingVisit) {
+        return res.status(404).json({ message: "Visit not found" });
+      }
+
+      if (!isSuperAdmin && userOrgId && existingVisit.organizationId !== userOrgId) {
+        return res.status(403).json({ message: "You don't have permission to update this visit" });
+      }
+
       // Clean up empty strings to undefined for optional fields
       const cleanedData = { ...req.body };
       if (cleanedData.heartRate === '') cleanedData.heartRate = undefined;
       if (cleanedData.temperature === '') cleanedData.temperature = undefined;
       if (cleanedData.weight === '') cleanedData.weight = undefined;
       if (cleanedData.followUpDate === '') cleanedData.followUpDate = undefined;
-      
+
       // Remove any undefined fields
       Object.keys(cleanedData).forEach(key => {
         if (cleanedData[key] === undefined || cleanedData[key] === '') {
@@ -447,14 +522,192 @@ export function setupPatientRoutes(): Router {
       }
 
       // Log the update action
-      await req.auditLogger?.logVisitAction('UPDATE', visitId, { 
-        updatedFields: Object.keys(cleanedData) 
+      await req.auditLogger?.logVisitAction('UPDATE', visitId, {
+        updatedFields: Object.keys(cleanedData)
       });
 
-      res.json(updatedVisit);
+      return res.json(updatedVisit);
     } catch (error) {
       console.error('Error updating visit:', error);
-      res.status(500).json({ message: "Failed to update visit" });
+      return res.status(500).json({ message: "Failed to update visit" });
+    }
+  });
+
+  // Get clinical notes for a patient (from AI consultations and visits)
+  router.get("/patients/:id/clinical-notes", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.id);
+      const userOrgId = req.user?.organizationId;
+
+      if (!userOrgId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+
+      // Verify patient belongs to user's organization
+      const [patient] = await db.select().from(patients)
+        .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId)))
+        .limit(1);
+
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      // Get clinical notes from AI consultations
+      const aiNotes = await storage.getClinicalNotesByPatient(patientId, userOrgId);
+
+      // Get visits and convert them to clinical note format
+      const patientVisits = await storage.getVisitsByPatient(patientId);
+      const visitNotes = patientVisits
+        .filter(visit => visit.organizationId === userOrgId && (visit.complaint || visit.diagnosis || visit.treatment))
+        .map(visit => {
+          const visitDate = visit.visitDate ? new Date(visit.visitDate).toISOString() : (visit.createdAt ? new Date(visit.createdAt).toISOString() : new Date().toISOString());
+          return {
+            id: visit.id + 1000000, // Offset to avoid conflicts with AI consultation notes
+            consultationId: null,
+            subjective: visit.complaint || undefined,
+            objective: undefined, // Visits don't have a separate notes field
+            assessment: visit.diagnosis || undefined,
+            plan: visit.treatment || undefined,
+            chiefComplaint: visit.complaint || undefined,
+            historyOfPresentIllness: undefined,
+            pastMedicalHistory: undefined,
+            diagnosis: visit.diagnosis || undefined,
+            recommendations: undefined,
+            followUpInstructions: undefined,
+            followUpDate: visit.followUpDate ? new Date(visit.followUpDate).toISOString().split('T')[0] : undefined,
+            consultationDate: visitDate,
+            createdAt: visit.createdAt ? new Date(visit.createdAt).toISOString() : new Date().toISOString(),
+            updatedAt: visit.createdAt ? new Date(visit.createdAt).toISOString() : new Date().toISOString(),
+          };
+        });
+
+      // Combine and sort by date (most recent first)
+      // Type assertion needed because aiNotes and visitNotes have slightly different structures
+      const allNotes = [...aiNotes, ...visitNotes].sort((a: any, b: any) => {
+        const dateA = a.consultationDate ? new Date(a.consultationDate).getTime() : new Date(a.createdAt).getTime();
+        const dateB = b.consultationDate ? new Date(b.consultationDate).getTime() : new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+
+      return res.json(allNotes);
+    } catch (error) {
+      console.error('Error fetching clinical notes:', error);
+      return res.status(500).json({ message: "Failed to fetch clinical notes" });
+    }
+  });
+
+  // Create a new clinical note for a patient
+  router.post("/patients/:id/clinical-notes", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.id);
+      const userOrgId = req.user?.organizationId;
+      const userId = req.user?.id;
+
+      if (!userOrgId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+
+      // Verify patient belongs to user's organization
+      const [patient] = await db.select().from(patients)
+        .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId)))
+        .limit(1);
+
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      const { subjective, objective, assessment, plan, chiefComplaint, diagnosis, recommendations, followUpInstructions, followUpDate, consultationDate } = req.body;
+
+      const newNote = await storage.createClinicalNote({
+        patientId,
+        organizationId: userOrgId,
+        subjective: subjective || null,
+        objective: objective || null,
+        assessment: assessment || null,
+        plan: plan || null,
+        chiefComplaint: chiefComplaint || null,
+        diagnosis: diagnosis || null,
+        recommendations: recommendations || null,
+        followUpInstructions: followUpInstructions || null,
+        followUpDate: followUpDate ? new Date(followUpDate) : null,
+        consultationDate: consultationDate ? new Date(consultationDate) : new Date(),
+        createdBy: userId,
+      } as any);
+
+      return res.status(201).json(newNote);
+    } catch (error) {
+      console.error('Error creating clinical note:', error);
+      return res.status(500).json({ message: "Failed to create clinical note" });
+    }
+  });
+
+  // Update a clinical note
+  router.patch("/patients/:id/clinical-notes/:noteId", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.id);
+      const noteId = parseInt(req.params.noteId);
+      const userOrgId = req.user?.organizationId;
+
+      if (!userOrgId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+
+      // Verify patient belongs to user's organization
+      const [patient] = await db.select().from(patients)
+        .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId)))
+        .limit(1);
+
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      const { subjective, objective, assessment, plan, chiefComplaint, diagnosis, recommendations, followUpInstructions, followUpDate } = req.body;
+
+      const updatedNote = await storage.updateClinicalNote(noteId, {
+        subjective: subjective || null,
+        objective: objective || null,
+        assessment: assessment || null,
+        plan: plan || null,
+        chiefComplaint: chiefComplaint || null,
+        diagnosis: diagnosis || null,
+        recommendations: recommendations || null,
+        followUpInstructions: followUpInstructions || null,
+        followUpDate: followUpDate ? new Date(followUpDate) : null,
+      } as any, userOrgId);
+
+      return res.json(updatedNote);
+    } catch (error) {
+      console.error('Error updating clinical note:', error);
+      return res.status(500).json({ message: "Failed to update clinical note" });
+    }
+  });
+
+  // Delete a clinical note
+  router.delete("/patients/:id/clinical-notes/:noteId", authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.id);
+      const noteId = parseInt(req.params.noteId);
+      const userOrgId = req.user?.organizationId;
+
+      if (!userOrgId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+
+      // Verify patient belongs to user's organization
+      const [patient] = await db.select().from(patients)
+        .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId)))
+        .limit(1);
+
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      await storage.deleteClinicalNote(noteId, userOrgId);
+
+      return res.json({ message: "Clinical note deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting clinical note:', error);
+      return res.status(500).json({ message: "Failed to delete clinical note" });
     }
   });
 
@@ -467,10 +720,10 @@ export function setupPatientRoutes(): Router {
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const search = req.query.q as string || "";
       const type = req.query.type as string || "all"; // all, patients, vaccinations, prescriptions, labs
-      
+
       if (!search || search.length < 2) {
         return res.json({ results: [], totalCount: 0 });
       }
@@ -487,39 +740,48 @@ export function setupPatientRoutes(): Router {
           description: patients.phone,
           metadata: sql<any>`json_object('email', ${patients.email}, 'gender', ${patients.gender}, 'dateOfBirth', ${patients.dateOfBirth})`
         })
-        .from(patients)
-        .where(and(
-          eq(patients.organizationId, userOrgId),
-          or(
-            ilike(patients.firstName, `%${search}%`),
-            ilike(patients.lastName, `%${search}%`),
-            ilike(patients.phone, `%${search}%`),
-            ilike(patients.email, `%${search}%`)
-          )
-        ))
-        .limit(10);
-        
+          .from(patients)
+          .where(and(
+            eq(patients.organizationId, userOrgId),
+            or(
+              ilike(patients.firstName, `%${search}%`),
+              ilike(patients.lastName, `%${search}%`),
+              ilike(patients.phone, `%${search}%`),
+              ilike(patients.email, `%${search}%`)
+            )
+          ))
+          .limit(10);
+
         results.push(...patientResults);
       }
 
       // Search vaccinations (if needed, can be moved to separate module later)
       if (type === "all" || type === "vaccinations") {
-        const vaccinationResults = await db.select({
-          id: vaccinations.id,
-          type: sql<string>`'vaccination'`,
-          title: vaccinations.vaccineName,
-          subtitle: sql<string>`'Vaccination'`,
-          description: vaccinations.doseNumber,
-          metadata: sql<any>`json_object('patientId', ${vaccinations.patientId}, 'administeredDate', ${vaccinations.administeredDate})`
-        })
-        .from(vaccinations)
-        .where(and(
-          eq(vaccinations.organizationId, userOrgId),
-          ilike(vaccinations.vaccineName, `%${search}%`)
-        ))
-        .limit(10);
-        
-        results.push(...vaccinationResults);
+        // Get patient IDs for this organization first
+        const orgPatientIds = await db.select({ id: patients.id })
+          .from(patients)
+          .where(eq(patients.organizationId, userOrgId));
+
+        const patientIdList = orgPatientIds.map(p => p.id);
+
+        if (patientIdList.length > 0) {
+          const vaccinationResults = await db.select({
+            id: vaccinations.id,
+            type: sql<string>`'vaccination'`,
+            title: vaccinations.vaccineName,
+            subtitle: sql<string>`'Vaccination'`,
+            description: vaccinations.dateAdministered,
+            metadata: sql<any>`json_object('patientId', ${vaccinations.patientId}, 'dateAdministered', ${vaccinations.dateAdministered}, 'administeredBy', ${vaccinations.administeredBy})`
+          })
+            .from(vaccinations)
+            .where(and(
+              inArray(vaccinations.patientId, patientIdList),
+              ilike(vaccinations.vaccineName, `%${search}%`)
+            ))
+            .limit(10);
+
+          results.push(...vaccinationResults);
+        }
       }
 
       // Search prescriptions (if needed, can be moved to separate module later)
@@ -530,18 +792,18 @@ export function setupPatientRoutes(): Router {
           title: prescriptions.medicationName,
           subtitle: sql<string>`'Prescription'`,
           description: prescriptions.dosage,
-          metadata: sql<any>`json_object('patientId', ${prescriptions.patientId}, 'prescribedDate', ${prescriptions.prescribedDate})`
+          metadata: sql<any>`json_object('patientId', ${prescriptions.patientId}, 'startDate', ${prescriptions.startDate}, 'prescribedBy', ${prescriptions.prescribedBy})`
         })
-        .from(prescriptions)
-        .where(and(
-          eq(prescriptions.organizationId, userOrgId),
-          or(
-            ilike(prescriptions.medicationName, `%${search}%`),
-            ilike(prescriptions.dosage, `%${search}%`)
-          )
-        ))
-        .limit(10);
-        
+          .from(prescriptions)
+          .where(and(
+            eq(prescriptions.organizationId, userOrgId),
+            or(
+              ilike(prescriptions.medicationName, `%${search}%`),
+              ilike(prescriptions.dosage, `%${search}%`)
+            )
+          ))
+          .limit(10);
+
         results.push(...prescriptionResults);
       }
 
@@ -555,16 +817,16 @@ export function setupPatientRoutes(): Router {
           description: labResults.result,
           metadata: sql<any>`json_object('patientId', ${labResults.patientId}, 'testDate', ${labResults.testDate})`
         })
-        .from(labResults)
-        .where(and(
-          eq(labResults.organizationId, userOrgId),
-          or(
-            ilike(labResults.testName, `%${search}%`),
-            ilike(labResults.result, `%${search}%`)
-          )
-        ))
-        .limit(10);
-        
+          .from(labResults)
+          .where(and(
+            eq(labResults.organizationId, userOrgId),
+            or(
+              ilike(labResults.testName, `%${search}%`),
+              ilike(labResults.result, `%${search}%`)
+            )
+          ))
+          .limit(10);
+
         results.push(...labResultsData);
       }
 
@@ -575,7 +837,7 @@ export function setupPatientRoutes(): Router {
         return bExact - aExact;
       });
 
-      res.json({
+      return res.json({
         results: sortedResults.slice(0, 20),
         totalCount: sortedResults.length,
         searchTerm: search,
@@ -583,7 +845,38 @@ export function setupPatientRoutes(): Router {
       });
     } catch (error) {
       console.error("Error in global search:", error);
-      res.status(500).json({ message: "Search failed" });
+      return res.status(500).json({ message: "Search failed" });
+    }
+  });
+
+  // Get recent patients for dashboard
+  router.get("/patients/recent", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const recentPatients = await db.select({
+        id: patients.id,
+        firstName: patients.firstName,
+        lastName: patients.lastName,
+        phone: patients.phone,
+        email: patients.email,
+        dateOfBirth: patients.dateOfBirth,
+        gender: patients.gender,
+        address: patients.address,
+        createdAt: patients.createdAt
+      })
+        .from(patients)
+        .where(eq(patients.organizationId, req.user!.organizationId!))
+        .orderBy(desc(patients.createdAt))
+        .limit(5);
+
+      // Prevent caching to ensure fresh data
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+
+      return res.json(recentPatients || []);
+    } catch (error) {
+      console.error("Error fetching recent patients:", error);
+      return res.status(500).json({ message: "Failed to fetch recent patients" });
     }
   });
 

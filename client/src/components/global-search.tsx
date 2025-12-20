@@ -294,6 +294,21 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   // Live search for patient data
   const { data: liveSearchResults } = useQuery<{results: LiveSearchResult[], totalCount: number}>({
     queryKey: ['/api/search/global', searchTerm, searchType === "data" ? "all" : ""],
+    queryFn: async () => {
+      if (searchType !== "data" || searchTerm.length < 2) {
+        return { results: [], totalCount: 0 };
+      }
+      const url = new URL('/api/search/global', window.location.origin);
+      url.searchParams.set('q', searchTerm);
+      url.searchParams.set('type', 'all');
+      const response = await fetch(url.toString(), {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.statusText}`);
+      }
+      return response.json();
+    },
     enabled: searchTerm.length >= 2 && searchType === "data",
     staleTime: 1000, // 1 second
   });

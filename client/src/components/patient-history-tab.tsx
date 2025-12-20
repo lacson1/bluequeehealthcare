@@ -52,8 +52,11 @@ import {
   Clock,
   AlertCircle,
   RefreshCw,
-  Pill
+  Pill,
+  Printer
 } from 'lucide-react';
+import { printWithBranding, type Organization } from './print-export-utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MedicalHistory {
   id: number;
@@ -84,8 +87,18 @@ const historyFormSchema = z.object({
 
 type HistoryFormValues = z.infer<typeof historyFormSchema>;
 
+interface Patient {
+  id: number;
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string;
+  gender?: string;
+  phoneNumber?: string;
+}
+
 export function PatientHistoryTab({ patientId }: PatientHistoryTabProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -94,7 +107,187 @@ export function PatientHistoryTab({ patientId }: PatientHistoryTabProps) {
 
   const { data: historyRecords = [], isLoading, isError, refetch } = useQuery<MedicalHistory[]>({
     queryKey: [`/api/patients/${patientId}/medical-history`],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    enabled: !!patientId,
   });
+
+  // Fetch patient data
+  const { data: patient } = useQuery<Patient>({
+    queryKey: [`/api/patients/${patientId}`],
+    enabled: !!patientId,
+  });
+
+  // Fetch organization data for print header
+  const { data: organization } = useQuery<Organization>({
+    queryKey: ['/api/organizations', (user as any)?.organizationId],
+    queryFn: () => fetch(`/api/organizations/${(user as any)?.organizationId}`).then(res => res.json()),
+    enabled: !!(user as any)?.organizationId,
+  });
+
+  // Print medical history with organization header
+  const handlePrintMedicalHistory = () => {
+    if (!organization || !patient) {
+      toast({
+        title: "Cannot Print",
+        description: "Organization or patient data not available",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const recordsToDisplay = activeTab === 'all' 
+      ? historyRecords 
+      : historyRecords.filter(h => h.type === activeTab);
+
+    const getTypeLabel = (type: string) => {
+      const labels: Record<string, string> = {
+        diagnosis: 'Diagnosis',
+        surgery: 'Surgery',
+        hospitalization: 'Hospitalization',
+        chronic_condition: 'Chronic Condition'
+      };
+      return labels[type] || type;
+    };
+
+    const getStatusLabel = (status: string) => {
+      const labels: Record<string, string> = {
+        active: 'Active',
+        resolved: 'Resolved',
+        ongoing: 'Ongoing'
+      };
+      return labels[status] || status;
+    };
+
+    const getStatusColor = (status: string) => {
+      const colors: Record<string, string> = {
+        active: '#EF4444',
+        resolved: '#22C55E',
+        ongoing: '#3B82F6'
+      };
+      return colors[status] || '#6B7280';
+    };
+
+    const getTypeColor = (type: string) => {
+      const colors: Record<string, string> = {
+        diagnosis: '#3B82F6',
+        surgery: '#8B5CF6',
+        hospitalization: '#F97316',
+        chronic_condition: '#EF4444'
+      };
+      return colors[type] || '#6B7280';
+    };
+
+    const contentHTML = `
+      <div style="padding: 20px;">
+        <!-- Patient Information -->
+        <div style="background: #F8FAFC; border-radius: 8px; padding: 16px; margin-bottom: 24px; border-left: 4px solid ${organization.themeColor || '#3B82F6'};">
+          <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151;">Patient Information</h3>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+            <div><strong>Name:</strong> ${patient.firstName} ${patient.lastName}</div>
+            ${patient.dateOfBirth ? `<div><strong>Date of Birth:</strong> ${new Date(patient.dateOfBirth).toLocaleDateString()}</div>` : ''}
+            ${patient.gender ? `<div><strong>Gender:</strong> ${patient.gender}</div>` : ''}
+            ${patient.phoneNumber ? `<div><strong>Phone:</strong> ${patient.phoneNumber}</div>` : ''}
+          </div>
+        </div>
+
+        <!-- Medical History Summary -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #1F2937; border-bottom: 2px solid ${organization.themeColor || '#3B82F6'}; padding-bottom: 8px;">
+            Medical History Summary
+          </h3>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+            <div style="background: #EFF6FF; padding: 12px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold; color: #3B82F6;">${historyRecords.filter(h => h.type === 'diagnosis').length}</div>
+              <div style="font-size: 12px; color: #6B7280;">Diagnoses</div>
+            </div>
+            <div style="background: #F3E8FF; padding: 12px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold; color: #8B5CF6;">${historyRecords.filter(h => h.type === 'surgery').length}</div>
+              <div style="font-size: 12px; color: #6B7280;">Surgeries</div>
+            </div>
+            <div style="background: #FFF7ED; padding: 12px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold; color: #F97316;">${historyRecords.filter(h => h.type === 'hospitalization').length}</div>
+              <div style="font-size: 12px; color: #6B7280;">Hospitalizations</div>
+            </div>
+            <div style="background: #FEF2F2; padding: 12px; border-radius: 6px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold; color: #EF4444;">${historyRecords.filter(h => h.type === 'chronic_condition').length}</div>
+              <div style="font-size: 12px; color: #6B7280;">Chronic</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Medical History Records -->
+        <div>
+          <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #1F2937;">
+            ${activeTab === 'all' ? 'All Medical History Records' : getTypeLabel(activeTab) + ' Records'} (${recordsToDisplay.length})
+          </h3>
+          
+          ${recordsToDisplay.length === 0 ? `
+            <div style="text-align: center; padding: 40px; color: #6B7280; background: #F9FAFB; border-radius: 8px;">
+              <p style="margin: 0;">No medical history records found</p>
+            </div>
+          ` : recordsToDisplay.map(record => `
+            <div style="border: 1px solid #E5E7EB; border-radius: 8px; padding: 16px; margin-bottom: 16px; border-left: 4px solid ${getTypeColor(record.type)};">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <h4 style="margin: 0 0 4px 0; font-size: 16px; font-weight: 600; color: #1F2937;">${record.condition}</h4>
+                  <div style="display: flex; gap: 12px; font-size: 12px; color: #6B7280;">
+                    <span style="background: ${getTypeColor(record.type)}20; color: ${getTypeColor(record.type)}; padding: 2px 8px; border-radius: 4px;">${getTypeLabel(record.type)}</span>
+                    <span style="background: ${getStatusColor(record.status)}20; color: ${getStatusColor(record.status)}; padding: 2px 8px; border-radius: 4px;">${getStatusLabel(record.status)}</span>
+                  </div>
+                </div>
+                <div style="font-size: 12px; color: #6B7280;">
+                  ${format(parseISO(record.dateOccurred), 'MMMM d, yyyy')}
+                </div>
+              </div>
+              
+              <div style="margin-bottom: 8px;">
+                <strong style="font-size: 12px; color: #6B7280;">Description:</strong>
+                <p style="margin: 4px 0 0 0; font-size: 14px; color: #374151;">${record.description}</p>
+              </div>
+              
+              ${record.treatment ? `
+                <div style="margin-bottom: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB;">
+                  <strong style="font-size: 12px; color: #6B7280;">Treatment:</strong>
+                  <p style="margin: 4px 0 0 0; font-size: 14px; color: #374151;">${record.treatment}</p>
+                </div>
+              ` : ''}
+              
+              ${record.notes ? `
+                <div style="background: #F9FAFB; padding: 8px; border-radius: 4px; margin-top: 8px;">
+                  <strong style="font-size: 12px; color: #6B7280;">Notes:</strong>
+                  <p style="margin: 4px 0 0 0; font-size: 13px; color: #6B7280; font-style: italic;">${record.notes}</p>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Footer Note -->
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #E5E7EB; font-size: 11px; color: #9CA3AF; text-align: center;">
+          <p style="margin: 0;">This is a confidential medical record. Handle in accordance with patient privacy regulations.</p>
+          <p style="margin: 4px 0 0 0;">Generated on ${format(new Date(), 'MMMM d, yyyy')} at ${format(new Date(), 'h:mm a')}</p>
+        </div>
+      </div>
+    `;
+
+    printWithBranding(
+      organization,
+      {
+        documentTitle: 'Medical History Report',
+        documentId: `MH-${patient.id}-${Date.now()}`,
+        pageSize: 'A4',
+        showFooter: true
+      },
+      contentHTML
+    );
+
+    toast({
+      title: "Print Initiated",
+      description: "Medical history report sent to printer"
+    });
+  };
 
   const form = useForm<HistoryFormValues>({
     resolver: zodResolver(historyFormSchema),
@@ -544,6 +737,17 @@ export function PatientHistoryTab({ patientId }: PatientHistoryTabProps) {
             </TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handlePrintMedicalHistory}
+              disabled={historyRecords.length === 0}
+              data-testid="button-print-history"
+              title="Print Medical History"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Print
+            </Button>
             <Button variant="outline" size="sm" onClick={() => refetch()} data-testid="button-refresh-history">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh

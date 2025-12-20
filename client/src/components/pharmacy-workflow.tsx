@@ -313,18 +313,27 @@ export function PharmacyWorkflow({ medicines }: PharmacyWorkflowProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Medicine</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(Number(value))}>
+                        <Select 
+                          value={field.value ? field.value.toString() : undefined} 
+                          onValueChange={(value) => field.onChange(Number(value))}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select medicine" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {medicines?.map((medicine) => (
-                              <SelectItem key={medicine.id} value={medicine.id.toString()}>
-                                {medicine.name} (Stock: {medicine.quantity})
+                            {medicines && medicines.length > 0 ? (
+                              medicines.map((medicine) => (
+                                <SelectItem key={medicine.id} value={medicine.id.toString()}>
+                                  {medicine.name} (Stock: {medicine.quantity})
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-medicines" disabled>
+                                No medicines available
                               </SelectItem>
-                            ))}
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />

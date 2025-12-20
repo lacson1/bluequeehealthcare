@@ -92,12 +92,23 @@ export class LetterheadService {
 
     const letterheadStyles = `
       <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box;
+          color-scheme: light !important;
+        }
+        html {
+          background: #ffffff !important;
+          background-color: #ffffff !important;
+          color-scheme: light !important;
+        }
         body { 
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
           line-height: 1.4; 
           color: #1f2937 !important;
-          background: white !important;
+          background: #ffffff !important;
+          background-color: #ffffff !important;
           font-size: 12px;
           margin: 10mm 15mm;
           color-scheme: light !important;
@@ -106,6 +117,17 @@ export class LetterheadService {
         /* Force light mode - override any dark mode styles */
         body * {
           color-scheme: light !important;
+        }
+        
+        /* Ensure all text is dark and readable */
+        p, span, div, td, th, label, strong, em {
+          color: inherit !important;
+        }
+        
+        /* Ensure all backgrounds are light */
+        .section, .info-grid, .info-item, .document-body, .document-header {
+          background: #ffffff !important;
+          background-color: #ffffff !important;
         }
         
         .letterhead-header {
@@ -199,7 +221,8 @@ export class LetterheadService {
         }
         
         .document-header {
-          background: #f8fafc;
+          background: #f8fafc !important;
+          background-color: #f8fafc !important;
           border-left: 3px solid ${config.primaryColor};
           padding: 10px 15px;
           margin: 0 0 8px 0;
@@ -368,10 +391,29 @@ export class LetterheadService {
         }
         
         @media print {
-          body { -webkit-print-color-adjust: exact; }
+          html {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color-scheme: light !important;
+          }
+          body { 
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #1f2937 !important;
+            color-scheme: light !important;
+          }
+          * {
+            color-scheme: light !important;
+          }
           .letterhead-header { break-inside: avoid; }
-          .document-body { page-break-inside: avoid; }
-          .section { break-inside: avoid; }
+          .document-body { break-inside: avoid; background: #ffffff !important; }
+          .section { break-inside: avoid; background: #ffffff !important; }
+          .info-grid, .info-item, .document-header {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+          }
         }
       </style>
     `;
@@ -460,14 +502,15 @@ export class LetterheadService {
 
     return `
       <!DOCTYPE html>
-      <html lang="en">
+      <html lang="en" style="color-scheme: light !important; background: #ffffff !important;">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light">
         <title>Laboratory Result Report - ${organization.name}</title>
         ${letterheadStyles}
       </head>
-      <body style="background: white !important; color: #1f2937 !important; color-scheme: light !important;">
+      <body style="background: #ffffff !important; background-color: #ffffff !important; color: #1f2937 !important; color-scheme: light !important;">
         <div class="letterhead-header">
           <div class="letterhead-content">
             <div class="org-identity">
@@ -638,7 +681,8 @@ export class LetterheadService {
         }
         
         .document-header {
-          background: #f8fafc;
+          background: #f8fafc !important;
+          background-color: #f8fafc !important;
           border-left: 3px solid ${config.primaryColor};
           padding: 10px 15px;
           margin: 0 0 12px 0;
@@ -853,13 +897,29 @@ export class LetterheadService {
         }
         
         @media print {
+          html {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color-scheme: light !important;
+          }
           body { 
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact;
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+            color: #1f2937 !important;
+            color-scheme: light !important;
+          }
+          * {
+            color-scheme: light !important;
           }
           .letterhead-header { break-inside: avoid; }
-          .document-body { page-break-inside: avoid; }
-          .section { break-inside: avoid; }
+          .document-body { break-inside: avoid; background: #ffffff !important; }
+          .section { break-inside: avoid; background: #ffffff !important; }
+          .info-grid, .info-item, .document-header {
+            background: #ffffff !important;
+            background-color: #ffffff !important;
+          }
         }
       </style>
     `;
@@ -888,14 +948,15 @@ export class LetterheadService {
 
     return `
       <!DOCTYPE html>
-      <html lang="en">
+      <html lang="en" style="color-scheme: light !important; background: #ffffff !important;">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light">
         <title>Laboratory Order - ${organization.name}</title>
         ${letterheadStyles}
       </head>
-      <body style="background: white !important; color: #1f2937 !important; color-scheme: light !important;">
+      <body style="background: #ffffff !important; background-color: #ffffff !important; color: #1f2937 !important; color-scheme: light !important;">
         <div class="letterhead-header">
           <div class="letterhead-content">
             <div class="org-identity">

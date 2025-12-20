@@ -316,17 +316,17 @@ export function MedicationReviewAssignmentsList({
 
                         {/* Prescription Details */}
                         {review.prescription && (
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Pill className="h-4 w-4 text-blue-600" />
-                              <span className="font-medium text-blue-800">
+                          <div className="bg-gray-50 p-1.5 rounded-lg">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Pill className="h-3 w-3 text-blue-600" />
+                              <span className="font-medium text-blue-800 text-xs">
                                 {review.prescription.medicationName}
                               </span>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs px-1.5 py-0">
                                 {review.prescription.status}
                               </Badge>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                            <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-600">
                               <div>
                                 <span className="font-medium">Dosage:</span> {review.prescription.dosage}
                               </div>
@@ -343,7 +343,7 @@ export function MedicationReviewAssignmentsList({
                               </div>
                             </div>
                             {review.prescription.instructions && (
-                              <div className="mt-2 text-sm text-gray-600">
+                              <div className="mt-1.5 text-xs text-gray-600">
                                 <span className="font-medium">Instructions:</span> {review.prescription.instructions}
                               </div>
                             )}

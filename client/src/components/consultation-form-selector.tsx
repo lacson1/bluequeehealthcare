@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Send, Clock, User, Calendar, Activity, Pill, Search, ChevronDown, ChevronUp, Filter, Pin, PinOff, Star, X, Stethoscope, ArrowLeft, CheckCircle2, ClipboardList } from "lucide-react";
+import { 
+  FileText, Send, Clock, User, Calendar, Activity, Pill, Search, 
+  ChevronDown, ChevronUp, Filter, Pin, PinOff, Star, X, Stethoscope, 
+  ArrowLeft, CheckCircle2, ClipboardList, Heart, Brain, Eye, Ear, 
+  Baby, Bone, Sparkles, TrendingUp, History, Plus, Zap
+} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import ConsultationHistoryDisplay from "./consultation-history-display";
+
+// Icon mapping for specialist roles
+const getSpecialtyIcon = (role: string) => {
+  const roleMap: Record<string, any> = {
+    ophthalmologist: Eye,
+    ent_specialist: Ear,
+    pediatrician: Baby,
+    psychiatrist: Brain,
+    psychologist: Brain,
+    cardiologist: Heart,
+    orthopedist: Bone,
+    physiotherapist: Activity,
+    pharmacist: Pill,
+    nurse: Activity,
+    doctor: Stethoscope,
+    general: ClipboardList,
+  };
+  return roleMap[role?.toLowerCase()] || ClipboardList;
+};
 
 interface ConsultationForm {
   id: number;
@@ -254,18 +279,24 @@ export default function ConsultationFormSelector({
       case 'select':
         return (
           <Select
-            value={fieldValue}
+            value={fieldValue || undefined}
             onValueChange={(value) => handleInputChange(field.id, value)}
           >
             <SelectTrigger className="bg-white dark:bg-slate-800">
               <SelectValue placeholder={field.placeholder || 'Select an option'} />
             </SelectTrigger>
             <SelectContent>
-              {field.options?.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option}
+              {field.options && field.options.length > 0 ? (
+                field.options.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="no-options" disabled>
+                  No options available
                 </SelectItem>
-              ))}
+              )}
             </SelectContent>
           </Select>
         );
@@ -398,34 +429,170 @@ export default function ConsultationFormSelector({
     </div>
   );
 
+  // Fetch consultation records for stats
+  const { data: consultationRecords = [] } = useQuery<any[]>({
+    queryKey: [`/api/patients/${patientId}/consultation-records`],
+    enabled: !!patientId,
+  });
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const records = consultationRecords || [];
+    const today = new Date();
+    const thisWeek = records.filter((r: any) => {
+      const date = new Date(r.createdAt);
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return date >= weekAgo;
+    });
+    const thisMonth = records.filter((r: any) => {
+      const date = new Date(r.createdAt);
+      const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return date >= monthAgo;
+    });
+    return {
+      total: records.length,
+      thisWeek: thisWeek.length,
+      thisMonth: thisMonth.length,
+      lastConsultation: records[0]?.createdAt ? new Date(records[0].createdAt) : null,
+    };
+  }, [consultationRecords]);
+
   return (
-    <div className="space-y-6" data-testid="consultation-forms">
-      {/* Trigger Button */}
-      <Card className="border-2 border-dashed border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-                <Stethoscope className="h-6 w-6 text-white" />
+    <div className="space-y-4" data-testid="consultation-forms">
+      {/* Main Consultation Card with Quick Access */}
+      <div 
+        className="overflow-hidden rounded-2xl shadow-xl"
+        style={{
+          background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 50%, #4338ca 100%)',
+        }}
+      >
+        <div className="p-0">
+          {/* Header Section */}
+          <div className="p-5 pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="p-3 bg-white/15 backdrop-blur-sm rounded-2xl ring-2 ring-white/25 shadow-lg">
+                    <Stethoscope className="h-7 w-7 text-white" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-emerald-400 rounded-full ring-2 ring-blue-900 flex items-center justify-center shadow-lg">
+                    <Plus className="h-3 w-3 text-emerald-900" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl tracking-tight text-white">Specialist Consultations</h3>
+                  <p className="text-sm text-blue-200 mt-0.5">
+                    {forms.length} specialist forms • {pinnedForms.length} pinned
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">Start New Consultation</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {forms.length} specialist forms available
-                </p>
+              <Button
+                onClick={() => setIsDialogOpen(true)}
+                size="lg"
+                className="bg-white text-blue-900 hover:bg-blue-50 shadow-xl hover:shadow-2xl transition-all duration-300 font-semibold border-0"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Consultation
+              </Button>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-3 mt-5">
+              <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3.5 border border-white/20 shadow-lg">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <TrendingUp className="h-4 w-4 text-emerald-400" />
+                  <span className="text-xs font-medium text-blue-100">This Week</span>
+                </div>
+                <p className="text-2xl font-bold text-white">{stats.thisWeek}</p>
+              </div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3.5 border border-white/20 shadow-lg">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Calendar className="h-4 w-4 text-sky-400" />
+                  <span className="text-xs font-medium text-blue-100">This Month</span>
+                </div>
+                <p className="text-2xl font-bold text-white">{stats.thisMonth}</p>
+              </div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3.5 border border-white/20 shadow-lg">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <History className="h-4 w-4 text-amber-400" />
+                  <span className="text-xs font-medium text-blue-100">Total Records</span>
+                </div>
+                <p className="text-2xl font-bold text-white">{stats.total}</p>
               </div>
             </div>
-            <Button
-              onClick={() => setIsDialogOpen(true)}
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-200"
-            >
-              <ClipboardList className="h-5 w-5 mr-2" />
-              Select Consultation Form
-            </Button>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Quick Access Forms - Pinned forms shown here */}
+          {pinnedForms.length > 0 && (
+            <div className="px-5 pb-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="h-4 w-4 text-amber-400" />
+                <span className="text-sm font-semibold text-amber-300">Quick Access</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <TooltipProvider>
+                  {pinnedForms.slice(0, 4).map((form) => {
+                    const IconComponent = getSpecialtyIcon(form.specialistRole);
+                    return (
+                      <Tooltip key={form.id}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => {
+                              setSelectedFormId(form.id);
+                              setStep('fill');
+                              setIsDialogOpen(true);
+                            }}
+                            className="group flex items-center gap-2 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl border border-white/15 hover:border-white/30 transition-all duration-200 text-left shadow-md hover:shadow-lg"
+                          >
+                            <div className="p-2 bg-gradient-to-br from-amber-400/30 to-orange-400/30 rounded-lg group-hover:scale-110 transition-transform">
+                              <IconComponent className="h-4 w-4 text-amber-300" />
+                            </div>
+                            <span className="text-sm font-medium truncate flex-1 text-white">{form.name}</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="bg-slate-900 text-white border-slate-700">
+                          <p>{form.description}</p>
+                          <p className="text-xs text-slate-400 mt-1">{form.specialistRole}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </TooltipProvider>
+                {pinnedForms.length > 4 && (
+                  <button
+                    onClick={() => setIsDialogOpen(true)}
+                    className="flex items-center justify-center gap-2 p-3 bg-white/5 hover:bg-white/10 backdrop-blur-sm rounded-xl border border-dashed border-white/25 hover:border-white/40 transition-all duration-200"
+                  >
+                    <span className="text-sm text-blue-200">+{pinnedForms.length - 4} more</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* No pinned forms hint */}
+          {pinnedForms.length === 0 && forms.length > 0 && (
+            <div className="px-5 pb-5">
+              <div className="flex items-center gap-3 p-4 bg-white/8 rounded-xl border border-dashed border-white/25">
+                <Star className="h-5 w-5 text-amber-400" />
+                <div className="flex-1">
+                  <p className="text-sm text-blue-100">
+                    Pin your frequently used forms for quick access
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsDialogOpen(true)}
+                  className="text-amber-300 hover:text-amber-100 hover:bg-white/10 border border-amber-400/30"
+                >
+                  Browse Forms
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Consultation Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => !open && handleCloseDialog()}>

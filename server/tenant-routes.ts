@@ -8,10 +8,24 @@ import { AuditLogger, AuditActions } from "./audit";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-const createOrganizationSchema = createInsertSchema(organizations).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
+// Custom schema that matches frontend form data
+const createOrganizationSchema = z.object({
+  name: z.string().min(1, "Organization name is required"),
+  type: z.enum(["clinic", "hospital", "health_center", "pharmacy", "laboratory"]).optional(),
+  email: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().email("Invalid email address").optional()
+  ),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  website: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().url("Invalid website URL").optional()
+  ),
+  logoUrl: z.string().optional(),
+  themeColor: z.string().optional(),
+  letterheadConfig: z.any().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export function setupTenantRoutes(app: Express) {
@@ -72,23 +86,122 @@ export function setupTenantRoutes(app: Express) {
   // Create new organization
   app.post("/api/organizations", authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
-      const validatedData = createOrganizationSchema.parse(req.body);
+      console.log('=== ORGANIZATION CREATION REQUEST ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      
+      // Validate and parse the request data
+      let validatedData;
+      try {
+        validatedData = createOrganizationSchema.parse(req.body);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          console.error('Validation errors:', validationError.errors);
+          return res.status(400).json({ 
+            error: 'Validation failed', 
+            details: validationError.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+          });
+        }
+        throw validationError;
+      }
+      
+      // Prepare data for insertion with defaults
+      const insertData = {
+        name: validatedData.name.trim(),
+        type: validatedData.type || 'clinic',
+        email: validatedData.email && validatedData.email.trim() !== '' ? validatedData.email.trim() : null,
+        phone: validatedData.phone && validatedData.phone.trim() !== '' ? validatedData.phone.trim() : null,
+        address: validatedData.address && validatedData.address.trim() !== '' ? validatedData.address.trim() : null,
+        website: validatedData.website && validatedData.website.trim() !== '' ? validatedData.website.trim() : null,
+        logoUrl: validatedData.logoUrl && validatedData.logoUrl.trim() !== '' ? validatedData.logoUrl.trim() : null,
+        themeColor: validatedData.themeColor || '#3B82F6',
+        letterheadConfig: validatedData.letterheadConfig || null,
+        isActive: validatedData.isActive !== undefined ? validatedData.isActive : true,
+      };
+      
+      console.log('Insert data:', JSON.stringify(insertData, null, 2));
+      
+      // Check if organization with same name already exists
+      const existingOrg = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.name, insertData.name))
+        .limit(1);
+      
+      if (existingOrg.length > 0) {
+        return res.status(400).json({ 
+          error: 'An organization with this name already exists',
+          message: 'An organization with this name already exists'
+        });
+      }
+      
+      // Check if organization with same email already exists (if email provided)
+      if (insertData.email) {
+        const existingOrgByEmail = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.email, insertData.email))
+          .limit(1);
+        
+        if (existingOrgByEmail.length > 0) {
+          return res.status(400).json({ 
+            error: 'An organization with this email already exists',
+            message: 'An organization with this email already exists'
+          });
+        }
+      }
       
       const newOrg = await db.insert(organizations)
-        .values(validatedData)
+        .values(insertData)
         .returning();
+      
+      console.log('Organization created successfully:', newOrg[0].id);
 
-      // Create audit log
-      const auditLogger = new AuditLogger(req);
-      await auditLogger.logSystemAction('ORGANIZATION_CREATED', {
-        organizationId: newOrg[0].id,
-        organizationName: newOrg[0].name
-      });
+      // Create audit log (with error handling)
+      try {
+        const auditLogger = new AuditLogger(req);
+        await auditLogger.logSystemAction('ORGANIZATION_CREATED', {
+          organizationId: newOrg[0].id,
+          organizationName: newOrg[0].name
+        });
+      } catch (auditError) {
+        console.error('Failed to create audit log (non-critical):', auditError);
+        // Don't fail the request if audit logging fails
+      }
 
       res.status(201).json(newOrg[0]);
     } catch (error) {
       console.error('Error creating organization:', error);
-      res.status(500).json({ error: 'Failed to create organization' });
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Provide more detailed error message
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+          message: 'Invalid organization data provided'
+        });
+      }
+      
+      // Check for database constraint errors
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key') || error.message.includes('UNIQUE constraint')) {
+          return res.status(400).json({ 
+            error: 'Duplicate organization',
+            message: 'An organization with this name or email already exists'
+          });
+        }
+        if (error.message.includes('foreign key') || error.message.includes('constraint')) {
+          return res.status(400).json({ 
+            error: 'Database constraint violation',
+            message: error.message
+          });
+        }
+      }
+      
+      res.status(500).json({ 
+        error: 'Failed to create organization',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
     }
   });
 

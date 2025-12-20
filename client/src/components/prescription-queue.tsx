@@ -92,7 +92,7 @@ export function PrescriptionQueue() {
   const { data: patientDetails = {} } = useQuery({
     queryKey: ["/api/patients", "details"],
     queryFn: async () => {
-      const uniquePatientIds = [...new Set((prescriptions as any[]).map((p: any) => p.patientId))];
+      const uniquePatientIds = Array.from(new Set((prescriptions as any[]).map((p: any) => p.patientId)));
       const patientPromises = uniquePatientIds.map(async (id: number) => {
         try {
           const response = await fetch(`/api/patients/${id}`);
@@ -269,15 +269,15 @@ export function PrescriptionQueue() {
                               </div>
                             </div>
 
-                            <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
-                              <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="mt-1.5 p-1.5 bg-blue-50 rounded border border-blue-200">
+                              <div className="grid grid-cols-2 gap-1.5 text-xs">
                                 <div><strong>Dosage:</strong> {prescription.dosage}</div>
                                 <div><strong>Frequency:</strong> {prescription.frequency}</div>
                                 <div><strong>Duration:</strong> {prescription.duration}</div>
                                 <div><strong>Quantity:</strong> {prescription.quantity || "Not specified"}</div>
                               </div>
                               {prescription.instructions && (
-                                <div className="mt-2 text-sm">
+                                <div className="mt-1.5 text-xs">
                                   <strong>Instructions:</strong> {prescription.instructions}
                                 </div>
                               )}

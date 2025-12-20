@@ -3,67 +3,24 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
-  UserPlus,
-  Settings,
-  Shield,
   Users,
   Building,
-  Edit,
-  Search,
   RefreshCw,
-  UserCheck,
-  UserX,
-  Crown
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import BulkUserOperations from "@/components/bulk-user-operations";
+import { UserList } from "@/components/user-management/user-list";
+import { UserFormDialog } from "@/components/user-management/user-form-dialog";
+import { OrganizationList } from "@/components/user-management/organization-list";
+import { OrganizationFormDialog } from "@/components/user-management/organization-form-dialog";
 
 // Schemas
 const userSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters").optional(),
+  password: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal("")),
   role: z.enum(["admin", "doctor", "nurse", "pharmacist", "physiotherapist"]),
   title: z.string().optional(),
   firstName: z.string().min(1, "First name is required"),
@@ -175,13 +132,23 @@ export default function UserManagementSimple() {
         credentials: "include",
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error("Failed to update user");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || "Failed to update user");
+      }
       return response.json();
     },
     onSuccess: () => {
       toast({ title: "User Updated", description: "User has been successfully updated." });
       setEditingUser(null);
       queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to update user",
+        variant: "destructive" 
+      });
     }
   });
 
@@ -201,6 +168,31 @@ export default function UserManagementSimple() {
       setIsCreateOrgOpen(false);
       setEditingOrg(null);
       queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
+    }
+  });
+
+  const updateOrgMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Organization> }) => {
+      const response = await fetch(`/api/organizations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error("Failed to update organization");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Organization Updated", description: "Organization has been successfully updated." });
+      setEditingOrg(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update organization",
+        variant: "destructive"
+      });
     }
   });
 
@@ -266,21 +258,63 @@ export default function UserManagementSimple() {
   };
 
   const onUpdateUser = (data: z.infer<typeof userSchema>) => {
-    if (editingUser) {
-      updateUserMutation.mutate({
-        id: editingUser.id,
-        data: {
-          username: data.username,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email || undefined,
-          phone: data.phone || undefined,
-          role: data.role,
-          title: data.title || undefined,
-          organizationId: parseInt(data.organizationId)
-        }
+    if (!editingUser) {
+      toast({
+        title: "Error",
+        description: "No user selected for editing",
+        variant: "destructive"
       });
+      return;
     }
+
+    // Validate organizationId
+    if (!data.organizationId || data.organizationId.trim() === "") {
+      toast({
+        title: "Validation Error",
+        description: "Organization is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const orgId = parseInt(data.organizationId);
+    if (isNaN(orgId)) {
+      toast({
+        title: "Validation Error",
+        description: "Invalid organization ID",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Build update data - only include password if provided
+    const updateData: Partial<User> = {
+      username: data.username,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      role: data.role,
+      organizationId: orgId
+    };
+
+    // Only include optional fields if they have values
+    if (data.email && data.email.trim() !== "") {
+      updateData.email = data.email;
+    }
+    if (data.phone && data.phone.trim() !== "") {
+      updateData.phone = data.phone;
+    }
+    if (data.title && data.title.trim() !== "") {
+      updateData.title = data.title;
+    }
+    // Only include password if provided (for password changes)
+    if (data.password && data.password.trim() !== "") {
+      updateData.password = data.password as any;
+    }
+
+    updateUserMutation.mutate({
+      id: editingUser.id,
+      data: updateData
+    });
   };
 
   const toggleUserStatus = (user: User) => {
@@ -307,7 +341,7 @@ export default function UserManagementSimple() {
         lastName: editingUser.lastName,
         email: editingUser.email || "",
         phone: editingUser.phone || "",
-        organizationId: editingUser.organizationId.toString()
+        organizationId: editingUser.organizationId ? editingUser.organizationId.toString() : ""
       });
     } else {
       userForm.reset({
@@ -323,6 +357,29 @@ export default function UserManagementSimple() {
       });
     }
   }, [editingUser, userForm]);
+
+  // Effect to populate form when editing organization
+  useEffect(() => {
+    if (editingOrg) {
+      orgForm.reset({
+        name: editingOrg.name,
+        type: editingOrg.type as any,
+        address: editingOrg.address || "",
+        phone: editingOrg.phone || "",
+        email: editingOrg.email || "",
+        website: editingOrg.website || ""
+      });
+    } else {
+      orgForm.reset({
+        name: "",
+        type: "clinic",
+        address: "",
+        phone: "",
+        email: "",
+        website: ""
+      });
+    }
+  }, [editingOrg, orgForm]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -361,650 +418,91 @@ export default function UserManagementSimple() {
 
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-4">
-          {/* Controls */}
-          <div className="flex justify-between items-center">
-            <div className="flex gap-4 items-center">
-              <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                />
-              </div>
-              <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter by role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="nurse">Nurse</SelectItem>
-                  <SelectItem value="pharmacist">Pharmacist</SelectItem>
-                  <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterOrg} onValueChange={setFilterOrg}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by organization" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Organizations</SelectItem>
-                  {organizations.map((org: Organization) => (
-                    <SelectItem key={org.id} value={org.id.toString()}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add User
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Create New User</DialogTitle>
-                </DialogHeader>
-                <Form {...userForm}>
-                  <form onSubmit={userForm.handleSubmit(onCreateUser)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={userForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter username" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={userForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                              <Input {...field} type="password" placeholder="Enter password" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <FormField
-                        control={userForm.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Title</FormLabel>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select title" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="Dr.">Dr.</SelectItem>
-                                <SelectItem value="Mr.">Mr.</SelectItem>
-                                <SelectItem value="Mrs.">Mrs.</SelectItem>
-                                <SelectItem value="Ms.">Ms.</SelectItem>
-                                <SelectItem value="Prof.">Prof.</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={userForm.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter first name" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={userForm.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter last name" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={userForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input {...field} type="email" placeholder="Enter email" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={userForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter phone number" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={userForm.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Role</FormLabel>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="doctor">Doctor</SelectItem>
-                                <SelectItem value="nurse">Nurse</SelectItem>
-                                <SelectItem value="pharmacist">Pharmacist</SelectItem>
-                                <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={userForm.control}
-                        name="organizationId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Organization</FormLabel>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select organization" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {organizations.map((org: Organization) => (
-                                  <SelectItem key={org.id} value={org.id.toString()}>
-                                    {org.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={() => setIsCreateUserOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={createUserMutation.isPending}>
-                        {createUserMutation.isPending ? "Creating..." : "Create User"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Users Table */}
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedUsers(filteredUsers.map((u: User) => u.id));
-                          } else {
-                            setSelectedUsers([]);
-                          }
-                        }}
-                      />
-                    </TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Organization</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {usersLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredUsers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                        No users found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredUsers.map((user: User) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedUsers.includes(user.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedUsers([...selectedUsers, user.id]);
-                              } else {
-                                setSelectedUsers(selectedUsers.filter(id => id !== user.id));
-                              }
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {user.title} {user.firstName} {user.lastName}
-                            </div>
-                            <div className="text-sm text-gray-500">@{user.username}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getRoleColor(user.role)}>
-                            {user.role}
-                            {user.role === 'admin' && (
-                              <Crown className="h-3 w-3 ml-1" />
-                            )}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {getOrgName(user.organizationId)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            {user.email && <div>{user.email}</div>}
-                            {user.phone && <div className="text-gray-500">{user.phone}</div>}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingUser(user)}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <UserList
+            users={users}
+            filteredUsers={filteredUsers}
+            usersLoading={usersLoading}
+            selectedUsers={selectedUsers}
+            organizations={organizations}
+            searchTerm={searchTerm}
+            filterRole={filterRole}
+            filterOrg={filterOrg}
+            onSearchChange={setSearchTerm}
+            onFilterRoleChange={setFilterRole}
+            onFilterOrgChange={setFilterOrg}
+            onToggleUserSelection={(userId) => {
+              if (selectedUsers.includes(userId)) {
+                setSelectedUsers(selectedUsers.filter(id => id !== userId));
+              } else {
+                setSelectedUsers([...selectedUsers, userId]);
+              }
+            }}
+            onSelectAllUsers={() => setSelectedUsers(filteredUsers.map((u: User) => u.id))}
+            onClearUserSelection={() => setSelectedUsers([])}
+            onEditUser={setEditingUser}
+            getRoleColor={getRoleColor}
+            getOrgName={getOrgName}
+            onCreateUser={() => setIsCreateUserOpen(true)}
+          />
         </TabsContent>
 
         {/* Organizations Tab */}
         <TabsContent value="organizations" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Organization Management</h3>
-              <p className="text-sm text-gray-600">Manage multi-tenant organizations and their settings</p>
-            </div>
-            <Dialog open={isCreateOrgOpen} onOpenChange={setIsCreateOrgOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Building className="h-4 w-4 mr-2" />
-                  Add Organization
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Create New Organization</DialogTitle>
-                </DialogHeader>
-                <Form {...orgForm}>
-                  <form onSubmit={orgForm.handleSubmit(onCreateOrg)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={orgForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Organization Name</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter organization name" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={orgForm.control}
-                        name="type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Type</FormLabel>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="clinic">Clinic</SelectItem>
-                                <SelectItem value="hospital">Hospital</SelectItem>
-                                <SelectItem value="health_center">Health Center</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={orgForm.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Address</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter address" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={orgForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Enter phone number" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={orgForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input {...field} type="email" placeholder="Enter email" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={orgForm.control}
-                      name="website"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Website</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter website URL" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={() => setIsCreateOrgOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={createOrgMutation.isPending}>
-                        {createOrgMutation.isPending ? "Creating..." : "Create Organization"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {organizations.map((org: Organization) => (
-              <Card key={org.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{org.name}</CardTitle>
-                      <p className="text-sm text-gray-600 capitalize">{org.type.replace('_', ' ')}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      <Badge variant={org.isActive ? "default" : "secondary"}>
-                        {org.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <Button size="sm" variant="outline" onClick={() => setEditingOrg(org)}>
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    {org.address && (
-                      <p className="text-gray-600">{org.address}</p>
-                    )}
-                    {org.phone && (
-                      <p className="text-gray-600">📞 {org.phone}</p>
-                    )}
-                    {org.email && (
-                      <p className="text-gray-600">✉️ {org.email}</p>
-                    )}
-                    <div className="flex justify-between pt-2">
-                      <span className="text-gray-600">Users:</span>
-                      <span className="font-medium">{org.userCount || 0}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <OrganizationList
+            organizations={organizations}
+            onEditOrganization={setEditingOrg}
+            onCreateOrganization={() => setIsCreateOrgOpen(true)}
+          />
         </TabsContent>
       </Tabs>
 
-      {/* Edit User Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-          </DialogHeader>
-          {editingUser && (
-            <Form {...userForm}>
-              <form onSubmit={userForm.handleSubmit(onUpdateUser)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={userForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Enter username" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={userForm.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="doctor">Doctor</SelectItem>
-                            <SelectItem value="nurse">Nurse</SelectItem>
-                            <SelectItem value="pharmacist">Pharmacist</SelectItem>
-                            <SelectItem value="physiotherapist">Physiotherapist</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+      {/* User Form Dialogs */}
+      <UserFormDialog
+        open={isCreateUserOpen}
+        onOpenChange={setIsCreateUserOpen}
+        form={userForm}
+        onSubmit={onCreateUser}
+        organizations={organizations}
+        isEditing={false}
+        isPending={createUserMutation.isPending}
+      />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={userForm.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Enter first name" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={userForm.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Enter last name" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+      <UserFormDialog
+        open={!!editingUser}
+        onOpenChange={(open) => !open && setEditingUser(null)}
+        form={userForm}
+        onSubmit={(data) => {
+          onUpdateUser(data);
+        }}
+        organizations={organizations}
+        isEditing={true}
+        isPending={updateUserMutation.isPending}
+      />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={userForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="email" placeholder="Enter email" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={userForm.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Enter phone number" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+      {/* Organization Form Dialogs */}
+      <OrganizationFormDialog
+        open={isCreateOrgOpen}
+        onOpenChange={setIsCreateOrgOpen}
+        form={orgForm}
+        onSubmit={onCreateOrg}
+        isEditing={false}
+        isPending={createOrgMutation.isPending}
+      />
 
-                <FormField
-                  control={userForm.control}
-                  name="organizationId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Organization</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {organizations.map((org: Organization) => (
-                            <SelectItem key={org.id} value={org.id.toString()}>
-                              {org.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={updateUserMutation.isPending}>
-                    {updateUserMutation.isPending ? "Updating..." : "Update User"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          )}
-        </DialogContent>
-      </Dialog>
+      <OrganizationFormDialog
+        open={!!editingOrg}
+        onOpenChange={(open) => !open && setEditingOrg(null)}
+        form={orgForm}
+        onSubmit={(data) => {
+          if (!editingOrg) return;
+          updateOrgMutation.mutate({
+            id: editingOrg.id,
+            data
+          });
+        }}
+        isEditing={true}
+        isPending={updateOrgMutation.isPending}
+      />
     </div>
   );
 }

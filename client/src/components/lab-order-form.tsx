@@ -146,25 +146,81 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
   };
 
   const getCommonTestPanels = () => {
-    return {
-      'Basic Metabolic Panel': labTests.filter(test =>
-        test.name.toLowerCase().includes('basic metabolic panel') ||
-        test.name.toLowerCase().includes('bmp')
-      ).map(test => test.id),
-      'Complete Blood Count': labTests.filter(test =>
-        test.name.toLowerCase().includes('complete blood count') ||
-        test.name.toLowerCase().includes('cbc')
-      ).map(test => test.id),
-      'Liver Function Panel': labTests.filter(test =>
-        test.name.toLowerCase().includes('liver function')
-      ).map(test => test.id),
-      'Lipid Panel': labTests.filter(test =>
-        test.name.toLowerCase().includes('lipid panel')
-      ).map(test => test.id),
-      'Thyroid Panel': labTests.filter(test =>
-        test.name.toLowerCase().includes('thyroid')
-      ).map(test => test.id)
+    // Comprehensive panel definitions with multiple search terms
+    const panelDefinitions: Record<string, string[]> = {
+      // Basic Panels
+      'Basic Metabolic Panel (BMP)': ['basic metabolic panel', 'bmp', 'metabolic panel'],
+      'Complete Metabolic Panel (CMP)': ['complete metabolic panel', 'cmp', 'comprehensive metabolic'],
+      'Complete Blood Count (CBC)': ['complete blood count', 'cbc', 'full blood count', 'fbc'],
+      'Liver Function Panel (LFT)': ['liver function', 'lft', 'hepatic function', 'liver panel'],
+      'Lipid Panel': ['lipid panel', 'cholesterol panel', 'lipid profile'],
+      'Thyroid Panel': ['thyroid', 'tsh', 't3', 't4', 'thyroid function'],
+      
+      // Comprehensive Panels
+      'Comprehensive Metabolic Panel': ['comprehensive metabolic', 'cmp', 'full metabolic'],
+      'Renal Function Panel': ['renal function', 'kidney function', 'renal panel', 'creatinine', 'bun'],
+      'Cardiac Panel': ['cardiac', 'troponin', 'ck-mb', 'bnp', 'nt-probnp', 'cardiac enzymes'],
+      'Coagulation Panel': ['coagulation', 'pt', 'inr', 'aptt', 'ptt', 'coagulation panel'],
+      'Inflammatory Markers': ['inflammatory', 'crp', 'esr', 'sed rate', 'c-reactive'],
+      
+      // Specialty Panels
+      'Diabetes Panel': ['diabetes', 'hba1c', 'hemoglobin a1c', 'glucose', 'diabetic panel'],
+      'Anemia Panel': ['anemia', 'iron', 'ferritin', 'b12', 'folate', 'anemia workup'],
+      'Vitamin Panel': ['vitamin', 'vitamin d', 'b12', 'folate', 'vitamin b'],
+      'Hormone Panel': ['hormone', 'testosterone', 'estrogen', 'progesterone', 'hormone panel'],
+      'Tumor Markers': ['tumor marker', 'psa', 'cea', 'ca 19-9', 'afp'],
+      
+      // Organ-Specific
+      'Pancreatic Panel': ['pancreatic', 'amylase', 'lipase', 'pancreas'],
+      'Bone Panel': ['bone', 'calcium', 'phosphorus', 'alkaline phosphatase', 'vitamin d'],
+      'Electrolyte Panel': ['electrolyte', 'sodium', 'potassium', 'chloride', 'bicarbonate'],
+      
+      // Infectious Disease
+      'Hepatitis Panel': ['hepatitis', 'hep a', 'hep b', 'hep c', 'hepatitis panel'],
+      'STI Panel': ['sti', 'std', 'syphilis', 'gonorrhea', 'chlamydia', 'hiv'],
+      'Mononucleosis Panel': ['mono', 'mononucleosis', 'ebv', 'epstein-barr'],
+      
+      // Urine & Body Fluids
+      'Urine Analysis': ['urine', 'urinalysis', 'ua', 'urine analysis'],
+      'Stool Analysis': ['stool', 'fecal', 'occult blood', 'stool analysis'],
+      'CSF Analysis': ['csf', 'cerebrospinal', 'spinal fluid'],
+      
+      // Autoimmune
+      'Autoimmune Panel': ['autoimmune', 'ana', 'rheumatoid', 'lupus', 'autoimmune panel'],
+      'Rheumatology Panel': ['rheumatology', 'rheumatoid factor', 'anti-ccp', 'rheumatology'],
+      
+      // Pregnancy & Women's Health
+      'Pregnancy Panel': ['pregnancy', 'hcg', 'beta hcg', 'pregnancy test'],
+      'Prenatal Panel': ['prenatal', 'pregnancy screening', 'prenatal panel'],
+      
+      // Men's Health
+      'Prostate Panel': ['prostate', 'psa', 'prostate specific antigen'],
+      
+      // Pediatric
+      'Newborn Screen': ['newborn', 'neonatal', 'newborn screen'],
+      
+      // Drug Monitoring
+      'Drug Monitoring': ['drug level', 'therapeutic drug', 'drug monitoring'],
+      'Toxicology Panel': ['toxicology', 'drug screen', 'tox screen'],
     };
+
+    const panels: Record<string, number[]> = {};
+    
+    Object.entries(panelDefinitions).forEach(([panelName, searchTerms]) => {
+      const matchingTests = labTests.filter(test => {
+        const testNameLower = test.name.toLowerCase();
+        const categoryLower = (test.category || '').toLowerCase();
+        return searchTerms.some(term => 
+          testNameLower.includes(term) || categoryLower.includes(term)
+        );
+      });
+      
+      if (matchingTests.length > 0) {
+        panels[panelName] = matchingTests.map(test => test.id);
+      }
+    });
+
+    return panels;
   };
 
   const selectTestPanel = (panelName: string) => {
@@ -373,38 +429,117 @@ export default function LabOrderForm({ patientId, onOrderCreated }: LabOrderForm
         </div>
       </div>
 
-      {/* Quick Test Panels - Compact Icon Style */}
-      <div className="flex flex-wrap gap-2 p-3 bg-muted/30 rounded-lg border">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2">
-          <TestTube className="h-3.5 w-3.5" />
-          <span className="font-medium">Quick Panels:</span>
-        </div>
-        {Object.entries(getCommonTestPanels()).map(([panelName, testIds]) => {
-          const selectedCount = testIds.filter(id => selectedTests.includes(id)).length;
-          const isFullySelected = selectedCount === testIds.length && testIds.length > 0;
-          const isPartiallySelected = selectedCount > 0 && selectedCount < testIds.length;
+      {/* Quick Test Panels - Organized by Category */}
+      <Card className="border-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <TestTube className="h-4 w-4 text-primary" />
+            Quick Preset Panels
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(() => {
+            const panels = getCommonTestPanels();
+            const panelCategories: Record<string, string[]> = {
+              'Basic Panels': [
+                'Basic Metabolic Panel (BMP)',
+                'Complete Metabolic Panel (CMP)',
+                'Complete Blood Count (CBC)',
+                'Liver Function Panel (LFT)',
+                'Lipid Panel',
+                'Thyroid Panel'
+              ],
+              'Comprehensive Panels': [
+                'Comprehensive Metabolic Panel',
+                'Renal Function Panel',
+                'Cardiac Panel',
+                'Coagulation Panel',
+                'Inflammatory Markers'
+              ],
+              'Specialty Panels': [
+                'Diabetes Panel',
+                'Anemia Panel',
+                'Vitamin Panel',
+                'Hormone Panel',
+                'Tumor Markers'
+              ],
+              'Organ-Specific': [
+                'Pancreatic Panel',
+                'Bone Panel',
+                'Electrolyte Panel'
+              ],
+              'Infectious Disease': [
+                'Hepatitis Panel',
+                'STI Panel',
+                'Mononucleosis Panel'
+              ],
+              'Body Fluids': [
+                'Urine Analysis',
+                'Stool Analysis',
+                'CSF Analysis'
+              ],
+              'Autoimmune & Specialized': [
+                'Autoimmune Panel',
+                'Rheumatology Panel',
+                'Pregnancy Panel',
+                'Prenatal Panel',
+                'Prostate Panel',
+                'Newborn Screen',
+                'Drug Monitoring',
+                'Toxicology Panel'
+              ]
+            };
 
-          return (
-            <Button
-              key={panelName}
-              variant={isFullySelected ? "default" : "outline"}
-              size="sm"
-              className={`h-7 px-2.5 text-xs gap-1 ${isPartiallySelected ? "border-blue-500 bg-blue-50 dark:bg-blue-950" : ""
-                } ${testIds.length === 0 ? "opacity-50" : ""}`}
-              onClick={() => selectTestPanel(panelName)}
-              disabled={testIds.length === 0}
-              title={`${panelName} (${testIds.length} tests)${selectedCount > 0 ? ` - ${selectedCount} selected` : ''}`}
-            >
-              {panelName}
-              {selectedCount > 0 && (
-                <Badge variant="secondary" className="h-4 px-1 text-[10px] ml-0.5">
-                  {selectedCount}
-                </Badge>
-              )}
-            </Button>
-          );
-        })}
-      </div>
+            return Object.entries(panelCategories).map(([categoryName, panelNames]) => {
+              const availablePanels = panelNames.filter(name => panels[name] && panels[name].length > 0);
+              
+              if (availablePanels.length === 0) return null;
+
+              return (
+                <div key={categoryName} className="space-y-2">
+                  <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <div className="w-1 h-4 bg-primary rounded-full"></div>
+                    {categoryName}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                    {availablePanels.map((panelName) => {
+                      const testIds = panels[panelName];
+                      const selectedCount = testIds.filter(id => selectedTests.includes(id)).length;
+                      const isFullySelected = selectedCount === testIds.length && testIds.length > 0;
+                      const isPartiallySelected = selectedCount > 0 && selectedCount < testIds.length;
+
+                      return (
+                        <Button
+                          key={panelName}
+                          variant={isFullySelected ? "default" : "outline"}
+                          size="sm"
+                          className={`h-auto py-2 px-3 text-xs justify-start text-left ${isPartiallySelected ? "border-blue-500 bg-blue-50 dark:bg-blue-950" : ""}`}
+                          onClick={() => selectTestPanel(panelName)}
+                          title={`${panelName} (${testIds.length} tests)${selectedCount > 0 ? ` - ${selectedCount} selected` : ''}`}
+                        >
+                          <div className="flex flex-col items-start gap-1 w-full">
+                            <div className="flex items-center justify-between w-full">
+                              <span className="font-medium truncate flex-1">{panelName}</span>
+                              {selectedCount > 0 && (
+                                <Badge variant="secondary" className="h-4 px-1.5 text-[10px] ml-1 flex-shrink-0">
+                                  {selectedCount}/{testIds.length}
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              {testIds.length} test{testIds.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </CardContent>
+      </Card>
 
       {/* Lab Tests by Category */}
       <Card>

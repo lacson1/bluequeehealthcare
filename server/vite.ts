@@ -40,9 +40,35 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
-  app.use(vite.middlewares);
+  // Apply Vite middleware to handle all module requests and HMR
+  // This must come before the catch-all route
+  app.use((req, res, next) => {
+    const url = req.originalUrl || req.path;
+    
+    // Skip API routes - let Express handle them
+    if (url.startsWith('/api/')) {
+      return next();
+    }
+    
+    // Let Vite handle all other requests (modules, assets, etc.)
+    vite.middlewares(req, res, next);
+  });
+  
+  // Catch-all route for HTML pages (SPA routing)
+  // This only handles requests that weren't handled by Vite middleware
   app.use("*", async (req, res, next) => {
-    const url = req.originalUrl;
+    const url = req.originalUrl || req.path;
+
+    // Skip API routes - let Express handle them
+    if (url.startsWith('/api/')) {
+      return next();
+    }
+
+    // Only serve HTML for non-file requests (SPA routing)
+    // If it looks like a file request (has extension), let it 404
+    if (path.extname(url)) {
+      return next();
+    }
 
     try {
       const clientTemplate = path.resolve(

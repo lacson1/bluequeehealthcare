@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Settings2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { SYSTEM_TAB_REGISTRY, TabRenderProps, getTabIcon } from './dynamic-tab-registry';
 import { TabManager } from '../tab-manager';
 import { marked } from 'marked';
@@ -33,36 +33,56 @@ export function DynamicTabRenderer({ patient, defaultTab = 'overview', ...props 
   const tabsListRef = useRef<HTMLDivElement>(null);
 
   // Fetch tab configurations from API
-  const { data: tabConfigs, isLoading } = useQuery<TabConfig[]>({
+  const { data: tabConfigs, isLoading, isError } = useQuery<TabConfig[]>({
     queryKey: ['/api/tab-configs'],
     retry: 1,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    throwOnError: false, // Don't throw - use fallback instead
   });
 
   // Merge API configs with system registry
   // Fall back to registry defaults if API fails
-  const resolvedTabs = tabConfigs
-    ? tabConfigs
-      .filter(tab => tab.isVisible)
-      .sort((a, b) => a.displayOrder - b.displayOrder)
-    : Object.values(SYSTEM_TAB_REGISTRY).map((tab, index) => ({
-      id: index,
-      key: tab.key,
-      label: tab.defaultLabel,
-      icon: tab.icon.name,
-      contentType: 'builtin_component',
-      settings: {},
-      isVisible: true,
-      isSystemDefault: true,
-      displayOrder: (index + 1) * 10,
-      scope: 'system',
-    }));
+  const resolvedTabs = useMemo(() => {
+    // Use API tabs if available, otherwise fall back to system registry
+    const tabs = (tabConfigs && tabConfigs.length > 0 && !isError)
+      ? tabConfigs
+          .filter(tab => tab.isVisible)
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+      : Object.values(SYSTEM_TAB_REGISTRY).map((tab, index) => ({
+          id: -(index + 1), // Negative IDs for fallback tabs
+          key: tab.key,
+          label: tab.defaultLabel,
+          icon: tab.icon.name,
+          contentType: 'builtin_component',
+          settings: {},
+          isVisible: true,
+          isSystemDefault: true,
+          displayOrder: (index + 1) * 10,
+          scope: 'system',
+        }));
+    
+    // Debug: Log tabs count
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Tabs] Rendering ${tabs.length} tabs:`, tabs.map(t => `${t.key}(${t.label})`).join(', '));
+      if (isError) {
+        console.warn('[Tabs] API error, using fallback tabs');
+      }
+      if (!tabConfigs || tabConfigs.length === 0) {
+        console.warn('[Tabs] No tabs from API, using fallback tabs');
+      }
+    }
+    
+    return tabs;
+  }, [tabConfigs, isError]);
 
   // Check scroll position
   const checkScroll = () => {
     const element = tabsListRef.current;
     if (element) {
-      setCanScrollLeft(element.scrollLeft > 0);
-      setCanScrollRight(element.scrollLeft < element.scrollWidth - element.clientWidth - 1);
+      const hasScrollLeft = element.scrollLeft > 5; // Small threshold to avoid flickering
+      const hasScrollRight = element.scrollLeft < element.scrollWidth - element.clientWidth - 5;
+      setCanScrollLeft(hasScrollLeft);
+      setCanScrollRight(hasScrollRight);
     }
   };
 
@@ -70,7 +90,7 @@ export function DynamicTabRenderer({ patient, defaultTab = 'overview', ...props 
   const scrollTabs = (direction: 'left' | 'right') => {
     const element = tabsListRef.current;
     if (element) {
-      const scrollAmount = direction === 'left' ? -200 : 200;
+      const scrollAmount = direction === 'left' ? -300 : 300;
       element.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
@@ -202,97 +222,138 @@ export function DynamicTabRenderer({ patient, defaultTab = 'overview', ...props 
     <div className="space-y-4 w-full">
       <Tabs defaultValue={defaultTab} className="w-full">
         <div className="relative mb-6">
-          {/* Tab List Container with Scroll */}
-          <div className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-950 border-2 border-blue-200/60 dark:border-blue-800/60 rounded-2xl p-3 shadow-2xl backdrop-blur-lg ring-1 ring-blue-100/50 dark:ring-blue-900/50">
-            <TabsList ref={tabsListRef} className="inline-flex w-full h-auto min-h-[80px] items-start justify-start gap-1.5 sm:gap-2 bg-transparent p-0 overflow-x-auto scrollbar-thin scroll-smooth">
+          {/* Premium Tab List Container */}
+          <div className="relative bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 dark:from-slate-900 dark:via-slate-800/50 dark:to-blue-950/30 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-2 shadow-lg backdrop-blur-sm overflow-hidden">
+            <TabsList 
+              ref={tabsListRef} 
+              className="inline-flex w-full h-auto min-h-[60px] items-center justify-start gap-1 bg-transparent p-0 overflow-x-auto overflow-y-hidden scrollbar-thin scroll-smooth"
+              style={{ 
+                scrollbarWidth: 'thin',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain'
+              }}
+            >
               {resolvedTabs.map((tab) => {
                 const IconComponent = SYSTEM_TAB_REGISTRY[tab.key]?.icon || getTabIcon(tab.icon);
+                const isReferralsTab = tab.key === 'referrals';
+
+                const handleAddClick = (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  // Dispatch custom event to open referral dialog
+                  window.dispatchEvent(new CustomEvent('openReferralDialog'));
+                };
 
                 return (
                   <TabsTrigger
                     key={tab.key}
                     value={tab.key}
-                    className="flex-shrink-0 flex flex-col items-center justify-center gap-1 sm:gap-1.5 min-w-[90px] sm:min-w-[110px] max-w-[120px] sm:max-w-[140px] text-[11px] sm:text-xs font-bold px-2 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-300 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 data-[state=active]:shadow-xl data-[state=active]:text-blue-900 dark:data-[state=active]:text-blue-100 data-[state=active]:border-2 data-[state=active]:border-blue-300 dark:data-[state=active]:border-blue-600 data-[state=active]:scale-105 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:shadow-lg hover:scale-[1.02] active:scale-95 text-blue-800 dark:text-blue-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    className="flex-shrink-0 flex flex-row items-center justify-center gap-1.5 min-w-[70px] max-w-[90px] text-[11px] font-semibold px-2.5 py-2 rounded-lg transition-all duration-200 ease-out relative group
+                      bg-slate-100/50 dark:bg-slate-800/50 
+                      text-slate-600 dark:text-slate-400
+                      border border-slate-200/60 dark:border-slate-700/60
+                      hover:bg-slate-200/70 dark:hover:bg-slate-700/70 
+                      hover:border-slate-300 dark:hover:border-slate-600
+                      hover:shadow-md hover:scale-[1.02]
+                      active:scale-[0.98]
+                      data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 
+                      data-[state=active]:dark:from-blue-600 data-[state=active]:dark:to-blue-700
+                      data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30
+                      data-[state=active]:border-blue-400 dark:data-[state=active]:border-blue-500
+                      data-[state=active]:scale-105 data-[state=active]:z-10
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                     data-testid={`tab-${tab.key}`}
                     title={tab.label}
                   >
-                    <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 group-data-[state=active]:text-blue-600 dark:group-data-[state=active]:text-blue-400 transition-colors" />
-                    <span className="font-semibold truncate w-full text-center leading-tight">{tab.label}</span>
-                    {!tab.isSystemDefault && (
-                      <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded whitespace-nowrap">
-                        Custom
-                      </span>
+                    {/* Active indicator bar */}
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-0 data-[state=active]:opacity-100 transition-opacity duration-200" />
+                    
+                    <IconComponent className="w-3.5 h-3.5 flex-shrink-0 transition-colors duration-200 group-data-[state=active]:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                    <span className="truncate leading-tight font-medium">{tab.label}</span>
+                    
+                    {/* Add button for referrals tab */}
+                    {isReferralsTab && (
+                      <button
+                        onClick={handleAddClick}
+                        className="ml-1 p-0.5 rounded hover:bg-white/20 dark:hover:bg-white/10 transition-colors flex-shrink-0"
+                        title="Add new referral"
+                        data-testid="add-referral-from-tab"
+                      >
+                        <Plus className="w-3 h-3 transition-colors duration-200 group-data-[state=active]:text-white text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                      </button>
                     )}
+                    
+                    {/* Active glow effect */}
+                    <span className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/20 to-transparent opacity-0 data-[state=active]:opacity-100 pointer-events-none transition-opacity duration-200" />
                   </TabsTrigger>
                 );
               })}
             </TabsList>
 
-            {/* Scroll Navigation - Left */}
+            {/* Premium Scroll Navigation - Left */}
             {canScrollLeft && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => scrollTabs('left')}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 backdrop-blur-sm shadow-lg rounded-full w-8 h-8 p-0"
+                className="absolute left-1 top-1/2 -translate-y-1/2 z-20 bg-white/95 dark:bg-slate-800/95 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-md shadow-lg rounded-lg w-7 h-7 p-0 border border-slate-200/60 dark:border-slate-700/60"
                 title="Scroll Left"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
 
-            {/* Scroll Navigation - Right */}
+            {/* Premium Scroll Navigation - Right */}
             {canScrollRight && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => scrollTabs('right')}
-                className="absolute right-12 top-1/2 -translate-y-1/2 z-10 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 backdrop-blur-sm shadow-lg rounded-full w-8 h-8 p-0"
+                className="absolute right-12 top-1/2 -translate-y-1/2 z-20 bg-white/95 dark:bg-slate-800/95 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-md shadow-lg rounded-lg w-7 h-7 p-0 border border-slate-200/60 dark:border-slate-700/60"
                 title="Scroll Right"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
             )}
 
-            {/* Manage Tabs Button */}
+            {/* Premium Manage Tabs Button */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowTabManager(true)}
-              className="absolute top-2 right-2 z-10 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 backdrop-blur-sm shadow-md group"
+              className="absolute top-1.5 right-1.5 z-20 bg-white/95 dark:bg-slate-800/95 hover:bg-white dark:hover:bg-slate-800 backdrop-blur-md shadow-md rounded-lg px-2 py-1.5 border border-slate-200/60 dark:border-slate-700/60 group transition-all hover:scale-105"
               title="Manage Tabs"
               data-testid="open-tab-manager"
             >
-              <Settings2 className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Settings2 className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
               {resolvedTabs.length > 8 && (
-                <span className="ml-1.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50 px-1.5 py-0.5 rounded">
+                <span className="ml-1.5 text-[9px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/50 px-1.5 py-0.5 rounded">
                   {resolvedTabs.length}
                 </span>
               )}
             </Button>
 
-            {/* Scroll Indicator - Left */}
+            {/* Premium Scroll Gradient Indicators */}
             {canScrollLeft && (
-              <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-slate-50 via-blue-50/80 dark:from-slate-900 dark:via-blue-950/80 to-transparent pointer-events-none rounded-l-2xl" />
+              <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white via-slate-50/90 to-transparent dark:from-slate-900 dark:via-slate-800/90 pointer-events-none rounded-l-xl" />
             )}
 
-            {/* Scroll Indicator - Right */}
             {canScrollRight && (
-              <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-indigo-50 via-blue-50/80 dark:from-indigo-950 dark:via-blue-950/80 to-transparent pointer-events-none rounded-r-2xl" />
+              <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white via-slate-50/90 to-transparent dark:from-slate-900 dark:via-slate-800/90 pointer-events-none rounded-r-xl" />
             )}
           </div>
 
-          {/* Keyboard Navigation Hint */}
-          <div className="text-[10px] sm:text-xs text-center mt-2 text-gray-500 dark:text-gray-400">
-            <span className="hidden sm:inline">
-              <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600">←</kbd>
-              {' '}
-              <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600">→</kbd>
-              {' '}
-              Navigate tabs •{' '}
-            </span>
-            <span className="inline sm:hidden">👆 Swipe •{' '}</span>
-            Scroll horizontally for more {resolvedTabs.length > 6 && `(${resolvedTabs.length} tabs)`}
+          {/* Premium Tab Count Indicator */}
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+              {resolvedTabs.length} {resolvedTabs.length === 1 ? 'tab' : 'tabs'} available
+            </div>
+            {canScrollLeft || canScrollRight ? (
+              <div className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                <ChevronLeft className="h-3 w-3" />
+                <span>Scroll</span>
+                <ChevronRight className="h-3 w-3" />
+              </div>
+            ) : null}
           </div>
         </div>
 

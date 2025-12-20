@@ -200,32 +200,45 @@ export default function RoleManagement() {
 
   if (rolesLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">Loading roles...</div>
+      <div className="h-full flex flex-col">
+        <header className="healthcare-header px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <h2 className="text-2xl font-bold text-white drop-shadow-sm">Role Management</h2>
+              <p className="text-white/90 font-medium">Manage roles and permissions for your staff members</p>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 overflow-auto p-6">
+          <div className="text-center">Loading roles...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8" />
-            Role Management
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage roles and permissions for your staff members
-          </p>
-        </div>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create-role">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Role
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh]">
+    <div className="h-full flex flex-col">
+      {/* Enhanced Fixed Header */}
+      <header className="healthcare-header px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h2 className="text-2xl font-bold text-white drop-shadow-sm flex items-center gap-2">
+              <Shield className="h-6 w-6" />
+              Role Management
+            </h2>
+            <p className="text-white/90 font-medium">Manage roles and permissions for your staff members</p>
+          </div>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                data-testid="button-create-role"
+                className="bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Role
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Create New Role</DialogTitle>
               <DialogDescription>
@@ -314,9 +327,11 @@ export default function RoleManagement() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
+        </div>
+      </header>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {roles.map((role) => (
           <Card key={role.id} data-testid={`card-role-${role.id}`}>
             <CardHeader>
@@ -376,9 +391,9 @@ export default function RoleManagement() {
             </CardContent>
           </Card>
         ))}
-      </div>
+        </div>
 
-      {/* Edit Role Dialog */}
+        {/* Edit Role Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
@@ -449,6 +464,7 @@ export default function RoleManagement() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

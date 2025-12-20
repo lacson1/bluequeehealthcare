@@ -1,5 +1,49 @@
 # Modern Consultation System - User Guide
 
+## 🚀 Quick Start (5 Minutes)
+
+Welcome to the modern consultation system! Get started quickly:
+
+### 📍 How to Access
+
+**Method 1: Patient Profile Page (Recommended)**
+1. Navigate to any patient's profile
+2. Look for the **"Quick Consultation Access"** card (purple/blue gradient)
+3. Choose your preferred method:
+   - **Modern Wizard** (Blue) - Step-by-step guided form
+   - **Specialist Forms** (Purple) - Pre-configured assessments
+
+**Method 2: Toolbar Button**
+1. Look for the **"New Consultation"** button (top of page)
+2. Click the dropdown arrow
+3. Select your preferred consultation type
+
+### ⚡ Quick Workflows
+
+**Record a Simple Consultation (3 minutes):**
+1. Click "Modern Wizard" button
+2. Select visit type (e.g., "Consultation")
+3. Enter chief complaint
+4. Record vital signs
+5. Click "Next" through examination steps
+6. Enter diagnosis and treatment
+7. Click "Save Consultation"
+
+**Use a Template (1 minute):**
+1. Click "Modern Wizard" button
+2. Click "Use Template" button
+3. Select a template (e.g., "Common Cold")
+4. Review and customize the pre-filled information
+5. Click "Save Consultation"
+
+**Specialist Assessment (2 minutes):**
+1. Click "Specialist Forms" button
+2. Search or browse for specific form (e.g., "Hypertension")
+3. Complete the structured assessment fields
+4. Click "Save Consultation"
+
+---
+
 ## 🎯 Overview
 
 The Modern Consultation System provides an intuitive, efficient way to record patient visits and consultations with three integrated approaches:

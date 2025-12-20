@@ -67,6 +67,10 @@ export function PatientProcedures({ patientId }: PatientProceduresProps) {
   // Fetch procedures
   const { data: procedures, isLoading } = useQuery({
     queryKey: [`/api/patients/${patientId}/procedures`],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    enabled: !!patientId,
   });
 
   // Add procedure mutation
@@ -453,7 +457,7 @@ export function PatientProcedures({ patientId }: PatientProceduresProps) {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {procedures.map((procedure: any) => (
+          {(Array.isArray(procedures) ? procedures : []).map((procedure: any) => (
             <Card key={procedure.id} className="border-l-4 border-l-indigo-500">
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">

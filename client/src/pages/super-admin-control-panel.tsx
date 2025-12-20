@@ -155,6 +155,17 @@ export default function SuperAdminControlPanel() {
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [showSuspensions, setShowSuspensions] = useState(false);
   const [showPolicies, setShowPolicies] = useState(false);
+  const [showOrgManage, setShowOrgManage] = useState(false);
+  const [selectedOrg, setSelectedOrg] = useState<any>(null);
+  const [editOrgData, setEditOrgData] = useState({
+    name: '',
+    type: 'clinic',
+    email: '',
+    phone: '',
+    address: '',
+    website: '',
+    isActive: true
+  });
   const [newOrgData, setNewOrgData] = useState({
     name: '',
     type: 'clinic',
@@ -205,6 +216,29 @@ export default function SuperAdminControlPanel() {
     },
   });
 
+  // Organization update mutation
+  const updateOrgMutation = useMutation({
+    mutationFn: ({ orgId, data }: { orgId: number; data: any }) => 
+      apiRequest(`/api/superadmin/organizations/${orgId}`, 'PATCH', data),
+    onSuccess: () => {
+      toast({
+        title: "Organization Updated",
+        description: "Organization details have been updated successfully",
+      });
+      setShowOrgManage(false);
+      setSelectedOrg(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/superadmin/analytics'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error?.message || "Failed to update organization",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Organization management handlers
   const handleCreateOrganization = () => {
     setShowCreateOrg(true);
@@ -216,6 +250,38 @@ export default function SuperAdminControlPanel() {
 
   const handleGlobalPolicies = () => {
     setShowPolicies(true);
+  };
+
+  const handleManageOrganization = (org: any) => {
+    setSelectedOrg(org);
+    setEditOrgData({
+      name: org.name || '',
+      type: org.type || 'clinic',
+      email: org.email || '',
+      phone: org.phone || '',
+      address: org.address || '',
+      website: org.website || '',
+      isActive: org.isActive !== undefined ? org.isActive : true
+    });
+    setShowOrgManage(true);
+  };
+
+  const handleUpdateOrganization = () => {
+    if (!selectedOrg) return;
+    
+    if (!editOrgData.name || !editOrgData.email) {
+      toast({
+        title: "Validation Error",
+        description: "Organization name and email are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateOrgMutation.mutate({
+      orgId: selectedOrg.id,
+      data: editOrgData
+    });
   };
 
   const handleCreateOrgSubmit = () => {
@@ -853,7 +919,11 @@ export default function SuperAdminControlPanel() {
                         <Badge variant={org.isActive ? "default" : "secondary"}>
                           {org.isActive ? "Active" : "Inactive"}
                         </Badge>
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleManageOrganization(org)}
+                        >
                           <Settings className="w-4 h-4 mr-2" />
                           Manage
                         </Button>
@@ -1154,9 +1224,14 @@ export default function SuperAdminControlPanel() {
                   placeholder="Search users by username, email, or role..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleUserSearch();
+                    }
+                  }}
                   className="flex-1"
                 />
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleUserSearch}>
                   <Search className="w-4 h-4" />
                 </Button>
               </div>
@@ -1212,242 +1287,6 @@ export default function SuperAdminControlPanel() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lock className="w-5 h-5" />
-                  Account Controls
-                </CardTitle>
-                <CardDescription>Lock/unlock user accounts system-wide</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="destructive" className="w-full">Account Management</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Key className="w-5 h-5" />
-                  Password Resets
-                </CardTitle>
-                <CardDescription>Force password resets for any user</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full">Password Controls</Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* System Controls */}
-        <TabsContent value="system" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Maintenance Mode
-                </CardTitle>
-                <CardDescription>Enable system-wide maintenance mode</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span>Maintenance Mode</span>
-                  <Switch 
-                    checked={systemMaintenance} 
-                    onCheckedChange={setSystemMaintenance}
-                  />
-                </div>
-                <Button onClick={handleMaintenanceMode} variant="destructive" className="w-full" disabled={!systemMaintenance}>
-                  Activate Maintenance
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5" />
-                  System Restart
-                </CardTitle>
-                <CardDescription>Restart system services and clear caches</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleSystemRestart} variant="destructive" className="w-full">Restart System</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Server className="w-5 h-5" />
-                  Feature Toggles
-                </CardTitle>
-                <CardDescription>Enable/disable features system-wide</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleManageFeatures} variant="outline" className="w-full">Manage Features</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5" />
-                  System Announcements
-                </CardTitle>
-                <CardDescription>Send notifications to all organizations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleCreateAnnouncement} className="w-full">Create Announcement</Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Security Controls */}
-        <TabsContent value="security" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Session Monitoring
-                </CardTitle>
-                <CardDescription>View and control active user sessions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleViewSessions} variant="outline" className="w-full">View Sessions</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  Security Policies
-                </CardTitle>
-                <CardDescription>Configure global security settings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleSecuritySettings} className="w-full">Security Settings</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  Audit Controls
-                </CardTitle>
-                <CardDescription>Configure system-wide audit logging</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleAuditConfiguration} variant="outline" className="w-full">Audit Configuration</Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Data Management */}
-        <TabsContent value="data" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="w-5 h-5" />
-                  System Backup
-                </CardTitle>
-                <CardDescription>Create full system backups</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleCreateBackup} className="w-full">Create Backup</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Data Migration
-                </CardTitle>
-                <CardDescription>Import/export data between systems</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleMigrationTools} variant="outline" className="w-full">Migration Tools</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="w-5 h-5" />
-                  Database Controls
-                </CardTitle>
-                <CardDescription>Direct database management tools</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleDatabaseAdmin} variant="destructive" className="w-full">Database Admin</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RefreshCw className="w-5 h-5" />
-                  Data Cleanup
-                </CardTitle>
-                <CardDescription>Clean up orphaned or old data</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleCleanupTools} variant="outline" className="w-full">Cleanup Tools</Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Monitoring */}
-        <TabsContent value="monitoring" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  System Health
-                </CardTitle>
-                <CardDescription>Monitor system performance and health</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleHealthDashboard} variant="outline" className="w-full">Health Dashboard</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  User Activity
-                </CardTitle>
-                <CardDescription>Track user activity across all organizations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleActivityMonitor} className="w-full">Activity Monitor</Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Server className="w-5 h-5" />
-                  System Logs
-                </CardTitle>
-                <CardDescription>View and analyze system logs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={handleLogViewer} variant="outline" className="w-full">Log Viewer</Button>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
       </Tabs>
@@ -1625,18 +1464,48 @@ export default function SuperAdminControlPanel() {
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm font-medium text-gray-900 mb-3">
                   Select what data to export:
                 </p>
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start">
-                    Full System Export
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start h-auto py-3 px-4 hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => {
+                      exportDataMutation.mutate('full');
+                      setShowDataModal(false);
+                    }}
+                  >
+                    <div className="flex flex-col items-start w-full">
+                      <span className="font-medium">Full System Export</span>
+                      <span className="text-xs text-muted-foreground mt-1">All system data including organizations, users, and settings</span>
+                    </div>
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Organizations Only
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start h-auto py-3 px-4 hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => {
+                      exportDataMutation.mutate('organizations');
+                      setShowDataModal(false);
+                    }}
+                  >
+                    <div className="flex flex-col items-start w-full">
+                      <span className="font-medium">Organizations Only</span>
+                      <span className="text-xs text-muted-foreground mt-1">Export organization data and settings</span>
+                    </div>
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    Users Only
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start h-auto py-3 px-4 hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => {
+                      exportDataMutation.mutate('users');
+                      setShowDataModal(false);
+                    }}
+                  >
+                    <div className="flex flex-col items-start w-full">
+                      <span className="font-medium">Users Only</span>
+                      <span className="text-xs text-muted-foreground mt-1">Export user accounts and profile information</span>
+                    </div>
                   </Button>
                 </div>
               </div>
@@ -1970,6 +1839,266 @@ export default function SuperAdminControlPanel() {
             <Button variant="outline" onClick={() => refetchLogs()}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Organization Suspensions Modal */}
+      <Dialog open={showSuspensions} onOpenChange={setShowSuspensions}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ban className="w-5 h-5" />
+              Manage Organization Suspensions
+            </DialogTitle>
+            <DialogDescription>
+              Suspend or unsuspend organizations to temporarily disable access
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[500px] overflow-y-auto space-y-3">
+            {organizationsLoading ? (
+              <div className="text-center py-8">Loading organizations...</div>
+            ) : (
+              organizations.map((org: any) => (
+                <div key={org.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-semibold">{org.name}</h4>
+                    <p className="text-sm text-muted-foreground">{org.email}</p>
+                    <Badge variant={org.isActive ? "default" : "destructive"} className="mt-2">
+                      {org.isActive ? "Active" : "Suspended"}
+                    </Badge>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={org.isActive ? "destructive" : "default"}
+                    onClick={() => handleSuspendOrganization(org.id, !org.isActive)}
+                    disabled={suspendOrgMutation.isPending}
+                  >
+                    {org.isActive ? "Suspend" : "Unsuspend"}
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSuspensions(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Organization Management Modal */}
+      <Dialog open={showOrgManage} onOpenChange={setShowOrgManage}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Manage Organization
+            </DialogTitle>
+            <DialogDescription>
+              Edit organization details and settings
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrg && (
+            <div className="space-y-4">
+              {/* Organization Statistics */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+                <div>
+                  <p className="text-sm text-muted-foreground">Organization ID</p>
+                  <p className="font-semibold">#{selectedOrg.id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={selectedOrg.isActive ? "default" : "secondary"}>
+                    {selectedOrg.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                {selectedOrg.userCount !== undefined && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Users</p>
+                    <p className="font-semibold">{selectedOrg.userCount}</p>
+                  </div>
+                )}
+                {selectedOrg.createdAt && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Created</p>
+                    <p className="font-semibold text-sm">
+                      {new Date(selectedOrg.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Edit Form */}
+              <div className="grid gap-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-org-name" className="text-right">Name *</Label>
+                  <Input
+                    id="edit-org-name"
+                    value={editOrgData.name}
+                    onChange={(e) => setEditOrgData({ ...editOrgData, name: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-org-type" className="text-right">Type</Label>
+                  <Select 
+                    value={editOrgData.type} 
+                    onValueChange={(value) => setEditOrgData({ ...editOrgData, type: value })}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="clinic">Clinic</SelectItem>
+                      <SelectItem value="hospital">Hospital</SelectItem>
+                      <SelectItem value="health_center">Health Center</SelectItem>
+                      <SelectItem value="pharmacy">Pharmacy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-org-email" className="text-right">Email *</Label>
+                  <Input
+                    id="edit-org-email"
+                    type="email"
+                    value={editOrgData.email}
+                    onChange={(e) => setEditOrgData({ ...editOrgData, email: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-org-phone" className="text-right">Phone</Label>
+                  <Input
+                    id="edit-org-phone"
+                    value={editOrgData.phone}
+                    onChange={(e) => setEditOrgData({ ...editOrgData, phone: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-org-address" className="text-right">Address</Label>
+                  <Input
+                    id="edit-org-address"
+                    value={editOrgData.address}
+                    onChange={(e) => setEditOrgData({ ...editOrgData, address: e.target.value })}
+                    className="col-span-3"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-org-website" className="text-right">Website</Label>
+                  <Input
+                    id="edit-org-website"
+                    type="url"
+                    value={editOrgData.website}
+                    onChange={(e) => setEditOrgData({ ...editOrgData, website: e.target.value })}
+                    className="col-span-3"
+                    placeholder="https://example.com"
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Status</Label>
+                  <div className="col-span-3 flex items-center gap-2">
+                    <Switch
+                      checked={editOrgData.isActive}
+                      onCheckedChange={(checked) => setEditOrgData({ ...editOrgData, isActive: checked })}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {editOrgData.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowOrgManage(false);
+                setSelectedOrg(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateOrganization}
+              disabled={updateOrgMutation.isPending}
+            >
+              {updateOrgMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Global Policies Modal */}
+      <Dialog open={showPolicies} onOpenChange={setShowPolicies}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Global Organization Policies
+            </DialogTitle>
+            <DialogDescription>
+              Configure system-wide policies that apply to all organizations
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <h4 className="font-semibold">Patient Self-Registration</h4>
+                <p className="text-sm text-muted-foreground">Allow patients to register themselves</p>
+              </div>
+              <Switch defaultChecked />
+            </div>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <h4 className="font-semibold">Email Verification</h4>
+                <p className="text-sm text-muted-foreground">Require email verification for new users</p>
+              </div>
+              <Switch />
+            </div>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div>
+                <h4 className="font-semibold">Data Sharing</h4>
+                <p className="text-sm text-muted-foreground">Allow data sharing between organizations</p>
+              </div>
+              <Switch />
+            </div>
+            <div className="space-y-2">
+              <Label>Default User Role</Label>
+              <Select defaultValue="nurse">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nurse">Nurse</SelectItem>
+                  <SelectItem value="doctor">Doctor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPolicies(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              toast({
+                title: "Policies Updated",
+                description: "Global policies have been updated successfully",
+              });
+              setShowPolicies(false);
+            }}>
+              Save Policies
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,7 +13,12 @@ const createStaffSchema = createInsertSchema(users).omit({
   createdAt: true
 }).extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string()
+  confirmPassword: z.string(),
+  role: z.string()
+    .min(1, "Role is required")
+    .refine((val) => val && val.trim().length > 0, {
+      message: "Role cannot be empty or whitespace"
+    }) // Ensure role is required and not empty
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"]
@@ -49,6 +54,11 @@ export function setupOrganizationStaffRoutes(app: Express) {
         return res.status(400).json({ error: 'Username already exists' });
       }
 
+      // Validate role is provided and not empty
+      if (!staffData.role || typeof staffData.role !== 'string' || staffData.role.trim() === '') {
+        return res.status(400).json({ error: 'Role is required and cannot be empty' });
+      }
+
       // Hash password
       const hashedPassword = await hashPassword(password);
 
@@ -57,7 +67,8 @@ export function setupOrganizationStaffRoutes(app: Express) {
         .values({
           ...staffData,
           password: hashedPassword,
-          organizationId: organizationId
+          organizationId: organizationId,
+          role: staffData.role // Explicitly set role to ensure it's not undefined
         })
         .returning();
 
@@ -205,13 +216,20 @@ export function setupOrganizationStaffRoutes(app: Express) {
             continue;
           }
 
+          // Validate role is provided and not empty
+          if (!staff.role || typeof staff.role !== 'string' || staff.role.trim() === '') {
+            errors.push({ row: i + 1, error: 'Role is required and cannot be empty' });
+            continue;
+          }
+
           // Hash password and create staff
           const hashedPassword = await hashPassword(password);
           const newStaff = await db.insert(users)
             .values({
               ...staff,
               password: hashedPassword,
-              organizationId: req.tenant.id
+              organizationId: req.tenant.id,
+              role: staff.role // Explicitly set role to ensure it's not undefined
             })
             .returning();
 

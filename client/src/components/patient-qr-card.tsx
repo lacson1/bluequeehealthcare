@@ -12,6 +12,7 @@ import {
   User,
   Calendar,
   Phone,
+  Mail,
   Heart
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -195,10 +196,24 @@ export default function PatientQRCard({ patient, baseUrl = window.location.origi
             <span>Age: {patientAge} | {patient.gender}</span>
           </div>
           {patient.phone && (
-            <div className="flex items-center space-x-2 text-sm text-slate-600">
+            <a 
+              href={`tel:${patient.phone.replace(/\s+/g, '')}`}
+              className="flex items-center space-x-2 text-sm text-slate-600 hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+              title={`Call ${patient.phone}`}
+            >
               <Phone className="h-3 w-3" />
               <span>{patient.phone}</span>
-            </div>
+            </a>
+          )}
+          {patient.email && (
+            <a 
+              href={`mailto:${patient.email}`}
+              className="flex items-center space-x-2 text-sm text-slate-600 hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+              title={`Send email to ${patient.email}`}
+            >
+              <Mail className="h-3 w-3" />
+              <span className="truncate max-w-[200px]">{patient.email}</span>
+            </a>
           )}
           {patient.allergies && (
             <div className="flex items-center space-x-2 text-sm">

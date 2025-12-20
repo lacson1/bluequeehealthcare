@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authenticateToken, requireAnyRole, type AuthRequest } from "../middleware/auth";
 import { messages, patients, dismissedNotifications, users } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, or, isNull, inArray, desc, sql } from "drizzle-orm";
+import { eq, and, or, isNull, inArray, desc, sql, ne } from "drizzle-orm";
 
 const router = Router();
 
@@ -51,6 +51,7 @@ export function setupNotificationRoutes(): Router {
           .leftJoin(patients, eq(messages.patientId, patients.id))
           .where(and(
             eq(messages.organizationId, organizationId),
+            ne(messages.recipientType, 'Patient'), // Exclude staff-to-patient replies
             or(
               eq(messages.assignedTo, userId),
               isNull(messages.assignedTo),
@@ -112,12 +113,13 @@ export function setupNotificationRoutes(): Router {
       // Get all current notification IDs
       const currentNotifications: string[] = [];
       
-      // Get staff messages
+      // Get staff messages (exclude staff-to-patient replies)
       const staffMessages = await db
         .select()
         .from(messages)
         .where(and(
           eq(messages.organizationId, organizationId),
+          ne(messages.recipientType, 'Patient'), // Exclude staff-to-patient replies
           or(
             eq(messages.assignedTo, userId),
             isNull(messages.assignedTo),

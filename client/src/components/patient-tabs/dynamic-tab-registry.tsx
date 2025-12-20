@@ -1,3 +1,4 @@
+import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import {
   User,
@@ -13,9 +14,45 @@ import {
   FileCheck,
   MessageSquare,
   Brain,
+  Clock,
+  Syringe,
+  AlertTriangle,
+  Scan,
+  Stethoscope,
+  Scissors,
+  Heart,
+  Baby,
+  Bone,
+  Sparkles,
+  ClipboardList,
+  Users,
+  BookOpen,
+  Timer,
 } from 'lucide-react';
+import { t } from '@/lib/i18n';
 import { PatientBillingTab } from '../patient-billing-tab';
+import { ClinicalNotesTab } from './clinical-notes-tab';
+import { CarePlansTab } from './care-plans-tab';
+import { VisitsTab } from './visits-tab';
+import { LabResultsTab } from './lab-results-tab';
+import { MedicationsTab } from './medications-tab';
+import { VitalsTab } from './vitals-tab';
+import { AllergiesTab } from './allergies-tab';
+import { AppointmentsTab } from './appointments-tab';
+import { ImmunizationsTab } from './immunizations-tab';
+import { OverviewTab } from './overview-tab';
+import { TimelineTab } from './timeline-tab';
+import { DocumentsTab } from './documents-tab';
+import { ReferralsTab } from './referrals-tab';
+import { LongevityTab } from './longevity-tab';
 import PsychologicalTherapyAssessment from '@/components/psychological-therapy-assessment';
+import { PatientInsuranceTab } from '@/components/patient-insurance-tab';
+import { PatientHistoryTab } from '@/components/patient-history-tab';
+import { EnhancedMedicationReview } from '@/components/enhanced-medication-review';
+import PatientChat from '@/components/patient-chat';
+import { PatientSafetyAlertsRealtime } from '@/components/patient-safety-alerts-realtime';
+import { PatientImaging } from '@/components/patient-imaging';
+import { PatientProcedures } from '@/components/patient-procedures';
 
 export interface TabRenderProps {
   patient: any;
@@ -26,9 +63,16 @@ export interface TabRenderProps {
 
 export interface SystemTabDefinition {
   key: string;
-  defaultLabel: string;
+  defaultLabel: string; // Translation key (e.g., 'tab.overview')
   icon: LucideIcon;
   render: (props: TabRenderProps) => JSX.Element;
+}
+
+/**
+ * Get translated label for a tab
+ */
+export function getTabLabel(tab: SystemTabDefinition): string {
+  return t(tab.defaultLabel);
 }
 
 /**
@@ -39,170 +83,130 @@ export interface SystemTabDefinition {
 export const SYSTEM_TAB_REGISTRY: Record<string, SystemTabDefinition> = {
   overview: {
     key: 'overview',
-    defaultLabel: 'Overview',
+    defaultLabel: 'tab.overview',
     icon: User,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Patient Overview</h2>
-        <div className="space-y-4">
-          <p className="text-gray-600 dark:text-gray-400">
-            This is the overview tab content. Future implementation will show patient summary.
-          </p>
-        </div>
-      </div>
-    ),
+    render: ({ patient }) => <OverviewTab patient={patient} />,
   },
   
   visits: {
     key: 'visits',
-    defaultLabel: 'Visits',
+    defaultLabel: 'tab.visits',
     icon: Calendar,
-    render: ({ patient, onAddVisit }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Patient Visits</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Visit history will be displayed here. 
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => <VisitsTab patient={patient} />,
   },
   
   lab: {
     key: 'lab',
-    defaultLabel: 'Lab Results',
+    defaultLabel: 'tab.labResults',
     icon: TestTube,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Laboratory Results</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Lab orders and results will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => <LabResultsTab patient={patient} />,
   },
   
   medications: {
     key: 'medications',
-    defaultLabel: 'Medications',
+    defaultLabel: 'tab.medications',
     icon: Pill,
-    render: ({ patient, onAddPrescription }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Medications</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Active and past medications will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => <MedicationsTab patient={patient} />,
   },
   
   vitals: {
     key: 'vitals',
-    defaultLabel: 'Vitals',
+    defaultLabel: 'tab.vitals',
     icon: Activity,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Vital Signs</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Vital signs history and tracking will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => <VitalsTab patient={patient} />,
   },
   
   documents: {
     key: 'documents',
-    defaultLabel: 'Documents',
+    defaultLabel: 'tab.documents',
     icon: FileText,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Documents</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Medical records and documents will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => <DocumentsTab patient={patient} />,
   },
   
   billing: {
     key: 'billing',
-    defaultLabel: 'Billing',
+    defaultLabel: 'tab.billing',
     icon: CreditCard,
     render: ({ patient, ...props }) => <PatientBillingTab patient={patient} {...props} />,
   },
   
   insurance: {
     key: 'insurance',
-    defaultLabel: 'Insurance',
+    defaultLabel: 'tab.insurance',
     icon: Shield,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Insurance</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Insurance information and claims will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => {
+      if (!patient?.id) {
+        return (
+          <div className="p-4">
+            <p className="text-gray-600 dark:text-gray-400">Patient information not available</p>
+          </div>
+        );
+      }
+      return <PatientInsuranceTab patientId={patient.id} />;
+    },
   },
   
   appointments: {
     key: 'appointments',
-    defaultLabel: 'Appointments',
+    defaultLabel: 'tab.appointments',
     icon: CalendarDays,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Appointments</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Upcoming and past appointments will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => <AppointmentsTab patient={patient} />,
   },
   
   history: {
     key: 'history',
-    defaultLabel: 'History',
+    defaultLabel: 'tab.history',
     icon: History,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Medical History</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Patient medical history will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => {
+      if (!patient?.id) {
+        return (
+          <div className="p-4">
+            <p className="text-gray-600 dark:text-gray-400">Patient information not available</p>
+          </div>
+        );
+      }
+      return <PatientHistoryTab patientId={patient.id} />;
+    },
   },
   
   'med-reviews': {
     key: 'med-reviews',
-    defaultLabel: 'Reviews',
+    defaultLabel: 'tab.reviews',
     icon: FileCheck,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Medication Reviews</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Medication review history will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => {
+      if (!patient?.id) {
+        return (
+          <div className="p-4">
+            <p className="text-gray-600 dark:text-gray-400">Patient information not available</p>
+          </div>
+        );
+      }
+      return <EnhancedMedicationReview selectedPatientId={patient.id} onReviewCompleted={() => {}} />;
+    },
   },
   
   communication: {
     key: 'communication',
-    defaultLabel: 'Chat',
+    defaultLabel: 'tab.chat',
     icon: MessageSquare,
-    render: ({ patient }) => (
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Communication</h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Patient messages and communication history will be displayed here.
-        </p>
-      </div>
-    ),
+    render: ({ patient }) => {
+      if (!patient?.id) {
+        return (
+          <div className="p-4">
+            <p className="text-gray-600 dark:text-gray-400">Patient information not available</p>
+          </div>
+        );
+      }
+      const patientName = patient.firstName && patient.lastName 
+        ? `${patient.firstName} ${patient.lastName}`
+        : patient.username || 'Patient';
+      return <PatientChat patientId={patient.id} patientName={patientName} />;
+    },
   },
   
   'psychological-therapy': {
     key: 'psychological-therapy',
-    defaultLabel: 'Mental Health',
+    defaultLabel: 'tab.mentalHealth',
     icon: Brain,
     render: ({ patient }) => (
       <div className="p-4">
@@ -215,6 +219,103 @@ export const SYSTEM_TAB_REGISTRY: Record<string, SystemTabDefinition> = {
         <PsychologicalTherapyAssessment patientId={patient.id} />
       </div>
     ),
+  },
+  
+  timeline: {
+    key: 'timeline',
+    defaultLabel: 'tab.timeline',
+    icon: Clock,
+    render: ({ patient }) => <TimelineTab patient={patient} />,
+  },
+  
+  immunizations: {
+    key: 'immunizations',
+    defaultLabel: 'tab.immunizations',
+    icon: Syringe,
+    render: ({ patient }) => <ImmunizationsTab patient={patient} />,
+  },
+  
+  safety: {
+    key: 'safety',
+    defaultLabel: 'tab.safety',
+    icon: Shield,
+    render: ({ patient }) => {
+      if (!patient?.id) {
+        return (
+          <div className="p-4">
+            <p className="text-gray-600 dark:text-gray-400">Patient information not available</p>
+          </div>
+        );
+      }
+      return <PatientSafetyAlertsRealtime patientId={patient.id} compact={false} />;
+    },
+  },
+  
+  allergies: {
+    key: 'allergies',
+    defaultLabel: 'tab.allergies',
+    icon: AlertTriangle,
+    render: ({ patient }) => <AllergiesTab patient={patient} />,
+  },
+  
+  imaging: {
+    key: 'imaging',
+    defaultLabel: 'tab.imaging',
+    icon: Scan,
+    render: ({ patient }) => {
+      if (!patient?.id) {
+        return (
+          <div className="p-4">
+            <p className="text-gray-600 dark:text-gray-400">Patient information not available</p>
+          </div>
+        );
+      }
+      return <PatientImaging patientId={patient.id} />;
+    },
+  },
+  
+  procedures: {
+    key: 'procedures',
+    defaultLabel: 'tab.procedures',
+    icon: Scissors,
+    render: ({ patient }) => {
+      if (!patient?.id) {
+        return (
+          <div className="p-4">
+            <p className="text-gray-600 dark:text-gray-400">Patient information not available</p>
+          </div>
+        );
+      }
+      return <PatientProcedures patientId={patient.id} />;
+    },
+  },
+  
+  referrals: {
+    key: 'referrals',
+    defaultLabel: 'tab.referrals',
+    icon: Users,
+    render: ({ patient }) => <ReferralsTab patient={patient} />,
+  },
+  
+  'care-plans': {
+    key: 'care-plans',
+    defaultLabel: 'tab.carePlans',
+    icon: ClipboardList,
+    render: ({ patient }) => <CarePlansTab patient={patient} />,
+  },
+  
+  notes: {
+    key: 'notes',
+    defaultLabel: 'tab.notes',
+    icon: BookOpen,
+    render: ({ patient }) => <ClinicalNotesTab patient={patient} />,
+  },
+  
+  longevity: {
+    key: 'longevity',
+    defaultLabel: 'tab.longevity',
+    icon: Timer,
+    render: ({ patient }) => <LongevityTab patient={patient} />,
   },
 };
 
@@ -237,6 +338,20 @@ export function getTabIcon(iconName: string): LucideIcon {
     FileCheck,
     MessageSquare,
     Brain,
+    Clock,
+    Syringe,
+    AlertTriangle,
+    Scan,
+    Stethoscope,
+    Scissors,
+    Heart,
+    Baby,
+    Bone,
+    Sparkles,
+    ClipboardList,
+    Users,
+    BookOpen,
+    Timer,
   };
   
   return iconMap[iconName] || FileText;

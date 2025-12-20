@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { formatPatientName } from '@/lib/patient-utils';
 import { User, Heart, Thermometer, Weight, Activity } from 'lucide-react';
 
 interface NursingAssessmentProps {
@@ -18,7 +19,13 @@ interface NursingAssessmentProps {
 export default function NursingAssessment({ patientId, visitId }: NursingAssessmentProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
+  // Fetch patient data to display name
+  const { data: patient } = useQuery({
+    queryKey: [`/api/patients/${patientId}`],
+    enabled: !!patientId,
+  });
+
   const [assessmentData, setAssessmentData] = useState({
     vitalSigns: {
       bloodPressure: '',
@@ -109,11 +116,11 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
           <User className="w-5 h-5" />
           Nursing Assessment
           <Badge variant="outline" className="ml-auto bg-green-100 text-green-700">
-            Patient #{patientId}
+            {patient ? formatPatientName(patient) : `Patient #${patientId}`}
           </Badge>
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Vital Signs Section */}
@@ -122,7 +129,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
               <Activity className="w-4 h-4" />
               Vital Signs
             </h3>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="bloodPressure" className="text-sm font-medium flex items-center gap-1">
@@ -137,7 +144,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="heartRate" className="text-sm font-medium">Heart Rate</Label>
                 <Input
@@ -148,7 +155,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="temperature" className="text-sm font-medium flex items-center gap-1">
                   <Thermometer className="w-3 h-3" />
@@ -162,7 +169,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="respiratoryRate" className="text-sm font-medium">Respiratory Rate</Label>
                 <Input
@@ -173,7 +180,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="oxygenSaturation" className="text-sm font-medium">O2 Saturation</Label>
                 <Input
@@ -184,7 +191,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="weight" className="text-sm font-medium flex items-center gap-1">
                   <Weight className="w-3 h-3" />
@@ -215,7 +222,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="painLevel" className="text-sm font-medium">Pain Level (0-10)</Label>
                 <Input
@@ -226,7 +233,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="mobilityStatus" className="text-sm font-medium">Mobility Status</Label>
                 <Input
@@ -238,7 +245,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                 />
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="medicationsAdministered" className="text-sm font-medium">Medications Administered</Label>
@@ -251,7 +258,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="skinCondition" className="text-sm font-medium">Skin Condition</Label>
                 <Input
@@ -262,7 +269,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                   className="text-sm"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="interventions" className="text-sm font-medium">Nursing Interventions</Label>
                 <Textarea
@@ -290,7 +297,7 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
                 className="text-sm"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="patientEducation" className="text-sm font-medium">Patient Education Provided</Label>
               <Textarea
@@ -330,8 +337,8 @@ export default function NursingAssessment({ patientId, visitId }: NursingAssessm
             >
               Clear Form
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={saveMutation.isPending}
               className="bg-green-600 hover:bg-green-700"
             >

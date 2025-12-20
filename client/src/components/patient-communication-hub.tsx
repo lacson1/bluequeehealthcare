@@ -317,16 +317,24 @@ function PatientContextPanel({ patient, appointments, prescriptions, labResults,
         {/* Contact Info */}
         <div className="flex flex-wrap gap-3 text-sm">
           {patient.phone && (
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+            <a 
+              href={`tel:${patient.phone.replace(/\s+/g, '')}`}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+              title={`Call ${patient.phone}`}
+            >
               <Phone className="h-3.5 w-3.5" />
               <span>{patient.phone}</span>
-            </div>
+            </a>
           )}
           {patient.email && (
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+            <a 
+              href={`mailto:${patient.email}`}
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-blue-600 hover:underline transition-colors cursor-pointer"
+              title={`Send email to ${patient.email}`}
+            >
               <Mail className="h-3.5 w-3.5" />
               <span className="truncate max-w-[180px]">{patient.email}</span>
-            </div>
+            </a>
           )}
         </div>
 

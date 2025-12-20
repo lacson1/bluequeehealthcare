@@ -3,6 +3,7 @@ import { db } from "../db";
 import { auditLogs, users } from "@shared/schema";
 import { authenticateToken, requireAnyRole, type AuthRequest } from "../middleware/auth";
 import { eq, desc, gte, lte, and, sql, or, ilike } from "drizzle-orm";
+import { decompressAuditData, decompressAction, decompressEntityType, compressAction, compressEntityType } from "../utils/audit-compress";
 
 const router = Router();
 
@@ -28,11 +29,15 @@ router.get('/enhanced', authenticateToken, requireAnyRole(['admin', 'super_admin
     }
 
     if (action && action !== 'all') {
-      conditions.push(eq(auditLogs.action, action as string));
+      // Compress the action filter to match stored format
+      const compressedAction = compressAction(action as string);
+      conditions.push(eq(auditLogs.action, compressedAction));
     }
 
     if (entityType && entityType !== 'all') {
-      conditions.push(eq(auditLogs.entityType, entityType as string));
+      // Compress the entity type filter to match stored format
+      const compressedEntityType = compressEntityType(entityType as string);
+      conditions.push(eq(auditLogs.entityType, compressedEntityType));
     }
 
     if (dateFrom) {
@@ -66,11 +71,22 @@ router.get('/enhanced', authenticateToken, requireAnyRole(['admin', 'super_admin
       .orderBy(desc(auditLogs.timestamp))
       .limit(limitNum);
 
-    // Add severity based on action
+    // Decompress and add severity based on action
     const logsWithSeverity = logs.map(log => {
+      // Decompress the stored data
+      const decompressed = decompressAuditData({
+        userId: log.userId,
+        action: log.action,
+        entityType: log.entityType,
+        entityId: log.entityId,
+        details: log.details,
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent
+      });
+
       let severity: 'info' | 'warning' | 'error' | 'success' = 'info';
       
-      const actionLower = log.action?.toLowerCase() || '';
+      const actionLower = decompressed.action?.toLowerCase() || '';
       
       if (actionLower.includes('delete') || actionLower.includes('suspend') || actionLower.includes('lock')) {
         severity = 'warning';
@@ -81,9 +97,17 @@ router.get('/enhanced', authenticateToken, requireAnyRole(['admin', 'super_admin
       }
 
       return {
-        ...log,
-        severity,
-        username: log.username || 'System'
+        id: log.id,
+        userId: decompressed.userId,
+        username: log.username || 'System',
+        action: decompressed.action,
+        entityType: decompressed.entityType,
+        entityId: decompressed.entityId,
+        details: decompressed.details ? JSON.stringify(decompressed.details, null, 2) : null,
+        ipAddress: decompressed.ipAddress,
+        userAgent: decompressed.userAgent,
+        timestamp: log.timestamp,
+        severity
       };
     });
 
@@ -110,14 +134,14 @@ router.get('/filter-options', authenticateToken, requireAnyRole(['admin', 'super
       .innerJoin(auditLogs, eq(auditLogs.userId, users.id))
       .orderBy(users.username);
 
-    // Get unique actions
+    // Get unique actions (decompress them)
     const uniqueActions = await db
       .selectDistinct({ action: auditLogs.action })
       .from(auditLogs)
       .where(sql`${auditLogs.action} IS NOT NULL`)
       .orderBy(auditLogs.action);
 
-    // Get unique entity types
+    // Get unique entity types (decompress them)
     const uniqueEntityTypes = await db
       .selectDistinct({ entityType: auditLogs.entityType })
       .from(auditLogs)
@@ -126,8 +150,8 @@ router.get('/filter-options', authenticateToken, requireAnyRole(['admin', 'super
 
     res.json({
       users: uniqueUsers,
-      actions: uniqueActions.map(a => a.action).filter(Boolean),
-      entityTypes: uniqueEntityTypes.map(e => e.entityType).filter(Boolean)
+      actions: uniqueActions.map(a => decompressAction(a.action)).filter(Boolean),
+      entityTypes: uniqueEntityTypes.map(e => decompressEntityType(e.entityType)).filter(Boolean)
     });
   } catch (error) {
     console.error("Error fetching filter options:", error);
@@ -201,6 +225,132 @@ router.get('/statistics', authenticateToken, requireAnyRole(['admin', 'super_adm
     console.error("Error fetching audit log statistics:", error);
     res.status(500).json({ 
       message: "Failed to fetch statistics",
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Export audit logs in simple CSV/JSON format
+router.get('/export', authenticateToken, requireAnyRole(['admin', 'super_admin', 'superadmin']), async (req: AuthRequest, res) => {
+  try {
+    const {
+      format = 'json', // 'json' or 'csv'
+      user,
+      action,
+      entityType,
+      dateFrom,
+      dateTo,
+      limit = '10000'
+    } = req.query;
+
+    const limitNum = parseInt(limit as string);
+
+    // Build where conditions (same as enhanced endpoint)
+    const conditions = [];
+
+    if (user && user !== 'all') {
+      conditions.push(eq(auditLogs.userId, parseInt(user as string)));
+    }
+
+    if (action && action !== 'all') {
+      const compressedAction = compressAction(action as string);
+      conditions.push(eq(auditLogs.action, compressedAction));
+    }
+
+    if (entityType && entityType !== 'all') {
+      const compressedEntityType = compressEntityType(entityType as string);
+      conditions.push(eq(auditLogs.entityType, compressedEntityType));
+    }
+
+    if (dateFrom) {
+      conditions.push(gte(auditLogs.timestamp, new Date(dateFrom as string)));
+    }
+
+    if (dateTo) {
+      const endDate = new Date(dateTo as string);
+      endDate.setHours(23, 59, 59, 999);
+      conditions.push(lte(auditLogs.timestamp, endDate));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : sql`true`;
+
+    const logs = await db
+      .select({
+        id: auditLogs.id,
+        userId: auditLogs.userId,
+        username: users.username,
+        action: auditLogs.action,
+        entityType: auditLogs.entityType,
+        entityId: auditLogs.entityId,
+        details: auditLogs.details,
+        ipAddress: auditLogs.ipAddress,
+        userAgent: auditLogs.userAgent,
+        timestamp: auditLogs.timestamp
+      })
+      .from(auditLogs)
+      .leftJoin(users, eq(auditLogs.userId, users.id))
+      .where(whereClause)
+      .orderBy(desc(auditLogs.timestamp))
+      .limit(limitNum);
+
+    // Decompress all logs
+    const decompressedLogs = logs.map(log => {
+      const decompressed = decompressAuditData({
+        userId: log.userId,
+        action: log.action,
+        entityType: log.entityType,
+        entityId: log.entityId,
+        details: log.details,
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent
+      });
+
+      return {
+        id: log.id,
+        timestamp: log.timestamp.toISOString(),
+        user: log.username || `User #${log.userId}`,
+        action: decompressed.action,
+        entity: decompressed.entityType,
+        entityId: decompressed.entityId || '',
+        ip: decompressed.ipAddress || '',
+        browser: decompressed.userAgent || '',
+        details: decompressed.details ? JSON.stringify(decompressed.details) : ''
+      };
+    });
+
+    if (format === 'csv') {
+      // Generate CSV
+      const headers = ['ID', 'Timestamp', 'User', 'Action', 'Entity', 'Entity ID', 'IP', 'Browser', 'Details'];
+      const rows = decompressedLogs.map(log => [
+        log.id,
+        log.timestamp,
+        log.user,
+        log.action,
+        log.entity,
+        log.entityId,
+        log.ip,
+        log.browser,
+        log.details.replace(/"/g, '""') // Escape quotes for CSV
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csvContent);
+    } else {
+      // JSON format
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.json"`);
+      res.json(decompressedLogs);
+    }
+  } catch (error) {
+    console.error("Error exporting audit logs:", error);
+    res.status(500).json({ 
+      message: "Failed to export audit logs",
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }

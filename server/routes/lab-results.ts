@@ -246,6 +246,44 @@ export function setupLabResultsRoutes(): Router {
     }
   });
 
+  // Upload existing lab results from database
+  router.post('/lab-results/upload-existing', authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userOrgId = req.user?.organizationId;
+      if (!userOrgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+
+      // Fetch all existing lab results from database and connect them to the system
+      const existingResults = await db.select({
+        id: labResults.id,
+        patientId: labResults.patientId,
+        testName: labResults.testName,
+        result: labResults.result,
+        normalRange: labResults.normalRange,
+        status: labResults.status,
+        notes: labResults.notes,
+        testDate: labResults.testDate,
+        createdAt: labResults.createdAt,
+        patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.lastName})`
+      })
+        .from(labResults)
+        .leftJoin(patients, eq(labResults.patientId, patients.id))
+        .where(eq(labResults.organizationId, userOrgId))
+        .orderBy(desc(labResults.createdAt))
+        .limit(50);
+
+      return res.json({
+        message: "Existing lab results retrieved successfully",
+        count: existingResults.length,
+        results: existingResults
+      });
+    } catch (error) {
+      console.error('Error uploading existing lab results:', error);
+      return res.status(500).json({ message: "Failed to upload existing lab results" });
+    }
+  });
+
   return router;
 }
 

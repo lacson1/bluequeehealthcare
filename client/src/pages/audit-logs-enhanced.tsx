@@ -179,139 +179,135 @@ export default function AuditLogsEnhanced() {
       <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
         {/* Filters Card */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters & Search
-            </CardTitle>
-            <CardDescription>
-              Filter audit logs by user, action, date range, and more
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search logs by user, action, or details..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Filter Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="space-y-2">
-                <Label>User</Label>
-                <Select value={filterUser} onValueChange={setFilterUser}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Users" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Users</SelectItem>
-                    {filterOptions?.users.map(user => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.username}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <CardContent className="p-4 space-y-3">
+            {/* Search and Filters Row */}
+            <div className="flex flex-wrap items-end gap-3">
+              {/* Search */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 h-9 text-sm"
+                />
               </div>
 
-              <div className="space-y-2">
-                <Label>Action</Label>
-                <Select value={filterAction} onValueChange={setFilterAction}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Actions" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Actions</SelectItem>
-                    {filterOptions?.actions.map(action => (
-                      <SelectItem key={action} value={action}>
-                        {action}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Compact Filter Selects */}
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">User:</Label>
+                  <Select value={filterUser} onValueChange={setFilterUser}>
+                    <SelectTrigger className="h-9 w-[140px] text-sm">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {filterOptions?.users.map(user => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Entity Type</Label>
-                <Select value={filterEntityType} onValueChange={setFilterEntityType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {filterOptions?.entityTypes.map(type => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Action:</Label>
+                  <Select value={filterAction} onValueChange={setFilterAction}>
+                    <SelectTrigger className="h-9 w-[140px] text-sm">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {filterOptions?.actions.map(action => (
+                        <SelectItem key={action} value={action}>
+                          {action}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Severity</Label>
-                <Select value={filterSeverity} onValueChange={setFilterSeverity}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Severities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Severities</SelectItem>
-                    <SelectItem value="info">Info</SelectItem>
-                    <SelectItem value="success">Success</SelectItem>
-                    <SelectItem value="warning">Warning</SelectItem>
-                    <SelectItem value="error">Error</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Type:</Label>
+                  <Select value={filterEntityType} onValueChange={setFilterEntityType}>
+                    <SelectTrigger className="h-9 w-[140px] text-sm">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      {filterOptions?.entityTypes.map(type => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Results Limit</Label>
-                <Select value={limit} onValueChange={setLimit}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="50">50 records</SelectItem>
-                    <SelectItem value="100">100 records</SelectItem>
-                    <SelectItem value="500">500 records</SelectItem>
-                    <SelectItem value="1000">1000 records</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Severity:</Label>
+                  <Select value={filterSeverity} onValueChange={setFilterSeverity}>
+                    <SelectTrigger className="h-9 w-[120px] text-sm">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="info">Info</SelectItem>
+                      <SelectItem value="success">Success</SelectItem>
+                      <SelectItem value="warning">Warning</SelectItem>
+                      <SelectItem value="error">Error</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Limit:</Label>
+                  <Select value={limit} onValueChange={setLimit}>
+                    <SelectTrigger className="h-9 w-[100px] text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                      <SelectItem value="1000">1000</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
-            {/* Date Range */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>From Date</Label>
+            {/* Date Range Row */}
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">From:</Label>
                 <Input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
+                  className="h-9 w-[140px] text-sm"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>To Date</Label>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">To:</Label>
                 <Input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
+                  className="h-9 w-[140px] text-sm"
                 />
               </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-2">
-              <div className="text-sm text-muted-foreground">
-                Showing {filteredLogs.length} of {auditLogs.length} records
+              <div className="flex-1"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {filteredLogs.length} of {auditLogs.length}
+                </span>
+                <Button variant="outline" size="sm" onClick={handleClearFilters} className="h-9 text-xs">
+                  Clear
+                </Button>
               </div>
-              <Button variant="outline" size="sm" onClick={handleClearFilters}>
-                Clear Filters
-              </Button>
             </div>
           </CardContent>
         </Card>

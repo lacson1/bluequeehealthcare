@@ -276,9 +276,24 @@ export default function ExerciseLeafletsPage() {
                     Preview Leaflet
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Exercise Prescription Leaflet</DialogTitle>
+                <DialogContent className="max-w-[650px] w-full max-h-[95vh] overflow-y-auto p-4 sm:p-6">
+                  <DialogHeader className="pb-4 border-b mb-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <DialogTitle className="text-base sm:text-lg font-semibold flex-shrink-0">
+                        Exercise Prescription Leaflet
+                      </DialogTitle>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => window.print()}
+                          size="sm"
+                          className="h-8 px-3 text-xs sm:text-sm"
+                        >
+                          <Printer className="w-3.5 h-3.5 mr-1.5" />
+                          Print
+                        </Button>
+                      </div>
+                    </div>
                   </DialogHeader>
                   
                   <div className="exercise-leaflet-content space-y-6 p-6 bg-white">

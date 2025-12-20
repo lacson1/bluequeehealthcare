@@ -25,8 +25,14 @@ import { setupAnalyticsRoutes } from "./analytics";
 import { setupNotificationRoutes } from "./notifications";
 import { setupSuggestionRoutes } from "./suggestions";
 import { setupSystemRoutes } from "./system";
-import { setupIntegrationRoutes } from "./integrations";
-// import { setupPatientPortalRoutes } from "./patient-portal";
+import { setupUsersRoutes } from "./users";
+import { setupPerformanceRoutes } from "./performance";
+import { setupIntegrationsRoutes } from "./integrations";
+import { setupPatientPortalRoutes } from "./patient-portal";
+import { setupTelemedicineRoutes } from "./telemedicine";
+import { setupDashboardRoutes } from "./dashboard";
+import { setupFilesRoutes } from "./files";
+import { setupPrintRoutes } from "./print";
 // import { setupBillingRoutes } from "./billing";
 // import { setupSystemRoutes } from "./system";
 
@@ -116,15 +122,25 @@ export function setupRoutes(app: Express): void {
   const suggestionsRouter = setupSuggestionRoutes();
   app.use('/api', suggestionsRouter);
   
+  // Users routes
+  console.log("Setting up users routes...");
+  const usersRouter = setupUsersRoutes();
+  app.use('/api', usersRouter);
+  
   // System routes
   console.log("Setting up system routes...");
   const systemRouter = setupSystemRoutes();
   app.use('/api', systemRouter);
   
-  // Integration routes
-  console.log("Setting up integration routes...");
-  const integrationRouter = setupIntegrationRoutes();
-  app.use('/api', integrationRouter);
+  // Performance & Monitoring routes
+  console.log("Setting up performance routes...");
+  const performanceRouter = setupPerformanceRoutes();
+  app.use('/api', performanceRouter);
+  
+  // Healthcare Integrations routes (FHIR, Lab Sync, E-prescribing, etc.)
+  console.log("Setting up healthcare integrations routes...");
+  const integrationsRouter = setupIntegrationsRoutes();
+  app.use('/api', integrationsRouter);
   
   // Public REST API routes
   console.log("Setting up public API routes...");
@@ -158,12 +174,30 @@ export function setupRoutes(app: Express): void {
   console.log("Setting up tab presets routes...");
   setupTabPresetRoutes(app);
   
+  // Patient Portal routes
+  console.log("Setting up patient portal routes...");
+  setupPatientPortalRoutes(app);
+  
+  // Dashboard routes
+  console.log("Setting up dashboard routes...");
+  const dashboardRouter = setupDashboardRoutes();
+  app.use('/api', dashboardRouter);
+  
+  // Telemedicine routes
+  console.log("Setting up telemedicine routes...");
+  const telemedicineRouter = setupTelemedicineRoutes();
+  app.use('/api', telemedicineRouter);
+  
+  // Files routes
+  console.log("Setting up files routes...");
+  const filesRouter = setupFilesRoutes();
+  app.use('/api', filesRouter);
+  
   // TODO: Add remaining modules as they are migrated from routes.ts:
   // setupAppointmentRoutes(app);
   // setupAnalyticsRoutes(app);
   // setupBillingRoutes(app);
   // setupIntegrationRoutes(app);
-  // setupPatientPortalRoutes(app);
   // setupSuggestionRoutes(app);
   // setupNotificationRoutes(app);
   // setupSystemRoutes(app);

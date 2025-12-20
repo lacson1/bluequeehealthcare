@@ -1,5 +1,5 @@
 import { pgTable, text, serial, integer, date, timestamp, decimal, boolean, varchar, json, numeric, index } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -132,6 +132,23 @@ export const patients = pgTable("patients", {
   // Additional identifiers
   nationalId: varchar("national_id", { length: 50 }),
   insuranceId: varchar("insurance_id", { length: 50 }),
+
+  // === Nigeria-Specific Optional Fields ===
+  // Nigerian Address Structure (all optional)
+  state: varchar("state", { length: 50 }), // Nigerian state (e.g., Lagos, Kano, FCT)
+  lga: varchar("lga", { length: 100 }), // Local Government Area
+  town: varchar("town", { length: 100 }), // Town/City
+  streetAddress: varchar("street_address", { length: 255 }), // Street address
+  landmark: varchar("landmark", { length: 200 }), // Nearby landmark for easier location
+  postalCode: varchar("postal_code", { length: 10 }), // Nigerian postal code
+
+  // Nigerian National Identification (all optional)
+  ninNumber: varchar("nin_number", { length: 11 }), // National Identification Number (11 digits)
+  bvnNumber: varchar("bvn_number", { length: 11 }), // Bank Verification Number (11 digits)
+
+  // Secondary phone (common in Nigeria to have multiple lines)
+  secondaryPhone: varchar("secondary_phone", { length: 20 }),
+
   organizationId: integer('organization_id').references(() => organizations.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -607,27 +624,27 @@ export const medicationReviews = pgTable('medication_reviews', {
   pharmacistId: integer('pharmacist_id').references(() => users.id).notNull(),
   visitId: integer('visit_id').references(() => visits.id),
   reviewType: varchar('review_type', { length: 50 }).default('comprehensive').notNull(), // comprehensive, drug_interaction, allergy_check, adherence
-  
+
   // Clinical Assessment Fields
   drugInteractions: text('drug_interactions'),
   allergyCheck: text('allergy_check'),
   dosageReview: text('dosage_review'),
   contraindications: text('contraindications'),
   sideEffectsMonitoring: text('side_effects_monitoring'),
-  
+
   // Patient Counseling Fields
   patientCounseling: text('patient_counseling'),
   medicationReconciliation: text('medication_reconciliation'),
   adherenceAssessment: text('adherence_assessment'),
   dispensingInstructions: text('dispensing_instructions'),
-  
+
   // Professional Assessment
   pharmacistRecommendations: text('pharmacist_recommendations'),
   clinicalNotes: text('clinical_notes'),
   followUpRequired: text('follow_up_required'),
   costConsiderations: text('cost_considerations'),
   therapeuticAlternatives: text('therapeutic_alternatives'),
-  
+
   // Review Metadata
   prescriptionsReviewed: integer('prescriptions_reviewed').default(0),
   reviewDuration: integer('review_duration'), // in minutes
@@ -702,28 +719,12 @@ export const insertSystemHealthSchema = createInsertSchema(systemHealth);
 export const insertPinnedConsultationFormSchema = createInsertSchema(pinnedConsultationForms).omit({
   id: true,
   createdAt: true
-});
+} as never);
 
 // Relations
-export const patientsRelations = relations(patients, ({ many }) => ({
-  visits: many(visits),
-  labResults: many(labResults),
-  prescriptions: many(prescriptions),
-  referrals: many(referrals),
-  comments: many(comments),
-  consultationRecords: many(consultationRecords),
-  appointments: many(appointments),
-  pharmacyActivities: many(pharmacyActivities),
-  medicationReviews: many(medicationReviews),
-}));
+// patientsRelations moved below to include all relations
 
-export const visitsRelations = relations(visits, ({ one, many }) => ({
-  patient: one(patients, {
-    fields: [visits.patientId],
-    references: [patients.id],
-  }),
-  prescriptions: many(prescriptions),
-}));
+// visitsRelations moved below to include all relations
 
 export const labResultsRelations = relations(labResults, ({ one }) => ({
   patient: one(patients, {
@@ -736,20 +737,7 @@ export const medicinesRelations = relations(medicines, ({ many }) => ({
   prescriptions: many(prescriptions),
 }));
 
-export const prescriptionsRelations = relations(prescriptions, ({ one }) => ({
-  patient: one(patients, {
-    fields: [prescriptions.patientId],
-    references: [patients.id],
-  }),
-  visit: one(visits, {
-    fields: [prescriptions.visitId],
-    references: [visits.id],
-  }),
-  medication: one(medications, {
-    fields: [prescriptions.medicationId],
-    references: [medications.id],
-  }),
-}));
+// prescriptionsRelations moved below to include all relations
 
 export const referralsRelations = relations(referrals, ({ one }) => ({
   patient: one(patients, {
@@ -769,10 +757,7 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   }),
 }));
 
-export const labTestsRelations = relations(labTests, ({ many }) => ({
-  labResults: many(labResults),
-  panelTests: many(labPanelTests),
-}));
+// labTestsRelations moved below to include all relations
 
 export const labPanelsRelations = relations(labPanels, ({ one, many }) => ({
   department: one(labDepartments, {
@@ -853,7 +838,7 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
   replies: many(comments),
 }));
 
-export const appointmentsRelations = relations(appointments, ({ one }) => ({
+export const appointmentsRelations = relations(appointments, ({ one, many }) => ({
   patient: one(patients, {
     fields: [appointments.patientId],
     references: [patients.id],
@@ -862,18 +847,544 @@ export const appointmentsRelations = relations(appointments, ({ one }) => ({
     fields: [appointments.doctorId],
     references: [users.id],
   }),
+  reminders: many(appointmentReminders),
+  organization: one(organizations, {
+    fields: [appointments.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Appointment Reminders Relations - moved below after table definition
+
+// Availability Slots Relations - moved below after table definition
+// Blackout Dates Relations - moved below after table definition
+
+// Telemedicine Sessions Relations - moved below after table definition
+
+// API Keys Relations - moved below after table definition
+
+// AI Consultations Relations - moved below after table definition
+// Clinical Notes Relations - moved below after table definition
+// Dismissed Notifications Relations - moved below after table definition
+// Tab Configs Relations - moved below after table definition
+// Tab Presets Relations - moved below after table definition
+// Tab Preset Items Relations - moved below after table definition
+
+// Safety Alerts Relations - moved below after table definition
+
+// Medical Documents Relations - moved below after table definition
+// Performance Metrics Relations - moved below after table definition
+
+// Vital Signs Relations
+export const vitalSignsRelations = relations(vitalSigns, ({ one }) => ({
+  patient: one(patients, {
+    fields: [vitalSigns.patientId],
+    references: [patients.id],
+  }),
+  organization: one(organizations, {
+    fields: [vitalSigns.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Messages Relations
+export const messagesRelations = relations(messages, ({ one }) => ({
+  patient: one(patients, {
+    fields: [messages.patientId],
+    references: [patients.id],
+  }),
+  staff: one(users, {
+    fields: [messages.staffId],
+    references: [users.id],
+  }),
+  assignedTo: one(users, {
+    fields: [messages.assignedTo],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [messages.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Lab Orders Relations
+export const labOrdersRelations = relations(labOrders, ({ one, many }) => ({
+  patient: one(patients, {
+    fields: [labOrders.patientId],
+    references: [patients.id],
+  }),
+  orderedBy: one(users, {
+    fields: [labOrders.orderedBy],
+    references: [users.id],
+  }),
+  specimenCollectedBy: one(users, {
+    fields: [labOrders.specimenCollectedBy],
+    references: [users.id],
+  }),
+  reviewedBy: one(users, {
+    fields: [labOrders.reviewedBy],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [labOrders.organizationId],
+    references: [organizations.id],
+  }),
+  items: many(labOrderItems),
+}));
+
+// Lab Order Items Relations
+export const labOrderItemsRelations = relations(labOrderItems, ({ one, many }) => ({
+  labOrder: one(labOrders, {
+    fields: [labOrderItems.labOrderId],
+    references: [labOrders.id],
+  }),
+  labTest: one(labTests, {
+    fields: [labOrderItems.labTestId],
+    references: [labTests.id],
+  }),
+  completedBy: one(users, {
+    fields: [labOrderItems.completedBy],
+    references: [users.id],
+  }),
+  verifiedBy: one(users, {
+    fields: [labOrderItems.verifiedBy],
+    references: [users.id],
+  }),
+  worksheetItems: many(worksheetItems),
+}));
+
+// Lab Departments Relations
+export const labDepartmentsRelations = relations(labDepartments, ({ one, many }) => ({
+  headOfDepartment: one(users, {
+    fields: [labDepartments.headOfDepartment],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [labDepartments.organizationId],
+    references: [organizations.id],
+  }),
+  tests: many(labTests),
+  panels: many(labPanels),
+  equipment: many(labEquipment),
+  worksheets: many(labWorksheets),
+}));
+
+// Lab Equipment Relations
+export const labEquipmentRelations = relations(labEquipment, ({ one, many }) => ({
+  department: one(labDepartments, {
+    fields: [labEquipment.departmentId],
+    references: [labDepartments.id],
+  }),
+  organization: one(organizations, {
+    fields: [labEquipment.organizationId],
+    references: [organizations.id],
+  }),
+  worksheets: many(labWorksheets),
+}));
+
+// Lab Worksheets Relations
+export const labWorksheetsRelations = relations(labWorksheets, ({ one, many }) => ({
+  department: one(labDepartments, {
+    fields: [labWorksheets.departmentId],
+    references: [labDepartments.id],
+  }),
+  equipment: one(labEquipment, {
+    fields: [labWorksheets.equipmentId],
+    references: [labEquipment.id],
+  }),
+  technician: one(users, {
+    fields: [labWorksheets.technicianId],
+    references: [users.id],
+  }),
+  verifiedBy: one(users, {
+    fields: [labWorksheets.verifiedBy],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [labWorksheets.organizationId],
+    references: [organizations.id],
+  }),
+  items: many(worksheetItems),
+}));
+
+// Worksheet Items Relations
+export const worksheetItemsRelations = relations(worksheetItems, ({ one }) => ({
+  worksheet: one(labWorksheets, {
+    fields: [worksheetItems.worksheetId],
+    references: [labWorksheets.id],
+  }),
+  labOrderItem: one(labOrderItems, {
+    fields: [worksheetItems.labOrderItemId],
+    references: [labOrderItems.id],
+  }),
+}));
+
+// Lab Tests Relations - Update existing
+export const labTestsRelations = relations(labTests, ({ one, many }) => ({
+  department: one(labDepartments, {
+    fields: [labTests.departmentId],
+    references: [labDepartments.id],
+  }),
+  organization: one(organizations, {
+    fields: [labTests.organizationId],
+    references: [organizations.id],
+  }),
+  labResults: many(labResults),
+  panelTests: many(labPanelTests),
+  orderItems: many(labOrderItems),
+}));
+
+// Medication Review Assignments Relations
+export const medicationReviewAssignmentsRelations = relations(medicationReviewAssignments, ({ one }) => ({
+  patient: one(patients, {
+    fields: [medicationReviewAssignments.patientId],
+    references: [patients.id],
+  }),
+  prescription: one(prescriptions, {
+    fields: [medicationReviewAssignments.prescriptionId],
+    references: [prescriptions.id],
+  }),
+  assignedBy: one(users, {
+    fields: [medicationReviewAssignments.assignedBy],
+    references: [users.id],
+  }),
+  assignedTo: one(users, {
+    fields: [medicationReviewAssignments.assignedTo],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [medicationReviewAssignments.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Medication Reviews Relations
+export const medicationReviewsRelations = relations(medicationReviews, ({ one }) => ({
+  patient: one(patients, {
+    fields: [medicationReviews.patientId],
+    references: [patients.id],
+  }),
+  pharmacist: one(users, {
+    fields: [medicationReviews.pharmacistId],
+    references: [users.id],
+  }),
+  visit: one(visits, {
+    fields: [medicationReviews.visitId],
+    references: [visits.id],
+  }),
+  organization: one(organizations, {
+    fields: [medicationReviews.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Pharmacies Relations
+export const pharmaciesRelations = relations(pharmacies, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [pharmacies.organizationId],
+    references: [organizations.id],
+  }),
+  prescriptions: many(prescriptions),
+}));
+
+// Pharmacy Activities Relations
+export const pharmacyActivitiesRelations = relations(pharmacyActivities, ({ one }) => ({
+  pharmacist: one(users, {
+    fields: [pharmacyActivities.pharmacistId],
+    references: [users.id],
+  }),
+  patient: one(patients, {
+    fields: [pharmacyActivities.patientId],
+    references: [patients.id],
+  }),
+  medicine: one(medicines, {
+    fields: [pharmacyActivities.medicineId],
+    references: [medicines.id],
+  }),
+  prescription: one(prescriptions, {
+    fields: [pharmacyActivities.prescriptionId],
+    references: [prescriptions.id],
+  }),
+  organization: one(organizations, {
+    fields: [pharmacyActivities.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Users Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  role: one(roles, {
+    fields: [users.roleId],
+    references: [roles.id],
+  }),
+  organization: one(organizations, {
+    fields: [users.organizationId],
+    references: [organizations.id],
+  }),
+  userOrganizations: many(userOrganizations),
+  visits: many(visits),
+  prescriptions: many(prescriptions),
+  referrals: many(referrals),
+  auditLogs: many(auditLogs),
+  consultationForms: many(consultationForms),
+  consultationRecords: many(consultationRecords),
+  comments: many(comments),
+  appointments: many(appointments),
+  pharmacyActivities: many(pharmacyActivities),
+  medicationReviews: many(medicationReviews),
+  medicationReviewAssignments: many(medicationReviewAssignments),
+  labOrders: many(labOrders),
+  messages: many(messages),
+  medicalDocuments: many(medicalDocuments),
+  performanceMetrics: many(performanceMetrics),
+  proceduralReports: many(proceduralReports),
+  patientConsents: many(patientConsents),
+  patientReferrals: many(patientReferrals),
+  safetyAlerts: many(safetyAlerts),
+  invoices: many(invoices),
+  payments: many(payments),
+  insuranceClaims: many(insuranceClaims),
+  servicePrices: many(servicePrices),
+  availabilitySlots: many(availabilitySlots),
+  blackoutDates: many(blackoutDates),
+  telemedicineSessions: many(telemedicineSessions),
+  apiKeys: many(apiKeys),
+  aiConsultations: many(aiConsultations),
+  dismissedNotifications: many(dismissedNotifications),
+  tabConfigs: many(tabConfigs),
+  tabPresets: many(tabPresets),
+  labDepartments: many(labDepartments),
+  labWorksheets: many(labWorksheets),
+  labOrderItems: many(labOrderItems),
+}));
+
+// Organizations Relations
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+  users: many(users),
+  patients: many(patients),
+  visits: many(visits),
+  labResults: many(labResults),
+  medicines: many(medicines),
+  prescriptions: many(prescriptions),
+  messages: many(messages),
+  labTests: many(labTests),
+  labOrders: many(labOrders),
+  labDepartments: many(labDepartments),
+  labEquipment: many(labEquipment),
+  labWorksheets: many(labWorksheets),
+  labPanels: many(labPanels),
+  pharmacies: many(pharmacies),
+  pharmacyActivities: many(pharmacyActivities),
+  medicationReviewAssignments: many(medicationReviewAssignments),
+  medicationReviews: many(medicationReviews),
+  errorLogs: many(errorLogs),
+  systemHealth: many(systemHealth),
+  medicalDocuments: many(medicalDocuments),
+  performanceMetrics: many(performanceMetrics),
+  proceduralReports: many(proceduralReports),
+  consentForms: many(consentForms),
+  patientConsents: many(patientConsents),
+  patientInsurance: many(patientInsurance),
+  patientReferrals: many(patientReferrals),
+  dischargeLetters: many(dischargeLetters),
+  appointments: many(appointments),
+  appointmentReminders: many(appointmentReminders),
+  availabilitySlots: many(availabilitySlots),
+  blackoutDates: many(blackoutDates),
+  telemedicineSessions: many(telemedicineSessions),
+  apiKeys: many(apiKeys),
+  aiConsultations: many(aiConsultations),
+  clinicalNotes: many(clinicalNotes),
+  dismissedNotifications: many(dismissedNotifications),
+  tabConfigs: many(tabConfigs),
+  tabPresets: many(tabPresets),
+  invoices: many(invoices),
+  payments: many(payments),
+  insuranceClaims: many(insuranceClaims),
+  servicePrices: many(servicePrices),
+  userOrganizations: many(userOrganizations),
+  vitalSigns: many(vitalSigns),
+}));
+
+// Roles Relations
+export const rolesRelations = relations(roles, ({ many }) => ({
+  users: many(users),
+  userOrganizations: many(userOrganizations),
+  rolePermissions: many(rolePermissions),
+  tabConfigs: many(tabConfigs),
+}));
+
+// Permissions Relations
+export const permissionsRelations = relations(permissions, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+}));
+
+// Role Permissions Relations
+export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
+  role: one(roles, {
+    fields: [rolePermissions.roleId],
+    references: [roles.id],
+  }),
+  permission: one(permissions, {
+    fields: [rolePermissions.permissionId],
+    references: [permissions.id],
+  }),
+}));
+
+// User Organizations Relations
+export const userOrganizationsRelations = relations(userOrganizations, ({ one }) => ({
+  user: one(users, {
+    fields: [userOrganizations.userId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [userOrganizations.organizationId],
+    references: [organizations.id],
+  }),
+  role: one(roles, {
+    fields: [userOrganizations.roleId],
+    references: [roles.id],
+  }),
+}));
+
+// Vaccinations Relations
+export const vaccinationsRelations = relations(vaccinations, ({ one }) => ({
+  patient: one(patients, {
+    fields: [vaccinations.patientId],
+    references: [patients.id],
+  }),
+}));
+
+// Allergies Relations
+export const allergiesRelations = relations(allergies, ({ one }) => ({
+  patient: one(patients, {
+    fields: [allergies.patientId],
+    references: [patients.id],
+  }),
+}));
+
+// Medical History Relations
+export const medicalHistoryRelations = relations(medicalHistory, ({ one }) => ({
+  patient: one(patients, {
+    fields: [medicalHistory.patientId],
+    references: [patients.id],
+  }),
+}));
+
+// Discharge Letters Relations
+export const dischargeLettersRelations = relations(dischargeLetters, ({ one }) => ({
+  patient: one(patients, {
+    fields: [dischargeLetters.patientId],
+    references: [patients.id],
+  }),
+  visit: one(visits, {
+    fields: [dischargeLetters.visitId],
+    references: [visits.id],
+  }),
+  attendingPhysician: one(users, {
+    fields: [dischargeLetters.attendingPhysicianId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [dischargeLetters.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Patients Relations - Update existing
+export const patientsRelations = relations(patients, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [patients.organizationId],
+    references: [organizations.id],
+  }),
+  primaryCareProvider: one(users, {
+    fields: [patients.primaryCareProviderId],
+    references: [users.id],
+  }),
+  visits: many(visits),
+  labResults: many(labResults),
+  prescriptions: many(prescriptions),
+  referrals: many(referrals),
+  comments: many(comments),
+  consultationRecords: many(consultationRecords),
+  appointments: many(appointments),
+  pharmacyActivities: many(pharmacyActivities),
+  medicationReviews: many(medicationReviews),
+  medicationReviewAssignments: many(medicationReviewAssignments),
+  vaccinations: many(vaccinations),
+  allergies: many(allergies),
+  medicalHistory: many(medicalHistory),
+  dischargeLetters: many(dischargeLetters),
+  messages: many(messages),
+  labOrders: many(labOrders),
+  medicalDocuments: many(medicalDocuments),
+  proceduralReports: many(proceduralReports),
+  patientConsents: many(patientConsents),
+  patientInsurance: many(patientInsurance),
+  patientReferrals: many(patientReferrals),
+  safetyAlerts: many(safetyAlerts),
+  invoices: many(invoices),
+  payments: many(payments),
+  insuranceClaims: many(insuranceClaims),
+  telemedicineSessions: many(telemedicineSessions),
+  aiConsultations: many(aiConsultations),
+  vitalSigns: many(vitalSigns),
+}));
+
+// Visits Relations - Update existing
+export const visitsRelations = relations(visits, ({ one, many }) => ({
+  patient: one(patients, {
+    fields: [visits.patientId],
+    references: [patients.id],
+  }),
+  doctor: one(users, {
+    fields: [visits.doctorId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [visits.organizationId],
+    references: [organizations.id],
+  }),
+  prescriptions: many(prescriptions),
+  consultationRecords: many(consultationRecords),
+  dischargeLetters: many(dischargeLetters),
+  medicationReviews: many(medicationReviews),
+}));
+
+// Prescriptions Relations - Update existing
+export const prescriptionsRelations = relations(prescriptions, ({ one }) => ({
+  patient: one(patients, {
+    fields: [prescriptions.patientId],
+    references: [patients.id],
+  }),
+  visit: one(visits, {
+    fields: [prescriptions.visitId],
+    references: [visits.id],
+  }),
+  medicationDatabase: one(medications, {
+    fields: [prescriptions.medicationDatabaseId],
+    references: [medications.id],
+  }),
+  pharmacy: one(pharmacies, {
+    fields: [prescriptions.pharmacyId],
+    references: [pharmacies.id],
+  }),
+  organization: one(organizations, {
+    fields: [prescriptions.organizationId],
+    references: [organizations.id],
+  }),
 }));
 
 // Insert schemas
 export const insertPatientSchema = createInsertSchema(patients).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertVisitSchema = createInsertSchema(visits).omit({
   id: true,
   visitDate: true,
-}).extend({
+} as never).extend({
   patientId: z.number(),
   bloodPressure: z.string().optional().nullable(),
   heartRate: z.coerce.number().optional().nullable(),
@@ -912,22 +1423,22 @@ export const visitFormSchema = z.object({
 export const insertLabResultSchema = createInsertSchema(labResults).omit({
   id: true,
   testDate: true,
-});
+} as never);
 
 export const insertMedicineSchema = createInsertSchema(medicines).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertPrescriptionSchema = createInsertSchema(prescriptions).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 // Profile update schema (excludes password and username for security)
 export const updateProfileSchema = createInsertSchema(users).omit({
@@ -935,56 +1446,56 @@ export const updateProfileSchema = createInsertSchema(users).omit({
   username: true,
   password: true,
   createdAt: true,
-});
+} as never);
 
 export const insertReferralSchema = createInsertSchema(referrals).omit({
   id: true,
   date: true,
-});
+} as never);
 
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 // Lab schema exports
 export const insertLabTestSchema = createInsertSchema(labTests).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertLabOrderSchema = createInsertSchema(labOrders).omit({
   id: true,
   createdAt: true,
   completedAt: true,
-});
+} as never);
 
 export const insertLabOrderItemSchema = createInsertSchema(labOrderItems).omit({
   id: true,
   completedAt: true,
   verifiedAt: true,
-});
+} as never);
 
 export const insertLabPanelSchema = createInsertSchema(labPanels).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertLabPanelTestSchema = createInsertSchema(labPanelTests).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertLabDepartmentSchema = createInsertSchema(labDepartments).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertLabEquipmentSchema = createInsertSchema(labEquipment).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertLabWorksheetSchema = createInsertSchema(labWorksheets).omit({
   id: true,
@@ -992,12 +1503,12 @@ export const insertLabWorksheetSchema = createInsertSchema(labWorksheets).omit({
   startedAt: true,
   completedAt: true,
   verifiedAt: true,
-});
+} as never);
 
 export const insertWorksheetItemSchema = createInsertSchema(worksheetItems).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -1059,7 +1570,7 @@ export const insertMedicationReviewAssignmentSchema = createInsertSchema(medicat
   completedAt: true,
   assignedBy: true,
   organizationId: true,
-});
+} as never);
 
 
 
@@ -1071,13 +1582,13 @@ export const insertConsultationFormSchema = createInsertSchema(consultationForms
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 export const insertConsultationRecordSchema = createInsertSchema(consultationRecords).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 export type ConsultationForm = typeof consultationForms.$inferSelect;
 export type InsertConsultationForm = z.infer<typeof insertConsultationFormSchema>;
@@ -1088,23 +1599,23 @@ export type InsertConsultationRecord = z.infer<typeof insertConsultationRecordSc
 export const insertVaccinationSchema = createInsertSchema(vaccinations).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertAllergySchema = createInsertSchema(allergies).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertMedicalHistorySchema = createInsertSchema(medicalHistory).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertDischargeLetterSchema = createInsertSchema(dischargeLetters).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 // Medical Records Types
 export type Vaccination = typeof vaccinations.$inferSelect;
@@ -1119,14 +1630,14 @@ export type InsertDischargeLetter = z.infer<typeof insertDischargeLetterSchema>;
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
   id: true,
   timestamp: true,
-});
+} as never);
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   sentAt: true,
   readAt: true,
   repliedAt: true,
-});
+} as never);
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
@@ -1150,7 +1661,7 @@ export const medicalDocuments = pgTable('medical_documents', {
 export const insertMedicalDocumentSchema = createInsertSchema(medicalDocuments).omit({
   id: true,
   uploadedAt: true,
-});
+} as never);
 
 export type MedicalDocument = typeof medicalDocuments.$inferSelect;
 export type InsertMedicalDocument = z.infer<typeof insertMedicalDocumentSchema>;
@@ -1172,7 +1683,7 @@ export const performanceMetrics = pgTable('performance_metrics', {
 export const insertPerformanceMetricSchema = createInsertSchema(performanceMetrics).omit({
   id: true,
   timestamp: true,
-});
+} as never);
 
 export type PerformanceMetric = typeof performanceMetrics.$inferSelect;
 export type InsertPerformanceMetric = z.infer<typeof insertPerformanceMetricSchema>;
@@ -1276,19 +1787,19 @@ export const insertProceduralReportSchema = createInsertSchema(proceduralReports
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 export const insertConsentFormSchema = createInsertSchema(consentForms).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 export const insertPatientConsentSchema = createInsertSchema(patientConsents).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 // Patient Insurance
 export const patientInsurance = pgTable('patient_insurance', {
@@ -1313,6 +1824,19 @@ export const patientInsurance = pgTable('patient_insurance', {
   coverageDetails: text('coverage_details'),
   preAuthRequired: boolean('pre_auth_required').default(false),
   referralRequired: boolean('referral_required').default(false),
+
+  // === NHIS (Nigeria) Specific Optional Fields ===
+  isNhis: boolean('is_nhis').default(false), // Flag to identify NHIS insurance
+  nhisEnrolleeId: varchar('nhis_enrollee_id', { length: 20 }), // NHIS Enrollee ID (format: XXX-XXXXXXX)
+  nhisCategory: varchar('nhis_category', { length: 30 }), // formal_sector, informal_sector, vulnerable_groups, armed_forces, students
+  hmoProvider: varchar('hmo_provider', { length: 100 }), // HMO managing the NHIS (e.g., Hygeia, Leadway, etc.)
+  primaryHealthcareFacility: varchar('primary_healthcare_facility', { length: 200 }), // Registered primary facility
+  principalMemberName: varchar('principal_member_name', { length: 100 }), // If patient is a dependant
+  relationshipToPrincipal: varchar('relationship_to_principal', { length: 20 }), // self, spouse, child, dependant
+  employerName: varchar('employer_name', { length: 100 }), // For formal sector NHIS
+  employerNhisCode: varchar('employer_nhis_code', { length: 20 }), // Employer's NHIS registration code
+  dependantsCount: integer('dependants_count'), // Number of dependants covered
+
   organizationId: integer('organization_id').references(() => organizations.id),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
@@ -1356,13 +1880,13 @@ export const insertPatientInsuranceSchema = createInsertSchema(patientInsurance)
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 export const insertPatientReferralSchema = createInsertSchema(patientReferrals).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 // Types for new tables
 export type ProceduralReport = typeof proceduralReports.$inferSelect;
@@ -1380,7 +1904,7 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 export type Comment = typeof comments.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
@@ -1391,7 +1915,7 @@ export type InsertLabTest = z.infer<typeof insertLabTestSchema>;
 export const insertMedicationSchema = createInsertSchema(medications).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export type Medication = typeof medications.$inferSelect;
 export type InsertMedication = z.infer<typeof insertMedicationSchema>;
@@ -1416,10 +1940,26 @@ export const safetyAlerts = pgTable('safety_alerts', {
 export const insertSafetyAlertSchema = createInsertSchema(safetyAlerts).omit({
   id: true,
   dateAdded: true,
-});
+} as never);
 
 export type SafetyAlert = typeof safetyAlerts.$inferSelect;
 export type InsertSafetyAlert = z.infer<typeof insertSafetyAlertSchema>;
+
+// Safety Alerts Relations
+export const safetyAlertsRelations = relations(safetyAlerts, ({ one }) => ({
+  patient: one(patients, {
+    fields: [safetyAlerts.patientId],
+    references: [patients.id],
+  }),
+  createdByUser: one(users, {
+    fields: [safetyAlerts.createdBy],
+    references: [users.id],
+  }),
+  resolvedByUser: one(users, {
+    fields: [safetyAlerts.resolvedBy],
+    references: [users.id],
+  }),
+}));
 
 // Billing and Invoicing System
 export const invoices = pgTable('invoices', {
@@ -1546,29 +2086,29 @@ export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertInsuranceClaimSchema = createInsertSchema(insuranceClaims).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 export const insertServicePriceSchema = createInsertSchema(servicePrices).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-});
+} as never);
 
 // Types for billing
 export type Invoice = typeof invoices.$inferSelect;
@@ -1623,17 +2163,53 @@ export const blackoutDates = pgTable('blackout_dates', {
 export const insertAppointmentReminderSchema = createInsertSchema(appointmentReminders).omit({
   id: true,
   createdAt: true,
-});
+} as never);
+
+// Appointment Reminders Relations
+export const appointmentRemindersRelations = relations(appointmentReminders, ({ one }) => ({
+  appointment: one(appointments, {
+    fields: [appointmentReminders.appointmentId],
+    references: [appointments.id],
+  }),
+  organization: one(organizations, {
+    fields: [appointmentReminders.organizationId],
+    references: [organizations.id],
+  }),
+}));
 
 export const insertAvailabilitySlotSchema = createInsertSchema(availabilitySlots).omit({
   id: true,
   createdAt: true,
-});
+} as never);
 
 export const insertBlackoutDateSchema = createInsertSchema(blackoutDates).omit({
   id: true,
   createdAt: true,
-});
+} as never);
+
+// Availability Slots Relations
+export const availabilitySlotsRelations = relations(availabilitySlots, ({ one }) => ({
+  doctor: one(users, {
+    fields: [availabilitySlots.doctorId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [availabilitySlots.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Blackout Dates Relations
+export const blackoutDatesRelations = relations(blackoutDates, ({ one }) => ({
+  doctor: one(users, {
+    fields: [blackoutDates.doctorId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [blackoutDates.organizationId],
+    references: [organizations.id],
+  }),
+}));
 
 export type AppointmentReminder = typeof appointmentReminders.$inferSelect;
 export type InsertAppointmentReminder = z.infer<typeof insertAppointmentReminderSchema>;
@@ -1647,6 +2223,7 @@ export const telemedicineSessions = pgTable('telemedicine_sessions', {
   id: serial('id').primaryKey(),
   patientId: integer('patient_id').references(() => patients.id).notNull(),
   doctorId: integer('doctor_id').references(() => users.id).notNull(),
+  appointmentId: integer('appointment_id').references(() => appointments.id), // Optional link to appointment
   scheduledTime: timestamp('scheduled_time').notNull(),
   status: varchar('status', { length: 20 }).default('scheduled').notNull(), // 'scheduled', 'active', 'completed', 'cancelled'
   type: varchar('type', { length: 20 }).default('video').notNull(), // 'video', 'audio', 'chat'
@@ -1662,7 +2239,7 @@ export const insertTelemedicineSessionSchema = createInsertSchema(telemedicineSe
   id: true,
   createdAt: true,
   completedAt: true
-}).extend({
+} as never).extend({
   doctorId: z.number().optional(),
   organizationId: z.number().optional(),
   scheduledTime: z.string().or(z.date())
@@ -1670,6 +2247,26 @@ export const insertTelemedicineSessionSchema = createInsertSchema(telemedicineSe
 
 export type TelemedicineSession = typeof telemedicineSessions.$inferSelect;
 export type InsertTelemedicineSession = z.infer<typeof insertTelemedicineSessionSchema>;
+
+// Telemedicine Sessions Relations
+export const telemedicineSessionsRelations = relations(telemedicineSessions, ({ one }) => ({
+  patient: one(patients, {
+    fields: [telemedicineSessions.patientId],
+    references: [patients.id],
+  }),
+  doctor: one(users, {
+    fields: [telemedicineSessions.doctorId],
+    references: [users.id],
+  }),
+  appointment: one(appointments, {
+    fields: [telemedicineSessions.appointmentId],
+    references: [appointments.id],
+  }),
+  organization: one(organizations, {
+    fields: [telemedicineSessions.organizationId],
+    references: [organizations.id],
+  }),
+}));
 
 // API Keys for Public API Access
 export const apiKeys = pgTable('api_keys', {
@@ -1692,10 +2289,22 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   createdAt: true,
   updatedAt: true,
   lastUsedAt: true
-});
+} as never);
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+
+// API Keys Relations
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [apiKeys.organizationId],
+    references: [organizations.id],
+  }),
+  user: one(users, {
+    fields: [apiKeys.userId],
+    references: [users.id],
+  }),
+}));
 
 // AI-Powered Consultations - Reference: blueprint:javascript_openai_ai_integrations
 export const aiConsultations = pgTable('ai_consultations', {
@@ -1730,6 +2339,23 @@ export const aiConsultations = pgTable('ai_consultations', {
   completedAt: timestamp('completed_at'),
   updatedAt: timestamp('updated_at').defaultNow()
 });
+
+// AI Consultations Relations
+export const aiConsultationsRelations = relations(aiConsultations, ({ one, many }) => ({
+  patient: one(patients, {
+    fields: [aiConsultations.patientId],
+    references: [patients.id],
+  }),
+  provider: one(users, {
+    fields: [aiConsultations.providerId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [aiConsultations.organizationId],
+    references: [organizations.id],
+  }),
+  clinicalNotes: many(clinicalNotes),
+}));
 
 export const clinicalNotes = pgTable('clinical_notes', {
   id: serial('id').primaryKey(),
@@ -1795,13 +2421,13 @@ export const insertAiConsultationSchema = createInsertSchema(aiConsultations).om
   id: true,
   createdAt: true,
   completedAt: true
-});
+} as never);
 
 export const insertClinicalNoteSchema = createInsertSchema(clinicalNotes).omit({
   id: true,
   createdAt: true,
   updatedAt: true
-});
+} as never);
 
 // Dismissed Notifications - Track which notifications users have dismissed
 export const dismissedNotifications = pgTable('dismissed_notifications', {
@@ -1815,7 +2441,7 @@ export const dismissedNotifications = pgTable('dismissed_notifications', {
 export const insertDismissedNotificationSchema = createInsertSchema(dismissedNotifications).omit({
   id: true,
   dismissedAt: true
-});
+} as never);
 
 export type AiConsultation = typeof aiConsultations.$inferSelect;
 export type InsertAiConsultation = z.infer<typeof insertAiConsultationSchema>;
@@ -1828,7 +2454,7 @@ export type InsertDismissedNotification = z.infer<typeof insertDismissedNotifica
 export const insertUserOrganizationSchema = createInsertSchema(userOrganizations).omit({
   id: true,
   joinedAt: true
-});
+} as never);
 
 export type UserOrganization = typeof userOrganizations.$inferSelect;
 export type InsertUserOrganization = z.infer<typeof insertUserOrganizationSchema>;
@@ -1866,7 +2492,7 @@ export const insertTabConfigSchema = createInsertSchema(tabConfigs).omit({
   id: true,
   createdAt: true,
   updatedAt: true
-});
+} as never);
 
 export type TabConfig = typeof tabConfigs.$inferSelect;
 export type InsertTabConfig = z.infer<typeof insertTabConfigSchema>;
@@ -1889,7 +2515,7 @@ export const insertTabPresetSchema = createInsertSchema(tabPresets).omit({
   id: true,
   createdAt: true,
   updatedAt: true
-});
+} as never);
 
 export type TabPreset = typeof tabPresets.$inferSelect;
 export type InsertTabPreset = z.infer<typeof insertTabPresetSchema>;
@@ -1908,7 +2534,60 @@ export const tabPresetItems = pgTable('tab_preset_items', {
 
 export const insertTabPresetItemSchema = createInsertSchema(tabPresetItems).omit({
   id: true
-});
+} as never);
 
 export type TabPresetItem = typeof tabPresetItems.$inferSelect;
 export type InsertTabPresetItem = z.infer<typeof insertTabPresetItemSchema>;
+
+// Dismissed Notifications Relations
+export const dismissedNotificationsRelations = relations(dismissedNotifications, ({ one }) => ({
+  user: one(users, {
+    fields: [dismissedNotifications.userId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [dismissedNotifications.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Tab Configs Relations
+export const tabConfigsRelations = relations(tabConfigs, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [tabConfigs.organizationId],
+    references: [organizations.id],
+  }),
+  role: one(roles, {
+    fields: [tabConfigs.roleId],
+    references: [roles.id],
+  }),
+  user: one(users, {
+    fields: [tabConfigs.userId],
+    references: [users.id],
+  }),
+  creator: one(users, {
+    fields: [tabConfigs.createdBy],
+    references: [users.id],
+  }),
+}));
+
+// Tab Presets Relations
+export const tabPresetsRelations = relations(tabPresets, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [tabPresets.organizationId],
+    references: [organizations.id],
+  }),
+  creator: one(users, {
+    fields: [tabPresets.createdBy],
+    references: [users.id],
+  }),
+  items: many(tabPresetItems),
+}));
+
+// Tab Preset Items Relations
+export const tabPresetItemsRelations = relations(tabPresetItems, ({ one }) => ({
+  preset: one(tabPresets, {
+    fields: [tabPresetItems.presetId],
+    references: [tabPresets.id],
+  }),
+}));

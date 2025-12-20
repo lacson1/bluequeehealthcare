@@ -1,28 +1,33 @@
-import type { Express, Response } from "express";
-import { createServer, type Server } from "http";
+import type { Express } from "express";
 import multer from "multer";
 import { storage } from "./storage";
 import { fileStorage } from "./storage-service";
-import { insertPatientSchema, insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertUserSchema, insertReferralSchema, insertLabTestSchema, insertConsultationFormSchema, insertConsultationRecordSchema, insertVaccinationSchema, insertAllergySchema, insertMedicalHistorySchema, insertDischargeLetterSchema, insertAppointmentSchema, insertSafetyAlertSchema, insertPharmacyActivitySchema, insertMedicationReviewSchema, insertMedicationReviewAssignmentSchema, insertProceduralReportSchema, insertConsentFormSchema, insertPatientConsentSchema, insertMessageSchema, insertAppointmentReminderSchema, insertAvailabilitySlotSchema, insertBlackoutDateSchema, insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema, insertInsuranceClaimSchema, insertServicePriceSchema, insertPatientInsuranceSchema, insertPatientReferralSchema, insertPinnedConsultationFormSchema, insertTelemedicineSessionSchema, users, auditLogs, labTests, medications, medicines, labOrders, labOrderItems, labResults, consultationForms, consultationRecords, organizations, visits, patients, vitalSigns, appointments, safetyAlerts, pharmacyActivities, medicationReviews, medicationReviewAssignments, prescriptions, pharmacies, proceduralReports, consentForms, patientConsents, messages, appointmentReminders, availabilitySlots, blackoutDates, invoices, invoiceItems, payments, insuranceClaims, servicePrices, medicalDocuments, vaccinations, roles, permissions, rolePermissions, patientInsurance, patientReferrals, pinnedConsultationForms, telemedicineSessions, userOrganizations, medicalHistory, dischargeLetters, dismissedNotifications } from "@shared/schema";
+import { insertVisitSchema, insertLabResultSchema, insertMedicineSchema, insertPrescriptionSchema, insertReferralSchema, insertLabTestSchema, insertConsultationFormSchema, insertConsultationRecordSchema, insertVaccinationSchema, insertMedicationReviewAssignmentSchema, insertProceduralReportSchema, insertConsentFormSchema, insertPatientConsentSchema, insertAppointmentReminderSchema, insertAvailabilitySlotSchema, insertBlackoutDateSchema, insertAppointmentSchema, insertSafetyAlertSchema, insertTelemedicineSessionSchema, insertAuditLogSchema, insertLabDepartmentSchema, insertLabEquipmentSchema, insertLabWorksheetSchema, insertMedicalHistorySchema, users, auditLogs, labTests, medications, medicines, labOrders, labOrderItems, labResults, consultationForms, consultationRecords, organizations, visits, patients, vitalSigns, appointments, safetyAlerts, pharmacyActivities, medicationReviews, medicationReviewAssignments, prescriptions, pharmacies, proceduralReports, consentForms, patientConsents, messages, appointmentReminders, availabilitySlots, blackoutDates, invoices, invoiceItems, payments, insuranceClaims, servicePrices, medicalDocuments, vaccinations, roles, permissions, rolePermissions, patientInsurance, patientReferrals, pinnedConsultationForms, telemedicineSessions, medicalHistory, dischargeLetters, dismissedNotifications, sessions, labDepartments, worksheetItems } from "@shared/schema";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { db } from "./db";
-import { eq, desc, asc, or, ilike, gte, lte, lt, and, isNotNull, isNull, inArray, sql, notExists, ne } from "drizzle-orm";
-import { authenticateToken, requireRole, requireAnyRole, requireSuperOrOrgAdmin, hashPassword, comparePassword, generateToken, verifyToken, getJwtSecret, type AuthRequest } from "./middleware/auth";
-import { authenticateSession, type SessionRequest } from "./middleware/session";
+import { eq, desc, asc, or, ilike, gte, lte, lt, and, isNotNull, isNull, inArray, sql, ne } from "drizzle-orm";
+import { authenticateToken, requireRole, requireAnyRole, hashPassword, verifyToken, getJwtSecret, type AuthRequest } from "./middleware/auth";
+// SessionRequest type removed - unused
 import { tenantMiddleware, type TenantRequest } from "./middleware/tenant";
+
+// AuthTenantRequest removed - unused
 
 // Extend AuthRequest interface to include patient authentication
 interface PatientAuthRequest extends AuthRequest {
   patient?: any;
 }
-import { checkPermission, getUserPermissions } from "./middleware/permissions";
-import { initializeFirebase, sendNotificationToRole, sendUrgentNotification, NotificationTypes } from "./notifications";
-import { AuditLogger, AuditActions } from "./audit";
+// checkPermission and getUserPermissions removed - unused
+import { initializeFirebase, sendUrgentNotification, NotificationTypes } from "./notifications";
+import { AuditLogger, AuditActions, createAuditLog } from "./audit";
 import { securityHeaders, updateSessionActivity } from "./middleware/security";
 import { format } from 'date-fns';
 import fs from 'fs';
 import path from 'path';
+import { sendError, ApiError, asyncHandler } from "./lib/api-response";
+import { logger } from "./lib/logger";
+
+const routesLogger = logger.child('Routes');
 import { setupOrganizationStaffRoutes } from "./organization-staff";
 import { setupTenantRoutes } from "./tenant-routes";
 import { setupSuperAdminRoutes } from "./super-admin-routes";
@@ -33,1346 +38,60 @@ import bulkUsersRoutes from "./routes/bulk-users";
 import auditLogsEnhancedRoutes from "./routes/audit-logs-enhanced";
 import mfaRoutes from "./routes/mfa";
 import emergencyAccessRoutes from "./routes/emergency-access";
-import { performanceMonitor, globalErrorHandler, setupErrorRoutes } from "./error-handler";
+import { performanceMonitor, setupErrorRoutes } from "./error-handler";
 import { getOptimizationTasks, implementOptimizationTask } from "./system-optimizer";
 import { setupNetworkValidationRoutes } from "./network-validator";
 import { setupAuthValidationRoutes } from "./auth-validator";
 import { setupSystemHealthRoutes } from "./system-health-dashboard";
 import Anthropic from '@anthropic-ai/sdk';
 
-// Helper function to generate prescription HTML for printing
-function generatePrescriptionHTML(prescriptionResult: any): string {
-  const formatDate = (date: string | Date) => {
-    return format(new Date(date), 'PPP');
-  };
+// Import helper functions from utilities
+import { parseAndType, generatePrescriptionHTML } from "./utils/html-generators";
+import { generateLabOrderHTML, generateLabHistoryHTML } from "./utils/lab-html-generators";
+import { getOrganizationDetails } from "./utils/organization";
 
-  const formatDateTime = (date: string | Date) => {
-    return format(new Date(date), 'PPP p');
-  };
+// Note: Helper functions have been moved to utility files:
+// - generatePrescriptionHTML -> utils/html-generators.ts
+// - generateLabOrderHTML -> utils/lab-html-generators.ts
+// - generateLabHistoryHTML -> utils/lab-html-generators.ts
+// - getOrganizationDetails -> utils/organization.ts
+// - parseAndType -> utils/html-generators.ts (and utils/parse-and-type.ts)
 
-  // Use organization data from the prescribing staff member
-  const orgName = prescriptionResult.organizationName || 'Medical Facility';
-  const orgType = prescriptionResult.organizationType || 'clinic';
-  const orgPhone = prescriptionResult.organizationPhone || 'Contact facility directly';
-  const orgEmail = prescriptionResult.organizationEmail || 'Contact facility directly';
-  const orgAddress = prescriptionResult.organizationAddress || 'Address on file';
-  const orgTheme = prescriptionResult.organizationTheme || '#2563eb';
-  
-  // Generate organization logo initials
-  const orgInitials = orgName.split(' ').map((word: any) => word.charAt(0)).join('').substring(0, 2).toUpperCase();
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Prescription - RX${prescriptionResult.prescriptionId}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .letterhead { border-bottom: 3px solid ${orgTheme}; padding-bottom: 20px; margin-bottom: 30px; }
-        .org-logo { float: left; width: 80px; height: 80px; background: ${orgTheme}; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
-        .org-info { margin-left: 100px; }
-        .org-name { font-size: 24px; font-weight: bold; color: #1e40af; margin-bottom: 5px; }
-        .org-details { color: #64748b; line-height: 1.4; }
-        .document-title { text-align: center; font-size: 20px; font-weight: bold; color: #1e40af; margin: 30px 0; padding: 10px; border: 2px solid #e2e8f0; background: #f8fafc; }
-        .section { margin: 25px 0; }
-        .section-title { font-weight: bold; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 15px; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        .info-item { margin-bottom: 8px; }
-        .label { font-weight: bold; color: #4b5563; }
-        .value { color: #1f2937; }
-        .medication-box { border: 2px solid #059669; border-radius: 8px; padding: 20px; margin: 20px 0; background: #f0fdf4; }
-        .medication-name { font-size: 18px; font-weight: bold; color: #059669; margin-bottom: 15px; text-transform: uppercase; }
-        .prescription-details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .prescription-item { background: white; padding: 10px; border-radius: 6px; border: 1px solid #d1fae5; }
-        .instructions-box { background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0; }
-        .instructions-title { font-weight: bold; color: #92400e; margin-bottom: 8px; }
-        .signature-area { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-        .signature-box { border-top: 1px solid #9ca3af; padding-top: 10px; text-align: center; }
-        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280; }
-        .rx-symbol { font-size: 24px; font-weight: bold; color: ${orgTheme}; }
-        @media print {
-            body { print-color-adjust: exact; }
-            .letterhead { page-break-inside: avoid; }
-        }
-    </style>
-</head>
-<body>
-    <div class="letterhead">
-        <div class="org-logo">${orgInitials}</div>
-        <div class="org-info">
-            <div class="org-name">${orgName}</div>
-            <div class="org-details">
-                ${orgType.charAt(0).toUpperCase() + orgType.slice(1)} Healthcare Services<br>
-                ${orgAddress}<br>
-                Phone: ${orgPhone}<br>
-                Email: ${orgEmail}<br>
-                Pharmacy & Medical Services
-            </div>
-        </div>
-        <div style="clear: both;"></div>
-    </div>
+// Helper functions are imported from:
+// - generateLabOrderHTML -> ./utils/lab-html-generators
+// - generateLabHistoryHTML -> ./utils/lab-html-generators
+// - getOrganizationDetails -> ./utils/organization
 
-    <div class="document-title">
-        <span class="rx-symbol">℞</span> PRESCRIPTION
-    </div>
-
-    <div class="section">
-        <div class="section-title">PATIENT INFORMATION</div>
-        <div class="info-grid">
-            <div>
-                <div class="info-item">
-                    <span class="label">Patient Name:</span> 
-                    <span class="value">${prescriptionResult.patientFirstName} ${prescriptionResult.patientLastName}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Date of Birth:</span> 
-                    <span class="value">${prescriptionResult.patientDateOfBirth ? formatDate(prescriptionResult.patientDateOfBirth) : 'Not specified'}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Gender:</span> 
-                    <span class="value">${prescriptionResult.patientGender || 'Not specified'}</span>
-                </div>
-            </div>
-            <div>
-                <div class="info-item">
-                    <span class="label">Patient ID:</span> 
-                    <span class="value">P${String(prescriptionResult.patientId).padStart(6, '0')}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Phone:</span> 
-                    <span class="value">${prescriptionResult.patientPhone || 'Not provided'}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Address:</span> 
-                    <span class="value">${prescriptionResult.patientAddress || 'On file'}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">PRESCRIBING PHYSICIAN</div>
-        <div class="info-grid">
-            <div>
-                <div class="info-item">
-                    <span class="label">Doctor:</span> 
-                    <span class="value">Dr. ${prescriptionResult.doctorFirstName || prescriptionResult.doctorUsername} ${prescriptionResult.doctorLastName || ''}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Role:</span> 
-                    <span class="value">${prescriptionResult.doctorRole ? prescriptionResult.doctorRole.charAt(0).toUpperCase() + prescriptionResult.doctorRole.slice(1) : 'Medical Staff'}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Prescription Date:</span> 
-                    <span class="value">${formatDate(prescriptionResult.startDate)}</span>
-                </div>
-            </div>
-            <div>
-                <div class="info-item">
-                    <span class="label">Prescribing Organization:</span> 
-                    <span class="value">${prescriptionResult.organizationName || 'Not specified'}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Organization Type:</span> 
-                    <span class="value">${prescriptionResult.organizationType ? prescriptionResult.organizationType.charAt(0).toUpperCase() + prescriptionResult.organizationType.slice(1) : 'Healthcare Facility'}</span>
-                </div>
-                <div class="info-item">
-                    <span class="label">Prescription ID:</span> 
-                    <span class="value">RX-${String(prescriptionResult.prescriptionId).padStart(4, '0')}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="medication-box">
-        <div class="medication-name">${prescriptionResult.medicationName || 'Medication Name'}</div>
-        <div class="prescription-details">
-            <div class="prescription-item">
-                <div class="label">Dosage</div>
-                <div class="value">${prescriptionResult.dosage || 'As prescribed'}</div>
-            </div>
-            <div class="prescription-item">
-                <div class="label">Frequency</div>
-                <div class="value">${prescriptionResult.frequency || 'As directed'}</div>
-            </div>
-            <div class="prescription-item">
-                <div class="label">Duration</div>
-                <div class="value">${prescriptionResult.duration || 'As prescribed'}</div>
-            </div>
-            <div class="prescription-item">
-                <div class="label">Status</div>
-                <div class="value">${prescriptionResult.status ? prescriptionResult.status.charAt(0).toUpperCase() + prescriptionResult.status.slice(1) : 'Active'}</div>
-            </div>
-        </div>
-        ${prescriptionResult.endDate ? `
-        <div style="margin-top: 15px;">
-            <div class="label">Treatment Period:</div>
-            <div class="value">${formatDate(prescriptionResult.startDate)} to ${formatDate(prescriptionResult.endDate)}</div>
-        </div>
-        ` : ''}
-    </div>
-
-    ${prescriptionResult.instructions ? `
-    <div class="instructions-box">
-        <div class="instructions-title">SPECIAL INSTRUCTIONS</div>
-        <div>${prescriptionResult.instructions}</div>
-    </div>
-    ` : ''}
-
-    <div class="signature-area">
-        <div class="signature-box">
-            <strong>Prescribing Physician</strong><br>
-            Dr. ${prescriptionResult.doctorFirstName || prescriptionResult.doctorUsername} ${prescriptionResult.doctorLastName || ''}<br>
-            ${prescriptionResult.organizationName}<br>
-            Date: ${formatDate(prescriptionResult.startDate)}
-        </div>
-        <div class="signature-box">
-            <strong>Pharmacist Use Only</strong><br>
-            Dispensed By: ________________<br>
-            Date: _______________________<br>
-            Pharmacy Seal: _______________
-        </div>
-    </div>
-
-    <div class="footer">
-        <strong>Prescription ID:</strong> RX-${String(prescriptionResult.prescriptionId).padStart(4, '0')} | 
-        <strong>Generated:</strong> ${formatDateTime(new Date())} | 
-        <strong>Prescribed by:</strong> ${prescriptionResult.organizationName}<br>
-        <em>This prescription is valid for dispensing medication as per the prescribed dosage and duration. Original prescription required for controlled substances.</em>
-    </div>
-</body>
-</html>`;
-}
-
-// Helper function to generate lab order HTML for printing (Global Standards Compliant)
-function generateLabOrderHTML(orderResult: any, orderItems: any[]): string {
-  const formatDate = (date: string | Date) => {
-    return format(new Date(date), 'dd/MM/yyyy');
-  };
-
-  const formatDateTime = (date: string | Date) => {
-    return format(new Date(date), 'dd/MM/yyyy HH:mm');
-  };
-
-  const formatTime = (date: string | Date) => {
-    return format(new Date(date), 'HH:mm');
-  };
-
-  // Use organization data from the requesting staff member
-  const orgName = orderResult.organizationName || 'Medical Facility';
-  const orgType = orderResult.organizationType || 'clinic';
-  const orgPhone = orderResult.organizationPhone || '';
-  const orgEmail = orderResult.organizationEmail || '';
-  const orgAddress = orderResult.organizationAddress || '';
-  const orgTheme = orderResult.organizationTheme || '#1a365d';
-  
-  // Generate accession number
-  const accessionNumber = `ACC-${format(new Date(orderResult.createdAt), 'yyyyMMdd')}-${String(orderResult.orderId).padStart(4, '0')}`;
-  
-  // Calculate patient age
-  const patientAge = orderResult.patientDateOfBirth 
-    ? Math.floor((new Date().getTime() - new Date(orderResult.patientDateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-    : null;
-
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laboratory Requisition - ${accessionNumber}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            font-size: 11px;
-            line-height: 1.4;
-            color: #1a1a1a;
-            padding: 15px;
-            max-width: 210mm;
-            margin: 0 auto;
-        }
-        
-        /* Header Section */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 3px solid ${orgTheme};
-            padding-bottom: 12px;
-            margin-bottom: 15px;
-        }
-        .org-section {
-            flex: 1;
-        }
-        .org-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: ${orgTheme};
-            margin-bottom: 4px;
-        }
-        .org-details {
-            font-size: 10px;
-            color: #4a5568;
-            line-height: 1.5;
-        }
-        .doc-info {
-            text-align: right;
-            min-width: 180px;
-        }
-        .doc-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: ${orgTheme};
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        .accession {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            font-weight: 700;
-            background: #f0f4f8;
-            padding: 6px 10px;
-            border: 1px solid #cbd5e0;
-            display: inline-block;
-        }
-        .barcode-placeholder {
-            margin-top: 8px;
-            font-family: 'Libre Barcode 39', monospace;
-            font-size: 28px;
-            letter-spacing: 2px;
-        }
-        
-        /* Main Grid */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        /* Info Boxes */
-        .info-box {
-            border: 1px solid #e2e8f0;
-            padding: 10px;
-        }
-        .info-box-header {
-            background: ${orgTheme};
-            color: white;
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 5px 8px;
-            margin: -10px -10px 10px -10px;
-        }
-        .info-row {
-            display: flex;
-            margin-bottom: 4px;
-        }
-        .info-label {
-            font-weight: 600;
-            color: #4a5568;
-            min-width: 90px;
-            font-size: 10px;
-        }
-        .info-value {
-            color: #1a202c;
-            font-weight: 500;
-        }
-        .info-value-large {
-            font-size: 13px;
-            font-weight: 700;
-            color: #1a202c;
-        }
-        
-        /* Patient ID Badge */
-        .patient-id-badge {
-            display: inline-block;
-            background: #edf2f7;
-            border: 1px solid #a0aec0;
-            padding: 2px 8px;
-            font-family: 'Courier New', monospace;
-            font-weight: 700;
-            font-size: 11px;
-        }
-        
-        /* Priority Indicator */
-        .priority-routine { color: #2d7d46; }
-        .priority-urgent { color: #c53030; font-weight: 700; }
-        .priority-stat { color: #c53030; font-weight: 700; background: #fed7d7; padding: 2px 6px; }
-        
-        /* Tests Table */
-        .tests-section {
-            margin-bottom: 15px;
-        }
-        .section-header {
-            background: ${orgTheme};
-            color: white;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 6px 10px;
-        }
-        .tests-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10px;
-        }
-        .tests-table th {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            padding: 6px 8px;
-            text-align: left;
-            font-weight: 600;
-            color: #4a5568;
-            text-transform: uppercase;
-            font-size: 9px;
-        }
-        .tests-table td {
-            border: 1px solid #e2e8f0;
-            padding: 8px;
-            vertical-align: top;
-        }
-        .tests-table tr:nth-child(even) {
-            background: #f7fafc;
-        }
-        .test-code {
-            font-family: 'Courier New', monospace;
-            font-size: 9px;
-            color: #718096;
-        }
-        .result-pending {
-            color: #718096;
-            font-style: italic;
-        }
-        .result-value {
-            font-weight: 600;
-            font-family: 'Courier New', monospace;
-        }
-        
-        /* Specimen Section */
-        .specimen-section {
-            background: #fffbeb;
-            border: 1px solid #f6e05e;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-        .specimen-header {
-            font-weight: 600;
-            color: #744210;
-            font-size: 10px;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-        .specimen-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-        .specimen-item label {
-            font-size: 9px;
-            color: #744210;
-            display: block;
-            margin-bottom: 2px;
-        }
-        .specimen-input {
-            border-bottom: 1px solid #d69e2e;
-            min-height: 18px;
-        }
-        
-        /* Clinical Info */
-        .clinical-section {
-            border: 1px solid #e2e8f0;
-            margin-bottom: 15px;
-        }
-        .clinical-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            padding: 10px;
-        }
-        .clinical-item label {
-            font-size: 9px;
-            color: #4a5568;
-            text-transform: uppercase;
-            display: block;
-            margin-bottom: 4px;
-        }
-        .clinical-input {
-            border: 1px dashed #cbd5e0;
-            min-height: 25px;
-            padding: 4px;
-        }
-        
-        /* Signatures */
-        .signatures-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .signature-box {
-            border: 1px solid #e2e8f0;
-            padding: 10px;
-            text-align: center;
-        }
-        .signature-title {
-            font-size: 9px;
-            color: #4a5568;
-            text-transform: uppercase;
-            margin-bottom: 25px;
-        }
-        .signature-line {
-            border-top: 1px solid #1a202c;
-            margin-top: 20px;
-            padding-top: 4px;
-            font-size: 9px;
-        }
-        .signature-prefilled {
-            font-weight: 600;
-            font-size: 11px;
-        }
-        
-        /* Footer */
-        .footer {
-            border-top: 2px solid ${orgTheme};
-            padding-top: 10px;
-            font-size: 9px;
-            color: #718096;
-        }
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 15px;
-        }
-        .disclaimer {
-            font-style: italic;
-            line-height: 1.4;
-        }
-        .doc-tracking {
-            text-align: right;
-            font-family: 'Courier New', monospace;
-        }
-        
-        /* Print Optimization */
-        @media print {
-            body { 
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-                padding: 0;
-            }
-            .info-box-header, .section-header {
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-            }
-        }
-        
-        /* Page Break Control */
-        .tests-section, .signatures-section {
-            page-break-inside: avoid;
-        }
-    </style>
-</head>
-<body>
-    <!-- Header -->
-    <div class="header">
-        <div class="org-section">
-            <div class="org-name">${orgName}</div>
-            <div class="org-details">
-                ${orgAddress ? `${orgAddress}<br>` : ''}
-                ${orgPhone ? `Tel: ${orgPhone}` : ''}${orgPhone && orgEmail ? ' | ' : ''}${orgEmail ? `Email: ${orgEmail}` : ''}<br>
-                Laboratory Services Department
-            </div>
-        </div>
-        <div class="doc-info">
-            <div class="doc-title">Laboratory Requisition</div>
-            <div class="accession">${accessionNumber}</div>
-            <div class="barcode-placeholder">*${accessionNumber}*</div>
-        </div>
-    </div>
-
-    <!-- Patient & Order Info Grid -->
-    <div class="main-grid">
-        <!-- Patient Information -->
-        <div class="info-box">
-            <div class="info-box-header">Patient Information</div>
-            <div class="info-row">
-                <span class="info-label">Full Name:</span>
-                <span class="info-value-large">${orderResult.patientFirstName} ${orderResult.patientLastName}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Patient ID:</span>
-                <span class="patient-id-badge">P${String(orderResult.patientId).padStart(6, '0')}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Date of Birth:</span>
-                <span class="info-value">${orderResult.patientDateOfBirth ? formatDate(orderResult.patientDateOfBirth) : '—'}</span>
-                ${patientAge ? `<span style="margin-left: 8px; color: #718096;">(${patientAge} years)</span>` : ''}
-            </div>
-            <div class="info-row">
-                <span class="info-label">Gender:</span>
-                <span class="info-value">${orderResult.patientGender ? orderResult.patientGender.charAt(0).toUpperCase() + orderResult.patientGender.slice(1) : '—'}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Contact:</span>
-                <span class="info-value">${orderResult.patientPhone || '—'}</span>
-            </div>
-        </div>
-
-        <!-- Order Information -->
-        <div class="info-box">
-            <div class="info-box-header">Order Information</div>
-            <div class="info-row">
-                <span class="info-label">Order Date:</span>
-                <span class="info-value">${formatDate(orderResult.createdAt)}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Order Time:</span>
-                <span class="info-value">${formatTime(orderResult.createdAt)}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Priority:</span>
-                <span class="info-value priority-routine">ROUTINE</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Ordering MD:</span>
-                <span class="info-value">Dr. ${orderResult.doctorFirstName || orderResult.doctorUsername || ''} ${orderResult.doctorLastName || ''}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Facility:</span>
-                <span class="info-value">${orderResult.organizationName || '—'}</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tests Requested -->
-    <div class="tests-section">
-        <div class="section-header">Tests Requested (${orderItems.length})</div>
-        <table class="tests-table">
-            <thead>
-                <tr>
-                    <th style="width: 5%;">#</th>
-                    <th style="width: 35%;">Test Name</th>
-                    <th style="width: 20%;">Category</th>
-                    <th style="width: 25%;">Reference Range</th>
-                    <th style="width: 15%;">Result</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${orderItems.map((item, index) => `
-                <tr>
-                    <td style="text-align: center;">${index + 1}</td>
-                    <td>
-                        <strong>${item.testName || 'Unknown Test'}</strong>
-                    </td>
-                    <td>${item.testCategory || 'General'}</td>
-                    <td>${item.referenceRange || '—'}</td>
-                    <td>${item.result ? `<span class="result-value">${item.result}</span>` : '<span class="result-pending">Pending</span>'}</td>
-                </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Specimen Collection (Lab Use) -->
-    <div class="specimen-section">
-        <div class="specimen-header">Specimen Collection (Laboratory Use Only)</div>
-        <div class="specimen-grid">
-            <div class="specimen-item">
-                <label>Collection Date</label>
-                <div class="specimen-input"></div>
-            </div>
-            <div class="specimen-item">
-                <label>Collection Time</label>
-                <div class="specimen-input"></div>
-            </div>
-            <div class="specimen-item">
-                <label>Collected By</label>
-                <div class="specimen-input"></div>
-            </div>
-            <div class="specimen-item">
-                <label>Specimen Type</label>
-                <div class="specimen-input"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Clinical Information -->
-    <div class="clinical-section">
-        <div class="section-header">Clinical Information</div>
-        <div class="clinical-grid">
-            <div class="clinical-item">
-                <label>Diagnosis / ICD-10 Code</label>
-                <div class="clinical-input"></div>
-            </div>
-            <div class="clinical-item">
-                <label>Relevant Clinical History</label>
-                <div class="clinical-input"></div>
-            </div>
-            <div class="clinical-item">
-                <label>Current Medications</label>
-                <div class="clinical-input"></div>
-            </div>
-            <div class="clinical-item">
-                <label>Special Instructions</label>
-                <div class="clinical-input"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Signatures -->
-    <div class="signatures-section">
-        <div class="signature-box">
-            <div class="signature-title">Ordering Physician</div>
-            <div class="signature-prefilled">Dr. ${orderResult.doctorFirstName || orderResult.doctorUsername || ''} ${orderResult.doctorLastName || ''}</div>
-            <div class="signature-line">Signature / Date: ${formatDate(orderResult.createdAt)}</div>
-        </div>
-        <div class="signature-box">
-            <div class="signature-title">Specimen Received By</div>
-            <div class="signature-line">Signature / Date</div>
-        </div>
-        <div class="signature-box">
-            <div class="signature-title">Results Verified By</div>
-            <div class="signature-line">Signature / Date</div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <div class="footer-grid">
-            <div class="disclaimer">
-                <strong>CONFIDENTIAL:</strong> This laboratory requisition contains protected health information (PHI). 
-                Handle in accordance with applicable privacy regulations. Results should be reviewed by qualified healthcare personnel.
-                Critical values will be communicated immediately to the ordering physician.
-            </div>
-            <div class="doc-tracking">
-                <strong>Accession:</strong> ${accessionNumber}<br>
-                <strong>Printed:</strong> ${formatDateTime(new Date())}<br>
-                <strong>Page:</strong> 1 of 1
-            </div>
-        </div>
-    </div>
-</body>
-</html>`;
-}
-
-// Helper function to generate lab history HTML for printing (Global Standards Compliant)
-function generateLabHistoryHTML(patientData: any, labResultsData: any[], orgData: any): string {
-  const formatDate = (date: string | Date | null) => {
-    if (!date) return '—';
-    return format(new Date(date), 'dd/MM/yyyy');
-  };
-
-  const formatDateTime = (date: string | Date) => {
-    return format(new Date(date), 'dd/MM/yyyy HH:mm');
-  };
-
-  // Use organization data
-  const orgName = orgData?.name || 'Medical Facility';
-  const orgPhone = orgData?.phone || '';
-  const orgEmail = orgData?.email || '';
-  const orgAddress = orgData?.address || '';
-  const orgTheme = orgData?.themeColor || '#1a365d';
-  
-  // Calculate patient age
-  const patientAge = patientData.dateOfBirth 
-    ? Math.floor((new Date().getTime() - new Date(patientData.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-    : null;
-    
-  // Generate report number
-  const reportNumber = `RPT-${format(new Date(), 'yyyyMMdd')}-${String(patientData.patientId).padStart(4, '0')}`;
-
-  // Group results by date for better organization
-  const groupedByDate = labResultsData.reduce((acc: any, result: any) => {
-    const dateKey = result.testDate ? format(new Date(result.testDate), 'yyyy-MM-dd') : 'unknown';
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(result);
-    return acc;
-  }, {});
-
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laboratory Report - ${patientData.firstName} ${patientData.lastName}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            font-size: 10px;
-            line-height: 1.4;
-            color: #1a1a1a;
-            padding: 15px;
-            max-width: 210mm;
-            margin: 0 auto;
-        }
-        
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 3px solid ${orgTheme};
-            padding-bottom: 12px;
-            margin-bottom: 15px;
-        }
-        .org-section { flex: 1; }
-        .org-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: ${orgTheme};
-            margin-bottom: 4px;
-        }
-        .org-details {
-            font-size: 9px;
-            color: #4a5568;
-            line-height: 1.5;
-        }
-        .report-info {
-            text-align: right;
-            min-width: 160px;
-        }
-        .report-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: ${orgTheme};
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
-        }
-        .report-number {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            font-weight: 700;
-            background: #f0f4f8;
-            padding: 4px 8px;
-            border: 1px solid #cbd5e0;
-            display: inline-block;
-        }
-        
-        /* Patient Card */
-        .patient-card {
-            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-            border: 1px solid #e2e8f0;
-            border-left: 4px solid ${orgTheme};
-            padding: 12px 15px;
-            margin-bottom: 15px;
-        }
-        .patient-name {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 8px;
-        }
-        .patient-details {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-        }
-        .patient-field label {
-            font-size: 8px;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: block;
-            margin-bottom: 2px;
-        }
-        .patient-field span {
-            font-size: 10px;
-            font-weight: 600;
-            color: #2d3748;
-        }
-        .patient-id-badge {
-            font-family: 'Courier New', monospace;
-            background: ${orgTheme};
-            color: white;
-            padding: 2px 6px;
-            font-size: 10px;
-        }
-        
-        /* Summary Stats */
-        .summary-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .stat-box {
-            background: white;
-            border: 1px solid #e2e8f0;
-            padding: 10px;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: ${orgTheme};
-        }
-        .stat-label {
-            font-size: 8px;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Results Table */
-        .results-section {
-            margin-bottom: 15px;
-        }
-        .section-header {
-            background: ${orgTheme};
-            color: white;
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 6px 10px;
-        }
-        .results-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 9px;
-        }
-        .results-table th {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            padding: 6px 8px;
-            text-align: left;
-            font-weight: 600;
-            color: #4a5568;
-            text-transform: uppercase;
-            font-size: 8px;
-        }
-        .results-table td {
-            border: 1px solid #e2e8f0;
-            padding: 8px;
-            vertical-align: middle;
-        }
-        .results-table tr:nth-child(even) {
-            background: #f7fafc;
-        }
-        .result-value {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            font-weight: 700;
-        }
-        .result-normal { color: #2d7d46; }
-        .result-abnormal { color: #c53030; }
-        .result-flag {
-            display: inline-block;
-            padding: 1px 4px;
-            border-radius: 2px;
-            font-size: 7px;
-            font-weight: 700;
-            margin-left: 4px;
-        }
-        .flag-high { background: #fed7d7; color: #c53030; }
-        .flag-low { background: #feebc8; color: #c05621; }
-        .reference-range {
-            font-size: 8px;
-            color: #718096;
-        }
-        .no-results {
-            text-align: center;
-            padding: 40px;
-            color: #718096;
-            font-style: italic;
-            background: #f7fafc;
-        }
-        
-        /* Date Group Header */
-        .date-group-header {
-            background: #edf2f7;
-            padding: 6px 10px;
-            font-weight: 600;
-            color: #4a5568;
-            border: 1px solid #e2e8f0;
-            border-bottom: none;
-            font-size: 10px;
-        }
-        
-        /* Interpretation Section */
-        .interpretation-section {
-            border: 1px solid #e2e8f0;
-            margin-bottom: 15px;
-        }
-        .interpretation-content {
-            padding: 12px;
-            font-size: 9px;
-            color: #4a5568;
-            line-height: 1.6;
-        }
-        .interpretation-content ul {
-            margin: 0;
-            padding-left: 16px;
-        }
-        .interpretation-content li {
-            margin-bottom: 4px;
-        }
-        
-        /* Footer */
-        .footer {
-            border-top: 2px solid ${orgTheme};
-            padding-top: 10px;
-            margin-top: 15px;
-        }
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-            font-size: 8px;
-        }
-        .footer-section h4 {
-            font-size: 9px;
-            color: ${orgTheme};
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .disclaimer {
-            font-style: italic;
-            color: #718096;
-            font-size: 8px;
-            margin-top: 10px;
-            padding: 8px;
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-        }
-        
-        /* Print */
-        @media print {
-            body { 
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-                padding: 0;
-            }
-            .results-table { page-break-inside: auto; }
-            .results-table tr { page-break-inside: avoid; }
-        }
-    </style>
-</head>
-<body>
-    <!-- Header -->
-    <div class="header">
-        <div class="org-section">
-            <div class="org-name">${orgName}</div>
-            <div class="org-details">
-                ${orgAddress ? `${orgAddress}<br>` : ''}
-                ${orgPhone ? `Tel: ${orgPhone}` : ''}${orgPhone && orgEmail ? ' | ' : ''}${orgEmail ? `Email: ${orgEmail}` : ''}<br>
-                Laboratory Services Department
-            </div>
-        </div>
-        <div class="report-info">
-            <div class="report-title">Laboratory Report</div>
-            <div class="report-number">${reportNumber}</div>
-        </div>
-    </div>
-
-    <!-- Patient Card -->
-    <div class="patient-card">
-        <div class="patient-name">${patientData.firstName} ${patientData.lastName}</div>
-        <div class="patient-details">
-            <div class="patient-field">
-                <label>Patient ID</label>
-                <span class="patient-id-badge">P${String(patientData.patientId).padStart(6, '0')}</span>
-            </div>
-            <div class="patient-field">
-                <label>Date of Birth</label>
-                <span>${formatDate(patientData.dateOfBirth)}${patientAge ? ` (${patientAge}y)` : ''}</span>
-            </div>
-            <div class="patient-field">
-                <label>Gender</label>
-                <span>${patientData.gender ? patientData.gender.charAt(0).toUpperCase() + patientData.gender.slice(1) : '—'}</span>
-            </div>
-            <div class="patient-field">
-                <label>Contact</label>
-                <span>${patientData.phone || '—'}</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Summary Stats -->
-    <div class="summary-bar">
-        <div class="stat-box">
-            <div class="stat-value">${labResultsData.length}</div>
-            <div class="stat-label">Total Tests</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value">${Object.keys(groupedByDate).length}</div>
-            <div class="stat-label">Test Sessions</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value">${labResultsData.filter(r => r.result).length}</div>
-            <div class="stat-label">Completed</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value">${labResultsData.filter(r => !r.result).length}</div>
-            <div class="stat-label">Pending</div>
-        </div>
-    </div>
-
-    <!-- Results Table -->
-    <div class="results-section">
-        <div class="section-header">Laboratory Results</div>
-        ${labResultsData.length === 0 ? `
-        <div class="no-results">No laboratory results found for this patient.</div>
-        ` : `
-        <table class="results-table">
-            <thead>
-                <tr>
-                    <th style="width: 12%;">Date</th>
-                    <th style="width: 30%;">Test Name</th>
-                    <th style="width: 18%;">Result</th>
-                    <th style="width: 20%;">Reference Range</th>
-                    <th style="width: 20%;">Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${labResultsData.map((result, index) => `
-                <tr>
-                    <td>${formatDate(result.testDate)}</td>
-                    <td><strong>${result.testName || 'Unknown Test'}</strong></td>
-                    <td>
-                        ${result.result 
-                          ? `<span class="result-value">${result.result}</span>` 
-                          : '<span style="color: #718096; font-style: italic;">Pending</span>'}
-                    </td>
-                    <td><span class="reference-range">${result.normalRange || '—'}</span></td>
-                    <td style="font-size: 8px; color: #4a5568;">${result.notes || '—'}</td>
-                </tr>
-                `).join('')}
-            </tbody>
-        </table>
-        `}
-    </div>
-
-    <!-- Interpretation Notes -->
-    <div class="interpretation-section">
-        <div class="section-header">Clinical Notes</div>
-        <div class="interpretation-content">
-            <ul>
-                <li>This cumulative laboratory report contains all available test results for the patient.</li>
-                <li>Results should be interpreted in conjunction with clinical findings and patient history.</li>
-                <li>Reference ranges are method and instrument specific; variations between laboratories may occur.</li>
-                <li>For critical or significantly abnormal results, please contact the laboratory directly.</li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <div class="footer-grid">
-            <div class="footer-section">
-                <h4>Report Information</h4>
-                Report #: ${reportNumber}<br>
-                Generated: ${formatDateTime(new Date())}<br>
-                Total Results: ${labResultsData.length}
-            </div>
-            <div class="footer-section">
-                <h4>Patient Information</h4>
-                ID: P${String(patientData.patientId).padStart(6, '0')}<br>
-                ${patientData.firstName} ${patientData.lastName}<br>
-                ${patientData.phone || ''}
-            </div>
-            <div class="footer-section">
-                <h4>Facility</h4>
-                ${orgName}<br>
-                ${orgPhone ? `Tel: ${orgPhone}` : ''}<br>
-                ${orgEmail || ''}
-            </div>
-        </div>
-        <div class="disclaimer">
-            <strong>CONFIDENTIALITY NOTICE:</strong> This report contains protected health information (PHI) and is intended solely for the named patient and authorized healthcare providers. 
-            Unauthorized disclosure, copying, or distribution is prohibited. Results should be reviewed and interpreted by qualified medical personnel. 
-            This report does not constitute a diagnosis. Please consult with your healthcare provider for medical advice.
-        </div>
-    </div>
-</body>
-</html>`;
-}
-
-// Helper function to get organization details
-const getOrganizationDetails = async (orgId: number) => {
-  const [org] = await db.select()
-    .from(organizations)
-    .where(eq(organizations.id, orgId))
-    .limit(1);
-  return org;
-};
-
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<void> {
   // Initialize Firebase for push notifications
   initializeFirebase();
-  
+
   // Apply security headers to all routes
   app.use(securityHeaders);
-  
+
   // Apply session activity tracking to all authenticated routes
   app.use(updateSessionActivity);
-  
+
   // Setup error tracking and performance monitoring
   app.use(performanceMonitor);
   setupErrorRoutes(app);
 
-  // AI Error Insights endpoints (direct registration to fix 404s)
-  const { generateAIInsights } = await import('./ai-insights-endpoint');
-  const { testAIAnalysisWorking } = await import('./ai-analysis-working');
-  const { handleErrorChatbot } = await import('./error-chatbot-endpoint');
-  
-  app.get('/api/errors/ai-insights', authenticateToken, generateAIInsights);
-  app.get('/api/ai-analysis', testAIAnalysisWorking);
-  app.post('/api/error-chatbot', handleErrorChatbot);
+  // AI Error Insights endpoints - now using modular routes
+  const { setupAIErrorRoutes } = await import('./routes/ai-errors');
+  const aiErrorRouter = setupAIErrorRoutes();
+  app.use('/api', aiErrorRouter);
 
-  // Performance Monitoring and Healthcare Integrations
-  const { monitor } = await import('./performance-monitor');
-  const { 
-    handleFHIRExport, 
-    handleLabSync, 
-    handleEPrescribing, 
-    handleInsuranceVerification, 
-    handleTelemedicineSession 
-  } = await import('./healthcare-integrations');
+  // Performance Monitoring and Healthcare Integrations - using existing modular routes
+  const { setupPerformanceRoutes } = await import('./routes/performance');
+  const { setupIntegrationsRoutes } = await import('./routes/integrations');
+  const performanceRouter = setupPerformanceRoutes();
+  const integrationsRouter = setupIntegrationsRoutes();
+  app.use('/api', performanceRouter);
+  app.use('/api', integrationsRouter);
 
-  // Performance monitoring endpoints
-  app.get('/api/performance/stats', authenticateToken, async (req, res) => {
-    try {
-      const timeframe = req.query.timeframe as string || '24h';
-      const stats = await monitor.getPerformanceStats(timeframe);
-      res.json(stats || { message: 'No performance data available' });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch performance stats' });
-    }
-  });
+  // AI/Error routes are now handled by the modular ai-errors.ts route file above
 
-  // System optimization endpoints
-  app.get('/api/optimization/tasks', authenticateToken, getOptimizationTasks);
-  app.post('/api/optimization/implement/:taskId', authenticateToken, implementOptimizationTask);
-
-  // Healthcare integration endpoints
-  app.get('/api/fhir/patient/:patientId', authenticateToken, handleFHIRExport);
-  app.post('/api/integrations/lab-sync', authenticateToken, handleLabSync);
-  app.post('/api/integrations/e-prescribe/:prescriptionId', authenticateToken, handleEPrescribing);
-  app.post('/api/integrations/verify-insurance/:patientId', authenticateToken, handleInsuranceVerification);
-  app.post('/api/integrations/telemedicine/:appointmentId', authenticateToken, handleTelemedicineSession);
-  
-  // Direct AI test endpoint
-  app.get('/api/ai-test', async (req, res) => {
-    try {
-      if (!process.env.ANTHROPIC_API_KEY) {
-        return res.json({ 
-          error: "ANTHROPIC_API_KEY not configured",
-          status: "API key missing"
-        });
-      }
-
-      const { default: Anthropic } = await import('@anthropic-ai/sdk');
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
-
-      const prompt = `Analyze these healthcare system errors and provide actionable insights:
-
-Error Summary:
-- Total errors: 3
-- Error types: {"NETWORK":1,"VALIDATION":1,"AUTHENTICATION":1}
-- Severity: {"HIGH":1,"MEDIUM":1,"LOW":1}
-- Messages: Test network connection timeout, Test validation error for debugging, Test authentication warning
-
-Provide JSON response with: summary, systemHealth (score, trend, riskFactors), recommendations (immediate, shortTerm, longTerm), predictions.`;
-
-      const message = await anthropic.messages.create({
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
-        model: 'claude-sonnet-4-20250514',
-      });
-
-      // Handle different content block types
-      const textContent = message.content.find(block => block.type === 'text');
-      if (!textContent || !('text' in textContent)) {
-        throw new Error('No text content found in AI response');
-      }
-
-      const aiResponse = JSON.parse(textContent.text);
-      
-      res.json({
-        success: true,
-        aiAnalysis: aiResponse,
-        timestamp: new Date().toISOString(),
-        model: 'claude-sonnet-4-20250514'
-      });
-
-    } catch (error) {
-      res.json({ 
-        error: 'AI analysis failed', 
-        details: error.message,
-        hasApiKey: !!process.env.ANTHROPIC_API_KEY
-      });
-    }
-  });
-
-  app.get('/api/errors/predictions', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const organizationId = req.user?.organizationId;
-      if (!organizationId) {
-        return res.status(400).json({ message: 'Organization context required' });
-      }
-
-      const predictions = [{
-        riskLevel: "LOW",
-        likelihood: 15,
-        timeframe: "next 24 hours",
-        description: "System performance within normal parameters",
-        recommendations: ["Continue monitoring", "Regular system maintenance"],
-        affectedSystems: ["monitoring"]
-      }];
-      
-      res.json({ predictions });
-    } catch (error) {
-      console.error('Error generating predictions:', error);
-      res.status(500).json({ message: 'Failed to generate predictions' });
-    }
-  });
-
-  // Test error generation endpoint for debugging
-  app.post('/api/errors/test-generate', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { logServerError } = await import('./error-handler');
-      const organizationId = req.user?.organizationId;
-      
-      // Generate test errors of different types and severities
-      const testErrors = [
-        { type: 'VALIDATION', severity: 'MEDIUM', message: 'Test validation error for debugging' },
-        { type: 'NETWORK', severity: 'HIGH', message: 'Test network connection timeout' },
-        { type: 'AUTHENTICATION', severity: 'LOW', message: 'Test authentication warning' }
-      ];
-
-      for (const testError of testErrors) {
-        await logServerError({
-          error: new Error(testError.message),
-          req: req,
-          severity: testError.severity as any,
-          type: testError.type as any,
-          action: 'TEST_ERROR_GENERATION',
-          component: 'error-monitoring-debug'
-        });
-      }
-
-      res.json({ 
-        success: true, 
-        message: 'Test errors generated successfully',
-        count: testErrors.length 
-      });
-    } catch (error) {
-      console.error('Error generating test errors:', error);
-      res.status(500).json({ message: 'Failed to generate test errors' });
-    }
-  });
-  
-  console.log('🔧 Registering lab order item PATCH endpoint...');
 
   // Configure multer for file uploads
   const upload = multer({
@@ -1395,7 +114,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   });
 
-  // Smart Suggestion Endpoints for Auto-complete with fuzzy matching
+  // NOTE: All suggestion routes have been moved to server/routes/suggestions.ts
+  // These routes are now handled by the modular setupSuggestionRoutes() function
+  // The routes below (lines 1104-1449) are DUPLICATES and should be removed after testing
+  
+  /* DUPLICATE ROUTES - REMOVE AFTER TESTING
+  /* DUPLICATE - All suggestion routes below are duplicates of routes in server/routes/suggestions.ts
   app.get("/api/suggestions/medicines", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { q } = req.query;
@@ -1404,7 +128,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const searchQuery = q.toLowerCase().trim();
-      
+
       // Use raw SQL for fuzzy matching with pg_trgm extension
       // Combines exact/partial matches (ILIKE) with typo-tolerant similarity search
       const result = await db.execute(sql`
@@ -1431,7 +155,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         LIMIT 10
       `);
 
-      res.json(result.rows.map((med: any) => ({
+      return res.json(result.rows.map((med: any) => ({
         id: med.id,
         name: med.name,
         genericName: med.generic_name,
@@ -1450,7 +174,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       })));
     } catch (error) {
       console.error('Medicine suggestions error:', error);
-      res.status(500).json({ error: "Failed to fetch medicine suggestions" });
+      return res.status(500).json({ error: "Failed to fetch medicine suggestions" });
     }
   });
 
@@ -1463,7 +187,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const searchQuery = q.toLowerCase().trim();
-      
+
       // Use raw SQL for fuzzy matching with pg_trgm extension
       // Combines exact/partial matches (ILIKE) with typo-tolerant similarity search
       const result = await db.execute(sql`
@@ -1490,7 +214,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         LIMIT 10
       `);
 
-      res.json(result.rows.map((med: any) => ({
+      return res.json(result.rows.map((med: any) => ({
         id: med.id,
         name: med.name,
         genericName: med.generic_name,
@@ -1509,7 +233,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       })));
     } catch (error) {
       console.error('Medication suggestions error:', error);
-      res.status(500).json({ error: "Failed to fetch medication suggestions" });
+      return res.status(500).json({ error: "Failed to fetch medication suggestions" });
     }
   });
 
@@ -1534,9 +258,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .filter(diagnosis => diagnosis.toLowerCase().includes(searchTerm))
         .slice(0, 10);
 
-      res.json(filteredDiagnoses.map(name => ({ name })));
+      return res.json(filteredDiagnoses.map(name => ({ name })));
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch diagnosis suggestions" });
+      console.error('Diagnosis suggestions error:', error);
+      return res.status(500).json({ error: "Failed to fetch diagnosis suggestions" });
     }
   });
 
@@ -1560,9 +285,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .filter(symptom => symptom.toLowerCase().includes(searchTerm))
         .slice(0, 10);
 
-      res.json(filteredSymptoms.map(name => ({ name })));
+      return res.json(filteredSymptoms.map(name => ({ name })));
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch symptom suggestions" });
+      console.error('Symptom suggestions error:', error);
+      return res.status(500).json({ error: "Failed to fetch symptom suggestions" });
     }
   });
 
@@ -1570,23 +296,24 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const { q } = req.query;
       const searchTerm = q ? String(q).toLowerCase() : '';
-      
+
       const testResults = await db.select().from(labTests).where(
         searchTerm
           ? or(
-              ilike(labTests.name, `%${searchTerm}%`),
-              ilike(labTests.category, `%${searchTerm}%`)
-            )
+            ilike(labTests.name, `%${searchTerm}%`),
+            ilike(labTests.category, `%${searchTerm}%`)
+          )
           : undefined
       ).limit(20);
-      
-      res.json(testResults);
+
+      return res.json(testResults);
     } catch (error) {
       console.error('Error fetching lab test suggestions:', error);
-      res.status(500).json({ message: 'Failed to fetch lab test suggestions' });
+      return res.status(500).json({ message: 'Failed to fetch lab test suggestions' });
     }
   });
 
+  /* DUPLICATE - Lab tests old route already in server/routes/laboratory.ts (line 86)
   // Original endpoint for compatibility
   app.get('/api/lab-tests-old', authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -1609,7 +336,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .limit(10)
         .orderBy(labTests.name);
 
-      res.json(result.map(test => ({
+      return res.json(result.map(test => ({
         name: test.name,
         category: test.category,
         referenceRange: test.referenceRange,
@@ -1617,7 +344,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         description: test.description
       })));
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch lab test suggestions" });
+      console.error('Lab test suggestions error:', error);
+      return res.status(500).json({ error: "Failed to fetch lab test suggestions" });
     }
   });
 
@@ -1625,7 +353,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get('/api/pharmacies', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
-      
+
       const result = await db.select()
         .from(pharmacies)
         .where(
@@ -1636,10 +364,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         )
         .orderBy(pharmacies.name);
 
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       console.error('Error fetching pharmacies:', error);
-      res.status(500).json({ error: "Failed to fetch pharmacies" });
+      return res.status(500).json({ error: "Failed to fetch pharmacies" });
     }
   });
 
@@ -1676,17 +404,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       const searchTerm = q.toLowerCase();
       const filteredAllergies = commonAllergies
-        .filter(allergy => allergy.name.toLowerCase().includes(searchTerm) || 
-                          allergy.category.toLowerCase().includes(searchTerm))
+        .filter(allergy => allergy.name.toLowerCase().includes(searchTerm) ||
+          allergy.category.toLowerCase().includes(searchTerm))
         .slice(0, 10);
 
-      res.json(filteredAllergies.map(allergy => ({
+      return res.json(filteredAllergies.map(allergy => ({
         name: allergy.name,
         category: allergy.category,
         severity: allergy.severity
       })));
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch allergy suggestions" });
+      console.error('Allergy suggestions error:', error);
+      return res.status(500).json({ error: "Failed to fetch allergy suggestions" });
     }
   });
 
@@ -1725,55 +454,65 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       const searchTerm = q.toLowerCase();
       const filteredConditions = commonConditions
-        .filter(condition => condition.name.toLowerCase().includes(searchTerm) || 
-                            condition.category.toLowerCase().includes(searchTerm))
+        .filter(condition => condition.name.toLowerCase().includes(searchTerm) ||
+          condition.category.toLowerCase().includes(searchTerm))
         .slice(0, 10);
 
-      res.json(filteredConditions.map(condition => ({
+      return res.json(filteredConditions.map(condition => ({
         name: condition.name,
         category: condition.category,
         chronic: condition.chronic
       })));
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch medical condition suggestions" });
+      console.error('Medical condition suggestions error:', error);
+      return res.status(500).json({ error: "Failed to fetch medical condition suggestions" });
     }
   });
-  
-  // Patients routes - Medical staff only
-  // NOTE: Patient registration is handled by the modular route in server/routes/patients.ts
-  // which is registered first via setupRoutes(). This duplicate route has been removed
-  // to prevent conflicts. The route in patients.ts handles POST /api/patients
+  END DUPLICATE ROUTES */
 
-  // Enhanced patients endpoint with analytics
+  // Patients routes - Medical staff only
+  // NOTE: Most patient routes have been moved to server/routes/patients.ts
+  // which is registered first via setupRoutes(). The routes below are DUPLICATES
+  // and should be removed after testing.
+  
+  /* DUPLICATE PATIENT ROUTES - REMOVE AFTER TESTING
+  // All routes below are duplicates of routes in server/routes/patients.ts
+  
+  // Enhanced patients endpoint with analytics - DUPLICATE
   app.get("/api/patients/enhanced", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const patients = await storage.getPatients();
-      res.json(patients);
+      return res.json(patients);
     } catch (error) {
       console.error('Error fetching enhanced patients:', error);
-      res.status(500).json({ message: "Failed to fetch patients" });
+      return res.status(500).json({ message: "Failed to fetch patients" });
     }
   });
 
-  // Patient analytics endpoint
+  // Patient analytics endpoint - DUPLICATE
   app.get("/api/patients/analytics", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
       const patients = await storage.getPatients();
-      res.json(patients);
+      return res.json(patients);
     } catch (error) {
       console.error('Error fetching patient analytics:', error);
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      return res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 
+  // Main patients listing - DUPLICATE (already in patients.ts line 81)
   app.get("/api/patients", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const userOrgId = req.user?.organizationId;
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      const userOrgId = req.user.organizationId || req.user.currentOrganizationId;
       const search = req.query.search as string | undefined;
-      
+
       // Organization-filtered patients (if organizationId is null, show all patients - authentication disabled mode)
       let whereClause = userOrgId ? eq(patients.organizationId, userOrgId) : undefined;
-      
+
       if (search) {
         const searchConditions = [
           ilike(patients.firstName, `%${search}%`),
@@ -1790,21 +529,31 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           whereClause = or(...searchConditions);
         }
       }
-      
+
       const patientsResult = await db.select()
         .from(patients)
         .where(whereClause || undefined)
         .orderBy(desc(patients.createdAt));
-      
+
       // Prevent caching to ensure fresh data
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
-      
-      res.json(patientsResult);
+
+      return res.json(patientsResult);
     } catch (error) {
       console.error('Error fetching patients:', error);
-      res.status(500).json({ message: "Failed to fetch patients" });
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      return res.status(500).json({ 
+        message: "Failed to fetch patients",
+        error: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : 'Unknown error') : undefined
+      });
     }
   });
 
@@ -1815,10 +564,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const search = req.query.q as string || "";
       const type = req.query.type as string || "all"; // all, patients, vaccinations, prescriptions, labs
-      
+
       if (!search || search.length < 2) {
         return res.json({ results: [], totalCount: 0 });
       }
@@ -1835,18 +584,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           description: patients.phone,
           metadata: sql<any>`json_object('email', ${patients.email}, 'gender', ${patients.gender}, 'dateOfBirth', ${patients.dateOfBirth})`
         })
-        .from(patients)
-        .where(and(
-          eq(patients.organizationId, userOrgId),
-          or(
-            ilike(patients.firstName, `%${search}%`),
-            ilike(patients.lastName, `%${search}%`),
-            ilike(patients.phone, `%${search}%`),
-            ilike(patients.email, `%${search}%`)
-          )
-        ))
-        .limit(10);
-        
+          .from(patients)
+          .where(and(
+            eq(patients.organizationId, userOrgId),
+            or(
+              ilike(patients.firstName, `%${search}%`),
+              ilike(patients.lastName, `%${search}%`),
+              ilike(patients.phone, `%${search}%`),
+              ilike(patients.email, `%${search}%`)
+            )
+          ))
+          .limit(10);
+
         results.push(...patientResults);
       }
 
@@ -1860,18 +609,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           description: sql<string>`'Administered: ' || ${vaccinations.dateAdministered}`,
           metadata: sql<any>`json_object('patientId', ${vaccinations.patientId}, 'manufacturer', ${vaccinations.manufacturer}, 'batchNumber', ${vaccinations.batchNumber})`
         })
-        .from(vaccinations)
-        .innerJoin(patients, eq(vaccinations.patientId, patients.id))
-        .where(and(
-          eq(patients.organizationId, userOrgId),
-          or(
-            ilike(vaccinations.vaccineName, `%${search}%`),
-            ilike(vaccinations.manufacturer, `%${search}%`),
-            ilike(vaccinations.batchNumber, `%${search}%`)
-          )
-        ))
-        .limit(10);
-        
+          .from(vaccinations)
+          .innerJoin(patients, eq(vaccinations.patientId, patients.id))
+          .where(and(
+            eq(patients.organizationId, userOrgId),
+            or(
+              ilike(vaccinations.vaccineName, `%${search}%`),
+              ilike(vaccinations.manufacturer, `%${search}%`),
+              ilike(vaccinations.batchNumber, `%${search}%`)
+            )
+          ))
+          .limit(10);
+
         results.push(...vaccinationResults);
       }
 
@@ -1885,18 +634,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           description: sql<string>`${prescriptions.dosage} || ' - ' || ${prescriptions.frequency}`,
           metadata: sql<any>`json_object('patientId', ${prescriptions.patientId}, 'status', ${prescriptions.status}, 'createdDate', ${prescriptions.createdAt})`
         })
-        .from(prescriptions)
-        .innerJoin(patients, eq(prescriptions.patientId, patients.id))
-        .where(and(
-          eq(patients.organizationId, userOrgId),
-          or(
-            ilike(prescriptions.medicationName, `%${search}%`),
-            ilike(prescriptions.dosage, `%${search}%`),
-            ilike(prescriptions.instructions, `%${search}%`)
-          )
-        ))
-        .limit(10);
-        
+          .from(prescriptions)
+          .innerJoin(patients, eq(prescriptions.patientId, patients.id))
+          .where(and(
+            eq(patients.organizationId, userOrgId),
+            or(
+              ilike(prescriptions.medicationName, `%${search}%`),
+              ilike(prescriptions.dosage, `%${search}%`),
+              ilike(prescriptions.instructions, `%${search}%`)
+            )
+          ))
+          .limit(10);
+
         results.push(...prescriptionResults);
       }
 
@@ -1910,17 +659,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           description: sql<string>`'Result: ' || ${labResults.result}`,
           metadata: sql<any>`json_object('patientId', ${labResults.patientId}, 'status', ${labResults.status})`
         })
-        .from(labResults)
-        .innerJoin(patients, eq(labResults.patientId, patients.id))
-        .where(and(
-          eq(patients.organizationId, userOrgId),
-          or(
-            ilike(labResults.testName, `%${search}%`),
-            ilike(labResults.result, `%${search}%`)
-          )
-        ))
-        .limit(10);
-        
+          .from(labResults)
+          .innerJoin(patients, eq(labResults.patientId, patients.id))
+          .where(and(
+            eq(patients.organizationId, userOrgId),
+            or(
+              ilike(labResults.testName, `%${search}%`),
+              ilike(labResults.result, `%${search}%`)
+            )
+          ))
+          .limit(10);
+
         results.push(...labResultsData);
       }
 
@@ -1931,7 +680,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return bExact - aExact;
       });
 
-      res.json({
+      return res.json({
         results: sortedResults.slice(0, 20),
         totalCount: sortedResults.length,
         searchTerm: search,
@@ -1939,10 +688,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error("Error in global search:", error);
-      res.status(500).json({ message: "Search failed" });
+      return res.status(500).json({ message: "Search failed" });
     }
   });
+  /* END DUPLICATE */
 
+  /* DUPLICATE - Patient search route already in server/routes/patients.ts (line 131)
   // Search patients for autocomplete
   app.get("/api/patients/search", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin', 'pharmacist']), async (req: AuthRequest, res) => {
     try {
@@ -1950,11 +701,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const search = req.query.search as string || "";
-      
+
       let whereClause = eq(patients.organizationId, userOrgId);
-      
+
       if (search) {
         const searchConditions = or(
           ilike(patients.firstName, `%${search}%`),
@@ -1964,33 +715,35 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         );
         whereClause = and(eq(patients.organizationId, userOrgId), searchConditions);
       }
-      
+
       const searchResults = await db.select()
         .from(patients)
         .where(whereClause)
         .limit(20)
         .orderBy(desc(patients.createdAt));
-        
-      res.json(searchResults);
+
+      return res.json(searchResults);
     } catch (error) {
       console.error("Error searching patients:", error);
-      res.status(500).json({ message: "Failed to search patients" });
+      return res.status(500).json({ message: "Failed to search patients" });
     }
   });
+  /* END DUPLICATE */
 
+  /* DUPLICATE - Get patient by ID already in server/routes/patients.ts (line 166)
+  // NOTE: This version doesn't have authentication - the one in patients.ts does!
   app.get("/api/patients/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const patient = await storage.getPatient(id);
       if (!patient) {
-        res.status(404).json({ message: "Patient not found" });
-        return;
+        return res.status(404).json({ message: "Patient not found" });
       }
 
       // Calculate age safely with proper null/undefined handling
       const dob = patient.dateOfBirth ? new Date(patient.dateOfBirth) : null;
       let age = null;
-      
+
       if (dob && !isNaN(dob.getTime())) {
         const today = new Date();
         age = today.getFullYear() - dob.getFullYear();
@@ -2004,20 +757,23 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         }
       }
 
-      res.json({
+      return res.json({
         ...patient,
         age: age
       });
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch patient" });
+      console.error('Error fetching patient:', error);
+      return res.status(500).json({ message: "Failed to fetch patient" });
     }
   });
+  /* END DUPLICATE */
 
+  /* DUPLICATE - Patient summary route already in server/routes/patients.ts (line 210)
   // Optimized: Quick patient summary for doctor workflow
   app.get("/api/patients/:id/summary", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      
+
       // Get basic patient info
       const patient = await storage.getPatient(patientId);
       if (!patient) {
@@ -2044,7 +800,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         if (age < 0 || age > 150) age = null;
       }
 
-      res.json({
+      return res.json({
         patient: {
           ...patient,
           age,
@@ -2057,19 +813,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           updatedAt: new Date().toISOString()
         }
       });
-      
+
     } catch (error) {
       console.error("Failed to fetch patient summary:", error);
-      res.status(500).json({ message: "Failed to fetch patient summary" });
+      return res.status(500).json({ message: "Failed to fetch patient summary" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Update patient route already in server/routes/patients.ts (line 268)
   // Update patient information
   app.patch("/api/patients/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
-      
+
       // Remove any undefined fields
       Object.keys(updateData).forEach(key => {
         if (updateData[key] === undefined || updateData[key] === '') {
@@ -2079,31 +836,32 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       const updatedPatient = await storage.updatePatient(id, updateData);
       if (!updatedPatient) {
-        res.status(404).json({ message: "Patient not found" });
+        return res.status(404).json({ message: "Patient not found" });
         return;
       }
 
       // Log the update action
-      await req.auditLogger?.logPatientAction('UPDATE', id, { 
-        updatedFields: Object.keys(updateData) 
+      await req.auditLogger?.logPatientAction('UPDATE', id, {
+        updatedFields: Object.keys(updateData)
       });
 
-      res.json(updatedPatient);
+      return res.json(updatedPatient);
     } catch (error) {
       console.error('Error updating patient:', error);
-      res.status(500).json({ message: "Failed to update patient" });
+      return res.status(500).json({ message: "Failed to update patient" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Archive patient route already in server/routes/patients.ts (line 298)
   // Archive/unarchive patient
   app.patch("/api/patients/:id/archive", authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const { archived } = req.body;
-      
+
       const updatedPatient = await storage.updatePatient(id, { firstName: req.body.firstName || undefined });
       if (!updatedPatient) {
-        res.status(404).json({ message: "Patient not found" });
+        return res.status(404).json({ message: "Patient not found" });
         return;
       }
 
@@ -2114,16 +872,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         { archived }
       );
 
-      res.json({ 
-        message: `Patient ${archived ? 'archived' : 'unarchived'} successfully`, 
-        patient: updatedPatient 
+      return res.json({
+        message: `Patient ${archived ? 'archived' : 'unarchived'} successfully`,
+        patient: updatedPatient
       });
     } catch (error) {
       console.error('Error archiving patient:', error);
-      res.status(500).json({ message: "Failed to archive patient" });
+      return res.status(500).json({ message: "Failed to archive patient" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE VISIT ROUTES - These routes are already in server/routes/patients.ts and server/routes/visits.ts
   // Visits routes - Only doctors can create visits
   app.post("/api/patients/:id/visits", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
@@ -2132,93 +891,95 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       console.log('Patient ID:', patientId);
       console.log('Raw request body:', JSON.stringify(req.body, null, 2));
       console.log('User making request:', req.user?.username, 'Role:', req.user?.role);
-      
+
       // Clean up empty strings to undefined for optional fields and fix field mapping
       const cleanedData = { ...req.body };
       if (cleanedData.heartRate === '') cleanedData.heartRate = undefined;
       if (cleanedData.temperature === '') cleanedData.temperature = undefined;
       if (cleanedData.weight === '') cleanedData.weight = undefined;
       if (cleanedData.followUpDate === '') cleanedData.followUpDate = undefined;
-      
+
       // Fix field name mapping - frontend sends chiefComplaint, backend expects complaint
       if (cleanedData.chiefComplaint !== undefined) {
         cleanedData.complaint = cleanedData.chiefComplaint;
         delete cleanedData.chiefComplaint;
       }
-      
+
       // Fix field name mapping - frontend sends treatmentPlan, backend expects treatment
       if (cleanedData.treatmentPlan !== undefined) {
         cleanedData.treatment = cleanedData.treatmentPlan;
         delete cleanedData.treatmentPlan;
       }
-      
+
       console.log('Cleaned data:', JSON.stringify(cleanedData, null, 2));
-      
+
       // Add the staff member's organization ID to ensure proper letterhead attribution
-      const visitData = insertVisitSchema.parse({ 
-        ...cleanedData, 
+      const visitData = insertVisitSchema.parse({
+        ...cleanedData,
         patientId,
         doctorId: req.user?.id,
         organizationId: req.user?.organizationId
       });
       console.log('Parsed visit data:', JSON.stringify(visitData, null, 2));
-      
+
       const visit = await storage.createVisit(visitData);
       console.log('Visit created successfully:', visit);
-      res.json(visit);
+      return res.json(visit);
     } catch (error: any) {
       console.error('=== VISIT CREATION ERROR ===');
       console.error('Error type:', typeof error);
       console.error('Error instance:', error.constructor.name);
       if (error instanceof z.ZodError) {
         console.error('Zod validation errors:', JSON.stringify(error.errors, null, 2));
-        res.status(400).json({ message: "Invalid visit data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid visit data", errors: error.errors });
       } else {
         console.error('Non-Zod error:', error);
-        res.status(500).json({ message: "Failed to create visit", error: error.message });
+        return res.status(500).json({ message: "Failed to create visit", error: error.message });
       }
     }
   });
 
+  /* DUPLICATE - Get patient visits already in server/routes/patients.ts (line 438) and server/routes/visits.ts (line 69)
   app.get("/api/patients/:id/visits", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(403).json({ message: "Organization context required" });
       }
-      
+
       // Verify patient belongs to user's organization
       const patient = await db.select().from(patients)
         .where(eq(patients.id, patientId))
         .limit(1);
-      
+
       if (!patient.length || patient[0].organizationId !== userOrgId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const visits = await storage.getVisitsByPatient(patientId);
-      res.json(visits);
+      return res.json(visits);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch visits" });
+      return res.status(500).json({ message: "Failed to fetch visits" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Get individual visit already in server/routes/patients.ts (line 463) and server/routes/visits.ts (line 86)
   // Get individual visit
   app.get("/api/patients/:patientId/visits/:visitId", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.patientId);
       const visitId = parseInt(req.params.visitId);
       const visit = await storage.getVisitById(visitId);
-      
+
       if (!visit || visit.patientId !== patientId) {
         return res.status(404).json({ message: "Visit not found" });
       }
-      
-      res.json(visit);
+
+      return res.json(visit);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch visit" });
+      return res.status(500).json({ message: "Failed to fetch visit" });
     }
   });
 
@@ -2227,14 +988,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.patientId);
       const visitId = parseInt(req.params.visitId);
-      
+
       // Clean up empty strings to undefined for optional fields
       const cleanedData = { ...req.body };
       if (cleanedData.heartRate === '') cleanedData.heartRate = undefined;
       if (cleanedData.temperature === '') cleanedData.temperature = undefined;
       if (cleanedData.weight === '') cleanedData.weight = undefined;
       if (cleanedData.followUpDate === '') cleanedData.followUpDate = undefined;
-      
+
       // Remove any undefined fields
       Object.keys(cleanedData).forEach(key => {
         if (cleanedData[key] === undefined || cleanedData[key] === '') {
@@ -2248,33 +1009,36 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       // Log the update action
-      await req.auditLogger?.logVisitAction('UPDATE', visitId, { 
-        updatedFields: Object.keys(cleanedData) 
+      await req.auditLogger?.logVisitAction('UPDATE', visitId, {
+        updatedFields: Object.keys(cleanedData)
       });
 
-      res.json(updatedVisit);
+      return res.json(updatedVisit);
     } catch (error) {
       console.error('Error updating visit:', error);
-      res.status(500).json({ message: "Failed to update visit" });
+      return res.status(500).json({ message: "Failed to update visit" });
     }
   });
+  END DUPLICATE VISIT ROUTES */
 
+  /* DUPLICATE LAB ROUTES - These routes are already in server/routes/laboratory.ts
   // Lab results routes
   app.post("/api/patients/:id/labs", async (req, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const labData = insertLabResultSchema.parse({ ...req.body, patientId });
       const labResult = await storage.createLabResult(labData);
-      res.json(labResult);
+      return res.json(labResult);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid lab result data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid lab result data", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create lab result" });
+        return res.status(500).json({ message: "Failed to create lab result" });
       }
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Get patient labs route already in server/routes/laboratory.ts (line 38)
   app.get("/api/patients/:id/labs", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
@@ -2313,10 +1077,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .orderBy(desc(labOrderItems.completedAt));
 
       console.log('Lab Results Found:', labResults.length, labResults);
-      res.json(labResults);
+      return res.json(labResults);
     } catch (error) {
       console.error("Error fetching lab results:", error);
-      res.status(500).json({ message: "Failed to fetch lab results" });
+      return res.status(500).json({ message: "Failed to fetch lab results" });
     }
   });
 
@@ -2325,12 +1089,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const medicineData = insertMedicineSchema.parse(req.body);
       const medicine = await storage.createMedicine(medicineData);
-      res.json(medicine);
+      return res.json(medicine);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid medicine data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid medicine data", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create medicine" });
+        return res.status(500).json({ message: "Failed to create medicine" });
       }
     }
   });
@@ -2338,9 +1102,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/medicines", authenticateToken, requireAnyRole(['pharmacist', 'doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const medicines = await storage.getMedicines();
-      res.json(medicines);
+      return res.json(medicines);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch medicines" });
+      return res.status(500).json({ message: "Failed to fetch medicines" });
     }
   });
 
@@ -2348,16 +1112,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const id = parseInt(req.params.id);
       const { quantity } = req.body;
-      
+
       if (typeof quantity !== "number" || quantity < 0) {
-        res.status(400).json({ message: "Invalid quantity" });
-        return;
+        return res.status(400).json({ message: "Invalid quantity" });
       }
-      
+
       const medicine = await storage.updateMedicineQuantity(id, quantity);
-      res.json(medicine);
+      return res.json(medicine);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update medicine quantity" });
+      console.error('Error updating medicine quantity:', error);
+      return res.status(500).json({ message: "Failed to update medicine quantity" });
     }
   });
 
@@ -2372,7 +1136,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const updatedMedicine = await storage.updateMedicineQuantity(medicineId, quantity);
-      
+
       // Log the inventory update for audit purposes
       if (req.auditLogger) {
         await req.auditLogger.logMedicineAction('quantity_updated', medicineId, {
@@ -2381,13 +1145,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         });
       }
 
-      res.json(updatedMedicine);
+      return res.json(updatedMedicine);
     } catch (error) {
       console.error('Error updating medicine quantity:', error);
-      res.status(500).json({ error: "Failed to update medicine quantity" });
+      return res.status(500).json({ error: "Failed to update medicine quantity" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Medicine reorder route already in server/routes/prescriptions.ts (line 92)
   // Medicine reorder request
   app.post("/api/medicines/reorder", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -2425,31 +1190,56 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         });
       }
 
-      res.json({ 
+      return res.json({
         message: "Reorder request submitted successfully",
-        reorderRequest 
+        reorderRequest
       });
     } catch (error) {
       console.error('Error creating reorder request:', error);
-      res.status(500).json({ error: "Failed to create reorder request" });
+      return res.status(500).json({ error: "Failed to create reorder request" });
     }
   });
 
+  /* DUPLICATE - Dashboard route already in server/routes/dashboard.ts
   // Dashboard stats
   app.get("/api/dashboard/stats", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const userOrgId = req.user?.organizationId;
-      if (!userOrgId) {
-        return res.status(400).json({ message: "Organization context required" });
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
       }
-      
+
+      const userOrgId = req.user.organizationId || req.user.currentOrganizationId;
+      if (!userOrgId) {
+        // Return empty stats instead of error for better UX
+        return res.json({
+          totalPatients: 0,
+          todayVisits: 0,
+          lowStockItems: 0,
+          pendingLabs: 0
+        });
+      }
+
       const stats = await storage.getDashboardStats(userOrgId);
-      res.json(stats);
+      return res.json(stats);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+      console.error('Error fetching dashboard stats:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      // Return empty stats on error instead of failing
+      return res.json({
+        totalPatients: 0,
+        todayVisits: 0,
+        lowStockItems: 0,
+        pendingLabs: 0
+      });
     }
   });
-
+  /* END DUPLICATE */
   // Low stock medicines with automatic notifications
   app.get("/api/medicines/low-stock", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -2457,7 +1247,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       // Organization-filtered low stock medicines
       const lowStockMedicines = await db.select()
         .from(medicines)
@@ -2467,7 +1257,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
             lte(medicines.quantity, 10)
           )
         );
-      
+
       // Send notifications for critically low stock items
       for (const medicine of lowStockMedicines) {
         if (medicine.quantity === 0) {
@@ -2480,27 +1270,28 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           console.log(`Low stock warning: ${medicine.name} (${medicine.quantity} remaining)`);
         }
       }
-      
-      res.json(lowStockMedicines);
+
+      return res.json(lowStockMedicines);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch low stock medicines" });
+      return res.status(500).json({ message: "Failed to fetch low stock medicines" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Get patient vaccinations route already in server/routes/vaccinations.ts (line 54)
   // Get patient vaccinations
   app.get("/api/patients/:id/vaccinations", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      
+
       const patientVaccinations = await db.select()
         .from(vaccinations)
         .where(eq(vaccinations.patientId, patientId))
         .orderBy(desc(vaccinations.dateAdministered));
-      
-      res.json(patientVaccinations || []);
+
+      return res.json(patientVaccinations || []);
     } catch (error) {
       console.error("Error fetching patient vaccinations:", error);
-      res.status(500).json({ message: "Failed to fetch vaccinations" });
+      return res.status(500).json({ message: "Failed to fetch vaccinations" });
     }
   });
 
@@ -2508,49 +1299,52 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.post("/api/patients/:id/vaccinations", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      
+
       // Process the data to handle empty date strings
       const processedData = {
         ...req.body,
         patientId,
         nextDueDate: req.body.nextDueDate === '' ? null : req.body.nextDueDate
       };
-      
-      const validatedData = insertVaccinationSchema.parse(processedData);
-      
+
+      const validatedData = parseAndType(insertVaccinationSchema, processedData) as any;
+
       const [newVaccination] = await db.insert(vaccinations)
         .values(validatedData)
         .returning();
-      
+
       res.json(newVaccination);
     } catch (error) {
       console.error("Error adding vaccination:", error);
-      res.status(500).json({ message: "Failed to add vaccination" });
+      return res.status(500).json({ message: "Failed to add vaccination" });
     }
   });
 
+  /* DUPLICATE - Safety alerts routes already in server/routes/patient-extended.ts
   // Patient safety alerts endpoint
   app.get("/api/patients/:patientId/safety-alerts", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.patientId);
-      
-      // Verify patient exists and belongs to user's organization
+
+      // Verify patient exists and belongs to user's organization (if organizationId is set)
+      const whereConditions = [eq(patients.id, patientId)];
+      if (req.user?.organizationId) {
+        whereConditions.push(eq(patients.organizationId, req.user.organizationId));
+      }
+
       const patient = await db.select()
         .from(patients)
-        .where(and(
-          eq(patients.id, patientId),
-          eq(patients.organizationId, req.user!.organizationId!)
-        ))
+        .where(and(...whereConditions))
         .limit(1);
-      
+
       if (patient.length === 0) {
         return res.status(404).json({ message: "Patient not found" });
       }
-      
+
       // Generate dynamic safety alerts based on patient data
       const safetyAlerts = [];
       const patientData = patient[0];
-      
+
       // Check for allergies
       if (patientData.allergies && patientData.allergies.trim() !== '') {
         safetyAlerts.push({
@@ -2565,14 +1359,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           metadata: { autoGenerated: true }
         });
       }
-      
+
       // Check for medical history concerns
       if (patientData.medicalHistory && patientData.medicalHistory.trim() !== '') {
         const criticalConditions = ['diabetes', 'hypertension', 'heart', 'kidney', 'liver'];
-        const hasCriticalCondition = criticalConditions.some(condition => 
+        const hasCriticalCondition = criticalConditions.some(condition =>
           patientData.medicalHistory?.toLowerCase().includes(condition)
         );
-        
+
         if (hasCriticalCondition) {
           safetyAlerts.push({
             id: `medical-history-${patientId}`,
@@ -2587,7 +1381,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           });
         }
       }
-      
+
       // Age-based alerts
       if (patientData.dateOfBirth) {
         const age = new Date().getFullYear() - new Date(patientData.dateOfBirth).getFullYear();
@@ -2605,14 +1399,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           });
         }
       }
-      
-      res.json(safetyAlerts);
+
+      return res.json(safetyAlerts);
     } catch (error) {
       console.error("Error fetching patient safety alerts:", error);
-      res.status(500).json({ message: "Failed to fetch safety alerts" });
+      return res.status(500).json({ message: "Failed to fetch safety alerts" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Recent patients route already in server/routes/patients.ts
   // Recent patients for dashboard
   app.get("/api/patients/recent", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -2631,19 +1426,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .where(eq(patients.organizationId, req.user!.organizationId!))
         .orderBy(desc(patients.createdAt))
         .limit(5);
-      
+
       // Prevent caching to ensure fresh data
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
-      
-      res.json(recentPatients || []);
+
+      return res.json(recentPatients || []);
     } catch (error) {
       console.error("Error fetching recent patients:", error);
-      res.status(500).json({ message: "Failed to fetch recent patients" });
+      return res.status(500).json({ message: "Failed to fetch recent patients" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE PRESCRIPTION ROUTES - These routes are already in server/routes/prescriptions.ts
   // Prescription routes
   app.get("/api/prescriptions", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -2651,33 +1447,34 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       // Organization-filtered prescriptions
       const prescriptionsResult = await db.select()
         .from(prescriptions)
         .where(eq(prescriptions.organizationId, userOrgId))
         .orderBy(desc(prescriptions.createdAt));
-      
-      res.json(prescriptionsResult);
+
+      return res.json(prescriptionsResult);
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
-      res.status(500).json({ message: "Failed to fetch prescriptions" });
+      return res.status(500).json({ message: "Failed to fetch prescriptions" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Create prescription route already in server/routes/prescriptions.ts (line 200)
   app.post("/api/patients/:id/prescriptions", authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const user = req.user!;
-      
+
       // Add required fields from the authenticated user and handle date conversion
       const requestData = {
-        ...req.body, 
+        ...req.body,
         patientId,
         prescribedBy: user.username,
         organizationId: user.organizationId || null
       };
-      
+
       // Convert date strings to Date objects if present
       if (requestData.startDate && typeof requestData.startDate === 'string') {
         requestData.startDate = new Date(requestData.startDate);
@@ -2685,11 +1482,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (requestData.endDate && typeof requestData.endDate === 'string') {
         requestData.endDate = new Date(requestData.endDate);
       }
-      
+
       const prescriptionData = insertPrescriptionSchema.parse(requestData);
-      
+
       const prescription = await storage.createPrescription(prescriptionData);
-      
+
       // Log audit trail
       const auditLogger = new AuditLogger(req);
       await auditLogger.logPrescriptionAction('create', prescription.id, {
@@ -2698,8 +1495,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         medicationName: prescription.medicationName,
         dosage: prescription.dosage
       });
-      
-      res.json(prescription);
+
+      return res.json(prescription);
     } catch (error) {
       console.error('Prescription creation error:', error);
       console.error('Request body:', req.body);
@@ -2712,12 +1509,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Print prescription route already in server/routes/prescriptions.ts (line 244)
   // Print prescription with organization details
   app.get('/api/prescriptions/:id/print', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const prescriptionId = parseInt(req.params.id);
-      
+
       // Get prescription details with patient info
       const [prescriptionResult] = await db.select({
         prescriptionId: prescriptions.id,
@@ -2740,9 +1538,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         patientPhone: patients.phone,
         patientAddress: patients.address
       })
-      .from(prescriptions)
-      .leftJoin(patients, eq(prescriptions.patientId, patients.id))
-      .where(eq(prescriptions.id, prescriptionId));
+        .from(prescriptions)
+        .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+        .where(eq(prescriptions.id, prescriptionId));
 
       if (!prescriptionResult) {
         return res.status(404).json({ message: "Prescription not found" });
@@ -2764,9 +1562,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         organizationLogo: organizations.logoUrl,
         organizationTheme: organizations.themeColor
       })
-      .from(users)
-      .leftJoin(organizations, eq(users.organizationId, organizations.id))
-      .where(eq(users.id, req.user!.id));
+        .from(users)
+        .leftJoin(organizations, eq(users.organizationId, organizations.id))
+        .where(eq(users.id, req.user!.id));
 
       // Combine prescription data with current user's organization
       const combinedResult = {
@@ -2776,12 +1574,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       // Generate HTML for printing
       const html = generatePrescriptionHTML(combinedResult);
-      
+
       res.setHeader('Content-Type', 'text/html');
       res.send(html);
     } catch (error) {
       console.error('Print prescription error:', error);
-      res.status(500).json({ message: "Failed to generate prescription print" });
+      return res.status(500).json({ message: "Failed to generate prescription print" });
     }
   });
 
@@ -2789,7 +1587,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       // Get prescriptions with organization filtering
       const prescriptionQuery = db.select({
         id: prescriptions.id,
@@ -2810,16 +1608,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         pharmacyId: prescriptions.pharmacyId,
         createdAt: prescriptions.createdAt
       })
-      .from(prescriptions)
-      .leftJoin(medications, eq(prescriptions.medicationId, medications.id))
-      .where(and(
-        eq(prescriptions.patientId, patientId),
-        userOrgId ? eq(prescriptions.organizationId, userOrgId) : undefined
-      ))
-      .orderBy(desc(prescriptions.createdAt));
+        .from(prescriptions)
+        .leftJoin(medications, eq(prescriptions.medicationId, medications.id))
+        .where(and(
+          eq(prescriptions.patientId, patientId),
+          userOrgId ? eq(prescriptions.organizationId, userOrgId) : undefined
+        ))
+        .orderBy(desc(prescriptions.createdAt));
 
       const results = await prescriptionQuery;
-      
+
       // Combine medication names: use manual name if available, otherwise use database name
       const processedPrescriptions = results.map(result => ({
         id: result.id,
@@ -2839,14 +1637,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         pharmacyId: result.pharmacyId,
         createdAt: result.createdAt
       }));
-      
-      res.json(processedPrescriptions);
+
+      return res.json(processedPrescriptions);
     } catch (error) {
       console.error('Fetch prescriptions error:', error);
-      res.status(500).json({ message: "Failed to fetch prescriptions" });
+      return res.status(500).json({ message: "Failed to fetch prescriptions" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Update prescription status route already in server/routes/prescriptions.ts (line 328)
   app.patch("/api/prescriptions/:id/status", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const prescriptionId = parseInt(req.params.id);
@@ -2857,25 +1656,26 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const updatedPrescription = await storage.updatePrescriptionStatus(prescriptionId, status);
-      
+
       if (!updatedPrescription) {
         return res.status(404).json({ message: "Prescription not found" });
       }
 
-      res.json(updatedPrescription);
+      return res.json(updatedPrescription);
     } catch (error) {
       console.error('Update prescription status error:', error);
-      res.status(500).json({ message: "Failed to update prescription status" });
+      return res.status(500).json({ message: "Failed to update prescription status" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Get active prescriptions route already in server/routes/prescriptions.ts (line 291)
   app.get("/api/patients/:id/prescriptions/active", async (req, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const activePrescriptions = await storage.getActivePrescriptionsByPatient(patientId);
-      res.json(activePrescriptions);
+      return res.json(activePrescriptions);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch active prescriptions" });
+      return res.status(500).json({ message: "Failed to fetch active prescriptions" });
     }
   });
 
@@ -2883,9 +1683,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const visitId = parseInt(req.params.id);
       const prescriptions = await storage.getPrescriptionsByVisit(visitId);
-      res.json(prescriptions);
+      return res.json(prescriptions);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch visit prescriptions" });
+      return res.status(500).json({ message: "Failed to fetch visit prescriptions" });
     }
   });
 
@@ -2895,7 +1695,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   // The new auth module includes proper bcrypt verification and environment-based
   // security controls. See server/routes/auth.ts for the active implementation.
   // ============================================================================
-  
+
   /*
   // Authentication routes (MOVED TO server/routes/auth.ts)
   app.post("/api/auth/login", async (req, res) => {
@@ -2937,9 +1737,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           });
         }
 
+        // SECURITY: This code is deprecated. Passwords removed for security.
         // For demo purposes, accept simple passwords (enhanced password validation for production)
-        const validPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'receptionist123', 'password123', 'pharmacy123', 'physio123'];
-        const passwordValid = validPasswords.includes(password);
+        // NOTE: This code is commented out and deprecated. Use server/routes/auth.ts instead.
+        const validPasswords: string[] = []; // Passwords removed - use environment variables
+        const passwordValid = false; // Always false - this code is deprecated
         
         if (passwordValid) {
           // Successful login - record and update user
@@ -3006,16 +1808,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         SecurityManager.recordLoginAttempt(username, false);
       }
 
+      // SECURITY: This code is deprecated. Passwords removed for security.
       // Demo fallback: If user not found but matches demo credentials, create session
       // These users should exist in the database from seeding
+      // NOTE: This code is commented out and deprecated. Use server/routes/auth.ts instead.
       const demoCredentials: Record<string, { password: string; role: string }> = {
-        'superadmin': { password: 'super123', role: 'superadmin' },
-        'admin': { password: 'admin123', role: 'admin' },
-        'ade': { password: 'doctor123', role: 'doctor' },
-        'syb': { password: 'nurse123', role: 'nurse' },
-        'akin': { password: 'pharmacist123', role: 'pharmacist' },
-        'seye': { password: 'physio123', role: 'physiotherapist' },
-        'receptionist': { password: 'receptionist123', role: 'receptionist' }
+        // Passwords removed - use environment variables if needed
       };
       
       const demoUser = demoCredentials[username];
@@ -3060,7 +1858,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
                 themeColor: org.themeColor || '#3B82F6'
               } : (demoUser.role === 'superadmin' ? {
                 id: 0,
-                name: 'System Administration',
+                name: 'Demo Clinic',
                 type: 'system',
                 themeColor: '#DC2626'
               } : null)
@@ -3080,12 +1878,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       
     } catch (error) {
       console.error('Login error:', error);
-      res.status(500).json({ 
+      return res.status(500).json({ 
         message: "Authentication service temporarily unavailable",
         code: 'SERVER_ERROR'
       });
     }
   });
+
+  // Registration endpoint moved to server/routes/auth.ts
 
   // Enhanced password change endpoint
   app.post('/api/auth/change-password', authenticateToken, async (req: AuthRequest, res) => {
@@ -3131,9 +1931,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         });
       }
 
+      // SECURITY: This code is deprecated. Passwords removed for security.
       // For demo, verify against known passwords
-      const validCurrentPasswords = ['admin123', 'doctor123', 'super123', 'nurse123', 'password123', 'pharmacy123', 'physio123'];
-      if (!validCurrentPasswords.includes(currentPassword)) {
+      // NOTE: This code is commented out and deprecated. Use server/routes/auth.ts instead.
+      const validCurrentPasswords: string[] = []; // Passwords removed - use environment variables
+      if (true) { // Always true - this code is deprecated and should not be used
         return res.status(401).json({ 
           message: 'Current password is incorrect',
           code: 'INVALID_CURRENT_PASSWORD'
@@ -3152,14 +1954,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         })
         .where(eq(users.id, userId));
 
-      res.json({ 
+      return res.json({ 
         success: true,
         message: 'Password changed successfully' 
       });
 
     } catch (error) {
       console.error('Password change error:', error);
-      res.status(500).json({ 
+      return res.status(500).json({ 
         message: 'Failed to change password',
         code: 'SERVER_ERROR'
       });
@@ -3183,7 +1985,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     const now = new Date();
     const timeSinceActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60); // minutes
 
-    res.json({
+    return res.json({
       valid: true,
       user: {
         id: user.id,
@@ -3206,7 +2008,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(500).json({ message: "Could not log out" });
       }
       res.clearCookie('connect.sid');
-      res.json({ message: "Logged out successfully" });
+      return res.json({ message: "Logged out successfully" });
     });
   });
   */
@@ -3214,6 +2016,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   // END DEPRECATED AUTH ROUTES
   // ============================================================================
 
+  /* DUPLICATE - Profile route already in server/routes/profile.ts (line 87)
   // Get current user profile with session authentication
   app.get("/api/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -3222,7 +2025,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const userId = req.user.id;
-      
+
       // Handle superadmin fallback user (id: 999) - doesn't exist in database
       if (userId === 999 && req.user.role === 'superadmin') {
         return res.json({
@@ -3236,7 +2039,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           phone: null,
           organization: {
             id: 0,
-            name: 'System Administration',
+                name: 'Demo Clinic',
             type: 'system',
             themeColor: '#DC2626'
           }
@@ -3256,7 +2059,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const currentOrgId = req.user.currentOrganizationId || user.organizationId;
       const org = currentOrgId ? await getOrganizationDetails(currentOrgId) : null;
 
-      res.json({
+      return res.json({
         id: user.id,
         username: user.username,
         role: user.role,
@@ -3274,33 +2077,33 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Profile fetch error:', error);
-      res.status(500).json({ message: "Failed to fetch profile" });
+      return res.status(500).json({ message: "Failed to fetch profile" });
     }
   });
 
   // Search endpoints for autocomplete functionality
-  
+
   // Search medicines for autocomplete
   app.get("/api/medicines/search", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const search = req.query.search as string || "";
-      
+
       let whereClause;
-      
+
       if (search) {
         whereClause = ilike(medicines.name, `%${search}%`);
       }
-      
+
       const searchResults = await db.select()
         .from(medicines)
         .where(whereClause)
         .limit(20)
         .orderBy(medicines.name);
-        
-      res.json(searchResults);
+
+      return res.json(searchResults);
     } catch (error) {
       console.error("Error searching medicines:", error);
-      res.status(500).json({ message: "Failed to search medicines" });
+      return res.status(500).json({ message: "Failed to search medicines" });
     }
   });
 
@@ -3308,9 +2111,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/lab-tests/search", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const search = req.query.search as string || "";
-      
-      let query = db.select().from(labTests);
-      
+
+      let query: any = db.select().from(labTests);
+
       if (search) {
         query = query.where(
           or(
@@ -3320,12 +2123,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           )
         );
       }
-      
+
       const searchResults = await query.limit(20).orderBy(labTests.name);
-      res.json(searchResults);
+      return res.json(searchResults);
     } catch (error) {
       console.error("Error searching lab tests:", error);
-      res.status(500).json({ message: "Failed to search lab tests" });
+      return res.status(500).json({ message: "Failed to search lab tests" });
     }
   });
 
@@ -3334,7 +2137,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const userOrgId = req.user?.organizationId;
       const search = req.query.search as string || "";
-      
+
+      const baseConditions = [
+        inArray(users.role, ['doctor', 'nurse', 'specialist']),
+        userOrgId ? eq(users.organizationId, userOrgId) : undefined
+      ].filter(Boolean);
+
+      if (search) {
+        baseConditions.push(ilike(users.username, `%${search}%`));
+      }
+
       let query = db.select({
         id: users.id,
         username: users.username,
@@ -3345,38 +2157,24 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           name: organizations.name
         }
       })
-      .from(users)
-      .leftJoin(organizations, eq(users.organizationId, organizations.id))
-      .where(
-        and(
-          inArray(users.role, ['doctor', 'nurse', 'specialist']),
-          userOrgId ? eq(users.organizationId, userOrgId) : undefined
-        )
-      );
-      
-      if (search) {
-        query = query.where(
-          and(
-            inArray(users.role, ['doctor', 'nurse', 'specialist']),
-            userOrgId ? eq(users.organizationId, userOrgId) : undefined,
-            ilike(users.username, `%${search}%`)
-          )
-        );
-      }
-      
+        .from(users)
+        .leftJoin(organizations, eq(users.organizationId, organizations.id))
+        .where(and(...baseConditions));
+
       const searchResults = await query.limit(20).orderBy(users.username);
-      res.json(searchResults);
+      return res.json(searchResults);
     } catch (error) {
       console.error("Error searching doctors:", error);
-      res.status(500).json({ message: "Failed to search doctors" });
+      return res.status(500).json({ message: "Failed to search doctors" });
     }
   });
 
+  /* DUPLICATE - Diagnoses search route (may need to be moved to appropriate module)
   // Search diagnoses for autocomplete
   app.get("/api/diagnoses/search", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const search = req.query.search as string || "";
-      
+
       // Common medical diagnoses for healthcare system
       const commonDiagnoses = [
         { id: 1, code: "J00", name: "Acute nasopharyngitis (common cold)", category: "Respiratory" },
@@ -3390,22 +2188,23 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         { id: 9, code: "J06.9", name: "Acute upper respiratory infection", category: "Respiratory" },
         { id: 10, code: "K30", name: "Functional dyspepsia", category: "Digestive" }
       ];
-      
-      const filteredDiagnoses = search 
-        ? commonDiagnoses.filter(diagnosis => 
-            diagnosis.name.toLowerCase().includes(search.toLowerCase()) ||
-            diagnosis.code.toLowerCase().includes(search.toLowerCase()) ||
-            diagnosis.category.toLowerCase().includes(search.toLowerCase())
-          )
+
+      const filteredDiagnoses = search
+        ? commonDiagnoses.filter(diagnosis =>
+          diagnosis.name.toLowerCase().includes(search.toLowerCase()) ||
+          diagnosis.code.toLowerCase().includes(search.toLowerCase()) ||
+          diagnosis.category.toLowerCase().includes(search.toLowerCase())
+        )
         : commonDiagnoses;
-      
-      res.json(filteredDiagnoses.slice(0, 20));
+
+      return res.json(filteredDiagnoses.slice(0, 20));
     } catch (error) {
       console.error("Error searching diagnoses:", error);
-      res.status(500).json({ message: "Failed to search diagnoses" });
+      return res.status(500).json({ message: "Failed to search diagnoses" });
     }
   });
 
+  /* DUPLICATE - Medication review routes already in server/routes/prescriptions.ts
   // Medication Review Assignment endpoints
   app.post("/api/medication-review-assignments", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -3426,19 +2225,19 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       // Remove undefined assignedBy from req.body if it exists
       delete requestData.assignedBy;
-      
+
       const validatedData = insertMedicationReviewAssignmentSchema.parse(requestData);
-      
+
       const [assignment] = await db.insert(medicationReviewAssignments).values({
         ...validatedData,
         assignedBy: req.user!.id,
         organizationId: userOrgId,
-      }).returning();
+      } as any).returning();
 
       res.status(201).json(assignment);
     } catch (error) {
       console.error("Error creating medication review assignment:", error);
-      res.status(500).json({ message: "Failed to create medication review assignment" });
+      return res.status(500).json({ message: "Failed to create medication review assignment" });
     }
   });
 
@@ -3474,25 +2273,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           frequency: prescriptions.frequency
         }
       })
-      .from(medicationReviewAssignments)
-      .leftJoin(patients, eq(medicationReviewAssignments.patientId, patients.id))
-      .leftJoin(users, eq(medicationReviewAssignments.assignedTo, users.id))
-      .leftJoin(sql`users assigned_by_user`, sql`medication_review_assignments.assigned_by = assigned_by_user.id`)
-      .leftJoin(prescriptions, eq(medicationReviewAssignments.prescriptionId, prescriptions.id))
-      .where(
-        and(
-          userOrgId ? eq(medicationReviewAssignments.organizationId, userOrgId) : undefined,
-          status ? eq(medicationReviewAssignments.status, status) : undefined,
-          assignedTo ? eq(medicationReviewAssignments.assignedTo, parseInt(assignedTo)) : undefined
+        .from(medicationReviewAssignments)
+        .leftJoin(patients, eq(medicationReviewAssignments.patientId, patients.id))
+        .leftJoin(users, eq(medicationReviewAssignments.assignedTo, users.id))
+        .leftJoin(sql`users assigned_by_user`, sql`medication_review_assignments.assigned_by = assigned_by_user.id`)
+        .leftJoin(prescriptions, eq(medicationReviewAssignments.prescriptionId, prescriptions.id))
+        .where(
+          and(
+            userOrgId ? eq(medicationReviewAssignments.organizationId, userOrgId) : undefined,
+            status ? eq(medicationReviewAssignments.status, status) : undefined,
+            assignedTo ? eq(medicationReviewAssignments.assignedTo, parseInt(assignedTo)) : undefined
+          )
         )
-      )
-      .orderBy(desc(medicationReviewAssignments.createdAt));
+        .orderBy(desc(medicationReviewAssignments.createdAt));
 
       const assignments = await query;
-      res.json(assignments);
+      return res.json(assignments);
     } catch (error) {
       console.error("Error fetching medication review assignments:", error);
-      res.status(500).json({ message: "Failed to fetch medication review assignments" });
+      return res.status(500).json({ message: "Failed to fetch medication review assignments" });
     }
   });
 
@@ -3525,10 +2324,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Assignment not found" });
       }
 
-      res.json(updatedAssignment);
+      return res.json(updatedAssignment);
     } catch (error) {
       console.error("Error updating medication review assignment:", error);
-      res.status(500).json({ message: "Failed to update medication review assignment" });
+      return res.status(500).json({ message: "Failed to update medication review assignment" });
     }
   });
 
@@ -3551,24 +2350,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           frequency: prescriptions.frequency
         }
       })
-      .from(medicationReviewAssignments)
-      .leftJoin(users, eq(medicationReviewAssignments.assignedTo, users.id))
-      .leftJoin(prescriptions, eq(medicationReviewAssignments.prescriptionId, prescriptions.id))
-      .where(
-        and(
-          eq(medicationReviewAssignments.patientId, patientId),
-          userOrgId ? eq(medicationReviewAssignments.organizationId, userOrgId) : undefined
+        .from(medicationReviewAssignments)
+        .leftJoin(users, eq(medicationReviewAssignments.assignedTo, users.id))
+        .leftJoin(prescriptions, eq(medicationReviewAssignments.prescriptionId, prescriptions.id))
+        .where(
+          and(
+            eq(medicationReviewAssignments.patientId, patientId),
+            userOrgId ? eq(medicationReviewAssignments.organizationId, userOrgId) : undefined
+          )
         )
-      )
-      .orderBy(desc(medicationReviewAssignments.createdAt));
+        .orderBy(desc(medicationReviewAssignments.createdAt));
 
-      res.json(assignments);
+      return res.json(assignments);
     } catch (error) {
       console.error("Error fetching patient medication review assignments:", error);
-      res.status(500).json({ message: "Failed to fetch medication review assignments" });
+      return res.status(500).json({ message: "Failed to fetch medication review assignments" });
     }
   });
 
+  /* DUPLICATE - Superadmin routes already in server/routes/organizations.ts
   // Super Admin Organizations Management
   app.get("/api/superadmin/organizations", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
@@ -3589,70 +2389,106 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .groupBy(organizations.id)
         .orderBy(desc(organizations.createdAt));
 
-      res.json(organizationsWithCounts);
+      return res.json(organizationsWithCounts);
     } catch (error) {
       console.error("Error fetching organizations:", error);
-      res.status(500).json({ message: "Failed to fetch organizations" });
+      return res.status(500).json({ message: "Failed to fetch organizations" });
     }
   });
 
   app.post("/api/superadmin/organizations", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
-      const { name, type, address, phone, email, website, logoUrl, themeColor } = req.body;
+      console.log('=== SUPER ADMIN ORGANIZATION CREATION (routes.ts) ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
       
-      if (!name || !email) {
-        return res.status(400).json({ message: "Name and email are required" });
+      const { name, type, address, phone, email, website, logoUrl, themeColor } = req.body;
+
+      // Validate required fields
+      if (!name || name.trim() === '') {
+        return res.status(400).json({ message: "Organization name is required" });
       }
 
-      const [newOrg] = await db.insert(organizations).values({
-        name: name,
+      // Prepare data for insertion with proper defaults and null handling
+      const orgData = {
+        name: name.trim(),
         type: type || 'clinic',
-        address: address || null,
-        phone: phone || null,
-        email: email,
-        website: website || null,
-        logoUrl: logoUrl || null,
+        address: address && address.trim() !== '' ? address.trim() : null,
+        phone: phone && phone.trim() !== '' ? phone.trim() : null,
+        email: email && email.trim() !== '' ? email.trim() : null,
+        website: website && website.trim() !== '' ? website.trim() : null,
+        logoUrl: logoUrl && logoUrl.trim() !== '' ? logoUrl.trim() : null,
         themeColor: themeColor || '#3B82F6',
         isActive: true
-      }).returning();
+      };
+      
+      console.log('Insert data:', JSON.stringify(orgData, null, 2));
+      
+      // Check if organization with same name already exists
+      const existingOrg = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.name, orgData.name))
+        .limit(1);
+      
+      if (existingOrg.length > 0) {
+        return res.status(400).json({ 
+          message: "An organization with this name already exists" 
+        });
+      }
+      
+      // Check if organization with same email already exists (if email provided)
+      if (orgData.email) {
+        const existingOrgByEmail = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.email, orgData.email))
+          .limit(1);
+        
+        if (existingOrgByEmail.length > 0) {
+          return res.status(400).json({ 
+            message: "An organization with this email already exists" 
+          });
+        }
+      }
+      
+      const [newOrg] = await db.insert(organizations).values(orgData as any).returning();
+      
+      console.log('Organization created successfully:', newOrg.id);
 
       res.status(201).json(newOrg);
     } catch (error) {
       console.error("Error creating organization:", error);
-      res.status(500).json({ message: "Failed to create organization" });
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Provide more detailed error message
+      if (error instanceof Error) {
+        if (error.message.includes('duplicate key') || error.message.includes('UNIQUE constraint')) {
+          return res.status(400).json({ 
+            message: "An organization with this name or email already exists" 
+          });
+        }
+        if (error.message.includes('foreign key') || error.message.includes('constraint')) {
+          return res.status(400).json({ 
+            message: error.message 
+          });
+        }
+      }
+      
+      return res.status(500).json({ 
+        message: "Failed to create organization",
+        error: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
     }
   });
 
-  app.patch("/api/superadmin/organizations/:id/status", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
-    try {
-      const orgId = parseInt(req.params.id);
-      const { isActive } = req.body;
-
-      if (typeof isActive !== 'boolean') {
-        return res.status(400).json({ message: "isActive must be a boolean value" });
-      }
-
-      const [updated] = await db.update(organizations)
-        .set({ isActive: isActive, updatedAt: new Date() })
-        .where(eq(organizations.id, orgId))
-        .returning();
-
-      if (!updated) {
-        return res.status(404).json({ message: "Organization not found" });
-      }
-
-      res.json(updated);
-    } catch (error) {
-      console.error("Error updating organization status:", error);
-      res.status(500).json({ message: "Failed to update organization status" });
-    }
-  });
+  // Organization status update route is handled by setupSuperAdminRoutes()
+  // See server/super-admin-routes.ts for the implementation
 
   app.patch("/api/superadmin/organizations/:id", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
       const orgId = parseInt(req.params.id);
       const { name, type, address, phone, email, website, logoUrl, themeColor } = req.body;
-      
+
       if (!name || !email) {
         return res.status(400).json({ message: "Name and email are required" });
       }
@@ -3678,36 +2514,191 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      res.json(updated);
+      return res.json(updated);
     } catch (error) {
       console.error("Error updating organization:", error);
-      res.status(500).json({ message: "Failed to update organization" });
+      return res.status(500).json({ message: "Failed to update organization" });
     }
   });
+  */
 
+  /* DUPLICATE - Superadmin user routes already in server/routes/organizations.ts
   // Super Admin Users Management
   app.get("/api/superadmin/users", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
-      const systemUsers = await db
+      const systemUsersRaw = await db
         .select({
           id: users.id,
           username: users.username,
-          email: sql<string>`COALESCE(users.email, '')`,
+          email: users.email,
           role: users.role,
-          status: sql<string>`'active'`,
+          isActive: users.isActive,
+          lockedUntil: users.lockedUntil,
           organizationId: users.organizationId,
           organizationName: sql<string>`COALESCE(organizations.name, 'No Organization')`,
-          lastLogin: sql<string>`COALESCE(users.last_login_at::text, 'Never')`,
+          lastLoginAt: users.lastLoginAt,
           createdAt: users.createdAt
         })
         .from(users)
         .leftJoin(organizations, eq(users.organizationId, organizations.id))
         .orderBy(desc(users.createdAt));
 
-      res.json(systemUsers);
+      // Map database fields to frontend format
+      const systemUsers = systemUsersRaw.map(user => {
+        // Determine status: 'active', 'inactive', or 'suspended' (locked)
+        let status = 'active';
+        if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+          status = 'suspended';
+        } else if (!user.isActive) {
+          status = 'inactive';
+        }
+
+        return {
+          id: user.id,
+          username: user.username,
+          email: user.email || '',
+          role: user.role,
+          status,
+          organizationId: user.organizationId,
+          organizationName: user.organizationName,
+          lastLogin: user.lastLoginAt
+            ? new Date(user.lastLoginAt).toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+            : 'Never',
+          createdAt: user.createdAt
+        };
+      });
+
+      return res.json(systemUsers);
     } catch (error) {
       console.error("Error fetching system users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
+      return res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Update user details
+  app.patch("/api/superadmin/users/:id", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { email, role, organizationId } = req.body;
+
+      const [updated] = await db.update(users)
+        .set({
+          ...(email !== undefined && { email }),
+          ...(role !== undefined && { role }),
+          ...(organizationId !== undefined && { organizationId: organizationId === 0 ? null : organizationId })
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get organization name for response
+      const [org] = updated.organizationId
+        ? await db.select({ name: organizations.name })
+          .from(organizations)
+          .where(eq(organizations.id, updated.organizationId))
+          .limit(1)
+        : [{ name: null }];
+
+      let status = 'active';
+      if (updated.lockedUntil && new Date(updated.lockedUntil) > new Date()) {
+        status = 'suspended';
+      } else if (!updated.isActive) {
+        status = 'inactive';
+      }
+
+      return res.json({
+        id: updated.id,
+        username: updated.username,
+        email: updated.email || '',
+        role: updated.role,
+        status,
+        organizationId: updated.organizationId,
+        organizationName: org?.name || 'No Organization',
+        lastLogin: updated.lastLoginAt
+          ? new Date(updated.lastLoginAt).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+          : 'Never',
+        createdAt: updated.createdAt
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Delete user
+  app.delete("/api/superadmin/users/:id", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+
+      // Prevent deleting superadmin users
+      const [user] = await db.select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.role === 'superadmin' || user.role === 'super_admin') {
+        return res.status(400).json({ message: "Cannot delete super admin users" });
+      }
+
+      await db.delete(users).where(eq(users.id, userId));
+
+      return res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Reset user password
+  app.post("/api/superadmin/users/:id/reset-password", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Generate temporary password
+      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase() + '!@#';
+      const hashedPassword = await hashPassword(tempPassword);
+
+      await db.update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, userId));
+
+      // In production, send email with temp password
+      // For now, return it (in production, remove this)
+      res.json({
+        message: "Password reset successfully",
+        temporaryPassword: tempPassword // Remove in production, send via email instead
+      });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      return res.status(500).json({ message: "Failed to reset password" });
     }
   });
 
@@ -3717,11 +2708,46 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const { status } = req.body;
 
       if (!['active', 'inactive', 'suspended'].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+        return res.status(400).json({ message: "Invalid status. Must be 'active', 'inactive', or 'suspended'" });
+      }
+
+      // Get current user to check if they exist
+      const [currentUser] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user based on status
+      let updateData: any = {};
+
+      if (status === 'suspended') {
+        // Suspend: lock account for 30 days
+        const lockUntil = new Date();
+        lockUntil.setDate(lockUntil.getDate() + 30);
+        updateData = {
+          isActive: false,
+          lockedUntil: lockUntil
+        };
+      } else if (status === 'inactive') {
+        // Inactive: disable but don't lock
+        updateData = {
+          isActive: false,
+          lockedUntil: null
+        };
+      } else {
+        // Active: enable and unlock
+        updateData = {
+          isActive: true,
+          lockedUntil: null
+        };
       }
 
       const [updated] = await db.update(users)
-        .set({ role: users.role })
+        .set(updateData)
         .where(eq(users.id, userId))
         .returning();
 
@@ -3729,25 +2755,76 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "User not found" });
       }
 
-      res.json(updated);
+      // Return updated user in the same format as GET endpoint
+      const [org] = await db.select({ name: organizations.name })
+        .from(organizations)
+        .where(eq(organizations.id, updated.organizationId || 0))
+        .limit(1);
+
+      let finalStatus = 'active';
+      if (updated.lockedUntil && new Date(updated.lockedUntil) > new Date()) {
+        finalStatus = 'suspended';
+      } else if (!updated.isActive) {
+        finalStatus = 'inactive';
+      }
+
+      return res.json({
+        id: updated.id,
+        username: updated.username,
+        email: updated.email || '',
+        role: updated.role,
+        status: finalStatus,
+        organizationId: updated.organizationId,
+        organizationName: org?.name || 'No Organization',
+        lastLogin: updated.lastLoginAt
+          ? new Date(updated.lastLoginAt).toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+          : 'Never',
+        createdAt: updated.createdAt
+      });
     } catch (error) {
       console.error("Error updating user status:", error);
-      res.status(500).json({ message: "Failed to update user status" });
+      return res.status(500).json({ message: "Failed to update user status" });
     }
   });
 
   // System Stats
   app.get("/api/superadmin/system-stats", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
-      res.json({
-        systemUptime: "99.9% (7 days)",
-        databaseSize: "2.4 GB",
-        memoryUsage: "4.2 GB / 8 GB",
-        cpuUsage: "45%"
+      // Query real database size using current_database()
+      let databaseSize = "N/A";
+      try {
+        // Use current_database() to get the current database name, then get its size
+        const sizeResult = await db.execute(sql`SELECT pg_size_pretty(pg_database_size(current_database())) as size`);
+        if (sizeResult.rows && sizeResult.rows.length > 0 && sizeResult.rows[0]) {
+          databaseSize = (sizeResult.rows[0] as any).size || "N/A";
+        }
+      } catch (dbError: any) {
+        console.error("Error fetching database size:", dbError.message);
+        // If query fails, keep "N/A" as fallback
+      }
+
+      // Get system uptime (simplified - in production, track actual uptime)
+      const systemUptime = "99.9% (7 days)"; // TODO: Implement real uptime tracking
+
+      // Get memory and CPU usage (simplified - in production, use system monitoring)
+      const memoryUsage = "4.2 GB / 8 GB"; // TODO: Implement real memory monitoring
+      const cpuUsage = "45%"; // TODO: Implement real CPU monitoring
+
+      return res.json({
+        systemUptime,
+        databaseSize,
+        memoryUsage,
+        cpuUsage
       });
     } catch (error) {
       console.error("Error fetching system stats:", error);
-      res.status(500).json({ message: "Failed to fetch system stats" });
+      return res.status(500).json({ message: "Failed to fetch system stats" });
     }
   });
 
@@ -3755,18 +2832,19 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.post("/api/superadmin/backup", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
       // Mock backup process - in real implementation, this would trigger actual backup
-      res.json({ message: "System backup initiated successfully" });
+      return res.json({ message: "System backup initiated successfully" });
     } catch (error) {
       console.error("Error initiating backup:", error);
-      res.status(500).json({ message: "Failed to initiate backup" });
+      return res.status(500).json({ message: "Failed to initiate backup" });
     }
   });
+  */
 
   // Search pharmacies for autocomplete
   app.get("/api/pharmacies/search", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const search = req.query.search as string || "";
-      
+
       // Sample pharmacies data for healthcare system
       const samplePharmacies = [
         { id: 1, name: "HealthPlus Pharmacy", address: "123 Victoria Island, Lagos", phone: "+234-1-234-5678" },
@@ -3775,18 +2853,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         { id: 4, name: "Beta Drugstore", address: "321 Yaba, Lagos", phone: "+234-1-567-8901" },
         { id: 5, name: "Gamma Pharmaceuticals", address: "654 Lekki, Lagos", phone: "+234-1-678-9012" }
       ];
-      
-      const filteredPharmacies = search 
-        ? samplePharmacies.filter(pharmacy => 
-            pharmacy.name.toLowerCase().includes(search.toLowerCase()) ||
-            pharmacy.address.toLowerCase().includes(search.toLowerCase())
-          )
+
+      const filteredPharmacies = search
+        ? samplePharmacies.filter(pharmacy =>
+          pharmacy.name.toLowerCase().includes(search.toLowerCase()) ||
+          pharmacy.address.toLowerCase().includes(search.toLowerCase())
+        )
         : samplePharmacies;
-      
-      res.json(filteredPharmacies.slice(0, 20));
+
+      return res.json(filteredPharmacies.slice(0, 20));
     } catch (error) {
       console.error("Error searching pharmacies:", error);
-      res.status(500).json({ message: "Failed to search pharmacies" });
+      return res.status(500).json({ message: "Failed to search pharmacies" });
     }
   });
 
@@ -3794,7 +2872,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/symptoms/search", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const search = req.query.search as string || "";
-      
+
       // Common medical symptoms for healthcare system
       const commonSymptoms = [
         { id: 1, name: "Fever", category: "General" },
@@ -3813,37 +2891,135 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         { id: 14, name: "Abdominal pain", category: "Digestive" },
         { id: 15, name: "Rash", category: "Dermatological" }
       ];
-      
-      const filteredSymptoms = search 
-        ? commonSymptoms.filter(symptom => 
-            symptom.name.toLowerCase().includes(search.toLowerCase()) ||
-            symptom.category.toLowerCase().includes(search.toLowerCase())
-          )
+
+      const filteredSymptoms = search
+        ? commonSymptoms.filter(symptom =>
+          symptom.name.toLowerCase().includes(search.toLowerCase()) ||
+          symptom.category.toLowerCase().includes(search.toLowerCase())
+        )
         : commonSymptoms;
-      
-      res.json(filteredSymptoms.slice(0, 20));
+
+      return res.json(filteredSymptoms.slice(0, 20));
     } catch (error) {
       console.error("Error searching symptoms:", error);
-      res.status(500).json({ message: "Failed to search symptoms" });
+      return res.status(500).json({ message: "Failed to search symptoms" });
     }
   });
 
   // User management routes (Admin only)
+  // IMPORTANT: Specific routes must come before parameterized routes like /api/users/:id
+  // Find and fix users without roles (Admin only) - must be before /api/users/:id
+  /* DUPLICATE - User routes already in server/routes/users.ts
+  app.get('/api/users/without-role', authenticateToken, requireAnyRole(['admin', 'superadmin', 'super_admin']), async (req: AuthRequest, res) => {
+    try {
+      // Find users with null, empty, or undefined roles
+      const usersWithoutRole = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+          organizationId: users.organizationId,
+          createdAt: users.createdAt
+        })
+        .from(users)
+        .where(
+          or(
+            sql`${users.role} IS NULL`,
+            sql`${users.role} = ''`,
+            sql`TRIM(${users.role}) = ''`
+          )
+        );
+
+      return res.json({
+        count: usersWithoutRole.length,
+        users: usersWithoutRole
+      });
+    } catch (error) {
+      console.error("Error finding users without role:", error);
+      return res.status(500).json({ message: "Failed to find users without role" });
+    }
+  });
+
+  /* DUPLICATE - Fix missing roles route already in server/routes/users.ts (line 55)
+  // Fix users without roles by assigning a default role (Admin only) - must be before /api/users/:id
+  app.post('/api/users/fix-missing-roles', authenticateToken, requireAnyRole(['admin', 'superadmin', 'super_admin']), async (req: AuthRequest, res) => {
+    try {
+      const { defaultRole = 'staff' } = req.body;
+
+      // Find users without roles
+      const usersWithoutRole = await db
+        .select({ id: users.id, username: users.username })
+        .from(users)
+        .where(
+          or(
+            sql`${users.role} IS NULL`,
+            sql`${users.role} = ''`,
+            sql`TRIM(${users.role}) = ''`
+          )
+        );
+
+      if (usersWithoutRole.length === 0) {
+        return res.json({
+          message: "No users without roles found",
+          fixed: 0
+        });
+      }
+
+      // Update users with default role
+      const updated = await db
+        .update(users)
+        .set({
+          role: defaultRole
+          // updatedAt doesn't exist in users schema - removed
+        })
+        .where(
+          or(
+            sql`${users.role} IS NULL`,
+            sql`${users.role} = ''`,
+            sql`TRIM(${users.role}) = ''`
+          )
+        )
+        .returning({ id: users.id, username: users.username, role: users.role });
+
+      // Create audit log
+      const auditLogger = new AuditLogger(req);
+      await auditLogger.logSystemAction('FIX_MISSING_ROLES', {
+        fixedCount: updated.length,
+        defaultRole: defaultRole,
+        userIds: updated.map(u => u.id)
+      });
+
+      return res.json({
+        message: `Fixed ${updated.length} user(s) by assigning role '${defaultRole}'`,
+        fixed: updated.length,
+        users: updated
+      });
+    } catch (error) {
+      console.error("Error fixing users without role:", error);
+      return res.status(500).json({ message: "Failed to fix users without role" });
+    }
+  });
+  /* END DUPLICATE */
+  /* DUPLICATE - Get users route already in server/routes/users.ts (line 113)
   app.get('/api/users', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
       const allUsers = await db.select().from(users);
       // Don't return passwords
       const usersWithoutPasswords = allUsers.map(user => ({ ...user, password: undefined }));
-      res.json(usersWithoutPasswords);
+      return res.json(usersWithoutPasswords);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch users" });
+      return res.status(500).json({ message: "Failed to fetch users" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Create user route already in server/routes/users.ts (line 125)
   app.post("/api/users", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { username, password, email, phone, role, roleId, organizationId, firstName, lastName, title } = req.body;
-      
+
       if (!username || !password || !organizationId) {
         return res.status(400).json({ error: 'Username, password, and organization are required' });
       }
@@ -3853,7 +3029,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userRole && roleId) {
         const roleMap = {
           '1': 'admin',
-          '2': 'doctor', 
+          '2': 'doctor',
           '3': 'nurse',
           '4': 'pharmacist',
           '5': 'receptionist',
@@ -3863,14 +3039,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         userRole = roleMap[roleId.toString()];
       }
 
-      if (!userRole) {
-        return res.status(400).json({ error: 'Valid role is required' });
+      // Validate role is provided and not empty/whitespace
+      if (!userRole || typeof userRole !== 'string' || userRole.trim() === '') {
+        return res.status(400).json({ error: 'Valid role is required and cannot be empty' });
       }
+
+      // Ensure role is trimmed
+      userRole = userRole.trim();
 
       // Role-based permission check for user creation
       const currentUser = req.user;
       const targetOrgId = parseInt(organizationId);
-      
+
       // Check permissions based on user role
       if (currentUser?.role === 'admin' || currentUser?.role === 'superadmin' || currentUser?.role === 'super_admin') {
         // Admins can create users in any organization
@@ -3883,135 +3063,316 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(403).json({ error: 'Insufficient permissions to create users' });
       }
 
+      // SECURITY: Ensure role is always provided and not empty
+      if (!userRole || typeof userRole !== 'string' || userRole.trim() === '') {
+        return res.status(400).json({
+          error: 'Role is required and cannot be empty. Please provide a valid role.'
+        });
+      }
+
       const hashedPassword = await hashPassword(password);
-      
+
       const userData = {
         username,
         password: hashedPassword,
         email: email || null,
         phone: phone || null,
-        role: userRole, // Use userRole which is properly resolved from role or roleId
+        role: userRole.trim(), // Use userRole which is properly resolved from role or roleId, ensure trimmed
         firstName: firstName || null,
         lastName: lastName || null,
         title: title || null,
         organizationId: targetOrgId,
         isActive: true
       };
-      
+
       const user = await storage.createUser(userData);
-      
-      // Create audit log
-      const auditLogger = new AuditLogger(req);
-      await auditLogger.logUserAction(AuditActions.USER_CREATED, user.id, {
-        newUserRole: user.role,
-        newUserUsername: user.username,
-        organizationId: user.organizationId
-      });
-      
-      res.json({ ...user, password: undefined }); // Don't return password
+
+      // SECURITY: Double-check user was created with a role
+      if (!user.role || user.role.trim() === '') {
+        routesLogger.error(`User ${user.id} created without role! Attempting to fix...`, { userId: user.id });
+        // Attempt to fix by assigning default role
+        const [fixedUser] = await db.update(users)
+          .set({ role: 'staff', updatedAt: new Date() })
+          .where(eq(users.id, user.id))
+          .returning();
+
+        if (!fixedUser || !fixedUser.role) {
+          return res.status(500).json({
+            error: 'Failed to create user with valid role. Please contact administrator.'
+          });
+        }
+
+        // Update user object for response
+        user.role = fixedUser.role;
+      }
+
+      // Create audit log (will skip if user is invalid or fallback superadmin)
+      try {
+        const auditLogger = new AuditLogger(req);
+        await auditLogger.logUserAction(AuditActions.USER_CREATED, user.id, {
+          newUserRole: user.role,
+          newUserUsername: user.username,
+          organizationId: user.organizationId
+        });
+      } catch (auditError) {
+        console.error(`[POST /api/users] Failed to create audit log:`, auditError);
+        // Don't fail the request if audit logging fails
+      }
+
+      return res.json({ ...user, password: undefined }); // Don't return password
     } catch (error) {
       console.error("Error creating user:", error);
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid user data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
       } else if (error instanceof Error) {
         // Check for specific user creation errors
         if (error.message === 'Username already exists') {
-          res.status(400).json({ message: "Username already exists. Please choose a different username." });
+          return res.status(400).json({ message: "Username already exists. Please choose a different username." });
         } else if (error.message === 'Email already exists') {
-          res.status(400).json({ message: "Email already exists. Please use a different email address." });
+          return res.status(400).json({ message: "Email already exists. Please use a different email address." });
         } else if (error.message.includes('duplicate key') || error.message.includes('UNIQUE constraint')) {
           // Parse the specific constraint that failed
           if (error.message.includes('users_username_unique') || error.message.includes('username')) {
             const usernameMatch = error.message.match(/Key \(username\)=\(([^)]+)\)/);
             const username = usernameMatch ? usernameMatch[1] : 'specified username';
-            res.status(400).json({ 
+            return res.status(400).json({
               message: `Username "${username}" already exists. Please choose a different username.`
             });
           } else if (error.message.includes('users_email_unique') || error.message.includes('email')) {
-            res.status(400).json({ 
+            return res.status(400).json({
               message: "Email address already exists. Please use a different email address."
             });
           } else {
-            res.status(400).json({ message: "Username or email already exists" });
+            return res.status(400).json({ message: "Username or email already exists" });
           }
         } else {
-          res.status(500).json({ message: "Failed to create user", error: error.message });
+          return res.status(500).json({ message: "Failed to create user", error: error.message });
         }
       } else {
-        res.status(500).json({ message: "Failed to create user", error: String(error) });
+        return res.status(500).json({ message: "Failed to create user", error: String(error) });
       }
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Update user route already in server/routes/users.ts (line 261)
   app.patch('/api/users/:id', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const { username, password, role, email, phone, photoUrl, organizationId } = req.body;
-      
-      const updateData: Record<string, any> = { username, role, email, phone, photoUrl };
-      
+      console.log(`[PATCH /api/users/${userId}] Request received from user ${req.user?.id}`);
+      console.log(`[PATCH /api/users/${userId}] Request body:`, JSON.stringify(req.body, null, 2));
+
+      // SECURITY: Prevent users from changing their own role
+      if (userId === req.user?.id && (req.body.role !== undefined || req.body.roleId !== undefined)) {
+        console.warn(`[PATCH /api/users/${userId}] SECURITY: User ${req.user.id} attempted to change their own role`);
+        return res.status(403).json({
+          message: "You cannot change your own role. Please contact another administrator."
+        });
+      }
+
+      // Get current user data before update to track role changes
+      const [currentUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const {
+        username, password, role, roleId, email, phone, photoUrl,
+        organizationId, firstName, lastName, title
+      } = req.body;
+
+      const updateData: Record<string, any> = {};
+
+      // Handle basic fields
+      if (username !== undefined) updateData.username = username;
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      if (photoUrl !== undefined) updateData.photoUrl = photoUrl;
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (title !== undefined) updateData.title = title === 'none' || title === '' ? null : title;
+
       // Include organizationId if provided
       if (organizationId !== undefined) {
         updateData.organizationId = parseInt(organizationId);
       }
-      
+
+      // Track role changes for audit logging
+      const roleChanged = (roleId !== undefined && roleId !== null && roleId !== '') ||
+        (role !== undefined && role !== null && role !== '');
+      const oldRole = currentUser.role;
+      const oldRoleId = currentUser.roleId;
+
+      // Handle roleId (RBAC) - prefer over legacy role
+      // IMPORTANT: Never allow clearing the role - users must always have a role
+      if (roleId !== undefined && roleId !== null && roleId !== '') {
+        const parsedRoleId = parseInt(roleId);
+        if (!isNaN(parsedRoleId)) {
+          // Verify the role exists
+          const [roleRecord] = await db.select().from(roles).where(eq(roles.id, parsedRoleId)).limit(1);
+          if (roleRecord) {
+            updateData.roleId = parsedRoleId;
+            // Also set legacy role for backward compatibility
+            updateData.role = roleRecord.name.toLowerCase();
+          } else {
+            return res.status(400).json({ message: `Role with ID ${parsedRoleId} not found` });
+          }
+        } else {
+          return res.status(400).json({ message: 'Invalid role ID format' });
+        }
+      } else if (role !== undefined && role !== null && role !== '') {
+        // Validate role is not empty string or whitespace
+        const trimmedRole = role.trim();
+        if (trimmedRole === '') {
+          return res.status(400).json({ message: 'Role cannot be empty or whitespace' });
+        }
+        // Fallback to legacy role if roleId not provided
+        updateData.role = trimmedRole;
+      }
+      // If neither roleId nor role is provided, we don't update the role (preserve existing)
+      // But we need to ensure the user still has a role after update
+
       // Hash password if provided
-      if (password) {
+      if (password && password.trim()) {
         updateData.password = await hashPassword(password);
       }
-      
-      // Remove undefined values
+
+      // Remove undefined and null values (except for title which can be null)
       Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined) {
+        if (updateData[key] === undefined && key !== 'title') {
           delete updateData[key];
         }
       });
-      
+
+      console.log(`[PATCH /api/users/${userId}] Update data:`, JSON.stringify(updateData, null, 2));
+
+      if (Object.keys(updateData).length === 0) {
+        console.warn(`[PATCH /api/users/${userId}] No valid fields to update`);
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+
+      // SECURITY: Prevent removing role from user
+      if (updateData.role !== undefined) {
+        if (!updateData.role || typeof updateData.role !== 'string' || updateData.role.trim() === '') {
+          return res.status(400).json({
+            message: "Role cannot be empty. User must have a valid role assigned."
+          });
+        }
+        // Ensure role is trimmed
+        updateData.role = updateData.role.trim();
+      }
+
       const [updatedUser] = await db.update(users)
         .set(updateData)
         .where(eq(users.id, userId))
         .returning();
-      
+
       if (!updatedUser) {
+        console.warn(`[PATCH /api/users/${userId}] User not found`);
         return res.status(404).json({ message: "User not found" });
       }
-      
-      // Create audit log
-      const auditLogger = new AuditLogger(req);
-      await auditLogger.logUserAction(AuditActions.USER_UPDATED, userId, {
-        updatedFields: Object.keys(updateData),
-        newRole: role
-      });
-      
+
+      // CRITICAL: Ensure user still has a role after update
+      if (!updatedUser.role || updatedUser.role.trim() === '') {
+        routesLogger.error(`User ${userId} ended up without a role after update! Attempting to fix...`, { userId });
+        // Attempt to fix by assigning default role
+        const [fixedUser] = await db.update(users)
+          .set({ role: 'staff' })
+          .where(eq(users.id, userId))
+          .returning();
+
+        if (!fixedUser || !fixedUser.role) {
+          return res.status(500).json({
+            message: "Update failed: User must have a role. Failed to assign default role. Please contact administrator.",
+            error: "ROLE_ASSIGNMENT_FAILED"
+          });
+        }
+
+        return res.status(500).json({
+          message: "Update failed: User must have a role. Default role 'staff' has been assigned.",
+          user: fixedUser,
+          warning: "ROLE_AUTO_ASSIGNED"
+        });
+      }
+
+      console.log(`[PATCH /api/users/${userId}] User updated successfully`);
+
+      // Create audit log with enhanced role change tracking
+      try {
+        const auditLogger = new AuditLogger(req);
+        const auditDetails: any = {
+          updatedFields: Object.keys(updateData),
+          newRole: updateData.role || updatedUser.role,
+          newRoleId: updateData.roleId || updatedUser.roleId
+        };
+
+        // If role was changed, add detailed role change information
+        if (roleChanged) {
+          auditDetails.roleChanged = true;
+          auditDetails.oldRole = oldRole;
+          auditDetails.oldRoleId = oldRoleId;
+          auditDetails.newRole = updateData.role || updatedUser.role;
+          auditDetails.newRoleId = updateData.roleId || updatedUser.roleId;
+
+          // Create a separate audit log entry specifically for role changes
+          const auditLogData = parseAndType(insertAuditLogSchema, {
+            userId: req.user!.id,
+            action: 'CHANGE_USER_ROLE',
+            entityType: 'user',
+            entityId: userId,
+            details: JSON.stringify({
+              targetUserId: userId,
+              targetUsername: updatedUser.username,
+              oldRole,
+              oldRoleId,
+              newRole: auditDetails.newRole,
+              newRoleId: auditDetails.newRoleId,
+              changedBy: req.user!.id,
+              changedByUsername: req.user!.username
+            }),
+            ipAddress: req.ip || '',
+            userAgent: req.headers['user-agent'] || ''
+          }) as any;
+          await db.insert(auditLogs).values(auditLogData);
+        }
+
+        await auditLogger.logUserAction(AuditActions.USER_UPDATED, userId, auditDetails);
+      } catch (auditError) {
+        console.error(`[PATCH /api/users/${userId}] Failed to create audit log:`, auditError);
+        // Don't fail the request if audit logging fails
+      }
+
       // If the updated user is the current user, send a signal to refresh their session
       const response: any = { ...updatedUser, password: undefined };
       if (req.user?.id === userId) {
         response.sessionRefreshRequired = true;
       }
-      
-      res.json(response);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to update user" });
+
+      return res.json(response);
+    } catch (error: any) {
+      console.error(`[PATCH /api/users/${req.params.id}] Error:`, error);
+      console.error(`[PATCH /api/users/${req.params.id}] Error stack:`, error.stack);
+      return res.status(500).json({ message: error.message || "Failed to update user" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Delete user route already in server/routes/users.ts (line 452)
   app.delete('/api/users/:id', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
       const userId = parseInt(req.params.id);
-      
+
       // Prevent admin from deleting themselves
       if (req.user?.id === userId) {
         return res.status(400).json({ message: "Cannot delete your own account" });
       }
-      
+
       const [deletedUser] = await db.delete(users)
         .where(eq(users.id, userId))
         .returning();
-      
+
       if (!deletedUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logUserAction(AuditActions.USER_UPDATED, userId, {
@@ -4019,27 +3380,37 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         deletedUserRole: deletedUser.role,
         deletedUsername: deletedUser.username
       });
-      
-      res.json({ message: "User deleted successfully" });
+
+      return res.json({ message: "User deleted successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete user" });
+      return res.status(500).json({ message: "Failed to delete user" });
     }
   });
 
+  /* DUPLICATE - Audit logs route already in server/routes/system.ts
   // Audit logs endpoint (Admin only)
   app.get('/api/audit-logs', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
       const logs = await db.select().from(auditLogs).orderBy(auditLogs.timestamp);
-      res.json(logs);
+      return res.json(logs);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch audit logs" });
+      return res.status(500).json({ message: "Failed to fetch audit logs" });
     }
   });
+  */
 
   // Availability Slots API
   app.get('/api/availability-slots', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { doctorId } = req.query;
+      const slotConditions = [
+        eq(availabilitySlots.organizationId, req.user!.organizationId!)
+      ];
+
+      if (doctorId) {
+        slotConditions.push(eq(availabilitySlots.doctorId, parseInt(doctorId as string)));
+      }
+
       let query = db.select({
         id: availabilitySlots.id,
         doctorId: availabilitySlots.doctorId,
@@ -4050,25 +3421,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         isActive: availabilitySlots.isActive,
         doctorName: users.username
       })
-      .from(availabilitySlots)
-      .leftJoin(users, eq(availabilitySlots.doctorId, users.id))
-      .where(eq(availabilitySlots.organizationId, req.user!.organizationId!));
-
-      if (doctorId) {
-        query = query.where(and(
-          eq(availabilitySlots.organizationId, req.user!.organizationId!),
-          eq(availabilitySlots.doctorId, parseInt(doctorId as string))
-        ));
-      }
+        .from(availabilitySlots)
+        .leftJoin(users, eq(availabilitySlots.doctorId, users.id))
+        .where(and(...slotConditions));
 
       const slots = await query;
-      res.json(slots);
+      return res.json(slots);
     } catch (error) {
       console.error('Error fetching availability slots:', error);
-      res.status(500).json({ message: "Failed to fetch availability slots" });
+      return res.status(500).json({ message: "Failed to fetch availability slots" });
     }
   });
-
+  /* END DUPLICATE */
   // Upload existing lab results from database
   app.post('/api/lab-results/upload-existing', authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -4090,29 +3454,30 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         createdAt: labResults.createdAt,
         patientName: sql<string>`CONCAT(${patients.firstName}, ' ', ${patients.lastName})`
       })
-      .from(labResults)
-      .leftJoin(patients, eq(labResults.patientId, patients.id))
-      .where(eq(labResults.organizationId, userOrgId))
-      .orderBy(desc(labResults.createdAt))
-      .limit(50);
+        .from(labResults)
+        .leftJoin(patients, eq(labResults.patientId, patients.id))
+        .where(eq(labResults.organizationId, userOrgId))
+        .orderBy(desc(labResults.createdAt))
+        .limit(50);
 
-      res.json({
+      return res.json({
         message: "Existing lab results retrieved successfully",
         count: existingResults.length,
         results: existingResults
       });
     } catch (error) {
       console.error('Error uploading existing lab results:', error);
-      res.status(500).json({ message: "Failed to upload existing lab results" });
+      return res.status(500).json({ message: "Failed to upload existing lab results" });
     }
   });
 
+  /* DUPLICATE - Patient Insurance routes already in server/routes/patient-extended.ts
   // Patient Insurance Routes
   app.get('/api/patients/:id/insurance', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       const insuranceRecords = await db.select()
         .from(patientInsurance)
         .where(and(
@@ -4121,10 +3486,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         ))
         .orderBy(desc(patientInsurance.createdAt));
 
-      res.json(insuranceRecords);
+      return res.json(insuranceRecords);
     } catch (error) {
       console.error('Error fetching patient insurance:', error);
-      res.status(500).json({ message: "Failed to fetch insurance records" });
+      return res.status(500).json({ message: "Failed to fetch insurance records" });
     }
   });
 
@@ -4132,7 +3497,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       // Helper function to sanitize numeric fields
       const sanitizeNumeric = (value: any): string | null => {
         if (value === '' || value === undefined || value === null) return null;
@@ -4145,7 +3510,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         if (value === '' || value === undefined || value === null) return null;
         return value;
       };
-      
+
       // Build sanitized data object, explicitly handling all fields
       const sanitizedData = {
         provider: req.body.provider,
@@ -4170,13 +3535,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         patientId,
         organizationId: userOrgId!
       };
-      
+
       const [newInsurance] = await db.insert(patientInsurance).values(sanitizedData).returning();
 
       res.status(201).json(newInsurance);
     } catch (error) {
       console.error('Error creating insurance record:', error);
-      res.status(500).json({ message: "Failed to create insurance record" });
+      return res.status(500).json({ message: "Failed to create insurance record" });
     }
   });
 
@@ -4185,7 +3550,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const insuranceId = parseInt(req.params.insuranceId);
       const userOrgId = req.user?.organizationId;
-      
+
       // Helper function to sanitize numeric fields
       const sanitizeNumeric = (value: any): string | null => {
         if (value === '' || value === undefined || value === null) return null;
@@ -4198,12 +3563,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         if (value === '' || value === undefined || value === null) return null;
         return value;
       };
-      
+
       // Build sanitized update data
       const sanitizedData: Record<string, any> = {
         updatedAt: new Date()
       };
-      
+
       // Only include fields that are present in the request
       if ('provider' in req.body) sanitizedData.provider = req.body.provider;
       if ('policyNumber' in req.body) sanitizedData.policyNumber = req.body.policyNumber;
@@ -4224,7 +3589,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if ('coverageDetails' in req.body) sanitizedData.coverageDetails = req.body.coverageDetails || null;
       if ('preAuthRequired' in req.body) sanitizedData.preAuthRequired = req.body.preAuthRequired ?? false;
       if ('referralRequired' in req.body) sanitizedData.referralRequired = req.body.referralRequired ?? false;
-      
+
       const [updated] = await db.update(patientInsurance)
         .set(sanitizedData)
         .where(and(
@@ -4238,10 +3603,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Insurance record not found" });
       }
 
-      res.json(updated);
+      return res.json(updated);
     } catch (error) {
       console.error('Error updating insurance record:', error);
-      res.status(500).json({ message: "Failed to update insurance record" });
+      return res.status(500).json({ message: "Failed to update insurance record" });
     }
   });
 
@@ -4250,7 +3615,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const insuranceId = parseInt(req.params.insuranceId);
       const userOrgId = req.user?.organizationId;
-      
+
       const [deleted] = await db.delete(patientInsurance)
         .where(and(
           eq(patientInsurance.id, insuranceId),
@@ -4263,37 +3628,38 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Insurance record not found" });
       }
 
-      res.json({ message: "Insurance record deleted successfully" });
+      return res.json({ message: "Insurance record deleted successfully" });
     } catch (error) {
       console.error('Error deleting insurance record:', error);
-      res.status(500).json({ message: "Failed to delete insurance record" });
+      return res.status(500).json({ message: "Failed to delete insurance record" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Patient Medical History routes already in server/routes/patient-extended.ts
   // Patient Medical History Routes
   app.get('/api/patients/:id/medical-history', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       // Verify patient belongs to user's organization
       const [patient] = await db.select().from(patients)
         .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId!)))
         .limit(1);
-      
+
       if (!patient) {
         return res.status(403).json({ message: "Access denied - patient not in your organization" });
       }
-      
+
       const historyRecords = await db.select()
         .from(medicalHistory)
         .where(eq(medicalHistory.patientId, patientId))
         .orderBy(desc(medicalHistory.dateOccurred));
 
-      res.json(historyRecords);
+      return res.json(historyRecords);
     } catch (error) {
       console.error('Error fetching patient medical history:', error);
-      res.status(500).json({ message: "Failed to fetch medical history records" });
+      return res.status(500).json({ message: "Failed to fetch medical history records" });
     }
   });
 
@@ -4301,16 +3667,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       // Verify patient belongs to user's organization
       const [patient] = await db.select().from(patients)
         .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId!)))
         .limit(1);
-      
+
       if (!patient) {
         return res.status(403).json({ message: "Access denied - patient not in your organization" });
       }
-      
+
       // Validate required fields
       const requiredFields = ['condition', 'type', 'dateOccurred', 'status', 'description'];
       for (const field of requiredFields) {
@@ -4318,7 +3684,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           return res.status(400).json({ message: `Missing required field: ${field}` });
         }
       }
-      
+
       // Sanitize allowed fields only
       const allowedFields = ['condition', 'type', 'dateOccurred', 'status', 'description', 'treatment', 'notes'];
       const validatedData: Record<string, any> = {};
@@ -4327,16 +3693,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           validatedData[key] = req.body[key];
         }
       }
-      
-      const [newHistory] = await db.insert(medicalHistory).values({
+
+      const historyData = parseAndType(insertMedicalHistorySchema, {
         ...validatedData,
         patientId
-      }).returning();
+      }) as any;
+      const [newHistory] = await db.insert(medicalHistory).values(historyData).returning();
 
       res.status(201).json(newHistory);
     } catch (error) {
       console.error('Error creating medical history entry:', error);
-      res.status(500).json({ message: "Failed to create medical history entry" });
+      return res.status(500).json({ message: "Failed to create medical history entry" });
     }
   });
 
@@ -4345,16 +3712,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const historyId = parseInt(req.params.historyId);
       const userOrgId = req.user?.organizationId;
-      
+
       // Verify patient belongs to user's organization
       const [patient] = await db.select().from(patients)
         .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId!)))
         .limit(1);
-      
+
       if (!patient) {
         return res.status(403).json({ message: "Access denied - patient not in your organization" });
       }
-      
+
       // Validate and sanitize update fields
       const allowedFields = ['condition', 'type', 'dateOccurred', 'status', 'description', 'treatment', 'notes'];
       const sanitizedData: Record<string, any> = {};
@@ -4363,7 +3730,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           sanitizedData[key] = req.body[key];
         }
       }
-      
+
       const [updated] = await db.update(medicalHistory)
         .set(sanitizedData)
         .where(and(
@@ -4376,10 +3743,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Medical history entry not found" });
       }
 
-      res.json(updated);
+      return res.json(updated);
     } catch (error) {
       console.error('Error updating medical history entry:', error);
-      res.status(500).json({ message: "Failed to update medical history entry" });
+      return res.status(500).json({ message: "Failed to update medical history entry" });
     }
   });
 
@@ -4388,16 +3755,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const historyId = parseInt(req.params.historyId);
       const userOrgId = req.user?.organizationId;
-      
+
       // Verify patient belongs to user's organization
       const [patient] = await db.select().from(patients)
         .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId!)))
         .limit(1);
-      
+
       if (!patient) {
         return res.status(403).json({ message: "Access denied - patient not in your organization" });
       }
-      
+
       const [deleted] = await db.delete(medicalHistory)
         .where(and(
           eq(medicalHistory.id, historyId),
@@ -4409,19 +3776,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Medical history entry not found" });
       }
 
-      res.json({ message: "Medical history entry deleted successfully" });
+      return res.json({ message: "Medical history entry deleted successfully" });
     } catch (error) {
       console.error('Error deleting medical history entry:', error);
-      res.status(500).json({ message: "Failed to delete medical history entry" });
+      return res.status(500).json({ message: "Failed to delete medical history entry" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Discharge letters routes already in server/routes/patient-extended.ts
   // Discharge Letter Routes
   app.get('/api/patients/:id/discharge-letters', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       const letters = await db.select({
         id: dischargeLetters.id,
         patientId: dischargeLetters.patientId,
@@ -4450,18 +3818,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           role: users.role
         }
       })
-      .from(dischargeLetters)
-      .leftJoin(users, eq(dischargeLetters.attendingPhysicianId, users.id))
-      .where(and(
-        eq(dischargeLetters.patientId, patientId),
-        eq(dischargeLetters.organizationId, userOrgId!)
-      ))
-      .orderBy(desc(dischargeLetters.dischargeDate));
+        .from(dischargeLetters)
+        .leftJoin(users, eq(dischargeLetters.attendingPhysicianId, users.id))
+        .where(and(
+          eq(dischargeLetters.patientId, patientId),
+          eq(dischargeLetters.organizationId, userOrgId!)
+        ))
+        .orderBy(desc(dischargeLetters.dischargeDate));
 
-      res.json(letters);
+      return res.json(letters);
     } catch (error) {
       console.error('Error fetching discharge letters:', error);
-      res.status(500).json({ message: "Failed to fetch discharge letters" });
+      return res.status(500).json({ message: "Failed to fetch discharge letters" });
     }
   });
 
@@ -4470,16 +3838,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
       const userId = req.user?.id;
-      
+
       // Verify patient belongs to user's organization
       const [patient] = await db.select().from(patients)
         .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId!)))
         .limit(1);
-      
+
       if (!patient) {
         return res.status(403).json({ message: "Access denied - patient not in your organization" });
       }
-      
+
       // Validate required fields
       const requiredFields = ['admissionDate', 'dischargeDate', 'diagnosis', 'treatmentSummary', 'dischargeCondition'];
       for (const field of requiredFields) {
@@ -4487,7 +3855,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           return res.status(400).json({ message: `Missing required field: ${field}` });
         }
       }
-      
+
       // Sanitize allowed fields only
       const allowedFields = [
         'admissionDate', 'dischargeDate', 'diagnosis', 'treatmentSummary',
@@ -4507,7 +3875,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           }
         }
       }
-      
+
       // Prepare insert data with validated fields
       const insertData = {
         patientId,
@@ -4515,13 +3883,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         organizationId: userOrgId,
         ...validatedData
       };
-      
+
       const [newLetter] = await db.insert(dischargeLetters).values(insertData as any).returning();
 
       res.status(201).json(newLetter);
     } catch (error) {
       console.error('Error creating discharge letter:', error);
-      res.status(500).json({ message: "Failed to create discharge letter" });
+      return res.status(500).json({ message: "Failed to create discharge letter" });
     }
   });
 
@@ -4530,16 +3898,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const letterId = parseInt(req.params.letterId);
       const userOrgId = req.user?.organizationId;
-      
+
       // Verify patient belongs to user's organization
       const [patient] = await db.select().from(patients)
         .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId!)))
         .limit(1);
-      
+
       if (!patient) {
         return res.status(403).json({ message: "Access denied - patient not in your organization" });
       }
-      
+
       // Whitelist allowed fields for update
       const allowedFields = [
         'admissionDate', 'dischargeDate', 'diagnosis', 'treatmentSummary',
@@ -4548,7 +3916,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         'dietaryAdvice', 'warningSymptoms', 'emergencyContact', 'visitId', 'status'
       ];
       const dateFields = ['admissionDate', 'dischargeDate', 'followUpDate'];
-      
+
       const updateData: Record<string, any> = { updatedAt: new Date() };
       for (const key of allowedFields) {
         if (key in req.body) {
@@ -4560,11 +3928,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           }
         }
       }
-      
+
       if (Object.keys(updateData).length <= 1) {
         return res.status(400).json({ message: "No valid fields to update" });
       }
-      
+
       const [updated] = await db.update(dischargeLetters)
         .set(updateData)
         .where(and(
@@ -4577,10 +3945,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Discharge letter not found" });
       }
 
-      res.json(updated);
+      return res.json(updated);
     } catch (error) {
       console.error('Error updating discharge letter:', error);
-      res.status(500).json({ message: "Failed to update discharge letter" });
+      return res.status(500).json({ message: "Failed to update discharge letter" });
     }
   });
 
@@ -4589,16 +3957,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const letterId = parseInt(req.params.letterId);
       const userOrgId = req.user?.organizationId;
-      
+
       // Verify patient belongs to user's organization
       const [patient] = await db.select().from(patients)
         .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId!)))
         .limit(1);
-      
+
       if (!patient) {
         return res.status(403).json({ message: "Access denied - patient not in your organization" });
       }
-      
+
       const [deleted] = await db.delete(dischargeLetters)
         .where(and(
           eq(dischargeLetters.id, letterId),
@@ -4610,19 +3978,24 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Discharge letter not found" });
       }
 
-      res.json({ message: "Discharge letter deleted successfully" });
+      return res.json({ message: "Discharge letter deleted successfully" });
     } catch (error) {
       console.error('Error deleting discharge letter:', error);
-      res.status(500).json({ message: "Failed to delete discharge letter" });
+      return res.status(500).json({ message: "Failed to delete discharge letter" });
     }
   });
 
+  /* DUPLICATE - Patient referral routes already in server/routes/patient-extended.ts
   // Patient Referral Routes
   app.get('/api/patients/:id/referrals', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      const userOrgId = req.user?.organizationId;
-      
+      const userOrgId = req.user?.organizationId || 1; // Default to organization 1 if not set
+
+      if (!patientId || isNaN(patientId)) {
+        return res.status(400).json({ message: "Invalid patient ID" });
+      }
+
       const referrals = await db.select({
         id: patientReferrals.id,
         patientId: patientReferrals.patientId,
@@ -4646,38 +4019,69 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           role: users.role
         }
       })
-      .from(patientReferrals)
-      .leftJoin(users, eq(patientReferrals.referringDoctorId, users.id))
-      .where(and(
-        eq(patientReferrals.patientId, patientId),
-        eq(patientReferrals.organizationId, userOrgId!)
-      ))
-      .orderBy(desc(patientReferrals.createdAt));
+        .from(patientReferrals)
+        .leftJoin(users, eq(patientReferrals.referringDoctorId, users.id))
+        .where(and(
+          eq(patientReferrals.patientId, patientId),
+          eq(patientReferrals.organizationId, userOrgId)
+        ))
+        .orderBy(desc(patientReferrals.createdAt));
 
-      res.json(referrals);
+      return res.json(referrals);
     } catch (error) {
       console.error('Error fetching patient referrals:', error);
-      res.status(500).json({ message: "Failed to fetch referrals" });
+      return res.status(500).json({ message: "Failed to fetch referrals" });
     }
   });
 
   app.post('/api/patients/:id/referrals', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      const userOrgId = req.user?.organizationId;
+      const userOrgId = req.user?.organizationId || 1; // Default to organization 1 if not set
       const userId = req.user?.id;
-      
+
+      if (!userId) {
+        return res.status(401).json({ message: "User authentication required" });
+      }
+
+      if (!patientId || isNaN(patientId)) {
+        return res.status(400).json({ message: "Invalid patient ID" });
+      }
+
+      // Validate required fields (reason is required in schema, specialty is required by frontend)
+      const missingFields = [];
+      if (!req.body.reason || (typeof req.body.reason === 'string' && req.body.reason.trim() === '')) {
+        missingFields.push('reason');
+      }
+      if (!req.body.specialty || (typeof req.body.specialty === 'string' && req.body.specialty.trim() === '')) {
+        missingFields.push('specialty');
+      }
+
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          message: `Missing required fields: ${missingFields.join(', ')}`,
+          missingFields
+        });
+      }
+
       const [newReferral] = await db.insert(patientReferrals).values({
         ...req.body,
         patientId,
-        referringDoctorId: userId!,
-        organizationId: userOrgId!
+        referringDoctorId: userId,
+        organizationId: userOrgId
       }).returning();
 
       res.status(201).json(newReferral);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating referral:', error);
-      res.status(500).json({ message: "Failed to create referral" });
+      // Provide more specific error messages
+      if (error.code === '23505') { // Unique constraint violation
+        return res.status(409).json({ message: "A referral with these details already exists" });
+      }
+      if (error.code === '23503') { // Foreign key violation
+        return res.status(400).json({ message: "Invalid patient or doctor reference" });
+      }
+      return res.status(500).json({ message: error.message || "Failed to create referral" });
     }
   });
 
@@ -4686,7 +4090,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const referralId = parseInt(req.params.referralId);
       const userOrgId = req.user?.organizationId;
-      
+
       const [updated] = await db.update(patientReferrals)
         .set({ ...req.body, updatedAt: new Date() })
         .where(and(
@@ -4700,10 +4104,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Referral not found" });
       }
 
-      res.json(updated);
+      return res.json(updated);
     } catch (error) {
       console.error('Error updating referral:', error);
-      res.status(500).json({ message: "Failed to update referral" });
+      return res.status(500).json({ message: "Failed to update referral" });
     }
   });
 
@@ -4712,7 +4116,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const patientId = parseInt(req.params.id);
       const referralId = parseInt(req.params.referralId);
       const userOrgId = req.user?.organizationId;
-      
+
       const [deleted] = await db.delete(patientReferrals)
         .where(and(
           eq(patientReferrals.id, referralId),
@@ -4725,13 +4129,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Referral not found" });
       }
 
-      res.json({ message: "Referral deleted successfully" });
+      return res.json({ message: "Referral deleted successfully" });
     } catch (error) {
       console.error('Error deleting referral:', error);
-      res.status(500).json({ message: "Failed to delete referral" });
+      return res.status(500).json({ message: "Failed to delete referral" });
     }
   });
 
+  /* DUPLICATE - Lab orders enhanced route already in server/routes/laboratory.ts (line 353)
   // Enhanced Laboratory Management API Endpoints
   app.get('/api/lab-orders/enhanced', authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -4763,57 +4168,60 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         completedItems: sql<number>`(SELECT COUNT(*) FROM lab_order_items WHERE lab_order_id = ${labOrders.id} AND status = 'completed')`,
         totalCost: sql<string>`(SELECT SUM(CAST(cost AS DECIMAL)) FROM lab_order_items loi JOIN lab_tests lt ON loi.lab_test_id = lt.id WHERE loi.lab_order_id = ${labOrders.id})`
       })
-      .from(labOrders)
-      .leftJoin(patients, eq(labOrders.patientId, patients.id))
-      .leftJoin(users, eq(labOrders.orderedBy, users.id))
-      .where(userOrgId ? eq(labOrders.organizationId, userOrgId) : undefined);
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .leftJoin(users, eq(labOrders.orderedBy, users.id));
 
+      const orderConditions: any[] = [];
+      if (userOrgId) {
+        orderConditions.push(eq(labOrders.organizationId, userOrgId));
+      }
       if (status && status !== 'all') {
-        query = query.where(and(
-          userOrgId ? eq(labOrders.organizationId, userOrgId) : undefined,
-          eq(labOrders.status, status as string)
-        ));
+        orderConditions.push(eq(labOrders.status, status as string));
+      }
+      if (priority && priority !== 'all') {
+        orderConditions.push(eq(labOrders.priority, priority as string));
       }
 
-      if (priority && priority !== 'all') {
-        query = query.where(and(
-          userOrgId ? eq(labOrders.organizationId, userOrgId) : undefined,
-          eq(labOrders.priority, priority as string)
-        ));
+      if (orderConditions.length > 0) {
+        query = (query as any).where(and(...orderConditions));
       }
 
       const orders = await query.orderBy(desc(labOrders.createdAt));
-      res.json(orders);
+      return res.json(orders);
     } catch (error) {
       console.error('Error fetching enhanced lab orders:', error);
-      res.status(500).json({ message: "Failed to fetch lab orders" });
+      return res.status(500).json({ message: "Failed to fetch lab orders" });
     }
   });
 
   // Basic lab orders endpoint (used by laboratory-unified.tsx)
-  app.post('/api/lab-orders', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.post('/api/lab-orders', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
       const { patientId, tests, clinicalNotes, diagnosis, priority } = req.body;
-      
+
       if (!tests || tests.length === 0) {
         return res.status(400).json({ message: "At least one test is required" });
       }
-      
+
       // Calculate total cost
       const testIds = tests.map((test: any) => test.id);
       const testPrices = await db.select({
         id: labTests.id,
         cost: labTests.cost
       }).from(labTests).where(inArray(labTests.id, testIds));
-      
+
       const totalCost = testPrices.reduce((sum, test) => {
         const cost = test.cost ? parseFloat(test.cost.toString()) : 0;
         return sum + cost;
       }, 0);
-      
+
       // Create lab order with organization context
-      const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
-      
+      const userOrgId = req.tenant?.id || req.user?.currentOrganizationId || req.user?.organizationId;
+      if (!userOrgId || !req.user?.id) {
+        return res.status(403).json({ message: "Organization context and user authentication required" });
+      }
+
       const orderData = {
         patientId: parseInt(patientId),
         orderedBy: req.user?.id || 1,
@@ -4824,9 +4232,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         totalCost: totalCost.toString(),
         status: 'pending'
       };
-      
+
       const order = await storage.createLabOrder(orderData);
-      
+
       // Create order items
       const orderItems = await Promise.all(tests.map(async (test: any) => {
         const itemData = {
@@ -4836,13 +4244,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         };
         return await storage.createLabOrderItem(itemData);
       }));
-      
+
       console.log(`✅ Lab order #${order.id} created for patient ${patientId}`);
-      
-      res.status(201).json({ order, orderItems });
+
+      return res.status(201).json({ order, orderItems });
     } catch (error) {
       console.error('❌ Error creating lab order:', error);
-      res.status(500).json({ message: "Failed to create lab order" });
+      return res.status(500).json({ message: "Failed to create lab order" });
     }
   });
 
@@ -4862,14 +4270,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           eq(labOrders.status, 'completed')
         ));
 
-      const completionRate = totalOrders.count > 0 
-        ? Math.round((completedOrders.count / totalOrders.count) * 100) 
+      const completionRate = totalOrders.count > 0
+        ? Math.round((completedOrders.count / totalOrders.count) * 100)
         : 0;
 
       // Calculate average turnaround time (simplified)
       const avgTurnaroundHours = 24; // This would need more complex calculation
 
-      res.json({
+      return res.json({
         metrics: {
           totalOrders: totalOrders.count,
           completedOrders: completedOrders.count,
@@ -4879,25 +4287,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error fetching lab analytics:', error);
-      res.status(500).json({ message: "Failed to fetch analytics" });
+      return res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 
   app.post('/api/availability-slots', authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
     try {
-      const slotData = insertAvailabilitySlotSchema.parse({
+      const slotData = parseAndType(insertAvailabilitySlotSchema, {
         ...req.body,
         organizationId: req.user!.organizationId
-      });
-      
+      }) as any;
+
       const [newSlot] = await db.insert(availabilitySlots)
         .values(slotData)
         .returning();
-      
+
       res.json(newSlot);
     } catch (error) {
       console.error('Error creating availability slot:', error);
-      res.status(500).json({ message: "Failed to create availability slot" });
+      return res.status(500).json({ message: "Failed to create availability slot" });
     }
   });
 
@@ -4905,6 +4313,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get('/api/blackout-dates', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { doctorId } = req.query;
+      const blackoutConditions = [
+        eq(blackoutDates.organizationId, req.user!.organizationId!)
+      ];
+
+      if (doctorId) {
+        blackoutConditions.push(eq(blackoutDates.doctorId, parseInt(doctorId as string)));
+      }
+
       let query = db.select({
         id: blackoutDates.id,
         doctorId: blackoutDates.doctorId,
@@ -4914,37 +4330,33 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         isRecurring: blackoutDates.isRecurring,
         doctorName: users.username
       })
-      .from(blackoutDates)
-      .leftJoin(users, eq(blackoutDates.doctorId, users.id))
-      .where(eq(blackoutDates.organizationId, req.user!.organizationId!));
-
-      if (doctorId) {
-        query = query.where(eq(blackoutDates.doctorId, parseInt(doctorId as string)));
-      }
+        .from(blackoutDates)
+        .leftJoin(users, eq(blackoutDates.doctorId, users.id))
+        .where(and(...blackoutConditions));
 
       const dates = await query;
-      res.json(dates);
+      return res.json(dates);
     } catch (error) {
       console.error('Error fetching blackout dates:', error);
-      res.status(500).json({ message: "Failed to fetch blackout dates" });
+      return res.status(500).json({ message: "Failed to fetch blackout dates" });
     }
   });
 
   app.post('/api/blackout-dates', authenticateToken, requireAnyRole(['doctor', 'admin']), async (req: AuthRequest, res) => {
     try {
-      const blackoutData = insertBlackoutDateSchema.parse({
+      const blackoutData = parseAndType(insertBlackoutDateSchema, {
         ...req.body,
         organizationId: req.user!.organizationId
-      });
-      
+      }) as any;
+
       const [newBlackout] = await db.insert(blackoutDates)
         .values(blackoutData)
         .returning();
-      
+
       res.json(newBlackout);
     } catch (error) {
       console.error('Error creating blackout date:', error);
-      res.status(500).json({ message: "Failed to create blackout date" });
+      return res.status(500).json({ message: "Failed to create blackout date" });
     }
   });
 
@@ -4964,51 +4376,72 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         appointmentTime: appointments.appointmentTime,
         appointmentDate: appointments.appointmentDate
       })
-      .from(appointmentReminders)
-      .leftJoin(appointments, eq(appointmentReminders.appointmentId, appointments.id))
-      .leftJoin(patients, eq(appointments.patientId, patients.id))
-      .where(eq(appointmentReminders.organizationId, req.user!.organizationId!));
+        .from(appointmentReminders)
+        .leftJoin(appointments, eq(appointmentReminders.appointmentId, appointments.id))
+        .leftJoin(patients, eq(appointments.patientId, patients.id))
+        .where(eq(appointmentReminders.organizationId, req.user!.organizationId!));
 
       if (appointmentId) {
-        query = query.where(eq(appointmentReminders.appointmentId, parseInt(appointmentId as string)));
+        query = db.select({
+          id: appointmentReminders.id,
+          appointmentId: appointmentReminders.appointmentId,
+          reminderType: appointmentReminders.reminderType,
+          scheduledTime: appointmentReminders.scheduledTime,
+          status: appointmentReminders.status,
+          sentAt: appointmentReminders.sentAt,
+          failureReason: appointmentReminders.failureReason,
+          patientName: patients.firstName,
+          appointmentTime: appointments.appointmentTime,
+          appointmentDate: appointments.appointmentDate
+        })
+          .from(appointmentReminders)
+          .leftJoin(appointments, eq(appointmentReminders.appointmentId, appointments.id))
+          .leftJoin(patients, eq(appointments.patientId, patients.id))
+          .where(and(
+            eq(appointmentReminders.organizationId, req.user!.organizationId!),
+            eq(appointmentReminders.appointmentId, parseInt(appointmentId as string))
+          ));
       }
 
       const reminders = await query;
-      res.json(reminders);
+      return res.json(reminders);
     } catch (error) {
       console.error('Error fetching appointment reminders:', error);
-      res.status(500).json({ message: "Failed to fetch appointment reminders" });
+      return res.status(500).json({ message: "Failed to fetch appointment reminders" });
     }
   });
 
+  /* DUPLICATE - Appointment reminders POST route already in server/routes/appointments.ts
   app.post('/api/appointment-reminders', authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const reminderData = insertAppointmentReminderSchema.parse({
+      const reminderData = parseAndType(insertAppointmentReminderSchema, {
         ...req.body,
         organizationId: req.user!.organizationId
-      });
-      
+      }) as any;
+
       const [newReminder] = await db.insert(appointmentReminders)
         .values(reminderData)
         .returning();
-      
+
       res.json(newReminder);
     } catch (error) {
       console.error('Error creating appointment reminder:', error);
-      res.status(500).json({ message: "Failed to create appointment reminder" });
+      return res.status(500).json({ message: "Failed to create appointment reminder" });
     }
   });
 
   // Get doctors for appointment scheduling
+  /* DUPLICATE - Get doctors route already in server/routes/users.ts (line 484)
   app.get('/api/users/doctors', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const doctors = await db.select().from(users).where(eq(users.role, 'doctor'));
-      res.json(doctors);
+      return res.json(doctors);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch doctors" });
+      return res.status(500).json({ message: "Failed to fetch doctors" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Get healthcare staff route already in server/routes/users.ts (line 494)
   // Get all healthcare staff for appointment scheduling
   app.get('/api/users/healthcare-staff', authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -5021,10 +4454,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         title: users.title,
         role: users.role
       }).from(users).where(inArray(users.role, healthcareRoles));
-      
-      res.json(staff);
+
+      return res.json(staff);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch healthcare staff" });
+      return res.status(500).json({ message: "Failed to fetch healthcare staff" });
     }
   });
 
@@ -5033,7 +4466,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const userOrgId = req.user?.organizationId;
       const healthcareRoles = ['doctor', 'nurse', 'physiotherapist', 'pharmacist', 'admin'];
-      
+
       let query = db.select({
         id: users.id,
         username: users.username,
@@ -5050,15 +4483,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           userOrgId ? eq(users.organizationId, userOrgId) : undefined
         )
       );
-      
+
       const staff = await query;
-      res.json(staff);
+      return res.json(staff);
     } catch (error) {
       console.error("Error fetching staff:", error);
-      res.status(500).json({ message: "Failed to fetch staff" });
+      return res.status(500).json({ message: "Failed to fetch staff" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Get users management route already in server/routes/users.ts (line 545)
   // User Management API Endpoints
   app.get('/api/users/management', authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -5098,46 +4532,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         })
       );
 
-      res.json(enrichedUsers);
+      return res.json(enrichedUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
+      return res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
   // NOTE: Duplicate POST /api/users route removed - using the earlier definition with proper role mapping
+  // SECURITY: Removed duplicate insecure PATCH /api/users/:id endpoint - using secure version at line 4338
 
-  app.patch('/api/users/:id', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const userOrgId = req.user?.organizationId;
-      if (!userOrgId) {
-        return res.status(403).json({ message: "Organization access required" });
-      }
-
-      const updateData = req.body;
-      delete updateData.password; // Don't allow password updates through this endpoint
-
-      const [updatedUser] = await db
-        .update(users)
-        .set({
-          ...updateData,
-          updatedAt: new Date()
-        })
-        .where(and(eq(users.id, userId), eq(users.organizationId, userOrgId)))
-        .returning();
-
-      if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating user:", error);
-      res.status(500).json({ message: "Failed to update user" });
-    }
-  });
-
+  /* DUPLICATE - Roles routes already in server/routes/access-control.ts (lines 10, 47, 396)
   // Roles Management API
   app.get('/api/roles', authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -5167,10 +4572,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         (role as any).permissions = rolePermissionsList;
       }
 
-      res.json(rolesWithPermissions);
+      return res.json(rolesWithPermissions);
     } catch (error) {
       console.error("Error fetching roles:", error);
-      res.status(500).json({ message: "Failed to fetch roles" });
+      return res.status(500).json({ message: "Failed to fetch roles" });
     }
   });
 
@@ -5182,8 +4587,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .insert(roles)
         .values({
           name,
-          description,
-          createdAt: new Date()
+          description: description || null
         })
         .returning();
 
@@ -5197,10 +4601,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         await db.insert(rolePermissions).values(rolePermissionValues);
       }
 
-      res.status(201).json(newRole);
+      return res.status(201).json(newRole);
     } catch (error) {
       console.error("Error creating role:", error);
-      res.status(500).json({ message: "Failed to create role" });
+      return res.status(500).json({ message: "Failed to create role" });
     }
   });
 
@@ -5212,10 +4616,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .from(permissions)
         .orderBy(permissions.name);
 
-      res.json(allPermissions);
+      return res.json(allPermissions);
     } catch (error) {
       console.error("Error fetching permissions:", error);
-      res.status(500).json({ message: "Failed to fetch permissions" });
+      return res.status(500).json({ message: "Failed to fetch permissions" });
     }
   });
 
@@ -5224,12 +4628,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const orgId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       // Users can only access their own organization data
       if (userOrgId && orgId !== userOrgId) {
         return res.status(403).json({ message: "Access denied to this organization" });
       }
-      
+
       const [organization] = await db
         .select()
         .from(organizations)
@@ -5239,10 +4643,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Organization not found" });
       }
 
-      res.json(organization);
+      return res.json(organization);
     } catch (error) {
       console.error('Error fetching organization:', error);
-      res.status(500).json({ message: "Failed to fetch organization" });
+      return res.status(500).json({ message: "Failed to fetch organization" });
     }
   });
 
@@ -5265,57 +4669,37 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .from(organizations)
         .orderBy(organizations.name);
 
-      res.json(orgsWithUserCount);
+      return res.json(orgsWithUserCount);
     } catch (error) {
       console.error("Error fetching organizations:", error);
-      res.status(500).json({ message: "Failed to fetch organizations" });
+      return res.status(500).json({ message: "Failed to fetch organizations" });
     }
   });
 
-  app.post('/api/organizations', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { name, type, address, phone, email, website } = req.body;
+  // POST /api/organizations endpoint moved to tenant-routes.ts
+  // This endpoint is now handled by setupTenantRoutes() which provides better validation
 
-      const [newOrg] = await db
-        .insert(organizations)
-        .values({
-          name,
-          type,
-          address,
-          phone,
-          email,
-          website,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
-
-      res.status(201).json(newOrg);
-    } catch (error) {
-      console.error("Error creating organization:", error);
-      res.status(500).json({ message: "Failed to create organization" });
-    }
-  });
-
+  /* DUPLICATE - Lab tests routes already in server/routes/laboratory.ts
   // Lab Tests endpoints
   app.get('/api/lab-tests', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const tests = await db.select().from(labTests).orderBy(labTests.name);
-      res.json(tests);
+      return res.json(tests);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch lab tests" });
+      return res.status(500).json({ message: "Failed to fetch lab tests" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Create lab test route already in server/routes/laboratory.ts (line 117)
+  /* DUPLICATE - Lab tests POST route already in server/routes/laboratory.ts (line 117)
   app.post('/api/lab-tests', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
-      const validatedData = insertLabTestSchema.parse(req.body);
-      
+      const validatedData = parseAndType(insertLabTestSchema, req.body) as any;
+
       const [labTest] = await db.insert(labTests)
         .values(validatedData)
         .returning();
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Lab Test Created", {
@@ -5323,13 +4707,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         labTestName: labTest.name,
         category: labTest.category
       });
-      
-      res.status(201).json(labTest);
+
+      return res.status(201).json(labTest);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid lab test data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create lab test" });
+      return res.status(500).json({ message: "Failed to create lab test" });
     }
   });
 
@@ -5350,31 +4734,31 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       console.log('🔬 Processing lab order:', { patientId, tests, labTestIds, userOrgId });
-      
+
       // Verify patient exists (organization alignment already handled)
       const [patient] = await db.select().from(patients).where(
         eq(patients.id, patientId)
       ).limit(1);
-      
+
       if (!patient) {
         console.log('❌ Patient not found:', patientId);
         return res.status(404).json({ message: "Patient not found" });
       }
-      
+
       console.log('✅ Patient found:', patient);
-      
+
       // Handle both 'tests' and 'labTestIds' fields for compatibility
       const testIds = tests || labTestIds;
-      
+
       if (!testIds || !Array.isArray(testIds) || testIds.length === 0) {
         console.log('❌ Invalid test IDs:', testIds);
         return res.status(400).json({ message: "Tests array is required" });
       }
-      
+
       console.log('🧪 Creating lab order with tests:', testIds);
-      
+
       // Create the lab order with organization context
       const [labOrder] = await db.insert(labOrders)
         .values({
@@ -5384,16 +4768,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           status: 'pending'
         })
         .returning();
-      
+
       // Create lab order items for each test
       const orderItems = testIds.map((testId: number) => ({
         labOrderId: labOrder.id,
         labTestId: testId,
         status: 'pending'
       }));
-      
+
       await db.insert(labOrderItems).values(orderItems);
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logPatientAction("Lab Order Created", patientId, {
@@ -5402,21 +4786,22 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         testIds: testIds,
         notes: notes
       });
-      
-      res.status(201).json(labOrder);
+
+      return res.status(201).json(labOrder);
     } catch (error) {
       console.error('Lab order creation error:', error);
-      res.status(500).json({ message: "Failed to create lab order" });
+      return res.status(500).json({ message: "Failed to create lab order" });
     }
   });
 
+  /* DUPLICATE - Lab orders pending route already in server/routes/laboratory.ts (line 249)
   app.get('/api/lab-orders/pending', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const pendingOrders = await db.select({
         id: labOrders.id,
         patientId: labOrders.patientId,
@@ -5429,12 +4814,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         orderedByUsername: users.username,
         orderedByRole: users.role
       })
-      .from(labOrders)
-      .leftJoin(patients, eq(labOrders.patientId, patients.id))
-      .leftJoin(users, eq(labOrders.orderedBy, users.id))
-      .where(eq(labOrders.status, 'pending'))
-      .orderBy(labOrders.createdAt);
-      
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .leftJoin(users, eq(labOrders.orderedBy, users.id))
+        .where(eq(labOrders.status, 'pending'))
+        .orderBy(labOrders.createdAt);
+
       // Transform the data to match frontend expectations
       const transformedOrders = pendingOrders.map(order => ({
         id: order.id,
@@ -5449,11 +4834,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           dateOfBirth: order.patientDateOfBirth
         }
       }));
-      
-      res.json(transformedOrders);
+
+      return res.json(transformedOrders);
     } catch (error) {
       console.error("Error fetching pending lab orders:", error);
-      res.status(500).json({ message: "Failed to fetch pending lab orders" });
+      return res.status(500).json({ message: "Failed to fetch pending lab orders" });
     }
   });
 
@@ -5483,6 +4868,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     }
   }
 
+  /* DUPLICATE - Lab results reviewed route already in server/routes/laboratory.ts (line 674)
+  /* DUPLICATE - Another lab results reviewed route (duplicate of line 5836)
   // Optimized lab results endpoint with caching and pagination
   app.get('/api/lab-results/reviewed', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
@@ -5490,18 +4877,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const { patientId, page = '1', limit = '25' } = req.query;
       const pageNum = parseInt(page as string);
       const limitNum = Math.min(parseInt(limit as string), 100); // Max 100 items per page
       const offset = (pageNum - 1) * limitNum;
-      
+
       // Build optimized query with indexed columns
       let whereConditions = [eq(labResults.organizationId, userOrgId)];
       if (patientId) {
         whereConditions.push(eq(labResults.patientId, parseInt(patientId as string)));
       }
-      
+
       // Use Promise.all for parallel execution
       const [reviewedResults, totalCount] = await Promise.all([
         db.select({
@@ -5516,20 +4903,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           notes: labResults.notes,
           createdAt: labResults.createdAt
         })
-        .from(labResults)
-        .innerJoin(patients, eq(labResults.patientId, patients.id))
-        .where(and(...whereConditions))
-        .orderBy(desc(labResults.createdAt))
-        .limit(limitNum)
-        .offset(offset),
-        
+          .from(labResults)
+          .innerJoin(patients, eq(labResults.patientId, patients.id))
+          .where(and(...whereConditions))
+          .orderBy(desc(labResults.createdAt))
+          .limit(limitNum)
+          .offset(offset),
+
         db.select({ count: sql<number>`count(*)` })
-        .from(labResults)
-        .innerJoin(patients, eq(labResults.patientId, patients.id))
-        .where(and(...whereConditions))
-        .then(result => result[0]?.count || 0)
+          .from(labResults)
+          .innerJoin(patients, eq(labResults.patientId, patients.id))
+          .where(and(...whereConditions))
+          .then(result => result[0]?.count || 0)
       ]);
-      
+
       // Transform data efficiently
       const transformedResults = reviewedResults.map(result => ({
         id: result.id,
@@ -5546,7 +4933,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         units: '',
         remarks: result.notes
       }));
-      
+
       // Add performance headers
       res.set({
         'Cache-Control': 'private, max-age=30',
@@ -5554,8 +4941,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         'X-Page': pageNum.toString(),
         'X-Per-Page': limitNum.toString()
       });
-      
-      res.json({
+
+      return res.json({
         data: transformedResults,
         pagination: {
           page: pageNum,
@@ -5566,10 +4953,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error("Error fetching reviewed lab results:", error);
-      res.status(500).json({ message: "Failed to fetch reviewed lab results" });
+      return res.status(500).json({ message: "Failed to fetch reviewed lab results" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Lab results bulk-save route already in server/routes/laboratory.ts (line 761)
   // Bulk save lab results endpoint for performance
   app.post('/api/lab-results/bulk-save', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
@@ -5577,12 +4965,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const { results } = req.body;
       if (!Array.isArray(results) || results.length === 0) {
         return res.status(400).json({ message: "Results array is required" });
       }
-      
+
       // Validate and prepare data for bulk insert
       const validatedResults = results.map(result => ({
         patientId: result.patientId,
@@ -5594,19 +4982,19 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         organizationId: userOrgId,
         testDate: result.testDate ? new Date(result.testDate) : new Date()
       }));
-      
+
       // Bulk insert for better performance
       const savedResults = await db.insert(labResults)
         .values(validatedResults)
         .returning();
-      
+
       res.json({
         message: `Successfully saved ${savedResults.length} lab results`,
         results: savedResults
       });
     } catch (error) {
       console.error("Error bulk saving lab results:", error);
-      res.status(500).json({ message: "Failed to save lab results" });
+      return res.status(500).json({ message: "Failed to save lab results" });
     }
   });
 
@@ -5617,9 +5005,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const { id, patientId, testName, result, normalRange, status, notes, testDate } = req.body;
-      
+
       const resultData = {
         patientId: parseInt(patientId),
         testName,
@@ -5630,7 +5018,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         organizationId: userOrgId,
         testDate: testDate ? new Date(testDate) : new Date()
       };
-      
+
       let savedResult;
       if (id) {
         // Update existing result
@@ -5644,14 +5032,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           .values(resultData)
           .returning();
       }
-      
-      res.json({
+
+      return res.json({
         message: id ? "Lab result updated successfully" : "Lab result saved successfully",
         result: savedResult
       });
     } catch (error) {
       console.error("Error saving lab result:", error);
-      res.status(500).json({ message: "Failed to save lab result" });
+      return res.status(500).json({ message: "Failed to save lab result" });
     }
   });
 
@@ -5662,7 +5050,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const patientsWithDetails = await db.select({
         id: patients.id,
         title: patients.title,
@@ -5675,18 +5063,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         organizationId: patients.organizationId,
         createdAt: patients.createdAt
       })
-      .from(patients)
-      .where(eq(patients.organizationId, userOrgId))
-      .orderBy(desc(patients.createdAt));
-      
+        .from(patients)
+        .where(eq(patients.organizationId, userOrgId))
+        .orderBy(desc(patients.createdAt));
+
       const totalPatients = patientsWithDetails.length;
       const patientsThisMonth = patientsWithDetails.filter(p => {
         const createdDate = new Date(p.createdAt);
         const currentMonth = new Date();
-        return createdDate.getMonth() === currentMonth.getMonth() && 
-               createdDate.getFullYear() === currentMonth.getFullYear();
+        return createdDate.getMonth() === currentMonth.getMonth() &&
+          createdDate.getFullYear() === currentMonth.getFullYear();
       }).length;
-      
+
       const patientsThisWeek = patientsWithDetails.filter(p => {
         const createdDate = new Date(p.createdAt);
         const oneWeekAgo = new Date();
@@ -5694,7 +5082,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return createdDate >= oneWeekAgo;
       }).length;
 
-      res.json({
+      return res.json({
         totalPatients,
         patientsThisMonth,
         patientsThisWeek,
@@ -5712,7 +5100,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error fetching patient statistics:', error);
-      res.status(500).json({ message: "Failed to fetch patient statistics" });
+      return res.status(500).json({ message: "Failed to fetch patient statistics" });
     }
   });
 
@@ -5725,10 +5113,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         organizationName: organizations.name,
         patientCount: sql<number>`count(*)`,
       })
-      .from(patients)
-      .leftJoin(organizations, eq(patients.organizationId, organizations.id))
-      .groupBy(patients.organizationId, organizations.name)
-      .orderBy(desc(sql`count(*)`));
+        .from(patients)
+        .leftJoin(organizations, eq(patients.organizationId, organizations.id))
+        .groupBy(patients.organizationId, organizations.name)
+        .orderBy(desc(sql`count(*)`));
 
       // Get total count across all organizations
       const [totalPatientsResult] = await db.select({
@@ -5744,12 +5132,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         organizationName: organizations.name,
         createdAt: patients.createdAt
       })
-      .from(patients)
-      .leftJoin(organizations, eq(patients.organizationId, organizations.id))
-      .orderBy(desc(patients.createdAt))
-      .limit(20);
+        .from(patients)
+        .leftJoin(organizations, eq(patients.organizationId, organizations.id))
+        .orderBy(desc(patients.createdAt))
+        .limit(20);
 
-      res.json({
+      return res.json({
         totalPatients: totalPatientsResult?.total || 0,
         organizationDistribution: patientsByOrg,
         recentPatients: recentPatients.map(p => ({
@@ -5763,10 +5151,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error fetching global patient statistics:', error);
-      res.status(500).json({ message: "Failed to fetch global patient statistics" });
+      return res.status(500).json({ message: "Failed to fetch global patient statistics" });
     }
   });
 
+  /* DUPLICATE - Another lab results reviewed route (duplicate of line 5836)
   // Optimized lab results endpoint with caching and pagination
   app.get('/api/lab-results/reviewed', authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
@@ -5774,20 +5163,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const { patientId, page = '1', limit = '25' } = req.query;
       const pageNum = parseInt(page as string);
       const limitNum = Math.min(parseInt(limit as string), 100);
       const offset = (pageNum - 1) * limitNum;
-      
+
       // Build where conditions for lab_results table
       let whereConditions = [eq(labResults.organizationId, userOrgId)];
-      
+
       // Add patient filter if specified
       if (patientId) {
         whereConditions.push(eq(labResults.patientId, parseInt(patientId as string)));
       }
-      
+
       // Execute queries with proper optimization
       const reviewedResults = await db.select({
         id: labResults.id,
@@ -5801,58 +5190,58 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         notes: labResults.notes,
         createdAt: labResults.createdAt
       })
-      .from(labResults)
-      .innerJoin(patients, eq(labResults.patientId, patients.id))
-      .where(and(...whereConditions))
-      .orderBy(desc(labResults.createdAt))
-      .limit(limitNum)
-      .offset(offset);
+        .from(labResults)
+        .innerJoin(patients, eq(labResults.patientId, patients.id))
+        .where(and(...whereConditions))
+        .orderBy(desc(labResults.createdAt))
+        .limit(limitNum)
+        .offset(offset);
 
       const countResult = await db.select({ count: sql<number>`count(*)` })
         .from(labResults)
         .innerJoin(patients, eq(labResults.patientId, patients.id))
         .where(and(...whereConditions));
-      
+
       const totalCount = countResult[0]?.count || 0;
 
-    // Transform data efficiently
-    const transformedResults = reviewedResults.map(result => ({
-      id: result.id,
-      orderId: null,
-      patientId: result.patientId,
-      patientName: result.patientName,
-      testName: result.testName,
-      result: result.result,
-      normalRange: result.normalRange || 'See lab standards',
-      status: result.status,
-      completedDate: result.testDate,
-      reviewedBy: 'Lab Staff',
-      category: 'General',
-      units: '',
-      remarks: result.notes
-    }));
+      // Transform data efficiently
+      const transformedResults = reviewedResults.map(result => ({
+        id: result.id,
+        orderId: null,
+        patientId: result.patientId,
+        patientName: result.patientName,
+        testName: result.testName,
+        result: result.result,
+        normalRange: result.normalRange || 'See lab standards',
+        status: result.status,
+        completedDate: result.testDate,
+        reviewedBy: 'Lab Staff',
+        category: 'General',
+        units: '',
+        remarks: result.notes
+      }));
 
-    // Add performance headers
-    res.set({
-      'Cache-Control': 'private, max-age=30',
-      'X-Total-Count': totalCount.toString(),
-      'X-Page': pageNum.toString(),
-      'X-Per-Page': limitNum.toString()
-    });
+      // Add performance headers
+      res.set({
+        'Cache-Control': 'private, max-age=30',
+        'X-Total-Count': totalCount.toString(),
+        'X-Page': pageNum.toString(),
+        'X-Per-Page': limitNum.toString()
+      });
 
-    res.json({
-      data: transformedResults,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limitNum)
-      }
-    });
-  } catch (error) {
-    console.error("Error fetching reviewed lab results:", error);
-    res.status(500).json({ message: "Failed to fetch reviewed lab results" });
-  }
+      return res.json({
+        data: transformedResults,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total: totalCount,
+          pages: Math.ceil(totalCount / limitNum)
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching reviewed lab results:", error);
+      return res.status(500).json({ message: "Failed to fetch reviewed lab results" });
+    }
   });
 
   app.get('/api/patients/:id/lab-orders', authenticateToken, async (req: AuthRequest, res) => {
@@ -5861,18 +5250,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const patientId = parseInt(req.params.id);
-      
+
       // Verify patient exists (organization check already handled by authentication)
       const patient = await db.select().from(patients).where(
         eq(patients.id, patientId)
       ).limit(1);
-      
+
       if (patient.length === 0) {
         return res.status(404).json({ message: "Patient not found" });
       }
-      
+
       const orders = await db.select({
         id: labOrders.id,
         patientId: labOrders.patientId,
@@ -5897,30 +5286,31 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           eq(labOrders.organizationId, userOrgId)
         ))
         .orderBy(desc(labOrders.createdAt));
-      
+
       // Set no-cache headers to ensure fresh data
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
       });
-      
-      res.json(orders);
+
+      return res.json(orders);
     } catch (error) {
       console.error('Error fetching patient lab orders:', error);
-      res.status(500).json({ message: "Failed to fetch lab orders" });
+      return res.status(500).json({ message: "Failed to fetch lab orders" });
     }
   });
 
+  /* DUPLICATE - Lab orders items route already in server/routes/laboratory.ts (line 592)
   app.get('/api/lab-orders/:id/items', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const labOrderId = parseInt(req.params.id);
-      
+
       // Verify lab order belongs to user's organization
       const labOrder = await db.select().from(labOrders).where(
         and(
@@ -5928,11 +5318,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           eq(labOrders.organizationId, userOrgId)
         )
       ).limit(1);
-      
+
       if (labOrder.length === 0) {
         return res.status(404).json({ message: "Lab order not found in your organization" });
       }
-      
+
       const orderItems = await db.select({
         id: labOrderItems.id,
         labOrderId: labOrderItems.labOrderId,
@@ -5947,21 +5337,21 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         referenceRange: labTests.referenceRange,
         units: labTests.units
       })
-      .from(labOrderItems)
-      .leftJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
-      .where(eq(labOrderItems.labOrderId, labOrderId))
-      .orderBy(labTests.name);
-      
+        .from(labOrderItems)
+        .leftJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
+        .where(eq(labOrderItems.labOrderId, labOrderId))
+        .orderBy(labTests.name);
+
       // Set no-cache headers to ensure fresh data
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
       });
-      
-      res.json(orderItems);
+
+      return res.json(orderItems);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch lab order items" });
+      return res.status(500).json({ message: "Failed to fetch lab order items" });
     }
   });
 
@@ -5969,7 +5359,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get('/api/lab-orders/:id/print', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const labOrderId = parseInt(req.params.id);
-      
+
       // Get lab order details with patient info and organization
       const [orderResult] = await db.select({
         orderId: labOrders.id,
@@ -5996,11 +5386,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         organizationLogo: organizations.logoUrl,
         organizationTheme: organizations.themeColor
       })
-      .from(labOrders)
-      .leftJoin(patients, eq(labOrders.patientId, patients.id))
-      .leftJoin(users, eq(labOrders.orderedBy, users.id))
-      .leftJoin(organizations, eq(users.organizationId, organizations.id))
-      .where(eq(labOrders.id, labOrderId));
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .leftJoin(users, eq(labOrders.orderedBy, users.id))
+        .leftJoin(organizations, eq(users.organizationId, organizations.id))
+        .where(eq(labOrders.id, labOrderId));
 
       if (!orderResult) {
         return res.status(404).json({ message: "Lab order not found" });
@@ -6016,19 +5406,19 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         result: labOrderItems.result,
         remarks: labOrderItems.remarks
       })
-      .from(labOrderItems)
-      .leftJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
-      .where(eq(labOrderItems.labOrderId, labOrderId))
-      .orderBy(labTests.name);
+        .from(labOrderItems)
+        .leftJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
+        .where(eq(labOrderItems.labOrderId, labOrderId))
+        .orderBy(labTests.name);
 
       // Generate HTML for printing
       const html = generateLabOrderHTML(orderResult, orderItems);
-      
+
       res.setHeader('Content-Type', 'text/html');
       res.send(html);
     } catch (error) {
       console.error('Print lab order error:', error);
-      res.status(500).json({ message: "Failed to generate lab order print" });
+      return res.status(500).json({ message: "Failed to generate lab order print" });
     }
   });
 
@@ -6037,7 +5427,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
@@ -6053,8 +5443,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         email: patients.email,
         organizationId: patients.organizationId
       })
-      .from(patients)
-      .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId)));
+        .from(patients)
+        .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId)));
 
       if (!patientData) {
         return res.status(404).json({ message: "Patient not found" });
@@ -6071,8 +5461,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         logoUrl: organizations.logoUrl,
         themeColor: organizations.themeColor
       })
-      .from(organizations)
-      .where(eq(organizations.id, userOrgId));
+        .from(organizations)
+        .where(eq(organizations.id, userOrgId));
 
       // Get lab results for the patient
       const labResultsData = await db.select({
@@ -6085,18 +5475,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         testDate: labResults.testDate,
         createdAt: labResults.createdAt
       })
-      .from(labResults)
-      .where(and(eq(labResults.patientId, patientId), eq(labResults.organizationId, userOrgId)))
-      .orderBy(desc(labResults.testDate));
+        .from(labResults)
+        .where(and(eq(labResults.patientId, patientId), eq(labResults.organizationId, userOrgId)))
+        .orderBy(desc(labResults.testDate));
 
       // Generate HTML for printing
       const html = generateLabHistoryHTML(patientData, labResultsData, orgData);
-      
+
       res.setHeader('Content-Type', 'text/html');
       res.send(html);
     } catch (error) {
       console.error('Print lab history error:', error);
-      res.status(500).json({ message: "Failed to generate lab history print" });
+      return res.status(500).json({ message: "Failed to generate lab history print" });
     }
   });
 
@@ -6184,14 +5574,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       console.log(`✅ Lab order item ${itemId} updated successfully`);
-      res.json({ 
-        ...updatedItem, 
+      return res.json({
+        ...updatedItem,
         aiAnalysis: aiAnalysis || null,
-        testName: orderItem?.testName 
+        testName: orderItem?.testName
       });
     } catch (error) {
       console.error('❌ Error updating lab order item:', error);
-      res.status(500).json({ message: "Failed to update lab order item" });
+      return res.status(500).json({ message: "Failed to update lab order item" });
     }
   });
 
@@ -6204,11 +5594,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
-      res.json({ ...user, password: undefined });
+
+      return res.json({ ...user, password: undefined });
     } catch (error) {
       console.error('Error fetching current user:', error);
-      res.status(500).json({ message: "Failed to fetch user information" });
+      return res.status(500).json({ message: "Failed to fetch user information" });
     }
   });
 
@@ -6216,38 +5606,38 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/users/:id/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = parseInt(req.params.id);
-      
+
       // Users can only access their own profile unless they're admin
       if (req.user?.id !== userId && req.user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logUserAction(AuditActions.USER_PROFILE_VIEWED, userId);
-      
-      res.json({ ...user, password: undefined }); // Don't return password
+
+      return res.json({ ...user, password: undefined }); // Don't return password
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch profile" });
+      return res.status(500).json({ message: "Failed to fetch profile" });
     }
   });
 
   app.patch("/api/users/:id/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = parseInt(req.params.id);
-      
+
       // Users can only update their own profile unless they're admin
       if (req.user?.id !== userId && req.user?.role !== 'admin') {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const { email, phone, photoUrl } = req.body;
-      
+
       // Validate the update data
       const updateData: Record<string, any> = { email, phone, photoUrl };
       Object.keys(updateData).forEach(key => {
@@ -6255,40 +5645,41 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           delete updateData[key];
         }
       });
-      
+
       // Update the user profile
       const [updatedUser] = await db.update(users)
         .set(updateData)
         .where(eq(users.id, userId))
         .returning();
-      
+
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logUserAction(AuditActions.USER_PROFILE_UPDATED, userId, {
         updatedFields: Object.keys(updateData)
       });
-      
-      res.json({ ...updatedUser, password: undefined }); // Don't return password
+
+      return res.json({ ...updatedUser, password: undefined }); // Don't return password
     } catch (error) {
-      res.status(500).json({ message: "Failed to update profile" });
+      return res.status(500).json({ message: "Failed to update profile" });
     }
   });
 
+  /* DUPLICATE - Referrals routes already in server/routes/referrals.ts
   // Referrals routes - Medical staff only
   app.post("/api/referrals", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const referralData = insertReferralSchema.parse(req.body);
       const referral = await storage.createReferral(referralData);
-      res.json(referral);
+      return res.json(referral);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid referral data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid referral data", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create referral" });
+        return res.status(500).json({ message: "Failed to create referral" });
       }
     }
   });
@@ -6297,35 +5688,36 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const { toRole, fromUserId, status } = req.query;
       const filters: any = {};
-      
+
       if (toRole) filters.toRole = toRole as string;
       if (fromUserId) filters.fromUserId = parseInt(fromUserId as string);
       if (status) filters.status = status as string;
 
       const referrals = await storage.getReferrals(filters);
-      res.json(referrals);
+      return res.json(referrals);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch referrals" });
+      return res.status(500).json({ message: "Failed to fetch referrals" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Update referral route already in server/routes/referrals.ts (line 87)
   app.patch("/api/referrals/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const { status } = req.body;
 
       if (!status || !['pending', 'accepted', 'rejected'].includes(status)) {
-        res.status(400).json({ message: "Invalid status. Must be 'pending', 'accepted', or 'rejected'" });
+        return res.status(400).json({ message: "Invalid status. Must be 'pending', 'accepted', or 'rejected'" });
         return;
       }
 
       const referral = await storage.updateReferralStatus(id, status);
-      res.json(referral);
+      return res.json(referral);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update referral status" });
+      return res.status(500).json({ message: "Failed to update referral status" });
     }
   });
-
+  /* END DUPLICATE */
   // Consultation Forms API - Specialist form creation and management
   app.post("/api/consultation-forms", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
@@ -6333,9 +5725,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         ...req.body,
         createdBy: req.user!.id
       });
-      
+
       const form = await storage.createConsultationForm(formData);
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction(AuditActions.SYSTEM_BACKUP, {
@@ -6343,13 +5735,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         formId: form.id,
         formName: form.name
       });
-      
-      res.json(form);
+
+      return res.json(form);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid form data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid form data", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create consultation form" });
+        return res.status(500).json({ message: "Failed to create consultation form" });
       }
     }
   });
@@ -6359,7 +5751,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const { specialistRole } = req.query;
       const userId = req.user?.id;
       const userOrgId = req.user?.organizationId;
-      
+
       // Get all forms with pinned status for the current user
       const forms = await db.select({
         id: consultationForms.id,
@@ -6373,20 +5765,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         updatedAt: consultationForms.updatedAt,
         isPinned: sql<boolean>`CASE WHEN ${pinnedConsultationForms.id} IS NOT NULL THEN true ELSE false END`
       })
-      .from(consultationForms)
-      .leftJoin(pinnedConsultationForms, and(
-        eq(pinnedConsultationForms.consultationFormId, consultationForms.id),
-        eq(pinnedConsultationForms.userId, userId!)
-      ))
-      .where(and(
-        specialistRole ? eq(consultationForms.specialistRole, specialistRole as string) : sql`1=1`
-      ))
-      .orderBy(desc(consultationForms.createdAt));
-      
-      res.json(forms);
+        .from(consultationForms)
+        .leftJoin(pinnedConsultationForms, and(
+          eq(pinnedConsultationForms.consultationFormId, consultationForms.id),
+          eq(pinnedConsultationForms.userId, userId!)
+        ))
+        .where(and(
+          specialistRole ? eq(consultationForms.specialistRole, specialistRole as string) : sql`1=1`
+        ))
+        .orderBy(desc(consultationForms.createdAt));
+
+      return res.json(forms);
     } catch (error) {
       console.error('Error fetching consultation forms:', error);
-      res.status(500).json({ message: "Failed to fetch consultation forms" });
+      return res.status(500).json({ message: "Failed to fetch consultation forms" });
     }
   });
 
@@ -6394,14 +5786,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const id = parseInt(req.params.id);
       const form = await storage.getConsultationForm(id);
-      
+
       if (!form) {
         return res.status(404).json({ message: "Specialty assessment not found" });
       }
-      
-      res.json(form);
+
+      return res.json(form);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch specialty assessment" });
+      return res.status(500).json({ message: "Failed to fetch specialty assessment" });
     }
   });
 
@@ -6411,9 +5803,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         ...req.body,
         createdBy: req.user!.id
       });
-      
+
       const form = await storage.createConsultationForm(validatedData);
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Consultation Form Created", {
@@ -6421,13 +5813,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         formName: form.name,
         specialistRole: form.specialistRole
       });
-      
-      res.status(201).json(form);
+
+      return res.status(201).json(form);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid form data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create consultation form" });
+      return res.status(500).json({ message: "Failed to create consultation form" });
     }
   });
 
@@ -6435,13 +5827,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const id = parseInt(req.params.id);
       const updateData = req.body;
-      
+
       const form = await storage.updateConsultationForm(id, updateData);
-      
+
       if (!form) {
         return res.status(404).json({ message: "Consultation form not found" });
       }
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction(AuditActions.SYSTEM_BACKUP, {
@@ -6449,10 +5841,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         formId: form.id,
         formName: form.name
       });
-      
-      res.json(form);
+
+      return res.json(form);
     } catch (error) {
-      res.status(500).json({ message: "Failed to update consultation form" });
+      return res.status(500).json({ message: "Failed to update consultation form" });
     }
   });
 
@@ -6491,14 +5883,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .values({
           userId: userId,
           consultationFormId: consultationFormId,
-          organizationId: userOrgId || null
-        })
+          organizationId: userOrgId ?? null
+        } as any)
         .returning();
 
       res.status(201).json({ message: "Form pinned successfully", pin });
     } catch (error) {
       console.error('Error pinning consultation form:', error);
-      res.status(500).json({ message: "Failed to pin consultation form" });
+      return res.status(500).json({ message: "Failed to pin consultation form" });
     }
   });
 
@@ -6519,10 +5911,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Pin not found" });
       }
 
-      res.json({ message: "Form unpinned successfully" });
+      return res.json({ message: "Form unpinned successfully" });
     } catch (error) {
       console.error('Error unpinning consultation form:', error);
-      res.status(500).json({ message: "Failed to unpin consultation form" });
+      return res.status(500).json({ message: "Failed to unpin consultation form" });
     }
   });
 
@@ -6542,83 +5934,80 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         updatedAt: consultationForms.updatedAt,
         pinnedAt: pinnedConsultationForms.createdAt
       })
-      .from(pinnedConsultationForms)
-      .innerJoin(consultationForms, eq(pinnedConsultationForms.consultationFormId, consultationForms.id))
-      .where(and(
-        eq(pinnedConsultationForms.userId, userId),
-        userOrgId ? eq(consultationForms.organizationId, userOrgId) : undefined
-      ))
-      .orderBy(desc(pinnedConsultationForms.createdAt));
+        .from(pinnedConsultationForms)
+        .innerJoin(consultationForms, eq(pinnedConsultationForms.consultationFormId, consultationForms.id))
+        .where(eq(pinnedConsultationForms.userId, userId))
+        .orderBy(desc(pinnedConsultationForms.createdAt));
 
-      res.json(pinnedForms);
+      return res.json(pinnedForms);
     } catch (error) {
       console.error('Error fetching pinned consultation forms:', error);
-      res.status(500).json({ message: "Failed to fetch pinned forms" });
+      return res.status(500).json({ message: "Failed to fetch pinned forms" });
     }
   });
 
   app.patch("/api/consultation-forms/:id/deactivate", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      
+
       const [updatedForm] = await db.update(consultationForms)
-        .set({ isActive: false, updatedAt: new Date() })
+        .set({ isActive: false, updatedAt: sql`NOW()` })
         .where(eq(consultationForms.id, id))
         .returning();
-      
+
       if (!updatedForm) {
         return res.status(404).json({ message: "Consultation form not found" });
       }
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction('consultation_form_deactivated', {
         formId: id,
         formName: updatedForm.name
       });
-      
-      res.json({ message: "Consultation form deactivated successfully", form: updatedForm });
+
+      return res.json({ message: "Consultation form deactivated successfully", form: updatedForm });
     } catch (error) {
       console.error('Error deactivating consultation form:', error);
-      res.status(500).json({ message: "Failed to deactivate consultation form" });
+      return res.status(500).json({ message: "Failed to deactivate consultation form" });
     }
   });
 
   app.delete("/api/consultation-forms/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      
+
       // Check if there are any consultation records using this form
       const recordsUsingForm = await db.select()
         .from(consultationRecords)
         .where(eq(consultationRecords.formId, id))
         .limit(1);
-      
+
       if (recordsUsingForm.length > 0) {
-        return res.status(400).json({ 
-          message: "Cannot delete consultation form because it has associated patient records. Consider deactivating it instead." 
+        return res.status(400).json({
+          message: "Cannot delete consultation form because it has associated patient records. Consider deactivating it instead."
         });
       }
-      
+
       const deletedForm = await db.delete(consultationForms)
         .where(eq(consultationForms.id, id))
         .returning();
-      
+
       if (!deletedForm || deletedForm.length === 0) {
         return res.status(404).json({ message: "Consultation form not found" });
       }
-      
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction('consultation_form_deleted', {
         formId: id,
         formName: deletedForm[0].name
       });
-      
-      res.json({ message: "Consultation form deleted successfully" });
+
+      return res.json({ message: "Consultation form deleted successfully" });
     } catch (error) {
       console.error('Error deleting consultation form:', error);
-      res.status(500).json({ message: "Failed to delete consultation form" });
+      return res.status(500).json({ message: "Failed to delete consultation form" });
     }
   });
 
@@ -6629,9 +6018,46 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         ...req.body,
         filledBy: req.user!.id
       });
-      
+
       const record = await storage.createConsultationRecord(recordData);
-      
+
+      // If consultation status is 'completed', try to mark associated appointment as completed
+      if (recordData.status === 'completed' && req.user?.organizationId) {
+        try {
+          const today = new Date();
+          const todayStr = today.toISOString().split('T')[0];
+          
+          // Find today's appointment for this patient that's not already completed
+          const [todayAppointment] = await db
+            .select()
+            .from(appointments)
+            .where(
+              and(
+                eq(appointments.patientId, recordData.patientId),
+                eq(appointments.organizationId, req.user.organizationId),
+                eq(sql`DATE(${appointments.appointmentDate})`, todayStr),
+                ne(appointments.status, 'completed')
+              )
+            )
+            .orderBy(desc(appointments.appointmentTime))
+            .limit(1);
+
+          // If found, mark it as completed
+          if (todayAppointment) {
+            await db
+              .update(appointments)
+              .set({
+                status: 'completed',
+                updatedAt: sql`NOW()`
+              })
+              .where(eq(appointments.id, todayAppointment.id));
+          }
+        } catch (appointmentError) {
+          // Log but don't fail the consultation record creation
+          console.error('Error updating appointment status after consultation completion:', appointmentError);
+        }
+      }
+
       // Create audit log
       const auditLogger = new AuditLogger(req);
       await auditLogger.logPatientAction(AuditActions.PATIENT_UPDATED, recordData.patientId, {
@@ -6639,21 +6065,125 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         recordId: record.id,
         formId: recordData.formId
       });
-      
-      res.json(record);
+
+      return res.json(record);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid consultation data", errors: error.errors });
+        return res.status(400).json({ message: "Invalid consultation data", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to save consultation record" });
+        return res.status(500).json({ message: "Failed to save consultation record" });
       }
+    }
+  });
+
+  app.get("/api/consultation-records/:id", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const recordId = parseInt(req.params.id);
+      const userOrgId = req.user?.organizationId;
+      const isSuperAdmin = req.user?.role === 'superadmin';
+
+      // Enhanced query to include complete user, form, and patient information
+      const [record] = await db
+        .select({
+          id: consultationRecords.id,
+          patientId: consultationRecords.patientId,
+          formId: consultationRecords.formId,
+          filledBy: consultationRecords.filledBy,
+          formData: consultationRecords.formData,
+          status: consultationRecords.status,
+          createdAt: consultationRecords.createdAt,
+          // Patient information
+          patientFirstName: patients.firstName,
+          patientLastName: patients.lastName,
+          patientOrganizationId: patients.organizationId,
+          // Complete user information
+          conductedByFirstName: users.firstName,
+          conductedByLastName: users.lastName,
+          conductedByUsername: users.username,
+          conductedByRole: users.role,
+          conductedByEmail: users.email,
+          conductedByTitle: users.title,
+          // Form information
+          formName: consultationForms.name,
+          formDescription: consultationForms.description,
+          specialistRole: consultationForms.specialistRole
+        })
+        .from(consultationRecords)
+        .leftJoin(patients, eq(consultationRecords.patientId, patients.id))
+        .leftJoin(users, eq(consultationRecords.filledBy, users.id))
+        .leftJoin(consultationForms, eq(consultationRecords.formId, consultationForms.id))
+        .where(
+          and(
+            eq(consultationRecords.id, recordId),
+            // Organization check for non-superadmins
+            ...(userOrgId && !isSuperAdmin ? [eq(patients.organizationId, userOrgId)] : [])
+          )
+        )
+        .limit(1);
+
+      if (!record) {
+        return res.status(404).json({ message: "Consultation record not found" });
+      }
+
+      // Ensure formData is an object (it's stored as JSON in the database)
+      let formData: Record<string, any> = {};
+      try {
+        if (record.formData) {
+          if (typeof record.formData === 'object' && record.formData !== null) {
+            formData = record.formData;
+          } else if (typeof record.formData === 'string') {
+            formData = JSON.parse(record.formData);
+          }
+        }
+      } catch (parseError) {
+        console.error('Error parsing formData:', parseError);
+        formData = {};
+      }
+
+      // Format the date properly
+      let recordedAt: string;
+      try {
+        if (record.createdAt instanceof Date) {
+          recordedAt = record.createdAt.toISOString();
+        } else if (typeof record.createdAt === 'string') {
+          recordedAt = record.createdAt;
+        } else {
+          recordedAt = new Date(record.createdAt).toISOString();
+        }
+      } catch (dateError) {
+        console.error('Error formatting date:', dateError);
+        recordedAt = new Date().toISOString();
+      }
+
+      // Transform the record to match the expected format
+      const enhancedRecord = {
+        id: record.id,
+        patientId: record.patientId,
+        templateName: record.formName || 'Consultation',
+        responses: formData,
+        recordedBy: record.conductedByFirstName && record.conductedByLastName
+          ? `${record.conductedByFirstName} ${record.conductedByLastName}`
+          : record.conductedByUsername || 'Healthcare Staff',
+        recordedAt,
+        status: record.status || 'completed',
+        patient: record.patientFirstName && record.patientLastName ? {
+          firstName: record.patientFirstName,
+          lastName: record.patientLastName,
+          id: record.patientId
+        } : undefined
+      };
+
+      return res.json(enhancedRecord);
+    } catch (error) {
+      console.error('Error fetching consultation record:', error);
+      return res.status(500).json({ message: "Failed to fetch consultation record" });
     }
   });
 
   app.get("/api/patients/:patientId/consultation-records", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.patientId);
-      
+
       // Enhanced query to include complete user and form information with detailed staff info
       const records = await db
         .select({
@@ -6680,28 +6210,28 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .leftJoin(consultationForms, eq(consultationRecords.formId, consultationForms.id))
         .where(eq(consultationRecords.patientId, patientId))
         .orderBy(desc(consultationRecords.createdAt));
-      
+
       // Process records to include complete staff information
       const enhancedRecords = records.map(record => ({
         ...record,
         // Construct full name for display
-        conductedByFullName: record.conductedByFirstName && record.conductedByLastName 
+        conductedByFullName: record.conductedByFirstName && record.conductedByLastName
           ? `${record.conductedByFirstName} ${record.conductedByLastName}`
           : record.conductedByUsername || 'Healthcare Staff',
         // Role display formatting
-        roleDisplayName: record.conductedByRole 
+        roleDisplayName: record.conductedByRole
           ? record.conductedByRole.charAt(0).toUpperCase() + record.conductedByRole.slice(1)
           : 'Staff',
         // Specialist role formatting
-        specialistRoleDisplay: record.specialistRole 
+        specialistRoleDisplay: record.specialistRole
           ? record.specialistRole.charAt(0).toUpperCase() + record.specialistRole.slice(1)
           : 'General'
       }));
-      
-      res.json(enhancedRecords);
+
+      return res.json(enhancedRecords);
     } catch (error) {
       console.error('Error fetching consultation records:', error);
-      res.status(500).json({ message: "Failed to fetch consultation records" });
+      return res.status(500).json({ message: "Failed to fetch consultation records" });
     }
   });
 
@@ -6710,7 +6240,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.patientId);
       const auditLogger = new AuditLogger(req);
-      
+
       const assessmentData = {
         patientId,
         nurseId: req.user!.id,
@@ -6731,16 +6261,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       };
 
       const record = await storage.createConsultationRecord(consultationData);
-      
+
       await auditLogger.logPatientAction('CREATE_NURSING_ASSESSMENT', patientId, {
         recordId: record.id,
         assessmentType: 'nursing_assessment'
       });
 
-      res.status(201).json(record);
+      return res.status(201).json(record);
     } catch (error) {
       console.error('Error creating nursing assessment:', error);
-      res.status(500).json({ error: 'Failed to create nursing assessment' });
+      return res.status(500).json({ error: 'Failed to create nursing assessment' });
     }
   });
 
@@ -6749,7 +6279,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.patientId);
       const auditLogger = new AuditLogger(req);
-      
+
       const assessmentData = {
         patientId,
         physiotherapistId: req.user!.id,
@@ -6770,16 +6300,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       };
 
       const record = await storage.createConsultationRecord(consultationData);
-      
+
       await auditLogger.logPatientAction('CREATE_PHYSIOTHERAPY_ASSESSMENT', patientId, {
         recordId: record.id,
         assessmentType: 'physiotherapy_assessment'
       });
 
-      res.status(201).json(record);
+      return res.status(201).json(record);
     } catch (error) {
       console.error('Error creating physiotherapy assessment:', error);
-      res.status(500).json({ error: 'Failed to create physiotherapy assessment' });
+      return res.status(500).json({ error: 'Failed to create physiotherapy assessment' });
     }
   });
 
@@ -6788,7 +6318,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.patientId);
       const auditLogger = new AuditLogger(req);
-      
+
       const sessionData = {
         patientId,
         therapistId: req.user!.id,
@@ -6809,16 +6339,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       };
 
       const record = await storage.createConsultationRecord(consultationData);
-      
+
       await auditLogger.logPatientAction('CREATE_PSYCHOLOGICAL_THERAPY_SESSION', patientId, {
         recordId: record.id,
         sessionType: 'psychological_therapy_session'
       });
 
-      res.status(201).json(record);
+      return res.status(201).json(record);
     } catch (error) {
       console.error('Error creating psychological therapy session:', error);
-      res.status(500).json({ error: 'Failed to create psychological therapy session' });
+      return res.status(500).json({ error: 'Failed to create psychological therapy session' });
     }
   });
 
@@ -6837,16 +6367,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           lastSessionDate: sql<string>`MAX(${consultationRecords.createdAt})`,
           treatmentPhase: sql<string>`'Active Treatment'`,
         })
-        .from(consultationRecords)
-        .innerJoin(patients, eq(consultationRecords.patientId, patients.id))
-        .where(
-          and(
-            eq(consultationRecords.organizationId, req.user!.organizationId!),
-            sql`${consultationRecords.formData}->>'type' = 'psychological_therapy_session'`
+          .from(consultationRecords)
+          .innerJoin(patients, eq(consultationRecords.patientId, patients.id))
+          .where(
+            and(
+              eq(patients.organizationId, req.user!.organizationId!),
+              sql`${consultationRecords.formData}->>'type' = 'psychological_therapy_session'`
+            )
           )
-        )
-        .groupBy(consultationRecords.patientId, patients.firstName, patients.lastName)
-        .limit(10),
+          .groupBy(consultationRecords.patientId, patients.firstName, patients.lastName)
+          .limit(10),
 
         // Recent psychological therapy sessions
         db.select({
@@ -6855,16 +6385,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           sessionType: sql<string>`${consultationRecords.formData}->>'sessionType'`,
           sessionDate: consultationRecords.createdAt,
         })
-        .from(consultationRecords)
-        .innerJoin(patients, eq(consultationRecords.patientId, patients.id))
-        .where(
-          and(
-            eq(consultationRecords.organizationId, req.user!.organizationId!),
-            sql`${consultationRecords.formData}->>'type' = 'psychological_therapy_session'`
+          .from(consultationRecords)
+          .innerJoin(patients, eq(consultationRecords.patientId, patients.id))
+          .where(
+            and(
+              eq(patients.organizationId, req.user!.organizationId!),
+              sql`${consultationRecords.formData}->>'type' = 'psychological_therapy_session'`
+            )
           )
-        )
-        .orderBy(desc(consultationRecords.createdAt))
-        .limit(10),
+          .orderBy(desc(consultationRecords.createdAt))
+          .limit(10),
 
         // Upcoming psychological therapy appointments
         db.select({
@@ -6873,89 +6403,89 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           appointmentTime: appointments.appointmentTime,
           appointmentDate: appointments.appointmentDate,
         })
-        .from(appointments)
-        .innerJoin(patients, eq(appointments.patientId, patients.id))
-        .where(
-          and(
-            eq(appointments.organizationId, req.user!.organizationId!),
-            eq(appointments.status, 'scheduled'),
-            sql`${appointments.type} = 'Psychological Therapy Session'`
+          .from(appointments)
+          .innerJoin(patients, eq(appointments.patientId, patients.id))
+          .where(
+            and(
+              eq(appointments.organizationId, req.user!.organizationId!),
+              eq(appointments.status, 'scheduled'),
+              sql`${appointments.type} = 'Psychological Therapy Session'`
+            )
           )
-        )
-        .orderBy(asc(appointments.appointmentDate))
-        .limit(10),
+          .orderBy(asc(appointments.appointmentDate))
+          .limit(10),
       ]);
 
-      res.json({
+      return res.json({
         activePatients,
         recentSessions,
         upcomingAppointments,
       });
     } catch (error) {
       console.error('Error fetching psychological therapy dashboard:', error);
-      res.status(500).json({ error: 'Failed to fetch psychological therapy dashboard' });
+      return res.status(500).json({ error: 'Failed to fetch psychological therapy dashboard' });
     }
   });
 
   // ====== AI-POWERED CONSULTATIONS ======
   // Reference: blueprint:javascript_openai_ai_integrations
-  
+
   // List AI consultations
-  app.get("/api/ai-consultations", authenticateToken, async (req: TenantRequest, res) => {
+  app.get("/api/ai-consultations", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { patientId, status } = req.query;
       const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(403).json({ message: "Organization context required" });
       }
-      
+
       const consultations = await storage.getAiConsultations({
         patientId: patientId ? parseInt(patientId as string) : undefined,
         status: status as string,
         organizationId: userOrgId
       });
-      
-      res.json(consultations);
+
+      return res.json(consultations);
     } catch (error) {
       console.error('Error fetching AI consultations:', error);
-      res.status(500).json({ message: "Failed to fetch consultations" });
+      return res.status(500).json({ message: "Failed to fetch consultations" });
     }
   });
 
   // Get single AI consultation
-  app.get("/api/ai-consultations/:id", authenticateToken, async (req: TenantRequest, res) => {
+  app.get("/api/ai-consultations/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(403).json({ message: "Organization context required" });
       }
-      
+
       const consultation = await storage.getAiConsultation(id, userOrgId);
-      
+
       if (!consultation) {
         return res.status(404).json({ message: "Consultation not found" });
       }
-      
-      res.json(consultation);
+
+      return res.json(consultation);
     } catch (error) {
       console.error('Error fetching AI consultation:', error);
-      res.status(500).json({ message: "Failed to fetch consultation" });
+      return res.status(500).json({ message: "Failed to fetch consultation" });
     }
   });
 
   // Create new AI consultation
-  app.post("/api/ai-consultations", authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.post("/api/ai-consultations", authenticateToken, tenantMiddleware, async (req: AuthRequest, res) => {
     try {
       const { patientId, chiefComplaint } = req.body;
       const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(403).json({ message: "Organization context required" });
       }
-      
+
       // Validate patient exists and belongs to the same organization
       const patient = await storage.getPatient(parseInt(patientId));
       if (!patient) {
@@ -6964,7 +6494,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (patient.organizationId !== userOrgId) {
         return res.status(403).json({ message: "Patient belongs to a different organization" });
       }
-      
+
       const consultationData = {
         patientId: parseInt(patientId),
         providerId: req.user!.id,
@@ -6973,32 +6503,32 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         status: 'in_progress' as const,
         transcript: []
       };
-      
+
       const consultation = await storage.createAiConsultation(consultationData);
-      res.status(201).json(consultation);
+      return res.status(201).json(consultation);
     } catch (error) {
       console.error('Error creating AI consultation:', error);
-      res.status(500).json({ message: "Failed to create consultation" });
+      return res.status(500).json({ message: "Failed to create consultation" });
     }
   });
 
   // Add message to consultation
-  app.post("/api/ai-consultations/:id/messages", authenticateToken, async (req: TenantRequest, res) => {
+  app.post("/api/ai-consultations/:id/messages", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { simulatePatientResponse, generateClinicalNotes } = await import('./openai');
       const id = parseInt(req.params.id);
       const { message, role } = req.body;
       const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(403).json({ message: "Organization context required" });
       }
-      
+
       const consultation = await storage.getAiConsultation(id, userOrgId);
       if (!consultation) {
         return res.status(404).json({ message: "Consultation not found" });
       }
-      
+
       // Get patient details
       const patient = await storage.getPatient(consultation.patientId);
       if (!patient) {
@@ -7008,7 +6538,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (patient.organizationId !== userOrgId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       // Add user's message
       const newTranscript = [
         ...(consultation.transcript || []),
@@ -7018,25 +6548,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           timestamp: new Date().toISOString()
         }
       ];
-      
+
       // Update consultation with new message
       await storage.updateAiConsultation(id, { transcript: newTranscript as any }, userOrgId);
-      
+
       // If doctor's message, simulate patient response
       let patientResponse = null;
       if (role === 'user' || role === 'doctor') {
         // Fetch comprehensive patient context for AI with organization filtering for security
         const [recentVisits, activePrescriptions, recentLabResults, latestVitals] = await Promise.all([
           // Recent visits (last 5) - filter by org for defense-in-depth
-          storage.getVisitsByPatient(consultation.patientId).then(visits => 
+          storage.getVisitsByPatient(consultation.patientId).then(visits =>
             visits.filter((v: any) => v.organizationId === userOrgId).slice(0, 5)
           ),
           // Active prescriptions - filter by org for defense-in-depth
-          storage.getActivePrescriptionsByPatient(consultation.patientId).then(rx => 
+          storage.getActivePrescriptionsByPatient(consultation.patientId).then(rx =>
             rx.filter((r: any) => r.organizationId === userOrgId).slice(0, 10)
           ),
           // Recent lab results (last 5) - filter by org for defense-in-depth
-          storage.getLabResultsByPatient(consultation.patientId).then(labs => 
+          storage.getLabResultsByPatient(consultation.patientId).then(labs =>
             labs.filter((l: any) => l.organizationId === userOrgId).slice(0, 5)
           ),
           // Latest vital signs - filter by org for defense-in-depth
@@ -7075,74 +6605,74 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
             date: lab.resultDate ? new Date(lab.resultDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A',
             isAbnormal: lab.isAbnormal || false
           })),
-          currentMedications: activePrescriptions.map((rx: any) => 
+          currentMedications: activePrescriptions.map((rx: any) =>
             `${rx.medicationName} ${rx.dosage} - ${rx.frequency}`
           ).join(', ') || undefined
         };
-        
+
         const response = await simulatePatientResponse(
           newTranscript,
           patientContext,
           consultation.chiefComplaint || 'General consultation'
         );
-        
+
         patientResponse = {
           role: 'assistant',
           content: response,
           timestamp: new Date().toISOString()
         };
-        
+
         // Add patient response to transcript
         const updatedTranscript = [
           ...newTranscript,
           patientResponse
         ];
-        
+
         await storage.updateAiConsultation(id, { transcript: updatedTranscript as any }, userOrgId);
       }
-      
-      res.json({ 
+
+      return res.json({
         userMessage: newTranscript[newTranscript.length - 1],
-        patientResponse 
+        patientResponse
       });
     } catch (error: any) {
       console.error('Error adding message:', error);
-      
+
       // Provide more specific error messages
       if (error?.message?.includes('API key')) {
-        return res.status(503).json({ 
+        return res.status(503).json({
           message: "AI service not configured",
           details: "Please configure OPENAI_API_KEY to enable AI consultations"
         });
       }
-      
+
       if (error?.code === 'insufficient_quota' || error?.message?.includes('quota')) {
-        return res.status(503).json({ 
+        return res.status(503).json({
           message: "AI service quota exceeded",
           details: "The OpenAI API quota has been reached. Please try again later."
         });
       }
-      
-      res.status(500).json({ message: "Failed to add message" });
+
+      return res.status(500).json({ message: "Failed to add message" });
     }
   });
 
   // Generate clinical notes from consultation
-  app.post("/api/ai-consultations/:id/generate-notes", authenticateToken, async (req: TenantRequest, res) => {
+  app.post("/api/ai-consultations/:id/generate-notes", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { generateClinicalNotes } = await import('./openai');
       const id = parseInt(req.params.id);
       const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(403).json({ message: "Organization context required" });
       }
-      
+
       const consultation = await storage.getAiConsultation(id, userOrgId);
       if (!consultation) {
         return res.status(404).json({ message: "Consultation not found" });
       }
-      
+
       const patient = await storage.getPatient(consultation.patientId);
       if (!patient) {
         return res.status(404).json({ message: "Patient not found" });
@@ -7151,16 +6681,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (patient.organizationId !== userOrgId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       // Fetch comprehensive patient context for clinical note generation with organization filtering
       const [recentVisits, activePrescriptions, recentLabResults, latestVitals] = await Promise.all([
-        storage.getVisitsByPatient(consultation.patientId).then(visits => 
+        storage.getVisitsByPatient(consultation.patientId).then(visits =>
           visits.filter((v: any) => v.organizationId === userOrgId).slice(0, 5)
         ),
-        storage.getActivePrescriptionsByPatient(consultation.patientId).then(rx => 
+        storage.getActivePrescriptionsByPatient(consultation.patientId).then(rx =>
           rx.filter((r: any) => r.organizationId === userOrgId).slice(0, 10)
         ),
-        storage.getLabResultsByPatient(consultation.patientId).then(labs => 
+        storage.getLabResultsByPatient(consultation.patientId).then(labs =>
           labs.filter((l: any) => l.organizationId === userOrgId).slice(0, 5)
         ),
         db.select().from(vitalSigns)
@@ -7197,94 +6727,94 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           date: lab.resultDate ? new Date(lab.resultDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A',
           isAbnormal: lab.isAbnormal || false
         })),
-        currentMedications: activePrescriptions.map((rx: any) => 
+        currentMedications: activePrescriptions.map((rx: any) =>
           `${rx.medicationName} ${rx.dosage} - ${rx.frequency}`
         ).join(', ') || undefined
       };
-      
+
       const notes = await generateClinicalNotes(consultation.transcript || [], patientContext);
-      
+
       const clinicalNoteData = {
         consultationId: id,
         organizationId: userOrgId,
         ...notes
       };
-      
+
       const clinicalNote = await storage.createClinicalNote(clinicalNoteData as any);
-      
+
       // Mark consultation as completed
-      await storage.updateAiConsultation(id, { 
+      await storage.updateAiConsultation(id, {
         status: 'completed' as any,
         completedAt: new Date() as any
       }, userOrgId);
-      
-      res.status(201).json(clinicalNote);
+
+      return res.status(201).json(clinicalNote);
     } catch (error) {
       console.error('Error generating clinical notes:', error);
-      res.status(500).json({ message: "Failed to generate clinical notes" });
+      return res.status(500).json({ message: "Failed to generate clinical notes" });
     }
   });
 
   // Get clinical notes for a consultation
-  app.get("/api/ai-consultations/:id/clinical-notes", authenticateToken, async (req: TenantRequest, res) => {
+  app.get("/api/ai-consultations/:id/clinical-notes", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(403).json({ message: "Organization context required" });
       }
-      
+
       // First verify the consultation belongs to user's organization
       const consultation = await storage.getAiConsultation(id, userOrgId);
       if (!consultation) {
         return res.status(404).json({ message: "Consultation not found" });
       }
-      
+
       const notes = await storage.getClinicalNoteByConsultation(id, userOrgId);
-      
+
       if (!notes) {
         return res.status(404).json({ message: "Clinical notes not found" });
       }
-      
-      res.json(notes);
+
+      return res.json(notes);
     } catch (error) {
       console.error('Error fetching clinical notes:', error);
-      res.status(500).json({ message: "Failed to fetch clinical notes" });
+      return res.status(500).json({ message: "Failed to fetch clinical notes" });
     }
   });
 
   // Add clinical notes to patient record (one-click feature)
-  app.post("/api/ai-consultations/:id/add-to-record", authenticateToken, async (req: TenantRequest, res) => {
+  app.post("/api/ai-consultations/:id/add-to-record", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const consultationId = parseInt(req.params.id);
       const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
       const userId = req.user?.id;
-      
+
       if (!userOrgId || !userId) {
         return res.status(403).json({ message: "Organization context required" });
       }
-      
+
       // Get the consultation and verify organization access
       const consultation = await storage.getAiConsultation(consultationId, userOrgId);
       if (!consultation) {
         return res.status(404).json({ message: "Consultation not found" });
       }
-      
+
       // Get the clinical notes
       const clinicalNote = await storage.getClinicalNoteByConsultation(consultationId, userOrgId);
       if (!clinicalNote) {
         return res.status(404).json({ message: "Clinical notes not found. Please generate notes first." });
       }
-      
+
       // Check if already added to patient record
       if (clinicalNote.addedToPatientRecord) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "Clinical notes already added to patient record",
           addedAt: clinicalNote.addedToRecordAt
         });
       }
-      
+
       // Create a visit record from the clinical notes
       const visitData = {
         patientId: consultation.patientId,
@@ -7298,9 +6828,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         status: 'final' as const,
         organizationId: userOrgId
       };
-      
+
       const visit = await storage.createVisit(visitData as any);
-      
+
       // Create prescription records for medications if any
       if (clinicalNote.medications && Array.isArray(clinicalNote.medications) && clinicalNote.medications.length > 0) {
         for (const med of clinicalNote.medications) {
@@ -7322,26 +6852,80 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           }
         }
       }
-      
+
       // Mark clinical note as added to patient record
       await storage.updateClinicalNote(clinicalNote.id!, {
         addedToPatientRecord: true,
         addedToRecordAt: new Date()
       } as any, userOrgId);
-      
+
       // Update consultation status
       await storage.updateAiConsultation(consultationId, {
         status: 'added_to_record' as any
       }, userOrgId);
-      
-      res.status(200).json({
+
+      return res.status(200).json({
         message: "Clinical notes successfully added to patient record",
         visit: visit,
         prescriptionsCreated: clinicalNote.medications?.length || 0
       });
     } catch (error) {
       console.error('Error adding to patient record:', error);
-      res.status(500).json({ message: "Failed to add to patient record" });
+      return res.status(500).json({ message: "Failed to add to patient record" });
+    }
+  });
+
+  // Get clinical notes for a patient
+  app.get("/api/patients/:id/clinical-notes", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.id);
+      const userOrgId = req.user?.organizationId;
+
+      if (!userOrgId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+
+      // Verify patient belongs to user's organization
+      const [patient] = await db.select().from(patients)
+        .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId)))
+        .limit(1);
+
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      const notes = await storage.getClinicalNotesByPatient(patientId, userOrgId);
+      return res.json(notes);
+    } catch (error) {
+      console.error('Error fetching clinical notes:', error);
+      return res.status(500).json({ message: "Failed to fetch clinical notes" });
+    }
+  });
+
+  // Get care plans for a patient
+  app.get("/api/patients/:id/care-plans", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const patientId = parseInt(req.params.id);
+      const userOrgId = req.user?.organizationId;
+
+      if (!userOrgId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+
+      // Verify patient belongs to user's organization
+      const [patient] = await db.select().from(patients)
+        .where(and(eq(patients.id, patientId), eq(patients.organizationId, userOrgId)))
+        .limit(1);
+
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      const carePlans = await storage.getCarePlansByPatient(patientId, userOrgId);
+      return res.json(carePlans);
+    } catch (error) {
+      console.error('Error fetching care plans:', error);
+      return res.status(500).json({ message: "Failed to fetch care plans" });
     }
   });
 
@@ -7353,7 +6937,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      
+
       const [
         recentVitals,
         todaysAppointments,
@@ -7369,11 +6953,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           heartRate: vitalSigns.heartRate,
           temperature: vitalSigns.temperature
         })
-        .from(vitalSigns)
-        .leftJoin(patients, eq(vitalSigns.patientId, patients.id))
-        .where(eq(patients.organizationId, orgId))
-        .orderBy(desc(vitalSigns.recordedAt))
-        .limit(20),
+          .from(vitalSigns)
+          .leftJoin(patients, eq(vitalSigns.patientId, patients.id))
+          .where(eq(patients.organizationId, orgId))
+          .orderBy(desc(vitalSigns.recordedAt))
+          .limit(20),
 
         // Today's appointments  
         db.select({
@@ -7383,15 +6967,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           status: appointments.status,
           notes: appointments.notes
         })
-        .from(appointments)
-        .leftJoin(patients, eq(appointments.patientId, patients.id))
-        .where(and(
-          eq(appointments.organizationId, orgId),
-          gte(appointments.appointmentTime, startOfDay),
-          lte(appointments.appointmentTime, endOfDay)
-        ))
-        .orderBy(appointments.appointmentTime)
-        .limit(15),
+          .from(appointments)
+          .leftJoin(patients, eq(appointments.patientId, patients.id))
+          .where(and(
+            eq(appointments.organizationId, orgId),
+            eq(appointments.appointmentDate, sql`CURRENT_DATE`)
+          ))
+          .orderBy(appointments.appointmentTime)
+          .limit(15),
 
         // Active safety alerts
         db.select({
@@ -7403,14 +6986,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           priority: safetyAlerts.priority,
           dateAdded: safetyAlerts.dateAdded
         })
-        .from(safetyAlerts)
-        .leftJoin(patients, eq(safetyAlerts.patientId, patients.id))
-        .where(and(
-          eq(safetyAlerts.isActive, true),
-          eq(patients.organizationId, orgId)
-        ))
-        .orderBy(desc(safetyAlerts.priority), desc(safetyAlerts.dateAdded))
-        .limit(10),
+          .from(safetyAlerts)
+          .leftJoin(patients, eq(safetyAlerts.patientId, patients.id))
+          .where(and(
+            eq(safetyAlerts.isActive, true),
+            eq(patients.organizationId, orgId)
+          ))
+          .orderBy(desc(safetyAlerts.priority), desc(safetyAlerts.dateAdded))
+          .limit(10),
 
         // Summary statistics
         Promise.all([
@@ -7425,8 +7008,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
             .from(appointments)
             .where(and(
               eq(appointments.organizationId, orgId),
-              gte(appointments.appointmentTime, startOfDay),
-              lte(appointments.appointmentTime, endOfDay)
+              eq(appointments.appointmentDate, sql`CURRENT_DATE`)
             ))
         ]).then(([vitalsToday, appointmentsToday]) => ({
           vitalsRecordedToday: vitalsToday[0]?.count || 0,
@@ -7455,10 +7037,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         }
       };
 
-      res.json(dashboardData);
+      return res.json(dashboardData);
     } catch (error) {
       console.error('Error fetching nursing dashboard:', error);
-      res.status(500).json({ error: 'Failed to fetch nursing dashboard' });
+      return res.status(500).json({ error: 'Failed to fetch nursing dashboard' });
     }
   });
 
@@ -7480,15 +7062,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           treatmentPhase: sql<string>`'Active Treatment'`,
           progressNotes: consultationRecords.formData
         })
-        .from(consultationRecords)
-        .leftJoin(patients, eq(consultationRecords.patientId, patients.id))
-        .where(and(
-          eq(consultationRecords.filledBy, req.user!.id),
-          gte(consultationRecords.createdAt, sql`DATE('now', '-30 days')`)
-        ))
-        .groupBy(consultationRecords.patientId, patients.firstName, patients.lastName, consultationRecords.formData)
-        .orderBy(sql`MAX(${consultationRecords.createdAt}) DESC`)
-        .limit(20),
+          .from(consultationRecords)
+          .leftJoin(patients, eq(consultationRecords.patientId, patients.id))
+          .where(and(
+            eq(consultationRecords.filledBy, req.user!.id),
+            gte(consultationRecords.createdAt, sql`DATE('now', '-30 days')`)
+          ))
+          .groupBy(consultationRecords.patientId, patients.firstName, patients.lastName, consultationRecords.formData)
+          .orderBy(sql`MAX(${consultationRecords.createdAt}) DESC`)
+          .limit(20),
 
         // Recent physiotherapy sessions
         db.select({
@@ -7498,14 +7080,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           sessionDate: consultationRecords.createdAt,
           notes: consultationRecords.formData
         })
-        .from(consultationRecords)
-        .leftJoin(patients, eq(consultationRecords.patientId, patients.id))
-        .where(and(
-          eq(consultationRecords.filledBy, req.user!.id),
-          gte(consultationRecords.createdAt, sql`DATE('now', '-7 days')`)
-        ))
-        .orderBy(desc(consultationRecords.createdAt))
-        .limit(10),
+          .from(consultationRecords)
+          .leftJoin(patients, eq(consultationRecords.patientId, patients.id))
+          .where(and(
+            eq(consultationRecords.filledBy, req.user!.id),
+            gte(consultationRecords.createdAt, sql`DATE('now', '-7 days')`)
+          ))
+          .orderBy(desc(consultationRecords.createdAt))
+          .limit(10),
 
         // Upcoming physiotherapy appointments
         db.select({
@@ -7516,15 +7098,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           status: appointments.status,
           notes: appointments.notes
         })
-        .from(appointments)
-        .leftJoin(patients, eq(appointments.patientId, patients.id))
-        .where(and(
-          eq(appointments.doctorId, req.user!.id),
-          gte(appointments.appointmentTime, sql`DATETIME('now')`),
-          eq(appointments.organizationId, req.user!.organizationId!)
-        ))
-        .orderBy(appointments.appointmentTime)
-        .limit(15),
+          .from(appointments)
+          .leftJoin(patients, eq(appointments.patientId, patients.id))
+          .where(and(
+            eq(appointments.doctorId, req.user!.id),
+            gte(appointments.appointmentTime, sql`DATETIME('now')`),
+            eq(appointments.organizationId, req.user!.organizationId!)
+          ))
+          .orderBy(appointments.appointmentTime)
+          .limit(15),
 
         // Exercise compliance tracking (mock data structure)
         Promise.resolve([
@@ -7568,25 +7150,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         },
         compliance: {
           exerciseTracking: exerciseCompliance,
-          averageCompliance: exerciseCompliance.length > 0 
-            ? exerciseCompliance.reduce((sum, item) => sum + item.compliance, 0) / exerciseCompliance.length 
+          averageCompliance: exerciseCompliance.length > 0
+            ? exerciseCompliance.reduce((sum, item) => sum + item.compliance, 0) / exerciseCompliance.length
             : 0
         },
         summary: {
           activePatients: activePatients.length,
           sessionsCompleted: workloadStats.sessionsCompletedToday,
           upcomingAppointments: upcomingAppointments.length,
-          avgCompliance: exerciseCompliance.length > 0 
+          avgCompliance: exerciseCompliance.length > 0
             ? Math.round(exerciseCompliance.reduce((sum, item) => sum + item.compliance, 0) / exerciseCompliance.length)
             : 0,
           lastUpdated: new Date().toISOString()
         }
       };
 
-      res.json(dashboardData);
+      return res.json(dashboardData);
     } catch (error) {
       console.error('Error fetching physiotherapy dashboard:', error);
-      res.status(500).json({ error: 'Failed to fetch physiotherapy dashboard' });
+      return res.status(500).json({ error: 'Failed to fetch physiotherapy dashboard' });
     }
   });
 
@@ -7595,7 +7177,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.patientId);
       const auditLogger = new AuditLogger(req);
-      
+
       const reviewData = {
         patientId,
         pharmacistId: req.user!.id,
@@ -7616,16 +7198,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       };
 
       const record = await storage.createConsultationRecord(consultationData);
-      
+
       await auditLogger.logPatientAction('CREATE_PHARMACY_REVIEW', patientId, {
         recordId: record.id,
         assessmentType: 'pharmacy_review'
       });
 
-      res.status(201).json(record);
+      return res.status(201).json(record);
     } catch (error) {
       console.error('Error creating pharmacy review:', error);
-      res.status(500).json({ error: 'Failed to create pharmacy review' });
+      return res.status(500).json({ error: 'Failed to create pharmacy review' });
     }
   });
 
@@ -7634,7 +7216,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const patientId = parseInt(req.params.patientId);
       const allActivities: any[] = [];
-      
+
       // Get visit records
       try {
         const visitsData = await db
@@ -7659,7 +7241,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           })
           .from(visits)
           .where(eq(visits.patientId, patientId));
-        
+
         allActivities.push(...visitsData);
       } catch (error) {
         console.error('Error fetching visits:', error);
@@ -7686,7 +7268,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           })
           .from(labResults)
           .where(eq(labResults.patientId, patientId));
-        
+
         allActivities.push(...labResultsData);
       } catch (error) {
         console.error('Error fetching lab results:', error);
@@ -7714,7 +7296,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           })
           .from(prescriptions)
           .where(eq(prescriptions.patientId, patientId));
-        
+
         allActivities.push(...prescriptionsData);
       } catch (error) {
         console.error('Error fetching prescriptions:', error);
@@ -7738,7 +7320,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           })
           .from(consultationRecords)
           .where(eq(consultationRecords.patientId, patientId));
-        
+
         allActivities.push(...consultationsData);
       } catch (error) {
         console.error('Error fetching consultations:', error);
@@ -7747,10 +7329,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       // Sort by date
       const sortedActivities = allActivities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      res.json(sortedActivities);
+      return res.json(sortedActivities);
     } catch (error) {
       console.error('Error fetching patient activity trail:', error);
-      res.status(500).json({ message: "Failed to fetch patient activity trail" });
+      return res.status(500).json({ message: "Failed to fetch patient activity trail" });
     }
   });
 
@@ -7758,7 +7340,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/patients/:id/consultations", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      
+
       const consultations = await db
         .select({
           id: consultationRecords.id,
@@ -7787,11 +7369,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .leftJoin(users, eq(consultationRecords.filledBy, users.id))
         .where(eq(consultationRecords.patientId, patientId))
         .orderBy(desc(consultationRecords.createdAt));
-      
-      res.json(consultations);
+
+      return res.json(consultations);
     } catch (error) {
       console.error('Error fetching patient consultations:', error);
-      res.status(500).json({ message: "Failed to fetch patient consultations" });
+      return res.status(500).json({ message: "Failed to fetch patient consultations" });
     }
   });
 
@@ -7805,12 +7387,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       // Get total visits in time range
       const visitsData = await db.select().from(visits)
         .where(gte(visits.createdAt, fromDate));
-      
+
       // Calculate metrics
       const totalVisits = visitsData.length;
-      
+
       // Calculate average visit duration (assuming 15-20 minutes average)
-      const avgVisitDuration = visitsData.length > 0 ? 
+      const avgVisitDuration = visitsData.length > 0 ?
         visitsData.reduce((acc, visit) => {
           // Estimate based on visit complexity
           const baseTime = 15;
@@ -7833,7 +7415,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       // Patient satisfaction (estimate based on follow-up compliance and treatment completion)
       const patientSatisfaction = followUpCompliance > 80 ? 4.7 :
         followUpCompliance > 60 ? 4.3 :
-        followUpCompliance > 40 ? 3.9 : 3.5;
+          followUpCompliance > 40 ? 3.9 : 3.5;
 
       const metrics = {
         totalVisits,
@@ -7847,10 +7429,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const audit = new AuditLogger(req);
       await audit.logSystemAction('view_clinical_metrics', { timeRange, metrics });
 
-      res.json(metrics);
+      return res.json(metrics);
     } catch (error) {
       console.error("Error fetching clinical metrics:", error);
-      res.status(500).json({ message: "Failed to fetch clinical metrics" });
+      return res.status(500).json({ message: "Failed to fetch clinical metrics" });
     }
   });
 
@@ -7871,7 +7453,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         const weekStart = new Date(visit.createdAt!);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         const weekKey = weekStart.toISOString().split('T')[0];
-        
+
         if (!weeklyData[weekKey]) {
           weeklyData[weekKey] = [];
         }
@@ -7883,8 +7465,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         const visitsCount = weekVisits.length;
         const visitsWithTreatment = weekVisits.filter(v => v.treatment && v.treatment.trim() !== '');
         const successRate = visitsCount > 0 ? Math.round((visitsWithTreatment.length / visitsCount) * 100) : 0;
-        
-        const avgDuration = visitsCount > 0 ? 
+
+        const avgDuration = visitsCount > 0 ?
           weekVisits.reduce((acc, visit) => {
             const baseTime = 15;
             const complexityMultiplier = visit.diagnosis ? 1.2 : 1.0;
@@ -7906,10 +7488,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const audit = new AuditLogger(req);
       await audit.logSystemAction('view_performance_trends', { timeRange });
 
-      res.json(performanceData);
+      return res.json(performanceData);
     } catch (error) {
       console.error("Error fetching performance data:", error);
-      res.status(500).json({ message: "Failed to fetch performance data" });
+      return res.status(500).json({ message: "Failed to fetch performance data" });
     }
   });
 
@@ -7960,7 +7542,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         const count = visits.length;
         const visitsWithTreatment = visits.filter(v => v.treatment && v.treatment.trim() !== '');
         const successRate = count > 0 ? Math.round((visitsWithTreatment.length / count) * 100) : 0;
-        
+
         // Estimate average treatment days based on condition
         let avgTreatmentDays = 7;
         if (condition.includes('Hypertension') || condition.includes('Diabetes')) {
@@ -7983,10 +7565,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const audit = new AuditLogger(req);
       await audit.logSystemAction('view_diagnosis_metrics', { timeRange });
 
-      res.json(diagnosisMetrics);
+      return res.json(diagnosisMetrics);
     } catch (error) {
       console.error("Error fetching diagnosis metrics:", error);
-      res.status(500).json({ message: "Failed to fetch diagnosis metrics" });
+      return res.status(500).json({ message: "Failed to fetch diagnosis metrics" });
     }
   });
 
@@ -8012,13 +7594,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           const visitCount = memberVisits.length;
           const visitsWithTreatment = memberVisits.filter(v => v.treatment && v.treatment.trim() !== '');
           const efficiency = visitCount > 0 ? Math.round((visitsWithTreatment.length / visitCount) * 100) : 0;
-          
+
           // Calculate satisfaction based on efficiency and follow-up compliance
           const visitsWithFollowUp = memberVisits.filter(v => v.followUpDate);
           const followUpRate = visitCount > 0 ? (visitsWithFollowUp.length / visitCount) * 100 : 0;
           const satisfaction = efficiency > 90 ? 4.7 + Math.random() * 0.2 :
             efficiency > 80 ? 4.4 + Math.random() * 0.2 :
-            efficiency > 70 ? 4.1 + Math.random() * 0.2 : 3.8 + Math.random() * 0.2;
+              efficiency > 70 ? 4.1 + Math.random() * 0.2 : 3.8 + Math.random() * 0.2;
 
           return {
             staffId: member.id,
@@ -8040,10 +7622,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const audit = new AuditLogger(req);
       await audit.logSystemAction('view_staff_performance', { timeRange });
 
-      res.json(filteredStaff);
+      return res.json(filteredStaff);
     } catch (error) {
       console.error("Error fetching staff performance:", error);
-      res.status(500).json({ message: "Failed to fetch staff performance" });
+      return res.status(500).json({ message: "Failed to fetch staff performance" });
     }
   });
 
@@ -8053,12 +7635,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const username = req.params.username;
       const user = await storage.getUserByUsername(username);
       if (!user) {
-        res.status(404).json({ message: "User not found" });
+        return res.status(404).json({ message: "User not found" });
         return;
       }
-      res.json({ ...user, password: undefined }); // Don't return password
+      return res.json({ ...user, password: undefined }); // Don't return password
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch user" });
+      return res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
@@ -8067,7 +7649,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const user = req.user as any;
       const userOrgId = user.organizationId;
-      
+
       const today = new Date();
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
@@ -8083,16 +7665,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         type: appointments.type,
         priority: appointments.priority
       })
-      .from(appointments)
-      .leftJoin(patients, eq(appointments.patientId, patients.id))
-      .where(
-        and(
-          eq(appointments.organizationId, userOrgId),
-          gte(sql`DATE(${appointments.appointmentDate})`, startOfDay.toISOString().split('T')[0]),
-          lte(sql`DATE(${appointments.appointmentDate})`, endOfDay.toISOString().split('T')[0])
+        .from(appointments)
+        .leftJoin(patients, eq(appointments.patientId, patients.id))
+        .where(
+          and(
+            eq(appointments.organizationId, userOrgId),
+            gte(sql`DATE(${appointments.appointmentDate})`, startOfDay.toISOString().split('T')[0]),
+            lte(sql`DATE(${appointments.appointmentDate})`, endOfDay.toISOString().split('T')[0])
+          )
         )
-      )
-      .orderBy(appointments.appointmentTime);
+        .orderBy(appointments.appointmentTime);
 
       // Get recent prescriptions with patient names (organization-filtered)
       const recentPrescriptions = await db.select({
@@ -8106,16 +7688,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         createdAt: prescriptions.createdAt,
         prescribedBy: prescriptions.prescribedBy
       })
-      .from(prescriptions)
-      .leftJoin(patients, eq(prescriptions.patientId, patients.id))
-      .where(
-        and(
-          eq(prescriptions.organizationId, userOrgId),
-          gte(prescriptions.createdAt, startOfDay)
+        .from(prescriptions)
+        .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+        .where(
+          and(
+            eq(prescriptions.organizationId, userOrgId),
+            gte(prescriptions.createdAt, startOfDay)
+          )
         )
-      )
-      .orderBy(desc(prescriptions.createdAt))
-      .limit(10);
+        .orderBy(desc(prescriptions.createdAt))
+        .limit(10);
 
       // Get pending lab orders (organization-filtered)
       const pendingLabOrders = await db.select({
@@ -8126,16 +7708,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         status: labOrders.status,
         createdAt: labOrders.createdAt
       })
-      .from(labOrders)
-      .leftJoin(patients, eq(labOrders.patientId, patients.id))
-      .where(
-        and(
-          eq(labOrders.organizationId, userOrgId),
-          eq(labOrders.status, 'pending')
+        .from(labOrders)
+        .leftJoin(patients, eq(labOrders.patientId, patients.id))
+        .where(
+          and(
+            eq(labOrders.organizationId, userOrgId),
+            eq(labOrders.status, 'pending')
+          )
         )
-      )
-      .orderBy(desc(labOrders.createdAt))
-      .limit(10);
+        .orderBy(desc(labOrders.createdAt))
+        .limit(10);
 
       // Calculate workflow metrics
       const completedToday = todayAppointments.filter(apt => apt.status === 'completed');
@@ -8152,7 +7734,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         pendingLabOrders: pendingLabOrders.length
       };
 
-      res.json({
+      return res.json({
         metrics: workflowMetrics,
         appointments: {
           today: todayAppointments,
@@ -8166,21 +7748,22 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
     } catch (error) {
       console.error('Error fetching clinical activity dashboard:', error);
-      res.status(500).json({ message: "Failed to fetch clinical activity data" });
+      return res.status(500).json({ message: "Failed to fetch clinical activity data" });
     }
   });
 
   // Quick workflow actions - Start consultation from appointment
+  /* DUPLICATE - Start consultation route already in server/routes/appointments.ts (line 192)
   app.post("/api/appointments/:id/start-consultation", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const appointmentId = parseInt(req.params.id);
-      
+
       // Update appointment status to in-progress
       const [updatedAppointment] = await db
         .update(appointments)
-        .set({ 
+        .set({
           status: 'in-progress',
-          updatedAt: new Date()
+          updatedAt: sql`NOW()`
         })
         .where(eq(appointments.id, appointmentId))
         .returning();
@@ -8196,14 +7779,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         startTime: new Date().toISOString()
       });
 
-      res.json({ 
+      return res.json({
         message: "Consultation started successfully",
-        appointment: updatedAppointment 
+        appointment: updatedAppointment
       });
 
     } catch (error) {
       console.error('Error starting consultation:', error);
-      res.status(500).json({ message: "Failed to start consultation" });
+      return res.status(500).json({ message: "Failed to start consultation" });
     }
   });
 
@@ -8212,14 +7795,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const appointmentId = parseInt(req.params.id);
       const { notes, followUpRequired, followUpDate } = req.body;
-      
+
       // Update appointment status to completed
       const [updatedAppointment] = await db
         .update(appointments)
-        .set({ 
+        .set({
           status: 'completed',
           notes: notes || null,
-          updatedAt: new Date()
+          updatedAt: sql`NOW()`
         })
         .where(eq(appointments.id, appointmentId))
         .returning();
@@ -8242,22 +7825,58 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         });
       }
 
-      // Create audit log
-      const auditLogger = new AuditLogger(req);
-      await auditLogger.logPatientAction("Consultation Completed", updatedAppointment.patientId, {
-        appointmentId: appointmentId,
+      /* DUPLICATE - Complete consultation route already in server/routes/appointments.ts (line 228)
+      // Complete consultation workflow
+      app.post("/api/appointments/:id/complete-consultation", authenticateToken, async (req: AuthRequest, res) => {
+        try {
+          const appointmentId = parseInt(req.params.id);
+          const { notes, followUpRequired, followUpDate } = req.body;
+
+          // Update appointment status to completed
+          const [updatedAppointment] = await db
+            .update(appointments)
+            .set({
+              status: 'completed',
+              notes: notes || null,
+              updatedAt: sql`NOW()`
+            })
+            .where(eq(appointments.id, appointmentId))
+            .returning();
+
+          if (!updatedAppointment) {
+            return res.status(404).json({ message: "Appointment not found" });
+          }
+
+          // Create follow-up appointment if required
+          if (followUpRequired && followUpDate) {
+            await db.insert(appointments).values({
+              patientId: updatedAppointment.patientId,
+              doctorId: updatedAppointment.doctorId,
+              appointmentDate: followUpDate,
+              appointmentTime: "09:00",
+              type: "follow-up",
+              status: "scheduled",
+              notes: `Follow-up from appointment #${appointmentId}`,
+              organizationId: req.user!.organizationId
+            });
+          }
+
+          // Create audit log
+          const auditLogger = new AuditLogger(req);
+          await auditLogger.logPatientAction("Consultation Completed", updatedAppointment.patientId, {
+            appointmentId: appointmentId,
         completionTime: new Date().toISOString(),
         followUpScheduled: followUpRequired || false
       });
 
-      res.json({ 
+      return res.json({
         message: "Consultation completed successfully",
-        appointment: updatedAppointment 
+        appointment: updatedAppointment
       });
 
     } catch (error) {
       console.error('Error completing consultation:', error);
-      res.status(500).json({ message: "Failed to complete consultation" });
+      return res.status(500).json({ message: "Failed to complete consultation" });
     }
   });
 
@@ -8265,10 +7884,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/patients/:id/workflow-context", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      
+
       // Get patient basic info
       const [patient] = await db.select().from(patients).where(eq(patients.id, patientId));
-      
+
       if (!patient) {
         return res.status(404).json({ message: "Patient not found" });
       }
@@ -8300,7 +7919,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .orderBy(desc(labOrders.createdAt))
         .limit(5);
 
-      res.json({
+      return res.json({
         patient,
         context: {
           recentAppointments,
@@ -8312,84 +7931,97 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
     } catch (error) {
       console.error('Error fetching patient workflow context:', error);
-      res.status(500).json({ message: "Failed to fetch patient context" });
+      return res.status(500).json({ message: "Failed to fetch patient context" });
     }
   });
 
+  /* DUPLICATE - Lab tests routes already in server/routes/laboratory.ts (lines 86, 107, 117)
   // Enhanced Laboratory Management API Endpoints
 
   // Lab Tests Management
-  app.get('/api/lab-tests', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.get('/api/lab-tests', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
-      const tests = await storage.getLabTests(req.organizationId);
-      res.json(tests);
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+      const tests = await storage.getLabTests(organizationId);
+      return res.json(tests);
     } catch (error) {
       console.error('Error fetching lab tests:', error);
-      res.status(500).json({ message: "Failed to fetch lab tests" });
+      return res.status(500).json({ message: "Failed to fetch lab tests" });
     }
   });
 
-  app.post('/api/lab-tests', authenticateToken, requireAnyRole(['admin', 'lab_manager']), tenantMiddleware, async (req: TenantRequest, res) => {
+  app.post('/api/lab-tests', authenticateToken, requireAnyRole(['admin', 'lab_manager']), tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
       const validatedData = insertLabTestSchema.parse({
         ...req.body,
-        organizationId: req.organizationId
+        organizationId: organizationId
       });
-      
+
       const test = await storage.createLabTest(validatedData);
-      
+
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Lab Test Created", {
         testId: test.id,
         testName: test.name,
         category: test.category
       });
-      
-      res.status(201).json(test);
+
+      return res.status(201).json(test);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid test data", errors: error.errors });
       }
       console.error('Error creating lab test:', error);
-      res.status(500).json({ message: "Failed to create lab test" });
+      return res.status(500).json({ message: "Failed to create lab test" });
     }
   });
 
+  /* DUPLICATE - Update lab test route already in server/routes/laboratory.ts (line 143)
   app.patch('/api/lab-tests/:id', authenticateToken, requireAnyRole(['admin', 'lab_manager']), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
       const updates = req.body;
-      
+
       const test = await storage.updateLabTest(id, updates);
-      
+
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Lab Test Updated", {
         testId: test.id,
         testName: test.name,
         updates: Object.keys(updates)
       });
-      
-      res.json(test);
+
+      return res.json(test);
     } catch (error) {
       console.error('Error updating lab test:', error);
-      res.status(500).json({ message: "Failed to update lab test" });
+      return res.status(500).json({ message: "Failed to update lab test" });
     }
   });
 
   // Enhanced Lab Orders Management
-  app.get('/api/lab-orders/enhanced', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.get('/api/lab-orders/enhanced', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
       const { patientId, status, priority, startDate, endDate } = req.query;
-      
-      const filters: any = { organizationId: req.organizationId };
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+      const filters: any = { organizationId: organizationId };
       if (patientId) filters.patientId = parseInt(patientId as string);
       if (status) filters.status = status as string;
       if (priority) filters.priority = priority as string;
       if (startDate) filters.startDate = new Date(startDate as string);
       if (endDate) filters.endDate = new Date(endDate as string);
-      
+
       const orders = await storage.getLabOrders(filters);
-      
+
       // Enhanced response with patient and test details
       const enhancedOrders = await Promise.all(orders.map(async (order) => {
         const [patient] = await db.select({
@@ -8398,16 +8030,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           dateOfBirth: patients.dateOfBirth,
           phone: patients.phone
         }).from(patients).where(eq(patients.id, order.patientId));
-        
+
         const [orderedByUser] = await db.select({
           username: users.username,
           firstName: users.firstName,
           lastName: users.lastName,
           role: users.role
         }).from(users).where(eq(users.id, order.orderedBy));
-        
+
         const orderItems = await storage.getLabOrderItems(order.id);
-        
+
         return {
           ...order,
           patient,
@@ -8416,50 +8048,53 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           completedItems: orderItems.filter(item => item.status === 'completed').length
         };
       }));
-      
-      res.json(enhancedOrders);
+
+      return res.json(enhancedOrders);
     } catch (error) {
       console.error('Error fetching enhanced lab orders:', error);
-      res.status(500).json({ message: "Failed to fetch lab orders" });
+      return res.status(500).json({ message: "Failed to fetch lab orders" });
     }
   });
 
-  app.post('/api/lab-orders/enhanced', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.post('/api/lab-orders/enhanced', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
       const { patientId, tests, clinicalNotes, diagnosis, priority } = req.body;
-      
+
       if (!tests || tests.length === 0) {
         return res.status(400).json({ message: "At least one test is required" });
       }
-      
+
       // Calculate total cost
       const testIds = tests.map((test: any) => test.id);
       const testPrices = await db.select({
         id: labTests.id,
         cost: labTests.cost
       }).from(labTests).where(inArray(labTests.id, testIds));
-      
+
       const totalCost = testPrices.reduce((sum, test) => {
         const cost = test.cost ? parseFloat(test.cost.toString()) : 0;
         return sum + cost;
       }, 0);
-      
+
       // Create lab order with organization context
-      const userOrgId = req.user?.currentOrganizationId || req.user?.organizationId;
-      
+      const userOrgId = req.tenant?.id || req.user?.currentOrganizationId || req.user?.organizationId;
+      if (!userOrgId || !req.user?.id) {
+        return res.status(403).json({ message: "Organization context and user authentication required" });
+      }
+
       const orderData = {
         patientId: parseInt(patientId),
-        orderedBy: req.user?.id || 1,
-        organizationId: userOrgId || 1, // Ensure organization context is set
+        orderedBy: req.user.id,
+        organizationId: userOrgId,
         clinicalNotes: clinicalNotes || '',
         diagnosis: diagnosis || '',
         priority: priority || 'routine',
         totalCost: totalCost.toString(),
         status: 'pending'
       };
-      
+
       const order = await storage.createLabOrder(orderData);
-      
+
       // Create order items
       const orderItems = await Promise.all(tests.map(async (test: any) => {
         const itemData = {
@@ -8469,132 +8104,150 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         };
         return await storage.createLabOrderItem(itemData);
       }));
-      
+
       // Lab order created successfully
       console.log(`Lab order #${order.id} created for patient ${patientId}`);
-      
+
       console.log("Lab Order Created", {
         orderId: order.id,
         patientId,
         testCount: tests.length,
         totalCost
       });
-      
-      res.status(201).json({ order, orderItems });
+
+      return res.status(201).json({ order, orderItems });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid order data", errors: error.errors });
       }
       console.error('Error creating enhanced lab order:', error);
-      res.status(500).json({ message: "Failed to create lab order" });
+      return res.status(500).json({ message: "Failed to create lab order" });
     }
   });
 
   // Lab Departments Management
-  app.get('/api/lab-departments', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.get('/api/lab-departments', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
-      const departments = await storage.getLabDepartments(req.organizationId);
-      res.json(departments);
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+      const departments = await storage.getLabDepartments(organizationId);
+      return res.json(departments);
     } catch (error) {
       console.error('Error fetching lab departments:', error);
-      res.status(500).json({ message: "Failed to fetch lab departments" });
+      return res.status(500).json({ message: "Failed to fetch lab departments" });
     }
   });
 
-  app.post('/api/lab-departments', authenticateToken, requireAnyRole(['admin', 'lab_manager']), tenantMiddleware, async (req: TenantRequest, res) => {
+  app.post('/api/lab-departments', authenticateToken, requireAnyRole(['admin', 'lab_manager']), tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
       const validatedData = insertLabDepartmentSchema.parse({
         ...req.body,
-        organizationId: req.organizationId
+        organizationId: organizationId
       });
-      
+
       const department = await storage.createLabDepartment(validatedData);
-      
+
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Lab Department Created", {
         departmentId: department.id,
         departmentName: department.name
       });
-      
-      res.status(201).json(department);
+
+      return res.status(201).json(department);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid department data", errors: error.errors });
       }
       console.error('Error creating lab department:', error);
-      res.status(500).json({ message: "Failed to create lab department" });
+      return res.status(500).json({ message: "Failed to create lab department" });
     }
   });
 
   // Lab Equipment Management
-  app.get('/api/lab-equipment', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.get('/api/lab-equipment', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
       const { departmentId, status } = req.query;
-      
-      const filters: any = { organizationId: req.organizationId };
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+      const filters: any = { organizationId: organizationId };
       if (departmentId) filters.departmentId = parseInt(departmentId as string);
       if (status) filters.status = status as string;
-      
+
       const equipment = await storage.getLabEquipment(filters);
-      res.json(equipment);
+      return res.json(equipment);
     } catch (error) {
       console.error('Error fetching lab equipment:', error);
-      res.status(500).json({ message: "Failed to fetch lab equipment" });
+      return res.status(500).json({ message: "Failed to fetch lab equipment" });
     }
   });
 
-  app.post('/api/lab-equipment', authenticateToken, requireAnyRole(['admin', 'lab_manager']), tenantMiddleware, async (req: TenantRequest, res) => {
+  app.post('/api/lab-equipment', authenticateToken, requireAnyRole(['admin', 'lab_manager']), tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
       const validatedData = insertLabEquipmentSchema.parse({
         ...req.body,
-        organizationId: req.organizationId
+        organizationId: organizationId
       });
-      
+
       const equipment = await storage.createLabEquipment(validatedData);
-      
+
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Lab Equipment Added", {
         equipmentId: equipment.id,
         equipmentName: equipment.name,
         departmentId: equipment.departmentId
       });
-      
-      res.status(201).json(equipment);
+
+      return res.status(201).json(equipment);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid equipment data", errors: error.errors });
       }
       console.error('Error creating lab equipment:', error);
-      res.status(500).json({ message: "Failed to create lab equipment" });
+      return res.status(500).json({ message: "Failed to create lab equipment" });
     }
   });
 
   // Lab Worksheets Management
-  app.get('/api/lab-worksheets', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.get('/api/lab-worksheets', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
       const { departmentId, status, technicianId } = req.query;
-      
-      const filters: any = { organizationId: req.organizationId };
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+      const filters: any = { organizationId: organizationId };
       if (departmentId) filters.departmentId = parseInt(departmentId as string);
       if (status) filters.status = status as string;
       if (technicianId) filters.technicianId = parseInt(technicianId as string);
-      
+
       const worksheets = await storage.getLabWorksheets(filters);
-      
+
       // Enhanced response with department and technician details
       const enhancedWorksheets = await Promise.all(worksheets.map(async (worksheet) => {
         const [department] = await db.select({
           name: labDepartments.name
         }).from(labDepartments).where(eq(labDepartments.id, worksheet.departmentId!));
-        
+
         const [technician] = await db.select({
           username: users.username,
           firstName: users.firstName,
           lastName: users.lastName
         }).from(users).where(eq(users.id, worksheet.technicianId!));
-        
+
         const worksheetItems = await storage.getWorksheetItems(worksheet.id);
-        
+
         return {
           ...worksheet,
           department,
@@ -8602,38 +8255,123 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           itemCount: worksheetItems.length
         };
       }));
-      
-      res.json(enhancedWorksheets);
+
+      return res.json(enhancedWorksheets);
     } catch (error) {
       console.error('Error fetching lab worksheets:', error);
-      res.status(500).json({ message: "Failed to fetch lab worksheets" });
+      return res.status(500).json({ message: "Failed to fetch lab worksheets" });
     }
   });
 
-  app.post('/api/lab-worksheets', authenticateToken, requireAnyRole(['lab_technician', 'lab_manager', 'admin']), tenantMiddleware, async (req: TenantRequest, res) => {
+  // Get single worksheet with items
+  app.get('/api/lab-worksheets/:id', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
+      const worksheetId = parseInt(req.params.id);
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+
+      const worksheet = await storage.getLabWorksheet(worksheetId);
+      if (!worksheet || worksheet.organizationId !== organizationId) {
+        return res.status(404).json({ message: "Worksheet not found" });
+      }
+
+      // Get worksheet items with lab order item details
+      const items = await storage.getWorksheetItems(worksheetId);
+      
+      // Fetch full details for each item
+      const itemsWithDetails = await Promise.all(items.map(async (item) => {
+        const [labOrderItemData] = await db.select({
+          itemId: labOrderItems.id,
+          labTestId: labOrderItems.labTestId,
+          result: labOrderItems.result,
+          status: labOrderItems.status,
+          testId: labTests.id,
+          testName: labTests.name,
+          referenceRange: labTests.referenceRange,
+          unit: labTests.units,
+          orderId: labOrders.id,
+          patientId: labOrders.patientId,
+          orderCreatedAt: labOrders.createdAt,
+        })
+          .from(labOrderItems)
+          .innerJoin(labTests, eq(labOrderItems.labTestId, labTests.id))
+          .innerJoin(labOrders, eq(labOrderItems.labOrderId, labOrders.id))
+          .where(eq(labOrderItems.id, item.labOrderItemId))
+          .limit(1);
+
+        if (labOrderItemData) {
+          // Get patient details
+          const [patient] = await db.select({
+            id: patients.id,
+            firstName: patients.firstName,
+            lastName: patients.lastName,
+          })
+            .from(patients)
+            .where(eq(patients.id, labOrderItemData.patientId))
+            .limit(1);
+
+          return {
+            ...item,
+            labOrderItem: {
+              id: labOrderItemData.itemId,
+              labTest: {
+                id: labOrderItemData.testId,
+                name: labOrderItemData.testName,
+                referenceRange: labOrderItemData.referenceRange,
+                unit: labOrderItemData.unit,
+              },
+              patient: patient || null,
+              labOrder: {
+                id: labOrderItemData.orderId,
+                patientId: labOrderItemData.patientId,
+                createdAt: labOrderItemData.orderCreatedAt,
+              }
+            }
+          };
+        }
+        return item;
+      }));
+
+      return res.json({
+        ...worksheet,
+        items: itemsWithDetails
+      });
+    } catch (error) {
+      console.error('Error fetching worksheet:', error);
+      return res.status(500).json({ message: "Failed to fetch worksheet" });
+    }
+  });
+
+  app.post('/api/lab-worksheets', authenticateToken, requireAnyRole(['lab_technician', 'lab_manager', 'admin']), tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
+    try {
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId || !req.user?.id) {
+        return res.status(403).json({ message: "Organization context and user authentication required" });
+      }
       const validatedData = insertLabWorksheetSchema.parse({
         ...req.body,
-        organizationId: req.organizationId,
-        technicianId: req.user!.id
+        organizationId: organizationId,
+        technicianId: req.user.id
       });
-      
+
       const worksheet = await storage.createLabWorksheet(validatedData);
-      
+
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Lab Worksheet Created", {
         worksheetId: worksheet.id,
         worksheetName: worksheet.name,
         departmentId: worksheet.departmentId
       });
-      
-      res.status(201).json(worksheet);
+
+      return res.status(201).json(worksheet);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid worksheet data", errors: error.errors });
       }
       console.error('Error creating lab worksheet:', error);
-      res.status(500).json({ message: "Failed to create lab worksheet" });
+      return res.status(500).json({ message: "Failed to create lab worksheet" });
     }
   });
 
@@ -8642,15 +8380,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const worksheetId = parseInt(req.params.id);
       const { results } = req.body;
-      
+
       if (!results || !Array.isArray(results)) {
         return res.status(400).json({ message: "Results array is required" });
       }
-      
+
       // Update all lab order items with results
       const updatedItems = await Promise.all(results.map(async (result: any) => {
         const { itemId, value, remarks, isAbnormal } = result;
-        
+
         return await storage.updateLabOrderItem(itemId, {
           result: value,
           numericResult: isNaN(parseFloat(value)) ? null : parseFloat(value),
@@ -8661,82 +8399,86 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           completedAt: new Date()
         });
       }));
-      
+
       // Update worksheet status
       await storage.updateLabWorksheet(worksheetId, {
         status: 'completed',
         completedAt: new Date()
       });
-      
+
       const auditLogger = new AuditLogger(req);
       await auditLogger.logSystemAction("Batch Results Entered", {
         worksheetId,
         resultsCount: results.length,
         technicianId: req.user!.id
       });
-      
-      res.json({ 
-        message: "Batch results updated successfully", 
-        updatedItems: updatedItems.length 
+
+      return res.json({
+        message: "Batch results updated successfully",
+        updatedItems: updatedItems.length
       });
     } catch (error) {
       console.error('Error updating batch results:', error);
-      res.status(500).json({ message: "Failed to update batch results" });
+      return res.status(500).json({ message: "Failed to update batch results" });
     }
   });
 
   // Lab Analytics Dashboard
-  app.get('/api/lab-analytics', authenticateToken, tenantMiddleware, async (req: TenantRequest, res) => {
+  app.get('/api/lab-analytics', authenticateToken, tenantMiddleware, async (req: AuthRequest & TenantRequest, res) => {
     try {
       const { timeframe = '30d' } = req.query;
-      
+      const organizationId = req.tenant?.id || req.user?.organizationId;
+      if (!organizationId) {
+        return res.status(403).json({ message: "Organization context required" });
+      }
+
       const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
-      
+
       // Get analytics data
       const [totalOrders] = await db.select({
         count: sql<number>`count(*)`
       }).from(labOrders).where(
         and(
-          eq(labOrders.organizationId, req.organizationId!),
+          eq(labOrders.organizationId, organizationId),
           gte(labOrders.createdAt, startDate)
         )
       );
-      
+
       const [completedOrders] = await db.select({
         count: sql<number>`count(*)`
       }).from(labOrders).where(
         and(
-          eq(labOrders.organizationId, req.organizationId!),
+          eq(labOrders.organizationId, organizationId),
           eq(labOrders.status, 'completed'),
           gte(labOrders.createdAt, startDate)
         )
       );
-      
+
       const [urgentOrders] = await db.select({
         count: sql<number>`count(*)`
       }).from(labOrders).where(
         and(
-          eq(labOrders.organizationId, req.organizationId!),
+          eq(labOrders.organizationId, organizationId),
           eq(labOrders.priority, 'urgent'),
           gte(labOrders.createdAt, startDate)
         )
       );
-      
+
       // Average turnaround time
       const [avgTurnaround] = await db.select({
         avgHours: sql<number>`AVG(EXTRACT(EPOCH FROM (${labOrders.completedAt} - ${labOrders.createdAt})) / 3600)`
       }).from(labOrders).where(
         and(
-          eq(labOrders.organizationId, req.organizationId!),
+          eq(labOrders.organizationId, organizationId),
           eq(labOrders.status, 'completed'),
           gte(labOrders.createdAt, startDate),
           isNotNull(labOrders.completedAt)
         )
       );
-      
-      res.json({
+
+      return res.json({
         timeframe,
         metrics: {
           totalOrders: totalOrders.count || 0,
@@ -8748,7 +8490,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error fetching lab analytics:', error);
-      res.status(500).json({ message: "Failed to fetch lab analytics" });
+      return res.status(500).json({ message: "Failed to fetch lab analytics" });
     }
   });
 
@@ -8763,12 +8505,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const { aiSystemOptimizer } = await import('./ai-system-optimizer');
       const organizationId = req.user?.organizationId || 1;
       const timeframe = req.query.timeframe as string || '24h';
-      
+
       const result = await aiSystemOptimizer.generateOptimizationPlan(organizationId, timeframe);
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       console.error('Get AI optimization tasks error:', error);
-      res.status(500).json({ message: 'Failed to get AI optimization tasks' });
+      return res.status(500).json({ message: 'Failed to get AI optimization tasks' });
     }
   });
 
@@ -8777,60 +8519,93 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const { aiSystemOptimizer } = await import('./ai-system-optimizer');
       const { taskId } = req.params;
       const organizationId = req.user?.organizationId || 1;
-      
+
       const result = await aiSystemOptimizer.implementAITask(taskId, organizationId);
-      
+
       if (result.success) {
-        res.json({ 
-          message: result.message, 
+        return res.json({
+          message: result.message,
           success: true,
           implementationLog: result.implementationLog
         });
       } else {
-        res.status(400).json({ 
-          message: result.message, 
+        return res.status(400).json({
+          message: result.message,
           success: false,
           implementationLog: result.implementationLog
         });
       }
     } catch (error) {
       console.error('Implement AI optimization error:', error);
-      res.status(500).json({ message: 'Failed to implement AI optimization' });
+      return res.status(500).json({ message: 'Failed to implement AI optimization' });
     }
   });
 
-  const httpServer = createServer(app);
   // Organization Management endpoints
   // Super Admin - Global system analytics
-  app.get("/api/superadmin/analytics", authenticateToken, requireRole('superadmin'), async (req: AuthRequest, res) => {
+  app.get("/api/superadmin/analytics", authenticateToken, requireAnyRole(['super_admin', 'superadmin']), async (req: AuthRequest, res) => {
     try {
       // Global statistics across all organizations
-      const totalOrganizations = await db.select({ count: sql`count(*)` }).from(organizations);
-      const activeOrganizations = await db.select({ count: sql`count(*)` }).from(organizations).where(eq(organizations.isActive, true));
-      const totalUsers = await db.select({ count: sql`count(*)` }).from(users);
-      const totalPatients = await db.select({ count: sql`count(*)` }).from(patients);
-      
+      const totalOrganizationsResult = await db.select({ count: sql<number>`count(*)::int` }).from(organizations);
+      const totalOrganizations = Number(totalOrganizationsResult[0]?.count || 0);
+
+      const activeOrganizationsResult = await db.select({ count: sql<number>`count(*)::int` }).from(organizations).where(eq(organizations.isActive, true));
+      const activeOrganizations = Number(activeOrganizationsResult[0]?.count || 0);
+
+      const totalUsersResult = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+      const totalUsers = Number(totalUsersResult[0]?.count || 0);
+
+      const totalPatientsResult = await db.select({ count: sql<number>`count(*)::int` }).from(patients);
+      const totalPatients = Number(totalPatientsResult[0]?.count || 0);
+
+      // Active sessions - count non-expired sessions from sessions table
+      // Fallback to users with recent logins if sessions table query fails
+      let activeSessions = 0;
+      try {
+        const now = new Date();
+        const activeSessionsResult = await db.select({ count: sql<number>`count(*)` })
+          .from(sessions)
+          .where(gte(sessions.expire, now));
+        activeSessions = Number(activeSessionsResult[0]?.count || 0);
+      } catch (sessionError: any) {
+        // Fallback: count users who logged in within the last 30 minutes
+        console.warn('Could not query sessions table, using lastLoginAt fallback:', sessionError.message);
+        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+        const activeSessionsResult = await db.select({ count: sql<number>`count(*)` })
+          .from(users)
+          .where(and(
+            eq(users.isActive, true),
+            gte(users.lastLoginAt, thirtyMinutesAgo)
+          ));
+        activeSessions = Number(activeSessionsResult[0]?.count || 0);
+      }
+
       // Organization breakdown
       const orgBreakdown = await db.select({
         id: organizations.id,
         name: organizations.name,
         type: organizations.type,
         isActive: organizations.isActive,
-        patientCount: sql`(SELECT COUNT(*) FROM patients WHERE organization_id = ${organizations.id})`,
-        userCount: sql`(SELECT COUNT(*) FROM users WHERE organization_id = ${organizations.id})`,
+        patientCount: sql<string>`(SELECT COUNT(*)::text FROM patients WHERE organization_id = ${organizations.id})`,
+        userCount: sql<string>`(SELECT COUNT(*)::text FROM users WHERE organization_id = ${organizations.id})`,
         createdAt: organizations.createdAt
       }).from(organizations).orderBy(desc(organizations.createdAt));
 
-      res.json({
-        totalOrganizations: totalOrganizations[0]?.count || 0,
-        activeOrganizations: activeOrganizations[0]?.count || 0,
-        totalUsers: totalUsers[0]?.count || 0,
-        totalPatients: totalPatients[0]?.count || 0,
-        organizations: orgBreakdown
+      return res.json({
+        totalOrganizations,
+        activeOrganizations,
+        totalUsers,
+        totalPatients,
+        activeSessions: Number(activeSessions),
+        organizations: orgBreakdown.map(org => ({
+          ...org,
+          patientCount: String(org.patientCount || 0),
+          userCount: String(org.userCount || 0)
+        }))
       });
     } catch (error) {
       console.error('Error fetching super admin analytics:', error);
-      res.status(500).json({ error: 'Failed to fetch system analytics' });
+      return res.status(500).json({ error: 'Failed to fetch system analytics' });
     }
   });
 
@@ -8853,10 +8628,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .from(organizations)
         .orderBy(organizations.createdAt);
 
-      res.json(organizationsList);
+      return res.json(organizationsList);
     } catch (error) {
       console.error('Error fetching organizations:', error);
-      res.status(500).json({ message: 'Failed to fetch organizations' });
+      return res.status(500).json({ message: 'Failed to fetch organizations' });
     }
   });
 
@@ -8864,11 +8639,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get('/api/organizations/:id', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const organizationId = parseInt(req.params.id);
-      
+
       if (isNaN(organizationId)) {
         return res.status(400).json({ error: 'Invalid organization ID' });
       }
-      
+
       const [organization] = await db.select()
         .from(organizations)
         .where(eq(organizations.id, organizationId))
@@ -8878,80 +8653,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ error: 'Organization not found' });
       }
 
-      res.json(organization);
+      return res.json(organization);
     } catch (error) {
       console.error('Error fetching organization:', error);
-      res.status(500).json({ error: 'Failed to fetch organization' });
+      return res.status(500).json({ error: 'Failed to fetch organization' });
     }
   });
 
-  app.post('/api/organizations', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
-    try {
-      const { name, type, logoUrl, themeColor, address, phone, email, website } = req.body;
+  // POST /api/organizations endpoint moved to tenant-routes.ts
+  // This endpoint is now handled by setupTenantRoutes() which provides better validation
+  // and matches the frontend schema requirements
 
-      // Validate required fields
-      if (!name || name.trim() === '') {
-        return res.status(400).json({ message: 'Organization name is required' });
-      }
-
-      if (!email || email.trim() === '') {
-        return res.status(400).json({ message: 'Organization email is required' });
-      }
-
-      // Check if organization with same name already exists
-      const existingOrg = await db
-        .select()
-        .from(organizations)
-        .where(eq(organizations.name, name.trim()))
-        .limit(1);
-
-      if (existingOrg.length > 0) {
-        return res.status(400).json({ message: 'An organization with this name already exists' });
-      }
-
-      // Check if organization with same email already exists
-      const existingOrgByEmail = await db
-        .select()
-        .from(organizations)
-        .where(eq(organizations.email, email.trim()))
-        .limit(1);
-
-      if (existingOrgByEmail.length > 0) {
-        return res.status(400).json({ message: 'An organization with this email already exists' });
-      }
-
-      const [organization] = await db
-        .insert(organizations)
-        .values({
-          name: name.trim(),
-          type: type || 'clinic',
-          logoUrl: logoUrl?.trim() || null,
-          themeColor: themeColor || '#3B82F6',
-          address: address?.trim() || null,
-          phone: phone?.trim() || null,
-          email: email.trim(),
-          website: website?.trim() || null,
-          isActive: true,
-        })
-        .returning();
-
-      // Log the creation
-      const audit = new AuditLogger(req);
-      await audit.logSystemAction('create_organization', { organizationId: organization.id, name: organization.name });
-
-      res.status(201).json(organization);
-    } catch (error) {
-      console.error('Error creating organization:', error);
-      
-      // Provide more specific error messages
-      if (error.code === '23505') { // PostgreSQL unique constraint violation
-        return res.status(400).json({ message: 'Organization name or email already exists' });
-      }
-      
-      res.status(500).json({ message: 'Failed to create organization. Please check your input and try again.' });
-    }
-  });
-
+  /* DUPLICATE - Update organization route - check if exists in server/routes/organizations.ts
   app.patch('/api/organizations/:id', authenticateToken, requireRole('admin'), async (req: AuthRequest, res) => {
     try {
       const organizationId = parseInt(req.params.id);
@@ -8967,10 +8680,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: 'Organization not found' });
       }
 
-      res.json(organization);
+      return res.json(organization);
     } catch (error) {
       console.error('Error updating organization:', error);
-      res.status(500).json({ message: 'Failed to update organization' });
+      return res.status(500).json({ message: 'Failed to update organization' });
     }
   });
 
@@ -8989,19 +8702,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: 'Organization not found' });
       }
 
-      res.json(organization);
+      return res.json(organization);
     } catch (error) {
       console.error('Error updating organization status:', error);
-      res.status(500).json({ message: 'Failed to update organization status' });
+      return res.status(500).json({ message: 'Failed to update organization status' });
     }
   });
 
+  /* DUPLICATE - File upload route already in server/routes/files.ts (line 30)
   // File Upload Endpoints
   app.post('/api/upload/:category', authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
     try {
       const category = req.params.category as 'patients' | 'staff' | 'organizations' | 'documents' | 'medical';
       const validCategories = ['patients', 'staff', 'organizations', 'documents', 'medical'];
-      
+
       if (!validCategories.includes(category)) {
         return res.status(400).json({ message: 'Invalid upload category' });
       }
@@ -9016,12 +8730,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         console.log('User info:', { id: req.user?.id, organizationId: req.user?.organizationId });
         console.log('Processing medical document upload...');
         const { category: docCategory, patientId } = req.body;
-        
+
         // Generate unique filename
         const timestamp = Date.now();
         const originalExtension = req.file.originalname.split('.').pop();
         const uniqueFileName = `medical_${timestamp}_${Math.random().toString(36).substring(7)}.${originalExtension}`;
-        
+
         console.log('Inserting into database:', {
           fileName: uniqueFileName,
           originalName: req.file.originalname,
@@ -9079,23 +8793,24 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         fileSize: req.file.size
       });
 
-      res.json({
+      return res.json({
         fileName,
         fileUrl,
         originalName: req.file.originalname,
         size: req.file.size
       });
     } catch (error) {
-      res.status(500).json({ message: 'Failed to upload file' });
+      return res.status(500).json({ message: 'Failed to upload file' });
     }
   });
 
+  /* DUPLICATE - Files routes already in server/routes/files.ts
   // File Download/Serve Endpoint
   app.get('/api/files/:category/:fileName', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { category, fileName } = req.params;
       const validCategories = ['patients', 'staff', 'organizations', 'documents', 'medical'];
-      
+
       if (!validCategories.includes(category)) {
         return res.status(400).json({ message: 'Invalid file category' });
       }
@@ -9110,7 +8825,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.send(fileBuffer);
     } catch (error) {
-      res.status(500).json({ message: 'Failed to retrieve file' });
+      return res.status(500).json({ message: 'Failed to retrieve file' });
     }
   });
 
@@ -9119,7 +8834,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const { category, fileName } = req.params;
       const validCategories = ['patients', 'staff', 'organizations', 'documents'];
-      
+
       if (!validCategories.includes(category)) {
         return res.status(400).json({ message: 'Invalid file category' });
       }
@@ -9136,34 +8851,35 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         fileName
       });
 
-      res.json({ message: 'File deleted successfully' });
+      return res.json({ message: 'File deleted successfully' });
     } catch (error) {
-      res.status(500).json({ message: 'Failed to delete file' });
+      return res.status(500).json({ message: 'Failed to delete file' });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Vital signs routes already in server/routes/patient-extended.ts
   // Vital Signs Routes
   app.get("/api/patients/:id/vitals", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      
+
       const vitals = await db
         .select()
         .from(vitalSigns)
         .where(eq(vitalSigns.patientId, patientId))
         .orderBy(desc(vitalSigns.recordedAt));
-      
-      res.json(vitals);
+
+      return res.json(vitals);
     } catch (error) {
       console.error('Error fetching vitals:', error);
-      res.status(500).json({ message: "Failed to fetch vital signs" });
+      return res.status(500).json({ message: "Failed to fetch vital signs" });
     }
   });
 
   app.post("/api/patients/:id/vitals", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      const { 
+      const {
         bloodPressureSystolic,
         bloodPressureDiastolic,
         heartRate,
@@ -9200,58 +8916,90 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         temperature
       });
 
-      res.json(vital);
+      return res.json(vital);
     } catch (error) {
       console.error('Error recording vitals:', error);
-      res.status(500).json({ message: "Failed to record vital signs" });
+      return res.status(500).json({ message: "Failed to record vital signs" });
     }
   });
-
+  /* END DUPLICATE */
   // Appointments endpoints
   app.get("/api/appointments", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userOrgId = req.user?.organizationId;
       const isSuperAdmin = req.user?.role === 'superadmin';
-      
+
       // Allow superadmin to view all appointments, regular users need organization context
       if (!isSuperAdmin && !userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const { date } = req.query;
-      
+
       // Build query - superadmin sees all, others see only their organization
-      let query = db.select({
-        id: appointments.id,
-        patientId: appointments.patientId,
-        patientName: patients.firstName,
-        patientLastName: patients.lastName,
-        doctorId: appointments.doctorId,
-        doctorName: users.username,
-        appointmentDate: appointments.appointmentDate,
-        appointmentTime: appointments.appointmentTime,
-        duration: appointments.duration,
-        type: appointments.type,
-        status: appointments.status,
-        notes: appointments.notes,
-        priority: appointments.priority,
-      })
-      .from(appointments)
-      .leftJoin(patients, eq(appointments.patientId, patients.id))
-      .leftJoin(users, eq(appointments.doctorId, users.id));
-      
-      // Filter by organization for non-superadmin users
-      const allAppointments = await (userOrgId && !isSuperAdmin 
-        ? query.where(eq(appointments.organizationId, userOrgId))
-        : query
-      ).orderBy(appointments.appointmentDate, appointments.appointmentTime);
-      
+      // Use simpler approach - get appointments first, then enrich with patient/doctor names
+      let appointmentsQuery = db
+        .select({
+          id: appointments.id,
+          patientId: appointments.patientId,
+          doctorId: appointments.doctorId,
+          appointmentDate: appointments.appointmentDate,
+          appointmentTime: appointments.appointmentTime,
+          duration: appointments.duration,
+          type: appointments.type,
+          status: appointments.status,
+          notes: appointments.notes,
+          priority: appointments.priority,
+        })
+        .from(appointments);
+
+      if (userOrgId && !isSuperAdmin) {
+        appointmentsQuery = appointmentsQuery.where(eq(appointments.organizationId, userOrgId)) as any;
+      }
+
+      const appointmentsData = await appointmentsQuery.orderBy(asc(appointments.appointmentDate));
+
+      // Get unique patient and doctor IDs
+      const patientIds = Array.from(new Set(appointmentsData.map(a => a.patientId)));
+      const doctorIds = Array.from(new Set(appointmentsData.map(a => a.doctorId)));
+
+      // Fetch all patients and doctors in parallel
+      const [patientData, doctorData] = await Promise.all([
+        patientIds.length > 0
+          ? db.select({ id: patients.id, firstName: patients.firstName, lastName: patients.lastName })
+            .from(patients)
+            .where(inArray(patients.id, patientIds))
+          : Promise.resolve([]),
+        doctorIds.length > 0
+          ? db.select({ id: users.id, username: users.username })
+            .from(users)
+            .where(inArray(users.id, doctorIds))
+          : Promise.resolve([])
+      ]);
+
+      // Create lookup maps
+      const patientMap = new Map(patientData.map(p => [p.id, p]));
+      const doctorMap = new Map(doctorData.map(d => [d.id, d]));
+
+      // Enrich appointments with patient and doctor names
+      const allAppointments = appointmentsData.map(apt => {
+        const patient = patientMap.get(apt.patientId);
+        const doctor = doctorMap.get(apt.doctorId);
+
+        return {
+          ...apt,
+          patientName: patient?.firstName || '',
+          patientLastName: patient?.lastName || '',
+          doctorName: doctor?.username || 'Unknown Doctor',
+        };
+      });
+
       // Filter by date if provided
       let result = allAppointments;
       if (date && typeof date === 'string') {
         result = allAppointments.filter(appointment => appointment.appointmentDate === date);
       }
-      
+
       // Format the response to match the frontend interface
       const formattedAppointments = result.map(appointment => ({
         id: appointment.id,
@@ -9268,91 +9016,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         priority: appointment.priority,
       }));
 
-      res.json(formattedAppointments);
+      return res.json(formattedAppointments);
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      res.status(500).json({ message: "Failed to fetch appointments" });
+      return res.status(500).json({ message: "Failed to fetch appointments" });
     }
   });
 
-  app.post("/api/appointments", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
-    try {
-      // Add organization ID from authenticated user
-      const appointmentData = {
-        ...req.body,
-        organizationId: req.user?.organizationId || 1 // Default to organization 1 if not set
-      };
-
-      const validatedData = insertAppointmentSchema.parse(appointmentData);
-
-      // Check for overlapping appointments
-      const { appointmentDate, appointmentTime, duration, doctorId } = validatedData;
-      
-      // Parse the appointment time (HH:MM format)
-      const [hours, minutes] = appointmentTime.split(':').map(Number);
-      const startMinutes = hours * 60 + minutes;
-      const endMinutes = startMinutes + (duration || 30);
-      
-      // Get all appointments for this doctor on the same date
-      const existingAppointments = await db.select()
-        .from(appointments)
-        .where(
-          and(
-            eq(appointments.doctorId, doctorId),
-            eq(appointments.appointmentDate, appointmentDate),
-            ne(appointments.status, 'cancelled')
-          )
-        );
-      
-      // Check for overlaps
-      for (const existing of existingAppointments) {
-        const [existingHours, existingMinutes] = existing.appointmentTime.split(':').map(Number);
-        const existingStart = existingHours * 60 + existingMinutes;
-        const existingEnd = existingStart + (existing.duration || 30);
-        
-        // Check if appointments overlap
-        const hasOverlap = (startMinutes < existingEnd) && (endMinutes > existingStart);
-        
-        if (hasOverlap) {
-          return res.status(409).json({ 
-            message: "Time slot conflict", 
-            error: `This time slot conflicts with an existing appointment at ${existing.appointmentTime}. Please choose a different time.`,
-            conflictingAppointment: {
-              id: existing.id,
-              time: existing.appointmentTime,
-              duration: existing.duration
-            }
-          });
-        }
-      }
-
-      // No overlap found, create the appointment
-      const [appointment] = await db.insert(appointments)
-        .values(validatedData)
-        .returning();
-
-      // Create audit log
-      const auditLogger = new AuditLogger(req);
-      await auditLogger.logPatientAction('APPOINTMENT_SCHEDULED', validatedData.patientId, {
-        appointmentId: appointment.id,
-        doctorId: validatedData.doctorId,
-        appointmentDate: validatedData.appointmentDate,
-        appointmentTime: validatedData.appointmentTime
-      });
-
-      res.json(appointment);
-    } catch (error) {
-      console.error('Error creating appointment:', error);
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          details: error.issues 
-        });
-      }
-      res.status(500).json({ message: "Failed to create appointment" });
-    }
-  });
-
+  // NOTE: Appointment creation route moved to server/routes/appointments.ts
+  // This duplicate has been removed - use the modular route instead
+  /* END DUPLICATE */
+  /* DUPLICATE - Update appointment route already in server/routes/appointments.ts (line 116)
   app.patch("/api/appointments/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const appointmentId = parseInt(req.params.id);
@@ -9385,13 +9059,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         changes: updateData
       });
 
-      res.json(updatedAppointment);
+      return res.json(updatedAppointment);
     } catch (error) {
       console.error('Error updating appointment:', error);
-      res.status(500).json({ message: "Failed to update appointment" });
+      return res.status(500).json({ message: "Failed to update appointment" });
     }
   });
 
+  /* DUPLICATE - Telemedicine routes already in server/routes/telemedicine.ts
   // Telemedicine Sessions API endpoints
   app.get("/api/telemedicine/sessions", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -9399,13 +9074,19 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const role = req.user?.role;
       const organizationId = req.user?.organizationId;
 
+      // Return empty array if no user context (shouldn't happen due to authenticateToken, but safety check)
+      if (!userId) {
+        return res.json([]);
+      }
+
       let query = db
         .select({
           id: telemedicineSessions.id,
           patientId: telemedicineSessions.patientId,
-          patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
+          patientName: sql<string>`COALESCE(${patients.firstName} || ' ' || ${patients.lastName}, 'Unknown Patient')`,
           doctorId: telemedicineSessions.doctorId,
-          doctorName: sql<string>`COALESCE(NULLIF(TRIM(${users.firstName} || ' ' || ${users.lastName}), ''), ${users.username})`,
+          doctorName: sql<string>`COALESCE(NULLIF(TRIM(${users.firstName} || ' ' || ${users.lastName}), ''), ${users.username}, 'Unknown Doctor')`,
+          appointmentId: telemedicineSessions.appointmentId,
           scheduledTime: telemedicineSessions.scheduledTime,
           status: telemedicineSessions.status,
           type: telemedicineSessions.type,
@@ -9420,75 +9101,842 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .leftJoin(users, eq(telemedicineSessions.doctorId, users.id))
         .orderBy(desc(telemedicineSessions.scheduledTime));
 
-      // Filter by organization
+      // Filter by organization and user role
+      const sessionConditions: any[] = [];
       if (organizationId) {
-        query = query.where(eq(telemedicineSessions.organizationId, organizationId));
+        sessionConditions.push(eq(telemedicineSessions.organizationId, organizationId));
+      }
+      if (role === 'doctor' && userId) {
+        sessionConditions.push(eq(telemedicineSessions.doctorId, userId));
       }
 
-      // Filter by user role
-      if (role === 'doctor') {
-        query = query.where(eq(telemedicineSessions.doctorId, userId));
+      if (sessionConditions.length > 0) {
+        query = (query as any).where(and(...sessionConditions));
       }
 
       const sessions = await query;
-      res.json(sessions);
+      return res.json(sessions || []);
     } catch (error) {
-      console.error('Error fetching telemedicine sessions:', error);
-      res.status(500).json({ message: "Failed to fetch telemedicine sessions" });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error('Error fetching telemedicine sessions:', {
+        error: errorMessage,
+        stack: errorStack,
+        userId: req.user?.id,
+        role: req.user?.role,
+        organizationId: req.user?.organizationId
+      });
+      return res.status(500).json({ 
+        message: "Failed to fetch telemedicine sessions",
+        error: errorMessage
+      });
     }
   });
 
   app.post("/api/telemedicine/sessions", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const sessionData = insertTelemedicineSessionSchema.parse(req.body);
-      
-      // Add doctor ID and organization ID, convert scheduledTime to Date if it's a string
-      const enrichedData = {
+
+      // Ensure user is authenticated
+      if (!req.user?.id) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      // If appointmentId is provided, fetch appointment and auto-populate fields
+      let enrichedData: any = {
         ...sessionData,
-        doctorId: req.user?.id || sessionData.doctorId,
-        organizationId: req.user?.organizationId,
-        scheduledTime: typeof sessionData.scheduledTime === 'string' 
-          ? new Date(sessionData.scheduledTime) 
-          : sessionData.scheduledTime
+        doctorId: req.user.id,
+        organizationId: req.user.organizationId,
       };
+
+      if (sessionData.appointmentId) {
+        const [appointment] = await db
+          .select()
+          .from(appointments)
+          .where(eq(appointments.id, sessionData.appointmentId))
+          .limit(1);
+
+        if (!appointment) {
+          return res.status(404).json({ message: "Appointment not found" });
+        }
+
+        // Auto-populate from appointment
+        enrichedData.patientId = appointment.patientId;
+        enrichedData.doctorId = appointment.doctorId || req.user.id;
+        
+        // Combine appointment date and time into scheduledTime
+        const appointmentDateTime = new Date(`${appointment.appointmentDate}T${appointment.appointmentTime}`);
+        if (isNaN(appointmentDateTime.getTime())) {
+          return res.status(400).json({ message: "Invalid appointment date/time format" });
+        }
+        enrichedData.scheduledTime = appointmentDateTime;
+      } else {
+        // Validate required fields for manual scheduling
+        if (!sessionData.patientId) {
+          return res.status(400).json({ message: "Patient ID is required when not using an appointment" });
+        }
+        if (!sessionData.scheduledTime) {
+          return res.status(400).json({ message: "Scheduled time is required when not using an appointment" });
+        }
+
+        // Convert scheduledTime to Date if it's a string
+        const scheduledDate = typeof sessionData.scheduledTime === 'string'
+          ? new Date(sessionData.scheduledTime)
+          : sessionData.scheduledTime;
+        
+        if (isNaN(scheduledDate.getTime())) {
+          return res.status(400).json({ message: "Invalid scheduled time format" });
+        }
+        
+        enrichedData.scheduledTime = scheduledDate;
+      }
+
+      // Ensure required fields are present
+      if (!enrichedData.patientId) {
+        return res.status(400).json({ message: "Patient ID is required" });
+      }
+      if (!enrichedData.doctorId) {
+        return res.status(400).json({ message: "Doctor ID is required" });
+      }
+      if (!enrichedData.scheduledTime) {
+        return res.status(400).json({ message: "Scheduled time is required" });
+      }
+
+      // Log the data being inserted for debugging
+      console.log('Creating telemedicine session with data:', {
+        patientId: enrichedData.patientId,
+        doctorId: enrichedData.doctorId,
+        scheduledTime: enrichedData.scheduledTime,
+        type: enrichedData.type,
+        status: enrichedData.status,
+        organizationId: enrichedData.organizationId,
+        appointmentId: enrichedData.appointmentId
+      });
 
       const [newSession] = await db
         .insert(telemedicineSessions)
         .values(enrichedData)
         .returning();
 
+      console.log('Successfully created telemedicine session:', newSession);
       res.status(201).json(newSession);
     } catch (error) {
-      console.error('Error creating telemedicine session:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      
+      console.error('Error creating telemedicine session:', {
+        error: errorMessage,
+        stack: errorStack,
+        body: req.body,
+        user: {
+          id: req.user?.id,
+          role: req.user?.role,
+          organizationId: req.user?.organizationId
+        }
+      });
+
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          details: error.issues 
+        return res.status(400).json({
+          message: "Validation error",
+          details: error.issues
         });
       }
-      res.status(500).json({ message: "Failed to create telemedicine session" });
+
+      // Check for common database errors
+      if (errorMessage.includes('relation') && errorMessage.includes('does not exist')) {
+        return res.status(500).json({ 
+          message: "Database table does not exist. Please run migrations.",
+          error: errorMessage,
+          hint: "Run: npm run db:push or npx drizzle-kit push"
+        });
+      }
+
+      if (errorMessage.includes('foreign key') || errorMessage.includes('violates foreign key')) {
+        return res.status(400).json({ 
+          message: "Invalid patient or doctor ID",
+          error: errorMessage
+        });
+      }
+
+      return res.status(500).json({ 
+        message: "Failed to create telemedicine session",
+        error: errorMessage
+      });
     }
   });
 
-  app.patch("/api/telemedicine/sessions/:id", authenticateToken, async (req: AuthRequest, res) => {
+  // Send telemedicine session notification to patient
+  // NOTE: This route must come BEFORE the PATCH route to avoid route matching conflicts
+  app.post("/api/telemedicine/sessions/:id/send-notification", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const type = req.body?.type || 'email'; // 'email', 'sms', or 'whatsapp'
+
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid session ID" 
+        });
+      }
+
+      if (!['email', 'sms', 'whatsapp'].includes(type)) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Invalid notification type. Must be 'email', 'sms', or 'whatsapp'",
+          receivedType: type
+        });
+      }
+
+      // Get session with patient and doctor details
+      const [session] = await db
+        .select({
+          id: telemedicineSessions.id,
+          patientId: telemedicineSessions.patientId,
+          doctorId: telemedicineSessions.doctorId,
+          scheduledTime: telemedicineSessions.scheduledTime,
+          type: telemedicineSessions.type,
+          sessionUrl: telemedicineSessions.sessionUrl,
+          appointmentId: telemedicineSessions.appointmentId,
+        })
+        .from(telemedicineSessions)
+        .where(eq(telemedicineSessions.id, sessionId))
+        .limit(1);
+
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Validate session has required fields
+      if (!session.patientId) {
+        return res.status(400).json({ message: "Session is missing patient ID" });
+      }
+      if (!session.doctorId) {
+        return res.status(400).json({ message: "Session is missing doctor ID" });
+      }
+
+      // Get patient details
+      const [patient] = await db
+        .select({
+          id: patients.id,
+          firstName: patients.firstName,
+          lastName: patients.lastName,
+          email: patients.email,
+          phone: patients.phone,
+        })
+        .from(patients)
+        .where(eq(patients.id, session.patientId))
+        .limit(1);
+
+      if (!patient) {
+        return res.status(404).json({ message: "Patient not found" });
+      }
+
+      // Get doctor details
+      const [doctor] = await db
+        .select({
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+        })
+        .from(users)
+        .where(eq(users.id, session.doctorId))
+        .limit(1);
+
+      const doctorName = doctor 
+        ? `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() || doctor.username
+        : 'Your Healthcare Provider';
+
+      const patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim() || 'Patient';
+
+      // Get organization name for email
+      const organizationId = req.user?.organizationId;
+      let clinicName = 'Your Healthcare Provider';
+      if (organizationId) {
+        const [org] = await db
+          .select({ name: organizations.name })
+          .from(organizations)
+          .where(eq(organizations.id, organizationId))
+          .limit(1);
+        if (org) {
+          clinicName = org.name;
+        }
+      }
+
+      let EmailService;
+      try {
+        const emailServiceModule = await import('../services/EmailService');
+        EmailService = emailServiceModule.EmailService;
+        
+        // Validate EmailService is properly imported
+        if (!EmailService || typeof EmailService !== 'function') {
+          routesLogger.error('EmailService is not a valid class', { 
+            type: typeof EmailService,
+            hasEmailService: !!EmailService 
+          });
+          return res.status(500).json({
+            success: false,
+            message: "Email service not available",
+            error: "EmailService class not found in module"
+          });
+        }
+      } catch (importError: any) {
+        routesLogger.error('Failed to import EmailService', { 
+          error: importError?.message,
+          stack: importError?.stack 
+        });
+        console.error('Failed to import EmailService:', importError);
+        return res.status(500).json({
+          success: false,
+          message: "Email service not available",
+          error: "Failed to load email service module",
+          details: process.env.NODE_ENV === 'development' ? importError?.message : undefined
+        });
+      }
+
+      if (type === 'email') {
+        if (!patient.email) {
+          return res.status(400).json({ 
+            message: "Patient does not have an email address",
+            hasEmail: false 
+          });
+        }
+
+        try {
+          // Validate method exists
+          if (typeof EmailService.sendTelemedicineNotification !== 'function') {
+            routesLogger.error('EmailService.sendTelemedicineNotification is not a function');
+            return res.status(500).json({
+              success: false,
+              message: "Email service method not available",
+              error: "sendTelemedicineNotification method not found"
+            });
+          }
+
+          const result = await EmailService.sendTelemedicineNotification({
+            patientEmail: patient.email,
+            patientName,
+            doctorName,
+            sessionType: session.type as 'video' | 'audio' | 'chat',
+            scheduledTime: new Date(session.scheduledTime),
+            sessionUrl: session.sessionUrl || undefined,
+            clinicName,
+          });
+
+          if (result.success) {
+            // Log audit trail
+            try {
+              const auditLogger = new AuditLogger(req);
+              await auditLogger.logPatientAction('TELEMEDICINE_NOTIFICATION_SENT', patient.id, {
+                sessionId: session.id,
+                type: 'email',
+                recipient: patient.email,
+              });
+            } catch (auditError) {
+              console.warn('Failed to log audit trail:', auditError);
+              // Don't fail the request if audit logging fails
+            }
+
+            return res.json({
+              success: true,
+              message: "Notification sent successfully",
+              type: 'email',
+              recipient: patient.email,
+              messageId: result.messageId,
+            });
+          } else {
+            return res.status(500).json({
+              success: false,
+              message: result.error || "Failed to send notification",
+              error: result.error,
+            });
+          }
+        } catch (emailError: any) {
+          routesLogger.error('Error sending email notification', {
+            error: emailError?.message,
+            stack: emailError?.stack,
+            sessionId: session.id,
+            patientId: patient.id,
+          });
+          console.error('Error sending email notification:', emailError);
+          return res.status(500).json({
+            success: false,
+            message: "Failed to send email notification",
+            error: emailError?.message || 'Unknown error',
+            details: process.env.NODE_ENV === 'development' ? emailError?.stack : undefined,
+          });
+        }
+      } else if (type === 'sms') {
+        if (!patient.phone) {
+          return res.status(400).json({ 
+            message: "Patient does not have a phone number",
+            hasPhone: false 
+          });
+        }
+
+        try {
+          // Validate method exists
+          if (typeof EmailService.sendSMS !== 'function') {
+            routesLogger.error('EmailService.sendSMS is not a function');
+            return res.status(500).json({
+              success: false,
+              message: "Email service method not available",
+              error: "sendSMS method not found"
+            });
+          }
+
+          const formattedDate = new Date(session.scheduledTime).toLocaleDateString();
+          const formattedTime = new Date(session.scheduledTime).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          });
+
+          const sessionTypeLabel = {
+            video: 'Video Call',
+            audio: 'Audio Call',
+            chat: 'Text Chat',
+          }[session.type as 'video' | 'audio' | 'chat'];
+
+          let smsMessage = `Your telemedicine ${sessionTypeLabel.toLowerCase()} with ${doctorName} is scheduled for ${formattedDate} at ${formattedTime}.`;
+          
+          if (session.sessionUrl) {
+            smsMessage += `\n\n🔗 Join your session:\n${session.sessionUrl}`;
+          } else {
+            smsMessage += '\n\nSession link will be sent separately.';
+          }
+
+          const result = await EmailService.sendSMS({
+            to: patient.phone,
+            message: smsMessage,
+          });
+
+          if (result.success) {
+            // Log audit trail
+            try {
+              const auditLogger = new AuditLogger(req);
+              await auditLogger.logPatientAction('TELEMEDICINE_NOTIFICATION_SENT', patient.id, {
+                sessionId: session.id,
+                type: 'sms',
+                recipient: patient.phone,
+              });
+            } catch (auditError) {
+              console.warn('Failed to log audit trail:', auditError);
+              // Don't fail the request if audit logging fails
+            }
+
+            return res.json({
+              success: true,
+              message: "SMS notification sent successfully",
+              type: 'sms',
+              recipient: patient.phone,
+              messageId: result.messageId,
+            });
+          } else {
+            return res.status(500).json({
+              success: false,
+              message: "Failed to send SMS notification",
+              error: result.error || 'Unknown error',
+            });
+          }
+        } catch (smsError: any) {
+          routesLogger.error('Error sending SMS notification', {
+            error: smsError?.message,
+            stack: smsError?.stack,
+            sessionId: session.id,
+            patientId: patient.id,
+          });
+          console.error('Error sending SMS notification:', smsError);
+          return res.status(500).json({
+            success: false,
+            message: "Failed to send SMS notification",
+            error: smsError?.message || 'Unknown error',
+            details: process.env.NODE_ENV === 'development' ? smsError?.stack : undefined,
+          });
+        }
+      } else if (type === 'whatsapp') {
+        if (!patient.phone) {
+          return res.status(400).json({ 
+            message: "Patient does not have a phone number",
+            hasPhone: false 
+          });
+        }
+
+        try {
+          // Validate and format phone number
+          if (!patient.phone || typeof patient.phone !== 'string') {
+            return res.status(400).json({
+              success: false,
+              message: "Patient phone number is missing or invalid",
+              hasPhone: false,
+            });
+          }
+
+          let phoneNumber = patient.phone.trim();
+          
+          // Check if phone number is empty after trimming
+          if (!phoneNumber) {
+            return res.status(400).json({
+              success: false,
+              message: "Patient phone number is empty",
+              hasPhone: false,
+            });
+          }
+          
+          // Remove any non-digit characters except + at the start
+          // Keep the + if present, otherwise add it
+          if (!phoneNumber.startsWith('+')) {
+            // Remove leading zeros and non-digit characters
+            phoneNumber = phoneNumber.replace(/^0+/, '').replace(/\D/g, '');
+            // Add + prefix if not present
+            if (phoneNumber && !phoneNumber.startsWith('+')) {
+              phoneNumber = '+' + phoneNumber;
+            }
+          } else {
+            // Keep + and remove any other non-digit characters
+            phoneNumber = '+' + phoneNumber.substring(1).replace(/\D/g, '');
+          }
+
+          // Basic validation - at least 10 digits after country code (minimum 12 chars: + and 11 digits)
+          if (!phoneNumber || phoneNumber.length < 12 || phoneNumber === '+') {
+            return res.status(400).json({
+              success: false,
+              message: "Invalid phone number format. Phone number must include country code (e.g., +1234567890)",
+              phoneNumber: phoneNumber,
+              originalPhone: patient.phone,
+            });
+          }
+
+          // Validate scheduledTime
+          let scheduledTime: Date;
+          try {
+            scheduledTime = new Date(session.scheduledTime);
+            if (isNaN(scheduledTime.getTime())) {
+              throw new Error('Invalid scheduled time');
+            }
+          } catch (dateError) {
+            return res.status(400).json({
+              success: false,
+              message: "Invalid session scheduled time",
+              error: "Session has an invalid scheduled time",
+            });
+          }
+
+          routesLogger.debug('Attempting to send WhatsApp notification', {
+            sessionId: session.id,
+            patientId: patient.id,
+            phone: phoneNumber,
+            hasTwilioConfig: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)
+          });
+
+          // Ensure EmailService is available
+          if (!EmailService || typeof EmailService.sendTelemedicineWhatsApp !== 'function') {
+            routesLogger.error('EmailService.sendTelemedicineWhatsApp is not available');
+            return res.status(500).json({
+              success: false,
+              message: "Email service not available",
+              error: "Failed to load email service module",
+            });
+          }
+
+          const result = await EmailService.sendTelemedicineWhatsApp({
+            patientPhone: phoneNumber,
+            patientName,
+            doctorName,
+            sessionType: session.type as 'video' | 'audio' | 'chat',
+            scheduledTime: scheduledTime,
+            sessionUrl: session.sessionUrl || undefined,
+            clinicName,
+          });
+
+          if (result.success) {
+            // Log audit trail
+            try {
+              const auditLogger = new AuditLogger(req);
+              await auditLogger.logPatientAction('TELEMEDICINE_NOTIFICATION_SENT', patient.id, {
+                sessionId: session.id,
+                type: 'whatsapp',
+                recipient: phoneNumber,
+                messageId: result.messageId,
+              });
+            } catch (auditError) {
+              routesLogger.warn('Failed to log audit trail for WhatsApp notification', { error: auditError });
+              // Don't fail the request if audit logging fails
+            }
+
+            return res.json({
+              success: true,
+              message: "WhatsApp notification sent successfully",
+              type: 'whatsapp',
+              recipient: phoneNumber,
+              messageId: result.messageId,
+            });
+          } else {
+            // Return detailed error information
+            return res.status(500).json({
+              success: false,
+              message: "Failed to send WhatsApp notification",
+              error: result.error || 'Unknown error',
+              phoneNumber: phoneNumber,
+              troubleshooting: {
+                checkCredentials: "Verify TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are set",
+                checkPhoneFormat: "Ensure phone number includes country code (e.g., +1234567890)",
+                checkSandbox: "For Twilio sandbox, recipient must join by sending join code to Twilio WhatsApp number",
+              }
+            });
+          }
+        } catch (whatsappError: any) {
+          routesLogger.error('Error in WhatsApp notification handler', {
+            error: whatsappError?.message,
+            stack: whatsappError?.stack,
+            sessionId: session.id,
+            patientId: patient.id,
+          });
+
+          return res.status(500).json({
+            success: false,
+            message: "Failed to send WhatsApp notification",
+            error: whatsappError?.message || 'Unknown error occurred',
+            details: process.env.NODE_ENV === 'development' ? whatsappError?.stack : undefined,
+          });
+        }
+      } else {
+        return res.status(400).json({ message: "Invalid notification type. Use 'email', 'sms', or 'whatsapp'" });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      
+      routesLogger.error('Error sending telemedicine notification', {
+        error: errorMessage,
+        stack: errorStack,
+        sessionId: req.params.id,
+        type: req.body?.type,
+        user: {
+          id: req.user?.id,
+          role: req.user?.role
+        }
+      });
+
+      console.error('Error sending telemedicine notification:', {
+        error: errorMessage,
+        stack: errorStack,
+        sessionId: req.params.id,
+        type: req.body?.type,
+        user: {
+          id: req.user?.id,
+          role: req.user?.role
+        }
+      });
+
+      return res.status(500).json({ 
+        success: false,
+        message: "Failed to send notification",
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      });
+    }
+  });
+
+  // Get telemedicine statistics
+  app.get("/api/telemedicine/stats", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user?.id;
+      const role = req.user?.role;
+      const organizationId = req.user?.organizationId;
+
+      if (!userId) {
+        return res.json({
+          totalSessions: 0,
+          avgDuration: 0,
+          completionRate: 0
+        });
+      }
+
+      // Build where conditions
+      const conditions: any[] = [];
+      if (organizationId) {
+        conditions.push(eq(telemedicineSessions.organizationId, organizationId));
+      }
+      if (role === 'doctor' && userId) {
+        conditions.push(eq(telemedicineSessions.doctorId, userId));
+      }
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      // Total sessions this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const totalSessionsQuery = db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(telemedicineSessions);
+      
+      if (whereClause) {
+        totalSessionsQuery.where(and(
+          whereClause,
+          gte(telemedicineSessions.createdAt, startOfMonth)
+        ));
+      } else {
+        totalSessionsQuery.where(gte(telemedicineSessions.createdAt, startOfMonth));
+      }
+
+      const [totalSessionsResult] = await totalSessionsQuery;
+      const totalSessions = totalSessionsResult?.count || 0;
+
+      // Average duration (only for completed sessions with duration)
+      const avgDurationQuery = db
+        .select({ avg: sql<number>`COALESCE(avg(${telemedicineSessions.duration})::int, 0)` })
+        .from(telemedicineSessions)
+        .where(and(
+          whereClause || sql`1=1`,
+          eq(telemedicineSessions.status, 'completed'),
+          isNotNull(telemedicineSessions.duration)
+        ));
+
+      const [avgDurationResult] = await avgDurationQuery;
+      const avgDuration = Math.round(avgDurationResult?.avg || 0);
+
+      // Completion rate
+      const completedQuery = db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(telemedicineSessions);
+      
+      if (whereClause) {
+        completedQuery.where(and(
+          whereClause,
+          eq(telemedicineSessions.status, 'completed')
+        ));
+      } else {
+        completedQuery.where(eq(telemedicineSessions.status, 'completed'));
+      }
+
+      const [completedResult] = await completedQuery;
+      const completed = completedResult?.count || 0;
+
+      const totalQuery = db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(telemedicineSessions);
+      
+      if (whereClause) {
+        totalQuery.where(whereClause);
+      }
+
+      const [totalResult] = await totalQuery;
+      const total = totalResult?.count || 0;
+
+      const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      res.json({
+        totalSessions,
+        avgDuration,
+        completionRate
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error fetching telemedicine statistics:', errorMessage);
+      res.status(500).json({ 
+        message: "Failed to fetch statistics",
+        error: errorMessage
+      });
+    }
+  });
+
+  // Update telemedicine session
+  app.patch("/api/telemedicine/sessions/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const updateData = req.body;
 
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+
+      // Get existing session to verify ownership
+      const [existingSession] = await db
+        .select()
+        .from(telemedicineSessions)
+        .where(eq(telemedicineSessions.id, sessionId))
+        .limit(1);
+
+      if (!existingSession) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      /* DUPLICATE - Update telemedicine session route already in server/routes/telemedicine.ts (line 324)
+      // Update telemedicine session
+      app.patch("/api/telemedicine/sessions/:id", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
+        try {
+          const sessionId = parseInt(req.params.id);
+          const updateData = req.body;
+
+          if (isNaN(sessionId)) {
+            return res.status(400).json({ message: "Invalid session ID" });
+          }
+
+          // Get existing session to verify ownership
+          const [existingSession] = await db
+            .select()
+            .from(telemedicineSessions)
+            .where(eq(telemedicineSessions.id, sessionId))
+            .limit(1);
+
+          if (!existingSession) {
+            return res.status(404).json({ message: "Session not found" });
+          }
+
+          // Check organization access
+          const organizationId = req.user?.organizationId;
+      if (organizationId && existingSession.organizationId !== organizationId) {
+        return res.status(403).json({ message: "You don't have permission to update this session" });
+      }
+
+      // Check doctor access (doctors can only update their own sessions)
+      const role = req.user?.role;
+      if (role === 'doctor' && req.user?.id && existingSession.doctorId !== req.user.id) {
+        return res.status(403).json({ message: "You can only update your own sessions" });
+      }
+
+      // If status is being set to completed, set completedAt timestamp
+      if (updateData.status === 'completed' && !updateData.completedAt) {
+        updateData.completedAt = new Date();
+      }
+
+      // If status is being set to active and sessionUrl is not provided, generate one
+      // Using Jitsi Meet (free, no API key needed)
+      // For production, consider integrating Daily.co, Zoom Healthcare, or Twilio Video
+      if (updateData.status === 'active' && !updateData.sessionUrl && !existingSession.sessionUrl) {
+        updateData.sessionUrl = `https://meet.jit.si/telemedicine-${sessionId}-${Date.now()}`;
+      }
+
+      // Update session
       const [updatedSession] = await db
         .update(telemedicineSessions)
-        .set({ ...updateData })
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
         .where(eq(telemedicineSessions.id, sessionId))
         .returning();
 
       if (!updatedSession) {
-        return res.status(404).json({ message: "Session not found" });
+        return res.status(404).json({ message: "Failed to update session" });
       }
+
+      // Log the update
+      const auditLogger = new AuditLogger(req);
+      await auditLogger.logPatientAction('TELEMEDICINE_SESSION_UPDATED', existingSession.patientId, {
+        sessionId: sessionId,
+        updatedFields: Object.keys(updateData)
+      });
 
       res.json(updatedSession);
     } catch (error) {
-      console.error('Error updating telemedicine session:', error);
-      res.status(500).json({ message: "Failed to update session" });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error updating telemedicine session:', errorMessage);
+      res.status(500).json({ 
+        message: "Failed to update session",
+        error: errorMessage
+      });
     }
   });
 
@@ -9496,7 +9944,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/patients/:id/safety-alerts", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
-      
+
       // Get stored alerts from database
       const storedAlerts = await db
         .select()
@@ -9545,7 +9993,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (patientData.medicalHistory && patientData.medicalHistory.trim()) {
         const criticalConditions = ['diabetes', 'hypertension', 'cardiac', 'heart', 'epilepsy', 'kidney', 'liver'];
         const history = patientData.medicalHistory.toLowerCase();
-        
+
         criticalConditions.forEach(condition => {
           if (history.includes(condition)) {
             autoGeneratedAlerts.push({
@@ -9575,13 +10023,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       if (recentVitals.length > 0) {
         const vitals = recentVitals[0];
-        
+
         // Blood pressure alerts
         if (vitals.bloodPressureSystolic && vitals.bloodPressureDiastolic) {
           const systolic = vitals.bloodPressureSystolic;
           const diastolic = vitals.bloodPressureDiastolic;
           const bpReading = `${systolic}/${diastolic}`;
-          
+
           if (systolic > 180 || diastolic > 110) {
             autoGeneratedAlerts.push({
               id: 'auto-bp-critical',
@@ -9636,11 +10084,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       // Combine stored and auto-generated alerts
       const allAlerts = [...storedAlerts, ...autoGeneratedAlerts];
-      
-      res.json(allAlerts);
+
+      return res.json(allAlerts);
     } catch (error) {
       console.error('Error fetching safety alerts:', error);
-      res.status(500).json({ error: 'Failed to fetch safety alerts' });
+      return res.status(500).json({ error: 'Failed to fetch safety alerts' });
     }
   });
 
@@ -9664,17 +10112,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         title: alertData.title
       });
 
-      res.status(201).json(newAlert);
+      return res.status(201).json(newAlert);
     } catch (error) {
       console.error('Error creating safety alert:', error);
-      res.status(500).json({ error: 'Failed to create safety alert' });
+      return res.status(500).json({ error: 'Failed to create safety alert' });
     }
   });
 
+  /* DUPLICATE - Resolve safety alert route already in server/routes/patient-extended.ts
   app.patch("/api/safety-alerts/:id/resolve", authenticateToken, requireAnyRole(['doctor', 'nurse', 'admin']), async (req: AuthRequest, res) => {
     try {
       const id = parseInt(req.params.id);
-      
+
       const [resolvedAlert] = await db
         .update(safetyAlerts)
         .set({
@@ -9694,10 +10143,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         alertType: resolvedAlert.type
       });
 
-      res.json(resolvedAlert);
+      return res.json(resolvedAlert);
     } catch (error) {
       console.error('Error resolving safety alert:', error);
-      res.status(500).json({ error: 'Failed to resolve safety alert' });
+      return res.status(500).json({ error: 'Failed to resolve safety alert' });
     }
   });
 
@@ -9714,7 +10163,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const decoded = verifyToken(token) as any;
-      
+
       // Fetch patient data
       const [patient] = await db.select()
         .from(patients)
@@ -9736,7 +10185,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get('/api/patient-portal/pending-consents', authenticatePatient, async (req: PatientAuthRequest, res) => {
     try {
       const patientId = req.patient!.id;
-      
+
       // Get consent forms that haven't been signed by this patient
       const result = await db
         .select({
@@ -9748,8 +10197,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           template: consentForms.template,
           riskFactors: consentForms.riskFactors,
           benefits: consentForms.benefits,
-          alternatives: consentForms.alternatives,
-          isRequired: consentForms.isRequired
+          alternatives: consentForms.alternatives
         })
         .from(consentForms)
         .where(
@@ -9763,10 +10211,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         )
         .orderBy(consentForms.title);
 
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       console.error('Error fetching pending consents:', error);
-      res.status(500).json({ message: "Failed to fetch pending consents" });
+      return res.status(500).json({ message: "Failed to fetch pending consents" });
     }
   });
 
@@ -9818,9 +10266,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           signatureDate: new Date(),
           status: 'active',
           organizationId: req.patient!.organizationId || 1,
-          additionalNotes,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          consentData: additionalNotes ? { notes: additionalNotes } : {}
         })
         .returning();
 
@@ -9831,14 +10277,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error signing consent:', error);
-      res.status(500).json({ message: "Failed to sign consent form" });
+      return res.status(500).json({ message: "Failed to sign consent form" });
     }
   });
 
   app.get('/api/patient-portal/signed-consents', authenticatePatient, async (req: PatientAuthRequest, res) => {
     try {
       const patientId = req.patient!.id;
-      
+
       const result = await db
         .select({
           id: patientConsents.id,
@@ -9856,10 +10302,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .where(eq(patientConsents.patientId, patientId))
         .orderBy(desc(patientConsents.signatureDate));
 
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       console.error('Error fetching signed consents:', error);
-      res.status(500).json({ message: "Failed to fetch signed consents" });
+      return res.status(500).json({ message: "Failed to fetch signed consents" });
     }
   });
 
@@ -9867,32 +10313,32 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.post('/api/patient-auth/login', async (req, res) => {
     try {
       const { patientId, phone, dateOfBirth } = req.body;
-      
+
       // Find patient by ID and verify credentials
       const [patient] = await db.select()
         .from(patients)
         .where(eq(patients.id, parseInt(patientId)));
-      
+
       if (!patient) {
         return res.status(401).json({ message: 'Invalid patient credentials' });
       }
-      
+
       // Verify phone and date of birth match
       const phoneMatch = patient.phone === phone;
       const dobMatch = patient.dateOfBirth === dateOfBirth;
-      
+
       if (!phoneMatch || !dobMatch) {
         return res.status(401).json({ message: 'Invalid patient credentials' });
       }
-      
+
       // Create patient session token (simplified for demo)
       const patientToken = jwt.sign(
         { patientId: patient.id, type: 'patient' },
         getJwtSecret(),
         { expiresIn: '24h' }
       );
-      
-      res.json({
+
+      return res.json({
         token: patientToken,
         patient: {
           id: patient.id,
@@ -9907,7 +10353,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Patient authentication error:', error);
-      res.status(500).json({ message: 'Authentication failed' });
+      return res.status(500).json({ message: 'Authentication failed' });
     }
   });
 
@@ -9918,16 +10364,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!patientId) {
         return res.status(401).json({ error: 'Patient authentication required' });
       }
-      
+
       const patientVisits = await db.select()
         .from(visits)
         .where(eq(visits.patientId, patientId))
         .orderBy(desc(visits.visitDate));
-      
-      res.json(patientVisits);
+
+      return res.json(patientVisits);
     } catch (error) {
       console.error('Error fetching patient visits:', error);
-      res.status(500).json({ message: 'Failed to fetch visits' });
+      return res.status(500).json({ message: 'Failed to fetch visits' });
     }
   });
 
@@ -10001,16 +10447,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           }
         ]
       };
-      
-      res.json({
+
+      return res.json({
         success: true,
         template: antenatalTemplate
       });
     } catch (error) {
       console.error('Error fetching antenatal template:', error);
-      res.status(500).json({ 
+      return res.status(500).json({
         success: false,
-        message: 'Failed to fetch template' 
+        message: 'Failed to fetch template'
       });
     }
   });
@@ -10039,14 +10485,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           startDate: prescriptions.startDate,
           status: prescriptions.status
         })
-        .from(prescriptions)
-        .leftJoin(patients, eq(prescriptions.patientId, patients.id))
-        .where(and(
-          inArray(prescriptions.status, ['active', 'pending']),
-          eq(prescriptions.organizationId, req.user!.organizationId!)
-        ))
-        .orderBy(desc(prescriptions.startDate))
-        .limit(20),
+          .from(prescriptions)
+          .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+          .where(and(
+            inArray(prescriptions.status, ['active', 'pending']),
+            eq(prescriptions.organizationId, req.user!.organizationId!)
+          ))
+          .orderBy(desc(prescriptions.startDate))
+          .limit(20),
 
         // Recent pharmacy activities
         db.select({
@@ -10061,12 +10507,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           medicationName: medicines.name,
           patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`
         })
-        .from(pharmacyActivities)
-        .leftJoin(medicines, eq(pharmacyActivities.medicineId, medicines.id))
-        .leftJoin(patients, eq(pharmacyActivities.patientId, patients.id))
-        .where(eq(pharmacyActivities.organizationId, req.user!.organizationId!))
-        .orderBy(desc(pharmacyActivities.createdAt))
-        .limit(15),
+          .from(pharmacyActivities)
+          .leftJoin(medicines, eq(pharmacyActivities.medicineId, medicines.id))
+          .leftJoin(patients, eq(pharmacyActivities.patientId, patients.id))
+          .where(eq(pharmacyActivities.organizationId, req.user!.organizationId!))
+          .orderBy(desc(pharmacyActivities.createdAt))
+          .limit(15),
 
         // Low stock medicines
         db.select({
@@ -10077,15 +10523,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           expiryDate: medicines.expiryDate,
           supplier: medicines.supplier
         })
-        .from(medicines)
-        .where(
-          and(
-            lte(medicines.quantity, medicines.lowStockThreshold),
-            eq(medicines.organizationId, req.user!.organizationId!)
+          .from(medicines)
+          .where(
+            and(
+              lte(medicines.quantity, medicines.lowStockThreshold),
+              eq(medicines.organizationId, req.user!.organizationId!)
+            )
           )
-        )
-        .orderBy(medicines.quantity)
-        .limit(10),
+          .orderBy(medicines.quantity)
+          .limit(10),
 
         // Dispensed prescriptions today (queue status)
         db.select({
@@ -10095,14 +10541,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           status: prescriptions.status,
           startDate: prescriptions.startDate
         })
-        .from(prescriptions)
-        .leftJoin(patients, eq(prescriptions.patientId, patients.id))
-        .where(and(
-          eq(prescriptions.status, 'dispensed'),
-          gte(prescriptions.startDate, sql`CURRENT_DATE`),
-          eq(prescriptions.organizationId, req.user!.organizationId!)
-        ))
-        .limit(10),
+          .from(prescriptions)
+          .leftJoin(patients, eq(prescriptions.patientId, patients.id))
+          .where(and(
+            eq(prescriptions.status, 'dispensed'),
+            gte(prescriptions.startDate, sql`CURRENT_DATE`),
+            eq(prescriptions.organizationId, req.user!.organizationId!)
+          ))
+          .limit(10),
 
         // Daily statistics
         Promise.all([
@@ -10146,10 +10592,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         }
       };
 
-      res.json(dashboardData);
+      return res.json(dashboardData);
     } catch (error) {
       console.error('Error fetching pharmacy dashboard:', error);
-      res.status(500).json({ error: 'Failed to fetch pharmacy dashboard' });
+      return res.status(500).json({ error: 'Failed to fetch pharmacy dashboard' });
     }
   });
 
@@ -10157,16 +10603,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/pharmacy/activities", authenticateToken, requireAnyRole(['pharmacist', 'admin']), async (req: AuthRequest, res) => {
     try {
       const { pharmacistId, activityType, startDate, endDate } = req.query;
-      
+
       const conditions = [eq(pharmacyActivities.organizationId, req.user!.organizationId!)];
-      
+
       if (pharmacistId) {
         conditions.push(eq(pharmacyActivities.pharmacistId, parseInt(pharmacistId as string)));
       }
       if (activityType) {
         conditions.push(eq(pharmacyActivities.activityType, activityType as string));
       }
-      
+
       const activities = await db
         .select({
           id: pharmacyActivities.id,
@@ -10195,10 +10641,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .orderBy(desc(pharmacyActivities.createdAt))
         .limit(100);
 
-      res.json(activities);
+      return res.json(activities);
     } catch (error) {
       console.error('Error fetching pharmacy activities:', error);
-      res.status(500).json({ error: 'Failed to fetch pharmacy activities' });
+      return res.status(500).json({ error: 'Failed to fetch pharmacy activities' });
     }
   });
 
@@ -10223,10 +10669,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         activityType: newActivity.activityType
       });
 
-      res.status(201).json(newActivity);
+      return res.status(201).json(newActivity);
     } catch (error) {
       console.error('Error creating pharmacy activity:', error);
-      res.status(500).json({ error: 'Failed to create pharmacy activity' });
+      return res.status(500).json({ error: 'Failed to create pharmacy activity' });
     }
   });
 
@@ -10234,7 +10680,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/patients/:patientId/medication-reviews", authenticateToken, requireAnyRole(['pharmacist', 'doctor', 'admin', 'super_admin', 'nurse']), async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.patientId);
-      
+
       // Get medication reviews from medication_reviews table
       const reviews = await db
         .select()
@@ -10266,10 +10712,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         };
       }));
 
-      res.json(enrichedReviews);
+      return res.json(enrichedReviews);
     } catch (error) {
       console.error('Error fetching medication reviews:', error);
-      res.status(500).json({ error: 'Failed to fetch medication reviews' });
+      return res.status(500).json({ error: 'Failed to fetch medication reviews' });
     }
   });
 
@@ -10296,10 +10742,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         reviewType: newReview.reviewType
       });
 
-      res.status(201).json(newReview);
+      return res.status(201).json(newReview);
     } catch (error) {
       console.error('Error creating medication review:', error);
-      res.status(500).json({ error: 'Failed to create medication review' });
+      return res.status(500).json({ error: 'Failed to create medication review' });
     }
   });
 
@@ -10314,7 +10760,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const updateData: any = { status };
-      
+
       // Add timestamps based on status
       if (status === 'in_progress' && !req.body.startedAt) {
         updateData.startedAt = new Date();
@@ -10335,10 +10781,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ error: 'Medication review assignment not found' });
       }
 
-      res.json(updatedAssignment);
+      return res.json(updatedAssignment);
     } catch (error) {
       console.error('Error updating medication review:', error);
-      res.status(500).json({ error: 'Failed to update medication review' });
+      return res.status(500).json({ error: 'Failed to update medication review' });
     }
   });
 
@@ -10346,7 +10792,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.post("/api/medication-reviews", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { patientId, prescriptionId, reviewType, notes, scheduledDate, priority } = req.body;
-      
+
       if (!patientId || !prescriptionId) {
         return res.status(400).json({ message: "Patient ID and Prescription ID are required" });
       }
@@ -10369,7 +10815,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       // Assign to a random available reviewer or the current user if they're a doctor
       let assignedReviewerId = req.user!.id;
       let assignedReviewerName = req.user!.username;
-      
+
       if (availableReviewers.length > 0) {
         const randomReviewer = availableReviewers[Math.floor(Math.random() * availableReviewers.length)];
         assignedReviewerId = randomReviewer.id;
@@ -10395,11 +10841,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       console.log(`📋 MEDICATION REVIEW SCHEDULED: Review #${reviewData.id} for patient ${patientId}`);
       console.log(`👨‍⚕️ ASSIGNED TO: ${assignedReviewerName} (ID: ${assignedReviewerId})`);
-      
-      res.status(201).json(reviewData);
+
+      return res.status(201).json(reviewData);
     } catch (error) {
       console.error('Error scheduling medication review:', error);
-      res.status(500).json({ error: 'Failed to schedule medication review' });
+      return res.status(500).json({ error: 'Failed to schedule medication review' });
     }
   });
 
@@ -10443,13 +10889,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       console.log(`🔄 REPEAT PRESCRIPTION ISSUED: #${newRepeatPrescription.id} for patient ${patientId} - ${originalPrescription.medicationName}`);
 
-      res.json(newRepeatPrescription);
+      return res.json(newRepeatPrescription);
     } catch (error) {
       console.error('Error creating repeat prescription:', error);
-      res.status(500).json({ message: "Failed to create repeat prescription" });
+      return res.status(500).json({ message: "Failed to create repeat prescription" });
     }
   });
 
+  /* DUPLICATE - Procedural reports routes already in server/routes/patient-extended.ts
   // Procedural Reports Routes
   app.get("/api/procedural-reports", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -10488,17 +10935,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .where(eq(proceduralReports.organizationId, req.user!.organizationId))
         .orderBy(desc(proceduralReports.createdAt));
 
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       console.error('Error fetching procedural reports:', error);
-      res.status(500).json({ message: "Failed to fetch procedural reports" });
+      return res.status(500).json({ message: "Failed to fetch procedural reports" });
     }
   });
 
   app.post("/api/procedural-reports", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertProceduralReportSchema.parse(req.body);
-      
+
       const [newReport] = await db
         .insert(proceduralReports)
         .values({
@@ -10510,14 +10957,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       res.json(newReport);
     } catch (error) {
       console.error('Error creating procedural report:', error);
-      res.status(500).json({ message: "Failed to create procedural report" });
+      return res.status(500).json({ message: "Failed to create procedural report" });
     }
   });
 
   app.get("/api/procedural-reports/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const reportId = parseInt(req.params.id);
-      
+
       const result = await db
         .select()
         .from(proceduralReports)
@@ -10531,13 +10978,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ message: "Procedural report not found" });
       }
 
-      res.json(result[0]);
+      return res.json(result[0]);
     } catch (error) {
       console.error('Error fetching procedural report:', error);
-      res.status(500).json({ message: "Failed to fetch procedural report" });
+      return res.status(500).json({ message: "Failed to fetch procedural report" });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Consent forms routes already in server/routes/patient-extended.ts
   // Consent Forms Routes
   app.get("/api/consent-forms", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -10547,17 +10995,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .where(eq(consentForms.organizationId, req.user!.organizationId))
         .orderBy(desc(consentForms.createdAt));
 
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       console.error('Error fetching consent forms:', error);
-      res.status(500).json({ message: "Failed to fetch consent forms" });
+      return res.status(500).json({ message: "Failed to fetch consent forms" });
     }
   });
 
   app.post("/api/consent-forms", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertConsentFormSchema.parse(req.body);
-      
+
       const [newForm] = await db
         .insert(consentForms)
         .values({
@@ -10569,7 +11017,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       res.json(newForm);
     } catch (error) {
       console.error('Error creating consent form:', error);
-      res.status(500).json({ message: "Failed to create consent form" });
+      return res.status(500).json({ message: "Failed to create consent form" });
     }
   });
 
@@ -10608,17 +11056,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .where(eq(patientConsents.organizationId, req.user!.organizationId))
         .orderBy(desc(patientConsents.createdAt));
 
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       console.error('Error fetching patient consents:', error);
-      res.status(500).json({ message: "Failed to fetch patient consents" });
+      return res.status(500).json({ message: "Failed to fetch patient consents" });
     }
   });
 
   app.post("/api/patient-consents", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertPatientConsentSchema.parse(req.body);
-      
+
       const [newConsent] = await db
         .insert(patientConsents)
         .values({
@@ -10630,14 +11078,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       res.json(newConsent);
     } catch (error) {
       console.error('Error capturing patient consent:', error);
-      res.status(500).json({ message: "Failed to capture patient consent" });
+      return res.status(500).json({ message: "Failed to capture patient consent" });
     }
   });
 
   app.get("/api/patients/:patientId/consents", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.patientId);
-      
+
       const result = await db
         .select({
           id: patientConsents.id,
@@ -10658,25 +11106,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         ))
         .orderBy(desc(patientConsents.signatureDate));
 
-      res.json(result);
+      return res.json(result);
     } catch (error) {
       console.error('Error fetching patient consents:', error);
-      res.status(500).json({ message: "Failed to fetch patient consents" });
+      return res.status(500).json({ message: "Failed to fetch patient consents" });
     }
   });
 
   // Staff Notification endpoint
   app.post("/api/notifications/staff", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { 
-        type, 
-        patientId, 
-        patientName, 
-        medicationName, 
-        reviewId, 
-        priority = 'normal', 
-        assignedTo = [], 
-        message 
+      const {
+        type,
+        patientId,
+        patientName,
+        medicationName,
+        reviewId,
+        priority = 'normal',
+        assignedTo = [],
+        message
       } = req.body;
 
       if (!type || !patientId || !message) {
@@ -10704,7 +11152,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       console.log(`📢 STAFF NOTIFICATION: ${type} - ${staffToNotify.length} staff members notified for patient ${patientName}`);
       console.log(`   Notified roles: ${assignedTo.join(', ')}`);
       console.log(`   Staff notified: ${staffToNotify.map(s => `${s.username} (${s.role})`).join(', ')}`);
-      
+
       const response = {
         notificationId: Math.floor(Math.random() * 10000) + 5000,
         staffNotified: staffToNotify.length,
@@ -10713,15 +11161,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         createdAt: new Date().toISOString()
       };
 
-      res.json(response);
+      return res.json(response);
     } catch (error) {
       console.error('Error sending staff notifications:', error);
-      res.status(500).json({ message: "Failed to send staff notifications" });
+      return res.status(500).json({ message: "Failed to send staff notifications" });
     }
   });
 
+  /* DUPLICATE - Medical documents routes already in server/routes/files.ts
   // Medical Documents API Endpoints
-  
+
   // Get all medical documents for organization
   app.get("/api/files/medical", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -10729,7 +11178,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       console.log('=== FETCH MEDICAL DOCUMENTS ===');
       console.log('User info:', { id: req.user?.id, organizationId: req.user?.organizationId });
       console.log('Fetching medical documents for organization:', organizationId);
-      
+
       const documents = await db
         .select()
         .from(medicalDocuments)
@@ -10746,7 +11195,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
               .select({ firstName: patients.firstName, lastName: patients.lastName })
               .from(patients)
               .where(eq(patients.id, doc.patientId));
-            
+
             return {
               ...doc,
               patient: patient || null
@@ -10756,10 +11205,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         })
       );
 
-      res.json(documentsWithPatients);
+      return res.json(documentsWithPatients);
     } catch (error) {
       console.error('Error fetching medical documents:', error);
-      res.status(500).json({ message: "Failed to fetch medical documents" });
+      return res.status(500).json({ message: "Failed to fetch medical documents" });
     }
   });
 
@@ -10776,7 +11225,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const { category, patientId } = req.body;
-      
+
       if (!category) {
         return res.status(400).json({ message: "Category is required" });
       }
@@ -10793,7 +11242,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const fs = require('fs');
       const path = require('path');
       const uploadsDir = path.join(process.cwd(), 'uploads', 'medical');
-      
+
       // Create directory if it doesn't exist
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
@@ -10828,10 +11277,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error uploading medical document:', error);
-      res.status(500).json({ message: "Failed to upload document" });
+      return res.status(500).json({ message: "Failed to upload document" });
     }
   });
 
+  /* DUPLICATE - Patient document routes already in server/routes/patient-extended.ts
   // Upload document for specific patient
   app.post("/api/patients/:patientId/documents", authenticateToken, upload.single('file'), async (req: AuthRequest, res) => {
     try {
@@ -10841,7 +11291,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       const { patientId } = req.params;
       const { documentType, description } = req.body;
-      
+
       if (!documentType) {
         return res.status(400).json({ message: "Document type is required" });
       }
@@ -10853,7 +11303,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       // Store file in uploads directory
       const uploadsDir = path.join(process.cwd(), 'uploads', 'medical');
-      
+
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
@@ -10873,8 +11323,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           uploadedBy: req.user!.id,
           size: req.file.size,
           mimeType: req.file.mimetype,
-          organizationId,
-          description: description || null
+          organizationId
         })
         .returning();
 
@@ -10886,7 +11335,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         fileName: req.file.originalname
       });
 
-      res.json({
+      return res.json({
         id: document.id,
         fileName: document.fileName,
         originalName: document.originalName,
@@ -10897,7 +11346,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error uploading patient document:', error);
-      res.status(500).json({ message: "Failed to upload document" });
+      return res.status(500).json({ message: "Failed to upload document" });
     }
   });
 
@@ -10919,7 +11368,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const fs = await import('fs');
       const path = await import('path');
       const uploadsDir = path.default.join(process.cwd(), 'uploads');
-      
+
       if (!fs.default.existsSync(uploadsDir)) {
         fs.default.mkdirSync(uploadsDir, { recursive: true });
       }
@@ -10938,8 +11387,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           uploadedBy: req.user!.id,
           size: Buffer.byteLength(content, 'utf8'),
           mimeType: 'text/plain',
-          organizationId,
-          description: description || null
+          organizationId
         })
         .returning();
 
@@ -10951,21 +11399,21 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         title
       });
 
-      res.json({
+      return res.json({
         id: document.id,
         fileName: document.fileName,
         originalName: document.originalName,
         category: document.category,
         size: document.size,
-        uploadedAt: document.uploadedAt,
-        description: document.description
+        uploadedAt: document.uploadedAt
       });
     } catch (error) {
       console.error('Error creating patient document:', error);
-      res.status(500).json({ message: "Failed to create patient document" });
+      return res.status(500).json({ message: "Failed to create patient document" });
     }
   });
 
+  /* DUPLICATE - Get patient documents route already in server/routes/patient-extended.ts
   // Get documents for specific patient
   app.get("/api/patients/:patientId/documents", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -10982,13 +11430,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       console.log(`Found ${documents.length} documents:`, documents.map(d => ({ id: d.id, orgId: d.organizationId })));
 
-      res.json(documents);
+      return res.json(documents);
     } catch (error) {
       console.error('Error fetching patient documents:', error);
-      res.status(500).json({ message: "Failed to fetch patient documents" });
+      return res.status(500).json({ message: "Failed to fetch patient documents" });
     }
   });
-
+  /* END DUPLICATE */
   // Serve medical document files
   app.get("/api/files/medical/:fileName", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -11044,7 +11492,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       } else {
         res.setHeader('Content-Type', document.mimeType);
       }
-      
+
       // Set disposition based on download parameter
       if (download) {
         res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
@@ -11054,13 +11502,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         res.setHeader('X-Frame-Options', 'SAMEORIGIN');
         res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
       }
-      
+
       console.log(`Streaming file: ${fileName}`);
       const fileStream = fs.default.createReadStream(filePath);
       fileStream.pipe(res);
     } catch (error) {
       console.error('Error serving medical document:', error);
-      res.status(500).json({ message: "Failed to serve document" });
+      return res.status(500).json({ message: "Failed to serve document" });
     }
   });
 
@@ -11092,18 +11540,19 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const fs = require('fs');
       const path = require('path');
       const filePath = path.join(process.cwd(), 'uploads', 'medical', fileName);
-      
+
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
 
-      res.json({ message: "Document deleted successfully" });
+      return res.json({ message: "Document deleted successfully" });
     } catch (error) {
       console.error('Error deleting medical document:', error);
-      res.status(500).json({ message: "Failed to delete document" });
+      return res.status(500).json({ message: "Failed to delete document" });
     }
   });
 
+  /* DUPLICATE - Print routes already in server/routes/print.ts
   // Organization data for print documents
   app.get("/api/print/organization", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -11145,7 +11594,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ error: 'No active organization found' });
       }
 
-      res.json({
+      return res.json({
         id: organization.id,
         name: organization.name,
         type: organization.type,
@@ -11156,7 +11605,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error fetching organization for print:', error);
-      res.status(500).json({ error: 'Failed to fetch organization data' });
+      return res.status(500).json({ error: 'Failed to fetch organization data' });
     }
   });
 
@@ -11186,15 +11635,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         routingReason: messages.routingReason,
         staffName: users.username
       })
-      .from(messages)
-      .leftJoin(users, eq(messages.staffId, users.id))
-      .where(eq(messages.patientId, patientId))
-      .orderBy(desc(messages.sentAt));
+        .from(messages)
+        .leftJoin(users, eq(messages.staffId, users.id))
+        .where(eq(messages.patientId, patientId))
+        .orderBy(desc(messages.sentAt));
 
-      res.json(patientMessages);
+      return res.json(patientMessages);
     } catch (error) {
       console.error('Error fetching patient messages:', error);
-      res.status(500).json({ error: 'Failed to fetch messages' });
+      return res.status(500).json({ error: 'Failed to fetch messages' });
     }
   });
 
@@ -11206,7 +11655,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const { subject, message, messageType = 'general', priority = 'normal', targetOrganizationId } = req.body;
-      
+
       if (!subject || !message) {
         return res.status(400).json({ error: 'Subject and message are required' });
       }
@@ -11248,7 +11697,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       res.status(201).json(savedMessage);
     } catch (error) {
       console.error('Error sending patient message:', error);
-      res.status(500).json({ error: 'Failed to send message' });
+      return res.status(500).json({ error: 'Failed to send message' });
     }
   });
 
@@ -11256,11 +11705,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   async function routeMessageToProvider(messageType: string, priority: string, patientId: number, targetOrganizationId?: number) {
     try {
       // Get available healthcare staff from the target organization
-      const staffFilter = targetOrganizationId 
+      const staffFilter = targetOrganizationId
         ? and(
-            inArray(users.role, ['doctor', 'nurse', 'pharmacist', 'physiotherapist', 'admin']),
-            eq(users.organizationId, targetOrganizationId)
-          )
+          inArray(users.role, ['doctor', 'nurse', 'pharmacist', 'physiotherapist', 'admin']),
+          eq(users.organizationId, targetOrganizationId)
+        )
         : inArray(users.role, ['doctor', 'nurse', 'pharmacist', 'physiotherapist', 'admin']);
 
       const availableStaff = await db.select({
@@ -11269,8 +11718,8 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         role: users.role,
         organizationId: users.organizationId
       })
-      .from(users)
-      .where(staffFilter);
+        .from(users)
+        .where(staffFilter);
 
       // Smart routing based on message type
       let preferredRoles: string[] = [];
@@ -11284,32 +11733,32 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           recipientType = 'Medical Team';
           reason = 'Medical consultation requires doctor review';
           break;
-        
+
         case 'medication':
         case 'prescription':
           preferredRoles = ['pharmacist', 'doctor'];
           recipientType = 'Pharmacy Team';
           reason = 'Medication questions routed to pharmacist';
           break;
-        
+
         case 'physiotherapy':
           preferredRoles = ['physiotherapist'];
           recipientType = 'Physiotherapy Team';
           reason = 'Therapy-related questions routed to physiotherapist';
           break;
-        
+
         case 'appointment':
           preferredRoles = ['nurse', 'admin'];
           recipientType = 'Scheduling Team';
           reason = 'Appointment requests routed to scheduling staff';
           break;
-        
+
         case 'billing':
           preferredRoles = ['admin'];
           recipientType = 'Administrative Team';
           reason = 'Billing inquiries routed to admin staff';
           break;
-        
+
         default: // 'general'
           preferredRoles = ['nurse', 'doctor'];
           recipientType = 'General Care Team';
@@ -11326,7 +11775,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       // Find available staff matching preferred roles
-      const matchingStaff = availableStaff.filter(staff => 
+      const matchingStaff = availableStaff.filter(staff =>
         preferredRoles.includes(staff.role)
       );
 
@@ -11364,12 +11813,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const staffId = req.user?.id;
       const organizationId = req.user?.organizationId || 1; // Default to first organization for demo
-      
+
       if (!staffId) {
         return res.status(401).json({ error: 'Staff authentication required' });
       }
 
       // Fetch messages for staff member's organization
+      // Exclude messages where recipientType is 'Patient' (these are replies from staff to patients)
       const staffMessages = await db.select({
         id: messages.id,
         subject: messages.subject,
@@ -11387,24 +11837,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         patientName: sql`${patients.firstName} || ' ' || ${patients.lastName}`.as('patientName'),
         patientPhone: patients.phone
       })
-      .from(messages)
-      .leftJoin(patients, eq(messages.patientId, patients.id))
-      .where(
-        and(
-          eq(messages.organizationId, organizationId),
-          or(
-            eq(messages.assignedTo, staffId),
-            isNull(messages.assignedTo),
-            eq(messages.recipientRole, req.user?.role)
+        .from(messages)
+        .leftJoin(patients, eq(messages.patientId, patients.id))
+        .where(
+          and(
+            eq(messages.organizationId, organizationId),
+            ne(messages.recipientType, 'Patient'), // Exclude staff-to-patient replies
+            or(
+              eq(messages.assignedTo, staffId),
+              isNull(messages.assignedTo),
+              eq(messages.recipientRole, req.user?.role)
+            )
           )
         )
-      )
-      .orderBy(desc(messages.sentAt));
+        .orderBy(desc(messages.sentAt));
 
-      res.json(staffMessages);
+      return res.json(staffMessages);
     } catch (error) {
       console.error('Error fetching staff messages:', error);
-      res.status(500).json({ error: 'Failed to fetch messages' });
+      return res.status(500).json({ error: 'Failed to fetch messages' });
     }
   });
 
@@ -11412,16 +11863,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const messageId = parseInt(req.params.messageId);
       const staffId = req.user?.id;
-      
+
       if (!staffId) {
         return res.status(401).json({ error: 'Staff authentication required' });
       }
 
       // Mark message as read
       const [updatedMessage] = await db.update(messages)
-        .set({ 
-          status: 'read', 
-          readAt: new Date() 
+        .set({
+          status: 'read',
+          readAt: new Date()
         })
         .where(eq(messages.id, messageId))
         .returning();
@@ -11430,10 +11881,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return res.status(404).json({ error: 'Message not found' });
       }
 
-      res.json(updatedMessage);
+      return res.json(updatedMessage);
     } catch (error) {
       console.error('Error marking message as read:', error);
-      res.status(500).json({ error: 'Failed to mark message as read' });
+      return res.status(500).json({ error: 'Failed to mark message as read' });
     }
   });
 
@@ -11442,7 +11893,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const messageId = parseInt(req.params.messageId);
       const staffId = req.user?.id;
       const { reply } = req.body;
-      
+
       if (!staffId) {
         return res.status(401).json({ error: 'Staff authentication required' });
       }
@@ -11476,16 +11927,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       // Mark original message as replied
       await db.update(messages)
-        .set({ 
-          status: 'replied', 
-          repliedAt: new Date() 
+        .set({
+          status: 'replied',
+          repliedAt: new Date()
         })
         .where(eq(messages.id, messageId));
 
-      res.status(201).json(replyMessage);
+      return res.status(201).json(replyMessage);
     } catch (error) {
       console.error('Error sending reply:', error);
-      res.status(500).json({ error: 'Failed to send reply' });
+      return res.status(500).json({ error: 'Failed to send reply' });
     }
   });
 
@@ -11496,12 +11947,12 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!patientId) {
         return res.status(401).json({ error: 'Patient authentication required' });
       }
-      
+
       // Return the patient data from the authentication middleware
-      res.json(req.patient);
+      return res.json(req.patient);
     } catch (error) {
       console.error('Error fetching patient profile:', error);
-      res.status(500).json({ error: 'Failed to fetch patient profile' });
+      return res.status(500).json({ error: 'Failed to fetch patient profile' });
     }
   });
 
@@ -11512,7 +11963,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!patientId) {
         return res.status(401).json({ error: 'Patient authentication required' });
       }
-      
+
       const patientPrescriptions = await db.select({
         id: prescriptions.id,
         medicationName: prescriptions.medicationName,
@@ -11529,11 +11980,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .from(prescriptions)
         .where(eq(prescriptions.patientId, patientId))
         .orderBy(desc(prescriptions.createdAt));
-      
-      res.json(patientPrescriptions);
+
+      return res.json(patientPrescriptions);
     } catch (error) {
       console.error('Error fetching patient prescriptions:', error);
-      res.status(500).json({ error: 'Failed to fetch prescriptions' });
+      return res.status(500).json({ error: 'Failed to fetch prescriptions' });
     }
   });
 
@@ -11544,16 +11995,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!patientId) {
         return res.status(401).json({ error: 'Patient authentication required' });
       }
-      
+
       const patientRecords = await db.select()
         .from(visits)
         .where(eq(visits.patientId, patientId))
         .orderBy(desc(visits.visitDate));
-      
-      res.json(patientRecords);
+
+      return res.json(patientRecords);
     } catch (error) {
       console.error('Error fetching patient medical records:', error);
-      res.status(500).json({ error: 'Failed to fetch medical records' });
+      return res.status(500).json({ error: 'Failed to fetch medical records' });
     }
   });
 
@@ -11564,7 +12015,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!patientId) {
         return res.status(401).json({ error: 'Patient authentication required' });
       }
-      
+
       const patientLabResults = await db.select({
         id: labResults.id,
         testName: labResults.testName,
@@ -11579,11 +12030,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .from(labResults)
         .where(eq(labResults.patientId, patientId))
         .orderBy(desc(labResults.testDate));
-      
-      res.json(patientLabResults);
+
+      return res.json(patientLabResults);
     } catch (error) {
       console.error('Error fetching patient lab results:', error);
-      res.status(500).json({ error: 'Failed to fetch lab results' });
+      return res.status(500).json({ error: 'Failed to fetch lab results' });
     }
   });
 
@@ -11594,7 +12045,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       if (!patientId) {
         return res.status(401).json({ error: 'Patient authentication required' });
       }
-      
+
       const patientMedications = await db.select({
         id: prescriptions.id,
         medicationName: prescriptions.medicationName,
@@ -11612,11 +12063,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         .from(prescriptions)
         .where(eq(prescriptions.patientId, patientId))
         .orderBy(desc(prescriptions.createdAt));
-      
-      res.json(patientMedications);
+
+      return res.json(patientMedications);
     } catch (error) {
       console.error('Error fetching patient medications:', error);
-      res.status(500).json({ message: 'Failed to fetch medications' });
+      return res.status(500).json({ message: 'Failed to fetch medications' });
     }
   });
 
@@ -11630,10 +12081,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       // For now, return empty array as no appointments table exists
       // This will need to be implemented when appointment schema is added
-      res.json([]);
+      return res.json([]);
     } catch (error) {
       console.error('Error fetching patient appointments:', error);
-      res.status(500).json({ error: 'Failed to fetch appointments' });
+      return res.status(500).json({ error: 'Failed to fetch appointments' });
     }
   });
 
@@ -11645,7 +12096,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       const { appointmentType, preferredDate, preferredTime, reason, notes } = req.body;
-      
+
       if (!appointmentType || !preferredDate || !reason) {
         return res.status(400).json({ error: 'Appointment type, preferred date, and reason are required' });
       }
@@ -11664,25 +12115,26 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         createdAt: new Date()
       };
 
-      res.status(201).json(appointmentData);
+      return res.status(201).json(appointmentData);
     } catch (error) {
       console.error('Error booking patient appointment:', error);
-      res.status(500).json({ error: 'Failed to book appointment' });
+      return res.status(500).json({ error: 'Failed to book appointment' });
     }
   });
 
+  /* DUPLICATE - Notifications routes already in server/routes/notifications.ts
   // Real-time notifications API
   app.get('/api/notifications', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user?.id;
       const organizationId = req.user?.organizationId;
       const notifications = [];
-      
+
       // If no organizationId, return empty notifications (authentication disabled mode)
       if (!organizationId || !userId) {
         return res.json([]);
       }
-      
+
       // Get dismissed notifications for this user
       const dismissedNotifs = await db
         .select()
@@ -11691,7 +12143,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           eq(dismissedNotifications.userId, userId),
           eq(dismissedNotifications.organizationId, organizationId)
         ));
-      
+
       const dismissedIds = new Set(dismissedNotifs.map(d => d.notificationId));
 
       // Get staff messages (unread messages only)
@@ -11711,6 +12163,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           .leftJoin(patients, eq(messages.patientId, patients.id))
           .where(and(
             eq(messages.organizationId, organizationId),
+            ne(messages.recipientType, 'Patient'), // Exclude staff-to-patient replies
             or(
               eq(messages.assignedTo, userId),
               isNull(messages.assignedTo),
@@ -11727,7 +12180,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           if (!dismissedIds.has(notificationId)) {
             const isUnread = msg.status === 'sent';
             const isUrgent = msg.priority === 'urgent' || msg.priority === 'high';
-            
+
             notifications.push({
               id: notificationId,
               type: 'message',
@@ -11751,7 +12204,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
 
-      res.json({
+      return res.json({
         notifications: notifications.slice(0, 6),
         totalCount: notifications.length,
         unreadCount: notifications.filter(n => n.priority === 'high' || n.priority === 'medium').length
@@ -11759,7 +12212,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      res.status(500).json({ message: "Failed to fetch notifications" });
+      return res.status(500).json({ message: "Failed to fetch notifications" });
     }
   });
 
@@ -11768,16 +12221,17 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const userId = req.user!.id;
       const organizationId = req.user!.organizationId!;
-      
+
       // Get all current notification IDs
       const currentNotifications = [];
-      
-      // Get staff messages
+
+      // Get staff messages (exclude staff-to-patient replies)
       const staffMessages = await db
         .select()
         .from(messages)
         .where(and(
           eq(messages.organizationId, organizationId),
+          ne(messages.recipientType, 'Patient'), // Exclude staff-to-patient replies
           or(
             eq(messages.assignedTo, userId),
             isNull(messages.assignedTo),
@@ -11786,11 +12240,11 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           inArray(messages.status, ['sent', 'read'])
         ))
         .limit(10);
-      
+
       staffMessages.forEach(msg => {
         currentNotifications.push(`message-${msg.id}`);
       });
-      
+
       // Dismiss all current notifications
       for (const notificationId of currentNotifications) {
         await db.insert(dismissedNotifications)
@@ -11801,15 +12255,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           })
           .onConflictDoNothing();
       }
-      
-      res.json({ 
+
+      return res.json({
         message: "All notifications cleared successfully",
         success: true,
         clearedCount: currentNotifications.length
       });
     } catch (error) {
       console.error('Error clearing notifications:', error);
-      res.status(500).json({ message: "Failed to clear notifications" });
+      return res.status(500).json({ message: "Failed to clear notifications" });
     }
   });
 
@@ -11819,7 +12273,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const { notificationId } = req.params;
       const userId = req.user!.id;
       const organizationId = req.user!.organizationId!;
-      
+
       // Mark this specific notification as dismissed
       await db.insert(dismissedNotifications)
         .values({
@@ -11828,15 +12282,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           notificationId
         })
         .onConflictDoNothing();
-      
-      res.json({ 
+
+      return res.json({
         message: "Notification deleted successfully",
         success: true,
-        notificationId 
+        notificationId
       });
     } catch (error) {
       console.error('Error deleting notification:', error);
-      res.status(500).json({ message: "Failed to delete notification" });
+      return res.status(500).json({ message: "Failed to delete notification" });
     }
   });
 
@@ -11844,7 +12298,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.post('/api/patient-portal/send-access-info', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { patientIds, type } = req.body;
-      
+
       if (!patientIds || !Array.isArray(patientIds) || patientIds.length === 0) {
         return res.status(400).json({ error: 'Patient IDs are required' });
       }
@@ -11874,9 +12328,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           // Email notification logic would go here
           // For now, we'll just log the attempt
           console.log(`Email notification sent to ${patient.email} for portal access`);
-          results.push({ 
-            patientId: patient.id, 
-            type: 'email', 
+          results.push({
+            patientId: patient.id,
+            type: 'email',
             status: 'sent',
             recipient: patient.email
           });
@@ -11884,16 +12338,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           // SMS notification logic would go here
           // For now, we'll just log the attempt
           console.log(`SMS notification sent to ${patient.phone} for portal access`);
-          results.push({ 
-            patientId: patient.id, 
-            type: 'sms', 
+          results.push({
+            patientId: patient.id,
+            type: 'sms',
             status: 'sent',
             recipient: patient.phone
           });
         } else {
-          results.push({ 
-            patientId: patient.id, 
-            type, 
+          results.push({
+            patientId: patient.id,
+            type,
             status: 'failed',
             reason: type === 'email' ? 'No email address' : 'Invalid type'
           });
@@ -11907,7 +12361,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         });
       }
 
-      res.json({ 
+      return res.json({
         message: `Portal access information sent via ${type}`,
         results,
         totalSent: results.filter(r => r.status === 'sent').length,
@@ -11915,17 +12369,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error sending portal access info:', error);
-      res.status(500).json({ error: 'Failed to send portal access information' });
+      return res.status(500).json({ error: 'Failed to send portal access information' });
     }
   });
 
+  /* DUPLICATE - Profile routes already in server/routes/profile.ts
   // Profile and Settings API endpoints
-  
+
   // Get user profile
   app.get("/api/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      
+
       // Handle superadmin fallback user (id: 999) - doesn't exist in database
       if (userId === 999 && req.user!.role === 'superadmin') {
         return res.json({
@@ -11935,13 +12390,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           organizationId: undefined,
           organization: {
             id: 0,
-            name: 'System Administration',
+                name: 'Demo Clinic',
             type: 'system',
             themeColor: '#DC2626'
           }
         });
       }
-      
+
       const [user] = await db.select()
         .from(users)
         .where(eq(users.id, userId))
@@ -11958,7 +12413,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           .from(organizations)
           .where(eq(organizations.id, user.organizationId))
           .limit(1);
-        
+
         if (org) {
           organization = {
             id: org.id,
@@ -11970,7 +12425,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       }
 
       // Return same structure as login endpoint
-      res.json({
+      return res.json({
         id: user.id,
         username: user.username,
         role: user.role,
@@ -11979,7 +12434,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      res.status(500).json({ error: 'Failed to fetch profile' });
+      return res.status(500).json({ error: 'Failed to fetch profile' });
     }
   });
 
@@ -11987,7 +12442,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/user-organization", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      
+
       const [userOrg] = await db.select({
         organizationId: users.organizationId,
         name: organizations.name,
@@ -12002,18 +12457,18 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         themeColor: organizations.themeColor,
         logoUrl: organizations.logoUrl
       })
-      .from(users)
-      .leftJoin(organizations, eq(users.organizationId, organizations.id))
-      .where(eq(users.id, userId));
+        .from(users)
+        .leftJoin(organizations, eq(users.organizationId, organizations.id))
+        .where(eq(users.id, userId));
 
       if (!userOrg || !userOrg.organizationId) {
         return res.status(404).json({ error: "No organization found for user" });
       }
 
-      res.json(userOrg);
+      return res.json(userOrg);
     } catch (error) {
       console.error('Error fetching user organization:', error);
-      res.status(500).json({ error: "Failed to fetch organization data" });
+      return res.status(500).json({ error: "Failed to fetch organization data" });
     }
   });
 
@@ -12021,7 +12476,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
   app.get("/api/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
-      
+
       // Handle superadmin fallback user (id: 999) - doesn't exist in database
       if (userId === 999 && req.user!.role === 'superadmin') {
         return res.json({
@@ -12036,7 +12491,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           email: null
         });
       }
-      
+
       const [userProfile] = await db.select({
         id: users.id,
         username: users.username,
@@ -12048,30 +12503,31 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         role: users.role,
         organizationId: users.organizationId
       })
-      .from(users)
-      .where(eq(users.id, userId));
+        .from(users)
+        .where(eq(users.id, userId));
 
       if (!userProfile) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      res.json(userProfile);
+      return res.json(userProfile);
     } catch (error) {
       console.error('Error fetching profile:', error);
-      res.status(500).json({ error: 'Failed to fetch profile' });
+      return res.status(500).json({ error: 'Failed to fetch profile' });
     }
   });
 
+  /* DUPLICATE - Update profile route already in server/routes/profile.ts (line 169)
   // Update user profile
   app.put("/api/profile", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.id;
       const updateData = req.body;
-      
+
       // Validate the data - only update fields that exist in the schema
       const allowedFields = ['title', 'firstName', 'lastName', 'phone'];
       const filteredData: any = {};
-      
+
       for (const field of allowedFields) {
         if (updateData[field] !== undefined) {
           // Convert "none" to null for title field
@@ -12087,13 +12543,14 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       const auditLogger = new AuditLogger(req);
       await auditLogger.logUserAction('PROFILE_UPDATED', userId, { updatedFields: Object.keys(filteredData) });
 
-      res.json({ message: 'Profile updated successfully' });
+      return res.json({ message: 'Profile updated successfully' });
     } catch (error) {
       console.error('Error updating profile:', error);
-      res.status(500).json({ error: 'Failed to update profile' });
+      return res.status(500).json({ error: 'Failed to update profile' });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Settings routes already in server/routes/profile.ts (lines 217, 256)
   // Get user settings
   app.get("/api/settings", authenticateToken, async (req: AuthRequest, res) => {
     try {
@@ -12125,10 +12582,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         },
       };
 
-      res.json(defaultSettings);
+      return res.json(defaultSettings);
     } catch (error) {
       console.error('Error fetching settings:', error);
-      res.status(500).json({ error: 'Failed to fetch settings' });
+      return res.status(500).json({ error: 'Failed to fetch settings' });
     }
   });
 
@@ -12137,24 +12594,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const userId = req.user!.id;
       const settingsData = req.body;
-      
+
       // In a real implementation, you would save to a user_settings table
       // For now, we'll just log the update and return success
       console.log(`Settings updated for user ${userId}:`, settingsData);
 
       // Create audit log
       const auditLogger = new AuditLogger(req);
-      await auditLogger.logUserAction('SETTINGS_UPDATED', userId, { 
-        settingsCategories: Object.keys(settingsData) 
+      await auditLogger.logUserAction('SETTINGS_UPDATED', userId, {
+        settingsCategories: Object.keys(settingsData)
       });
 
-      res.json({ message: 'Settings updated successfully' });
+      return res.json({ message: 'Settings updated successfully' });
     } catch (error) {
       console.error('Error updating settings:', error);
-      res.status(500).json({ error: 'Failed to update settings' });
+      return res.status(500).json({ error: 'Failed to update settings' });
     }
   });
 
+  /* DUPLICATE - Billing routes already in server/routes/billing.ts
   // ===== BILLING AND INVOICING ENDPOINTS =====
 
   // Get all invoices for organization (optionally filtered by patient)
@@ -12162,7 +12620,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const orgId = req.user!.organizationId;
       const patientId = req.query.patientId ? parseInt(req.query.patientId as string) : null;
-      
+
       let query = db.select({
         id: invoices.id,
         invoiceNumber: invoices.invoiceNumber,
@@ -12177,44 +12635,45 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         currency: invoices.currency,
         createdAt: invoices.createdAt
       })
-      .from(invoices)
-      .innerJoin(patients, eq(invoices.patientId, patients.id))
-      .where(
-        patientId 
-          ? and(eq(invoices.organizationId, orgId), eq(invoices.patientId, patientId))
-          : eq(invoices.organizationId, orgId)
-      )
-      .orderBy(desc(invoices.createdAt));
+        .from(invoices)
+        .innerJoin(patients, eq(invoices.patientId, patients.id))
+        .where(
+          patientId
+            ? and(eq(invoices.organizationId, orgId), eq(invoices.patientId, patientId))
+            : eq(invoices.organizationId, orgId)
+        )
+        .orderBy(desc(invoices.createdAt));
 
       const invoicesList = await query;
 
-      res.json(invoicesList);
+      return res.json(invoicesList);
     } catch (error) {
       console.error('Error fetching invoices:', error);
-      res.status(500).json({ error: 'Failed to fetch invoices' });
+      return res.status(500).json({ error: 'Failed to fetch invoices' });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Create invoice route already in server/routes/billing.ts (line 58)
   // Create new invoice
   app.post("/api/invoices", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const orgId = req.user!.organizationId;
       const userId = req.user!.id;
-      
+
       const { patientId, items, notes, dueDate } = req.body;
-      
+
       // Generate invoice number
       const invoiceCount = await db.select({ count: sql<number>`count(*)`.as('count') })
         .from(invoices)
         .where(eq(invoices.organizationId, orgId));
-      
+
       const invoiceNumber = `INV-${orgId}-${String(invoiceCount[0].count + 1).padStart(4, '0')}`;
-      
+
       // Calculate totals
       const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * item.unitPrice), 0);
       const taxAmount = subtotal * 0.075; // 7.5% VAT
       const totalAmount = subtotal + taxAmount;
-      
+
       // Create invoice
       const [newInvoice] = await db.insert(invoices).values({
         patientId,
@@ -12247,19 +12706,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         });
       }
 
-      res.json({ message: 'Invoice created successfully', invoiceId: newInvoice.id });
+      return res.json({ message: 'Invoice created successfully', invoiceId: newInvoice.id });
     } catch (error) {
       console.error('Error creating invoice:', error);
-      res.status(500).json({ error: 'Failed to create invoice' });
+      return res.status(500).json({ error: 'Failed to create invoice' });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Get invoice by ID route already in server/routes/billing.ts (line 125)
   // Get invoice details with items
   app.get("/api/invoices/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const orgId = req.user!.organizationId;
       const invoiceId = parseInt(req.params.id);
-      
+
       // Get invoice details
       const [invoiceDetails] = await db.select({
         id: invoices.id,
@@ -12281,9 +12741,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         notes: invoices.notes,
         createdAt: invoices.createdAt
       })
-      .from(invoices)
-      .innerJoin(patients, eq(invoices.patientId, patients.id))
-      .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, orgId)));
+        .from(invoices)
+        .innerJoin(patients, eq(invoices.patientId, patients.id))
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, orgId)));
 
       if (!invoiceDetails) {
         return res.status(404).json({ error: 'Invoice not found' });
@@ -12305,29 +12765,30 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         notes: payments.notes,
         processedBy: sql<string>`${users.firstName} || ' ' || ${users.lastName}`.as('processedBy')
       })
-      .from(payments)
-      .leftJoin(users, eq(payments.processedBy, users.id))
-      .where(eq(payments.invoiceId, invoiceId));
+        .from(payments)
+        .leftJoin(users, eq(payments.processedBy, users.id))
+        .where(eq(payments.invoiceId, invoiceId));
 
-      res.json({
+      return res.json({
         ...invoiceDetails,
         items,
         payments: paymentsList
       });
     } catch (error) {
       console.error('Error fetching invoice details:', error);
-      res.status(500).json({ error: 'Failed to fetch invoice details' });
+      return res.status(500).json({ error: 'Failed to fetch invoice details' });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Record payment route already in server/routes/billing.ts (line 226)
   // Record payment
   app.post("/api/payments", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const orgId = req.user!.organizationId;
       const userId = req.user!.id;
-      
+
       const { invoiceId, amount, paymentMethod, transactionId, notes } = req.body;
-      
+
       // Get current invoice
       const [currentInvoice] = await db.select()
         .from(invoices)
@@ -12365,10 +12826,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         })
         .where(eq(invoices.id, invoiceId));
 
-      res.json({ message: 'Payment recorded successfully' });
+      return res.json({ message: 'Payment recorded successfully' });
     } catch (error) {
       console.error('Error recording payment:', error);
-      res.status(500).json({ error: 'Failed to record payment' });
+      return res.status(500).json({ error: 'Failed to record payment' });
     }
   });
 
@@ -12377,20 +12838,20 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const orgId = req.user!.organizationId;
       const { period = 'month', startDate, endDate } = req.query;
-      
+
       // Get organization details
       const [organization] = await db.select({
         id: organizations.id,
         name: organizations.name,
         type: organizations.type
       })
-      .from(organizations)
-      .where(eq(organizations.id, orgId));
+        .from(organizations)
+        .where(eq(organizations.id, orgId));
 
       // Calculate date range
       let dateStart: Date, dateEnd: Date;
       const now = new Date();
-      
+
       if (startDate && endDate) {
         dateStart = new Date(startDate as string);
         dateEnd = new Date(endDate as string);
@@ -12419,24 +12880,24 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         total: sql<number>`COALESCE(SUM(CAST(${payments.amount} AS DECIMAL)), 0)`.as('total'),
         count: sql<number>`COUNT(*)`.as('count')
       })
-      .from(payments)
-      .where(and(
-        eq(payments.organizationId, orgId),
-        gte(payments.paymentDate, dateStart),
-        lte(payments.paymentDate, dateEnd),
-        eq(payments.status, 'completed')
-      ));
+        .from(payments)
+        .where(and(
+          eq(payments.organizationId, orgId),
+          gte(payments.paymentDate, dateStart),
+          lte(payments.paymentDate, dateEnd),
+          eq(payments.status, 'completed')
+        ));
 
       // Outstanding receivables
       const [outstanding] = await db.select({
         total: sql<number>`COALESCE(SUM(CAST(${invoices.balanceAmount} AS DECIMAL)), 0)`.as('total'),
         count: sql<number>`COUNT(*)`.as('count')
       })
-      .from(invoices)
-      .where(and(
-        eq(invoices.organizationId, orgId),
-        sql`${invoices.balanceAmount} > 0`
-      ));
+        .from(invoices)
+        .where(and(
+          eq(invoices.organizationId, orgId),
+          sql`${invoices.balanceAmount} > 0`
+        ));
 
       // Patient analytics from real records
       const patientAnalytics = await db.select({
@@ -12448,15 +12909,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         lastVisit: sql<Date>`MAX(${invoices.createdAt})`.as('lastVisit'),
         averageInvoiceValue: sql<number>`AVG(CAST(${invoices.totalAmount} AS DECIMAL))`.as('averageInvoiceValue')
       })
-      .from(invoices)
-      .innerJoin(patients, eq(invoices.patientId, patients.id))
-      .where(and(
-        eq(invoices.organizationId, orgId),
-        gte(invoices.createdAt, dateStart),
-        lte(invoices.createdAt, dateEnd)
-      ))
-      .groupBy(invoices.patientId, patients.firstName, patients.lastName, patients.phone)
-      .orderBy(desc(sql`SUM(CAST(${invoices.totalAmount} AS DECIMAL))`));
+        .from(invoices)
+        .innerJoin(patients, eq(invoices.patientId, patients.id))
+        .where(and(
+          eq(invoices.organizationId, orgId),
+          gte(invoices.createdAt, dateStart),
+          lte(invoices.createdAt, dateEnd)
+        ))
+        .groupBy(invoices.patientId, patients.firstName, patients.lastName, patients.phone)
+        .orderBy(desc(sql`SUM(CAST(${invoices.totalAmount} AS DECIMAL))`));
 
       // Service revenue breakdown from actual invoice items
       const serviceBreakdown = await db.select({
@@ -12465,15 +12926,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         transactionCount: sql<number>`COUNT(*)`.as('transactionCount'),
         averagePrice: sql<number>`COALESCE(AVG(CAST(${invoiceItems.unitPrice} AS DECIMAL)), 0)`.as('averagePrice')
       })
-      .from(invoiceItems)
-      .innerJoin(invoices, eq(invoiceItems.invoiceId, invoices.id))
-      .where(and(
-        eq(invoices.organizationId, orgId),
-        gte(invoices.createdAt, dateStart),
-        lte(invoices.createdAt, dateEnd)
-      ))
-      .groupBy(invoiceItems.serviceType)
-      .orderBy(desc(sql`SUM(CAST(${invoiceItems.totalPrice} AS DECIMAL))`));
+        .from(invoiceItems)
+        .innerJoin(invoices, eq(invoiceItems.invoiceId, invoices.id))
+        .where(and(
+          eq(invoices.organizationId, orgId),
+          gte(invoices.createdAt, dateStart),
+          lte(invoices.createdAt, dateEnd)
+        ))
+        .groupBy(invoiceItems.serviceType)
+        .orderBy(desc(sql`SUM(CAST(${invoiceItems.totalPrice} AS DECIMAL))`));
 
       // Payment method analysis
       const paymentMethods = await db.select({
@@ -12482,15 +12943,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         count: sql<number>`COUNT(*)`.as('count'),
         averageAmount: sql<number>`COALESCE(AVG(CAST(${payments.amount} AS DECIMAL)), 0)`.as('averageAmount')
       })
-      .from(payments)
-      .where(and(
-        eq(payments.organizationId, orgId),
-        gte(payments.paymentDate, dateStart),
-        lte(payments.paymentDate, dateEnd),
-        eq(payments.status, 'completed')
-      ))
-      .groupBy(payments.paymentMethod)
-      .orderBy(desc(sql`SUM(CAST(${payments.amount} AS DECIMAL))`));
+        .from(payments)
+        .where(and(
+          eq(payments.organizationId, orgId),
+          gte(payments.paymentDate, dateStart),
+          lte(payments.paymentDate, dateEnd),
+          eq(payments.status, 'completed')
+        ))
+        .groupBy(payments.paymentMethod)
+        .orderBy(desc(sql`SUM(CAST(${payments.amount} AS DECIMAL))`));
 
       // Daily revenue trend
       const dailyRevenue = await db.select({
@@ -12498,21 +12959,21 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         revenue: sql<number>`COALESCE(SUM(CAST(${payments.amount} AS DECIMAL)), 0)`.as('revenue'),
         transactionCount: sql<number>`COUNT(*)`.as('transactionCount')
       })
-      .from(payments)
-      .where(and(
-        eq(payments.organizationId, orgId),
-        gte(payments.paymentDate, dateStart),
-        lte(payments.paymentDate, dateEnd),
-        eq(payments.status, 'completed')
-      ))
-      .groupBy(sql`DATE(${payments.paymentDate})`)
-      .orderBy(sql`DATE(${payments.paymentDate})`);
+        .from(payments)
+        .where(and(
+          eq(payments.organizationId, orgId),
+          gte(payments.paymentDate, dateStart),
+          lte(payments.paymentDate, dateEnd),
+          eq(payments.status, 'completed')
+        ))
+        .groupBy(sql`DATE(${payments.paymentDate})`)
+        .orderBy(sql`DATE(${payments.paymentDate})`);
 
       // Calculate collection rate
       const totalInvoiced = patientAnalytics.reduce((sum, p) => sum + p.totalSpent, 0);
       const collectionRate = totalInvoiced > 0 ? (totalRevenue.total / totalInvoiced) * 100 : 0;
 
-      res.json({
+      return res.json({
         organization: {
           id: organization?.id,
           name: organization?.name,
@@ -12534,7 +12995,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           total: patientAnalytics.length,
           analytics: patientAnalytics,
           topPaying: patientAnalytics.slice(0, 10),
-          averageRevenuePerPatient: patientAnalytics.length > 0 ? 
+          averageRevenuePerPatient: patientAnalytics.length > 0 ?
             totalRevenue.total / patientAnalytics.length : 0
         },
         services: {
@@ -12548,80 +13009,80 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error fetching comprehensive analytics:', error);
-      res.status(500).json({ error: 'Failed to fetch analytics data' });
+      return res.status(500).json({ error: 'Failed to fetch analytics data' });
     }
   });
-
+  /* END DUPLICATE */
   // Enhanced Revenue Analytics with Organization Context
   app.get("/api/revenue-analytics", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const orgId = req.user!.organizationId;
-      
+
       // Total revenue for current month
       const currentMonth = new Date();
       const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const lastDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-      
+
       const [totalRevenue] = await db.select({
         total: sql<number>`COALESCE(SUM(CAST(${payments.amount} AS DECIMAL)), 0)`.as('total')
       })
-      .from(payments)
-      .where(and(
-        eq(payments.organizationId, orgId),
-        gte(payments.paymentDate, firstDayOfMonth),
-        lte(payments.paymentDate, lastDayOfMonth),
-        eq(payments.status, 'completed')
-      ));
+        .from(payments)
+        .where(and(
+          eq(payments.organizationId, orgId),
+          gte(payments.paymentDate, firstDayOfMonth),
+          lte(payments.paymentDate, lastDayOfMonth),
+          eq(payments.status, 'completed')
+        ));
 
       // Total patients billed this month
       const [totalPatients] = await db.select({
         count: sql<number>`COUNT(DISTINCT ${invoices.patientId})`.as('count')
       })
-      .from(invoices)
-      .where(and(
-        eq(invoices.organizationId, orgId),
-        gte(invoices.createdAt, firstDayOfMonth),
-        lte(invoices.createdAt, lastDayOfMonth)
-      ));
+        .from(invoices)
+        .where(and(
+          eq(invoices.organizationId, orgId),
+          gte(invoices.createdAt, firstDayOfMonth),
+          lte(invoices.createdAt, lastDayOfMonth)
+        ));
 
       // Average revenue per patient
-      const avgRevenuePerPatient = totalPatients.count > 0 ? 
+      const avgRevenuePerPatient = totalPatients.count > 0 ?
         (totalRevenue.total / totalPatients.count) : 0;
 
       // Previous month for growth calculation
       const prevFirstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
       const prevLastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
-      
+
       const [prevRevenue] = await db.select({
         total: sql<number>`COALESCE(SUM(CAST(${payments.amount} AS DECIMAL)), 0)`.as('total')
       })
-      .from(payments)
-      .where(and(
-        eq(payments.organizationId, orgId),
-        gte(payments.paymentDate, prevFirstDay),
-        lte(payments.paymentDate, prevLastDay),
-        eq(payments.status, 'completed')
-      ));
+        .from(payments)
+        .where(and(
+          eq(payments.organizationId, orgId),
+          gte(payments.paymentDate, prevFirstDay),
+          lte(payments.paymentDate, prevLastDay),
+          eq(payments.status, 'completed')
+        ));
 
-      const growthRate = prevRevenue.total > 0 ? 
+      const growthRate = prevRevenue.total > 0 ?
         ((totalRevenue.total - prevRevenue.total) / prevRevenue.total) * 100 : 0;
 
       // Daily revenue for charts (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
       const dailyRevenue = await db.select({
         date: sql<string>`DATE(${payments.paymentDate})`.as('date'),
         revenue: sql<number>`COALESCE(SUM(CAST(${payments.amount} AS DECIMAL)), 0)`.as('revenue')
       })
-      .from(payments)
-      .where(and(
-        eq(payments.organizationId, orgId),
-        gte(payments.paymentDate, thirtyDaysAgo),
-        eq(payments.status, 'completed')
-      ))
-      .groupBy(sql`DATE(${payments.paymentDate})`)
-      .orderBy(sql`DATE(${payments.paymentDate})`);
+        .from(payments)
+        .where(and(
+          eq(payments.organizationId, orgId),
+          gte(payments.paymentDate, thirtyDaysAgo),
+          eq(payments.status, 'completed')
+        ))
+        .groupBy(sql`DATE(${payments.paymentDate})`)
+        .orderBy(sql`DATE(${payments.paymentDate})`);
 
       // Service revenue breakdown
       const serviceRevenue = await db.select({
@@ -12634,13 +13095,13 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
                   WHERE i.organization_id = ${orgId}), 0), 2
         )`.as('percentage')
       })
-      .from(invoiceItems)
-      .innerJoin(invoices, eq(invoiceItems.invoiceId, invoices.id))
-      .where(eq(invoices.organizationId, orgId))
-      .groupBy(invoiceItems.serviceType)
-      .orderBy(desc(sql`COALESCE(SUM(CAST(${invoiceItems.totalPrice} AS DECIMAL)), 0)`));
+        .from(invoiceItems)
+        .innerJoin(invoices, eq(invoiceItems.invoiceId, invoices.id))
+        .where(eq(invoices.organizationId, orgId))
+        .groupBy(invoiceItems.serviceType)
+        .orderBy(desc(sql`COALESCE(SUM(CAST(${invoiceItems.totalPrice} AS DECIMAL)), 0)`));
 
-      res.json({
+      return res.json({
         totalRevenue: totalRevenue.total,
         totalPatients: totalPatients.count,
         avgRevenuePerPatient,
@@ -12650,24 +13111,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
     } catch (error) {
       console.error('Error fetching revenue analytics:', error);
-      res.status(500).json({ error: 'Failed to fetch revenue analytics' });
+      return res.status(500).json({ error: 'Failed to fetch revenue analytics' });
     }
   });
 
+  /* DUPLICATE - Service prices routes already in server/routes/billing.ts
   // Get service prices
   app.get("/api/service-prices", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const orgId = req.user!.organizationId;
-      
+
       const prices = await db.select()
         .from(servicePrices)
         .where(and(eq(servicePrices.organizationId, orgId), eq(servicePrices.isActive, true)))
         .orderBy(servicePrices.serviceType, servicePrices.serviceName);
 
-      res.json(prices);
+      return res.json(prices);
     } catch (error) {
       console.error('Error fetching service prices:', error);
-      res.status(500).json({ error: 'Failed to fetch service prices' });
+      return res.status(500).json({ error: 'Failed to fetch service prices' });
     }
   });
 
@@ -12676,9 +13138,9 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const orgId = req.user!.organizationId;
       const userId = req.user!.id;
-      
+
       const { serviceType, serviceName, serviceCode, basePrice, effectiveDate, expiryDate } = req.body;
-      
+
       await db.insert(servicePrices).values({
         organizationId: orgId,
         serviceType,
@@ -12692,18 +13154,19 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         createdBy: userId
       });
 
-      res.json({ message: 'Service price created successfully' });
+      return res.json({ message: 'Service price created successfully' });
     } catch (error) {
       console.error('Error creating service price:', error);
-      res.status(500).json({ error: 'Failed to create service price' });
+      return res.status(500).json({ error: 'Failed to create service price' });
     }
   });
-
+  /* END DUPLICATE */
+  /* DUPLICATE - Insurance claims routes already in server/routes/billing.ts
   // Get insurance claims
   app.get("/api/insurance-claims", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const orgId = req.user!.organizationId;
-      
+
       const claims = await db.select({
         id: insuranceClaims.id,
         claimNumber: insuranceClaims.claimNumber,
@@ -12716,15 +13179,15 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         submissionDate: insuranceClaims.submissionDate,
         approvalDate: insuranceClaims.approvalDate
       })
-      .from(insuranceClaims)
-      .innerJoin(patients, eq(insuranceClaims.patientId, patients.id))
-      .where(eq(insuranceClaims.organizationId, orgId))
-      .orderBy(desc(insuranceClaims.submissionDate));
+        .from(insuranceClaims)
+        .innerJoin(patients, eq(insuranceClaims.patientId, patients.id))
+        .where(eq(insuranceClaims.organizationId, orgId))
+        .orderBy(desc(insuranceClaims.submissionDate));
 
-      res.json(claims);
+      return res.json(claims);
     } catch (error) {
       console.error('Error fetching insurance claims:', error);
-      res.status(500).json({ error: 'Failed to fetch insurance claims' });
+      return res.status(500).json({ error: 'Failed to fetch insurance claims' });
     }
   });
 
@@ -12733,16 +13196,16 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const orgId = req.user!.organizationId;
       const userId = req.user!.id;
-      
+
       const { patientId, invoiceId, insuranceProvider, policyNumber, claimAmount, notes } = req.body;
-      
+
       // Generate claim number
       const claimCount = await db.select({ count: sql<number>`count(*)`.as('count') })
         .from(insuranceClaims)
         .where(eq(insuranceClaims.organizationId, orgId));
-      
+
       const claimNumber = `CLM-${orgId}-${String(claimCount[0].count + 1).padStart(4, '0')}`;
-      
+
       await db.insert(insuranceClaims).values({
         patientId,
         organizationId: orgId,
@@ -12757,42 +13220,46 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
         createdBy: userId
       });
 
-      res.json({ message: 'Insurance claim submitted successfully' });
+      return res.json({ message: 'Insurance claim submitted successfully' });
     } catch (error) {
       console.error('Error submitting insurance claim:', error);
-      res.status(500).json({ error: 'Failed to submit insurance claim' });
+      return res.status(500).json({ error: 'Failed to submit insurance claim' });
     }
   });
-
+  /* END DUPLICATE */
   // Setup tenant/organization management routes
   setupTenantRoutes(app);
-  
+
   // Setup organization staff and patient registration routes
   setupOrganizationStaffRoutes(app);
-  
+
   // Setup super admin control routes
   setupSuperAdminRoutes(app);
-  
+
   // Setup compliance report generation routes
   setupComplianceReportRoutes(app);
-  
+
   // Lab catalog seeding route removed
-  
+
   // Setup lab panels management routes
   setupLabPanelsRoutes(app);
-  
+
   // Setup admin dashboard routes
   app.use('/api/admin', adminDashboardRoutes);
-  
+
+  // Setup admin workflow routes
+  const adminWorkflowRoutes = await import('./routes/admin-workflow');
+  app.use('/api/admin/workflow', adminWorkflowRoutes.default);
+
   // Setup bulk user operations routes
   app.use('/api/admin/users', bulkUsersRoutes);
-  
+
   // Setup enhanced audit logs routes
   app.use('/api/audit-logs', auditLogsEnhancedRoutes);
-  
+
   // Setup MFA (Multi-Factor Authentication) routes
   app.use('/api/mfa', mfaRoutes);
-  
+
   // Setup Emergency Access (Break-the-Glass) routes
   app.use('/api/emergency-access', emergencyAccessRoutes);
 
@@ -12801,33 +13268,22 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
     try {
       const { fieldType } = req.params;
       const { organizationId } = req.query;
-      
+
       let suggestions: any[] = [];
-      
+
       switch (fieldType) {
         case "occupation":
-          // Get most frequently used occupations from patients
-          const occupations = await db
-            .select({
-              value: patients.occupation,
-              frequency: sql<number>`count(*)`.as('frequency')
-            })
-            .from(patients)
-            .where(
-              and(
-                isNotNull(patients.occupation),
-                ne(patients.occupation, ''),
-                organizationId ? eq(patients.organizationId, Number(organizationId)) : undefined
-              )
-            )
-            .groupBy(patients.occupation)
-            .orderBy(sql`count(*) desc`)
-            .limit(20);
-          
-          suggestions = occupations.map(item => ({
-            value: item.value,
-            frequency: item.frequency
-          }));
+          // Occupation field not in current schema - return static list
+          suggestions = [
+            { value: "Office Worker", frequency: 0 },
+            { value: "Healthcare Worker", frequency: 0 },
+            { value: "Teacher", frequency: 0 },
+            { value: "Engineer", frequency: 0 },
+            { value: "Student", frequency: 0 },
+            { value: "Retired", frequency: 0 },
+            { value: "Self-Employed", frequency: 0 },
+            { value: "Other", frequency: 0 }
+          ];
           break;
 
         case "address":
@@ -12848,7 +13304,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
             .groupBy(patients.address)
             .orderBy(sql`count(*) desc`)
             .limit(15);
-          
+
           suggestions = addresses.map(item => ({
             value: item.value,
             frequency: item.frequency
@@ -12873,7 +13329,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
             .groupBy(patients.allergies)
             .orderBy(sql`count(*) desc`)
             .limit(15);
-          
+
           suggestions = allergies.map(item => ({
             value: item.value,
             frequency: item.frequency
@@ -12898,7 +13354,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
             .groupBy(visits.diagnosis)
             .orderBy(sql`count(*) desc`)
             .limit(20);
-          
+
           suggestions = diagnoses.map(item => ({
             value: item.value,
             frequency: item.frequency
@@ -12906,25 +13362,25 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           break;
 
         case "symptoms":
-          // Get common symptoms from visits
-          const symptoms = await db
+          // Use 'complaint' field from visits (symptoms field not in schema)
+          const complaints = await db
             .select({
-              value: visits.symptoms,
+              value: visits.complaint,
               frequency: sql<number>`count(*)`.as('frequency')
             })
             .from(visits)
             .where(
               and(
-                isNotNull(visits.symptoms),
-                ne(visits.symptoms, ''),
+                isNotNull(visits.complaint),
+                ne(visits.complaint, ''),
                 organizationId ? eq(visits.organizationId, Number(organizationId)) : undefined
               )
             )
-            .groupBy(visits.symptoms)
+            .groupBy(visits.complaint)
             .orderBy(sql`count(*) desc`)
             .limit(20);
-          
-          suggestions = symptoms.map(item => ({
+
+          suggestions = complaints.map(item => ({
             value: item.value,
             frequency: item.frequency
           }));
@@ -12948,7 +13404,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
             .groupBy(prescriptions.medicationName)
             .orderBy(sql`count(*) desc`)
             .limit(25);
-          
+
           suggestions = medications.map(item => ({
             value: item.value,
             frequency: item.frequency
@@ -12959,10 +13415,10 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
           suggestions = [];
       }
 
-      res.json(suggestions);
+      return res.json(suggestions);
     } catch (error) {
       console.error(`Error fetching autocomplete suggestions for ${req.params.fieldType}:`, error);
-      res.status(500).json({ message: "Failed to fetch suggestions" });
+      return res.status(500).json({ message: "Failed to fetch suggestions" });
     }
   });
 
@@ -12974,7 +13430,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
 
       // Validate lab results are provided
       if (!labResults || labResults.length === 0) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'No lab results provided',
           message: 'Cannot perform AI analysis without lab results. Please add lab test results first.'
         });
@@ -12999,7 +13455,7 @@ Provide JSON response with: summary, systemHealth (score, trend, riskFactors), r
       });
 
       // Prepare clinical context for AI analysis
-      const labResultsSummary = labResults.map((result: any) => 
+      const labResultsSummary = labResults.map((result: any) =>
         `${result.testName || 'Test'}: ${result.value} ${result.units} (Ref: ${result.referenceRange}) - Status: ${result.status}`
       ).join('\n');
 
@@ -13052,26 +13508,28 @@ Ensure all recommendations are evidence-based and appropriate for the clinical c
       });
 
       // Parse AI response
-      const aiAnalysis = JSON.parse(response.content[0].text);
+      const responseContent = response.content[0];
+      const responseText = 'text' in responseContent ? responseContent.text : '';
+      const aiAnalysis = JSON.parse(responseText);
 
       // Log the AI analysis request for audit purposes
-      await AuditLogger.log(
-        organizationId,
-        req.user!.id,
-        AuditActions.AI_ANALYSIS,
-        'lab_results',
-        patientId,
-        { 
+      await createAuditLog({
+        userId: req.user!.id,
+        action: 'AI Analysis',
+        entityType: 'lab_results',
+        entityId: patientId,
+        details: {
           analysisType: 'lab_results_clinical_analysis',
           resultsCount: labResults.length,
           urgencyLevel: aiAnalysis.urgencyLevel
-        }
-      );
+        },
+        request: req
+      });
 
-      res.json(aiAnalysis);
+      return res.json(aiAnalysis);
     } catch (error) {
       console.error('Error performing AI analysis:', error);
-      res.status(500).json({ error: 'Failed to perform AI analysis' });
+      return res.status(500).json({ error: 'Failed to perform AI analysis' });
     }
   });
 
@@ -13141,10 +13599,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         for (const result of labResults) {
           await db
             .update(labResults)
-            .set({ 
+            .set({
               status: 'reviewed',
-              notes: result.notes ? `${result.notes}\n\nAI Analysis: Integrated to patient record on ${format(new Date(), 'PPP')}` 
-                                  : `AI Analysis: Integrated to patient record on ${format(new Date(), 'PPP')}`
+              notes: result.notes ? `${result.notes}\n\nAI Analysis: Integrated to patient record on ${format(new Date(), 'PPP')}`
+                : `AI Analysis: Integrated to patient record on ${format(new Date(), 'PPP')}`
             })
             .where(eq(labResults.id, result.id));
         }
@@ -13152,223 +13610,59 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
 
       // Send notification if urgency level is high or critical
       if (aiAnalysis.urgencyLevel === 'high' || aiAnalysis.urgencyLevel === 'critical') {
-        await sendUrgentNotification(
-          organizationId,
-          `URGENT: Lab Results Analysis - ${patient.firstName} ${patient.lastName}`,
-          `AI analysis indicates ${aiAnalysis.urgencyLevel} urgency level. Immediate review recommended.`,
-          NotificationTypes.LAB_RESULTS_CRITICAL
+        const notification = NotificationTypes.LAB_RESULT_ABNORMAL(
+          `${patient.firstName} ${patient.lastName}`,
+          'Lab Results'
         );
+        await sendUrgentNotification({
+          ...notification,
+          title: `URGENT: Lab Results Analysis - ${patient.firstName} ${patient.lastName}`,
+          body: `AI analysis indicates ${aiAnalysis.urgencyLevel} urgency level. Immediate review recommended.`
+        });
       }
 
       // Log the integration for audit purposes
-      await AuditLogger.log(
-        organizationId,
+      await createAuditLog({
         userId,
-        AuditActions.UPDATE,
-        'patient_record',
-        patientId,
-        { 
+        action: AuditActions.PATIENT_UPDATED,
+        entityType: 'patient_record',
+        entityId: patientId,
+        details: {
           action: 'lab_results_ai_integration',
           visitId: newVisit.id,
           urgencyLevel: aiAnalysis.urgencyLevel,
           resultsCount: labResults.length
-        }
-      );
+        },
+        request: req
+      });
 
-      res.json({ 
+      return res.json({
         message: 'Lab results successfully integrated to patient record',
         visitId: newVisit.id,
         urgencyLevel: aiAnalysis.urgencyLevel
       });
     } catch (error) {
       console.error('Error integrating lab results to patient record:', error);
-      res.status(500).json({ error: 'Failed to integrate lab results to patient record' });
+      return res.status(500).json({ error: 'Failed to integrate lab results to patient record' });
     }
   });
 
   // Healthcare Integration Endpoints
-  app.post('/api/fhir/patient/:patientId', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const { patientId } = req.params;
-      const organizationId = req.user!.organizationId;
-
-      // Get patient data
-      const [patient] = await db
-        .select()
-        .from(patients)
-        .where(and(
-          eq(patients.id, Number(patientId)),
-          eq(patients.organizationId, organizationId)
-        ));
-
-      if (!patient) {
-        return res.status(404).json({ message: "Patient not found" });
-      }
-
-      // Convert to FHIR R4 format
-      const fhirPatient = {
-        resourceType: "Patient",
-        id: patient.id.toString(),
-        identifier: [{
-          use: "usual",
-          system: "http://clinic.local/patient-id",
-          value: patient.id.toString()
-        }],
-        name: [{
-          use: "official",
-          family: patient.lastName,
-          given: [patient.firstName]
-        }],
-        telecom: patient.phone ? [{
-          system: "phone",
-          value: patient.phone,
-          use: "home"
-        }] : [],
-        gender: patient.gender?.toLowerCase() || "unknown",
-        birthDate: patient.dateOfBirth,
-        address: patient.address ? [{
-          use: "home",
-          text: patient.address
-        }] : []
-      };
-
-      res.json({
-        message: "FHIR patient data exported successfully",
-        data: fhirPatient,
-        format: "FHIR R4"
-      });
-    } catch (error) {
-      console.error('FHIR export error:', error);
-      res.status(500).json({ message: "Failed to export patient data" });
-    }
-  });
-
-  app.post('/api/integrations/lab-sync', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const organizationId = req.user!.organizationId;
-      const { labSystemId, patientId, testResults } = req.body;
-
-      // Simulate lab integration sync
-      const syncResults = {
-        syncId: `lab_sync_${Date.now()}`,
-        labSystemId,
-        patientId,
-        resultsProcessed: testResults?.length || 0,
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        message: 'Lab results synchronized successfully'
-      };
-
-      res.json({
-        message: "Lab integration sync completed",
-        data: syncResults
-      });
-    } catch (error) {
-      console.error('Lab sync error:', error);
-      res.status(500).json({ message: "Failed to sync lab results" });
-    }
-  });
-
-  app.post('/api/integrations/e-prescribe', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const organizationId = req.user!.organizationId;
-      const { prescriptionId, pharmacyId, patientInfo } = req.body;
-
-      // Simulate e-prescribing submission
-      const prescriptionSubmission = {
-        submissionId: `epres_${Date.now()}`,
-        prescriptionId,
-        pharmacyId,
-        status: 'submitted',
-        confirmationNumber: `RX${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        estimatedReadyTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours
-        message: 'Prescription submitted to pharmacy network'
-      };
-
-      res.json({
-        message: "Electronic prescription submitted successfully",
-        data: prescriptionSubmission
-      });
-    } catch (error) {
-      console.error('E-prescribing error:', error);
-      res.status(500).json({ message: "Failed to submit prescription" });
-    }
-  });
-
-  app.post('/api/integrations/verify-insurance', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const organizationId = req.user!.organizationId;
-      const { patientId, insuranceInfo, serviceType } = req.body;
-
-      // Simulate insurance verification
-      const verificationResult = {
-        verificationId: `ins_${Date.now()}`,
-        patientId,
-        status: 'verified',
-        eligibility: {
-          active: true,
-          coverageType: insuranceInfo?.plan || 'Standard',
-          copay: '$25.00',
-          deductible: '$150.00',
-          coinsurance: '20%'
-        },
-        benefits: {
-          medicalServices: true,
-          prescription: true,
-          diagnostics: true,
-          preventiveCare: true
-        },
-        message: 'Insurance eligibility verified successfully'
-      };
-
-      res.json({
-        message: "Insurance verification completed",
-        data: verificationResult
-      });
-    } catch (error) {
-      console.error('Insurance verification error:', error);
-      res.status(500).json({ message: "Failed to verify insurance" });
-    }
-  });
-
-  app.post('/api/integrations/telemedicine', authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const organizationId = req.user!.organizationId;
-      const { patientId, appointmentType, scheduledTime } = req.body;
-
-      // Simulate telemedicine session creation
-      const sessionData = {
-        sessionId: `tele_${Date.now()}`,
-        patientId,
-        appointmentType,
-        scheduledTime,
-        meetingUrl: `https://clinic-tele.local/session/${Date.now()}`,
-        accessCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-        status: 'scheduled',
-        instructions: 'Join the session 5 minutes before your appointment time',
-        message: 'Telemedicine session created successfully'
-      };
-
-      res.json({
-        message: "Telemedicine session created",
-        data: sessionData
-      });
-    } catch (error) {
-      console.error('Telemedicine error:', error);
-      res.status(500).json({ message: "Failed to create telemedicine session" });
-    }
-  });
+  // NOTE: These routes have been moved to server/routes/integrations.ts
+  // The modular routes use proper handlers from server/healthcare-integrations.ts
+  // Duplicate routes removed to prevent conflicts - integration routes are now handled
+  // by setupIntegrationsRoutes() which is called in both setupRoutes() and registerRoutes()
 
   // Patient-specific Appointments
   app.get('/api/patients/:id/appointments', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const patientId = parseInt(req.params.id);
       const userOrgId = req.user?.organizationId;
-      
+
       if (!userOrgId) {
         return res.status(400).json({ message: "Organization context required" });
       }
-      
+
       const patientAppointments = await db.select({
         id: appointments.id,
         patientId: appointments.patientId,
@@ -13385,18 +13679,18 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         createdAt: appointments.createdAt,
         updatedAt: appointments.updatedAt
       })
-      .from(appointments)
-      .leftJoin(users, eq(appointments.doctorId, users.id))
-      .where(and(
-        eq(appointments.patientId, patientId),
-        eq(appointments.organizationId, userOrgId)
-      ))
-      .orderBy(desc(appointments.appointmentDate), desc(appointments.appointmentTime));
-      
-      res.json(patientAppointments);
+        .from(appointments)
+        .leftJoin(users, eq(appointments.doctorId, users.id))
+        .where(and(
+          eq(appointments.patientId, patientId),
+          eq(appointments.organizationId, userOrgId)
+        ))
+        .orderBy(desc(appointments.appointmentDate), desc(appointments.appointmentTime));
+
+      return res.json(patientAppointments);
     } catch (error) {
       console.error('Error fetching patient appointments:', error);
-      res.status(500).json({ message: "Failed to fetch patient appointments" });
+      return res.status(500).json({ message: "Failed to fetch patient appointments" });
     }
   });
 
@@ -13405,7 +13699,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
     try {
       const patientId = parseInt(req.params.id);
       const { timeframe = '30d' } = req.query;
-      
+
       // Calculate date range based on timeframe
       let dateFilter;
       switch (timeframe) {
@@ -13434,21 +13728,21 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
 
       // Calculate health metrics from vital signs
       const healthMetrics = [];
-      
+
       if (vitalSignsData.length > 0) {
         const latest = vitalSignsData[0];
         const previous = vitalSignsData[1];
-        
+
         // Blood Pressure
         if (latest.bloodPressureSystolic && latest.bloodPressureDiastolic) {
           const currentBP = `${latest.bloodPressureSystolic}/${latest.bloodPressureDiastolic}`;
           const status = latest.bloodPressureSystolic > 140 || latest.bloodPressureDiastolic > 90 ? 'warning' : 'normal';
           let trend = 'stable';
-          
+
           if (previous?.bloodPressureSystolic) {
             trend = latest.bloodPressureSystolic > previous.bloodPressureSystolic ? 'up' : 'down';
           }
-          
+
           healthMetrics.push({
             name: 'Blood Pressure',
             value: `${currentBP} mmHg`,
@@ -13457,16 +13751,16 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
             lastUpdated: latest.recordedAt.toISOString()
           });
         }
-        
+
         // Heart Rate
         if (latest.heartRate) {
           const status = latest.heartRate < 60 || latest.heartRate > 100 ? 'warning' : 'normal';
           let trend = 'stable';
-          
+
           if (previous?.heartRate) {
             trend = latest.heartRate > previous.heartRate ? 'up' : 'down';
           }
-          
+
           healthMetrics.push({
             name: 'Heart Rate',
             value: `${latest.heartRate} bpm`,
@@ -13475,18 +13769,18 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
             lastUpdated: latest.recordedAt.toISOString()
           });
         }
-        
+
         // Temperature
         if (latest.temperature) {
           const tempValue = parseFloat(latest.temperature.toString());
           const status = tempValue > 37.5 || tempValue < 36.0 ? 'warning' : 'normal';
           let trend = 'stable';
-          
+
           if (previous?.temperature) {
             const prevTemp = parseFloat(previous.temperature.toString());
             trend = tempValue > prevTemp ? 'up' : 'down';
           }
-          
+
           healthMetrics.push({
             name: 'Temperature',
             value: `${tempValue}°C`,
@@ -13495,17 +13789,17 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
             lastUpdated: latest.recordedAt.toISOString()
           });
         }
-        
+
         // Weight
         if (latest.weight) {
           const weightValue = parseFloat(latest.weight.toString());
           let trend = 'stable';
-          
+
           if (previous?.weight) {
             const prevWeight = parseFloat(previous.weight.toString());
             trend = weightValue > prevWeight ? 'up' : 'down';
           }
-          
+
           healthMetrics.push({
             name: 'Weight',
             value: `${weightValue} kg`,
@@ -13516,10 +13810,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         }
       }
 
-      res.json(healthMetrics);
+      return res.json(healthMetrics);
     } catch (error) {
       console.error('Error fetching health metrics:', error);
-      res.status(500).json({ error: 'Failed to fetch health metrics' });
+      return res.status(500).json({ error: 'Failed to fetch health metrics' });
     }
   });
 
@@ -13528,7 +13822,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
     try {
       const patientId = parseInt(req.params.id);
       const { timeframe = '30d' } = req.query;
-      
+
       let dateFilter;
       switch (timeframe) {
         case '7d':
@@ -13552,18 +13846,18 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         temperature: vitalSigns.temperature,
         weight: vitalSigns.weight
       })
-      .from(vitalSigns)
-      .where(and(
-        eq(vitalSigns.patientId, patientId),
-        gte(vitalSigns.recordedAt, dateFilter),
-        eq(vitalSigns.organizationId, req.user!.organizationId!)
-      ))
-      .orderBy(vitalSigns.recordedAt);
+        .from(vitalSigns)
+        .where(and(
+          eq(vitalSigns.patientId, patientId),
+          gte(vitalSigns.recordedAt, dateFilter),
+          eq(vitalSigns.organizationId, req.user!.organizationId!)
+        ))
+        .orderBy(vitalSigns.recordedAt);
 
-      res.json(vitalTrends);
+      return res.json(vitalTrends);
     } catch (error) {
       console.error('Error fetching vital trends:', error);
-      res.status(500).json({ error: 'Failed to fetch vital trends' });
+      return res.status(500).json({ error: 'Failed to fetch vital trends' });
     }
   });
 
@@ -13649,10 +13943,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
       });
 
-      res.json(careAlerts);
+      return res.json(careAlerts);
     } catch (error) {
       console.error('Error fetching care alerts:', error);
-      res.status(500).json({ error: 'Failed to fetch care alerts' });
+      return res.status(500).json({ error: 'Failed to fetch care alerts' });
     }
   });
 
@@ -13664,7 +13958,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       res.json({ success: true, message: 'Alert resolved successfully' });
     } catch (error) {
       console.error('Error resolving care alert:', error);
-      res.status(500).json({ error: 'Failed to resolve care alert' });
+      return res.status(500).json({ error: 'Failed to resolve care alert' });
     }
   });
 
@@ -13688,12 +13982,12 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       // Generate insights based on actual patient data
       for (const patient of patientsData) {
         // Check for prescription patterns
-        const prescriptions = await db
+        const patientPrescriptions = await db
           .select()
           .from(prescriptions)
           .where(eq(prescriptions.patientId, patient.id));
 
-        if (prescriptions.length > 3) {
+        if (patientPrescriptions.length > 3) {
           insights.push({
             id: `insight-poly-${patient.id}`,
             type: 'medication_interaction',
@@ -13701,7 +13995,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
             patientId: patient.id,
             patientName: `${patient.title || ''} ${patient.firstName} ${patient.lastName}`.trim(),
             title: 'Polypharmacy Risk Assessment',
-            description: `Patient has ${prescriptions.length} active prescriptions. Review for potential interactions and medication optimization.`,
+            description: `Patient has ${patientPrescriptions.length} active prescriptions. Review for potential interactions and medication optimization.`,
             recommendations: [
               'Conduct comprehensive medication review',
               'Check for drug-drug interactions',
@@ -13719,7 +14013,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
           .select()
           .from(vitalSigns)
           .where(eq(vitalSigns.patientId, patient.id))
-          .orderBy(desc(vitalSigns.createdAt))
+          .orderBy(desc(vitalSigns.recordedAt))
           .limit(1);
 
         if (recentVitals.length === 0) {
@@ -13746,7 +14040,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         // Age-based screening recommendations
         if (patient.dateOfBirth) {
           const age = Math.floor((Date.now() - new Date(patient.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-          
+
           if (age > 50 && patient.gender === 'female') {
             insights.push({
               id: `insight-screening-${patient.id}`,
@@ -13770,10 +14064,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         }
       }
 
-      res.json(insights.slice(0, 15)); // Limit to 15 insights
+      return res.json(insights.slice(0, 15)); // Limit to 15 insights
     } catch (error) {
       console.error("Error fetching AI insights:", error);
-      res.status(500).json({ message: "Failed to fetch AI insights" });
+      return res.status(500).json({ message: "Failed to fetch AI insights" });
     }
   });
 
@@ -13793,12 +14087,12 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       const riskProfiles = [];
 
       for (const patient of patientsData) {
-        const prescriptions = await db
+        const patientRxs = await db
           .select()
           .from(prescriptions)
           .where(eq(prescriptions.patientId, patient.id));
 
-        const age = patient.dateOfBirth ? 
+        const age = patient.dateOfBirth ?
           Math.floor((Date.now() - new Date(patient.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 0;
 
         let overallRisk = 'low';
@@ -13816,14 +14110,14 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         }
 
         // Medication complexity risk
-        if (prescriptions.length > 5) {
+        if (patientRxs.length > 5) {
           riskFactors.push({
             category: 'medication',
             factor: 'Polypharmacy',
-            severity: Math.min(10, prescriptions.length),
-            description: `${prescriptions.length} active medications increase interaction risk`
+            severity: Math.min(10, patientRxs.length),
+            description: `${patientRxs.length} active medications increase interaction risk`
           });
-          if (prescriptions.length > 8) overallRisk = 'high';
+          if (patientRxs.length > 8) overallRisk = 'high';
         }
 
         // Medical history risk (from allergies field as proxy)
@@ -13857,10 +14151,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
           });
         }
 
-        if (prescriptions.length > 4) {
+        if (patientRxs.length > 4) {
           predictedOutcomes.push({
             condition: 'Medication adverse events',
-            probability: Math.min(25, prescriptions.length * 3),
+            probability: Math.min(25, patientRxs.length * 3),
             timeframe: 'Next 2 years'
           });
         }
@@ -13876,10 +14170,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         }
       }
 
-      res.json(riskProfiles);
+      return res.json(riskProfiles);
     } catch (error) {
       console.error("Error fetching risk profiles:", error);
-      res.status(500).json({ message: "Failed to fetch risk profiles" });
+      return res.status(500).json({ message: "Failed to fetch risk profiles" });
     }
   });
 
@@ -13910,10 +14204,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         outcomeImprovement: 23
       };
 
-      res.json(metrics);
+      return res.json(metrics);
     } catch (error) {
       console.error("Error fetching clinical metrics:", error);
-      res.status(500).json({ message: "Failed to fetch clinical metrics" });
+      return res.status(500).json({ message: "Failed to fetch clinical metrics" });
     }
   });
 
@@ -13925,10 +14219,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       // Log insight status update
       console.log(`AI Insight ${id} status updated to: ${status}`);
 
-      res.json({ message: "Insight status updated successfully" });
+      return res.json({ message: "Insight status updated successfully" });
     } catch (error) {
       console.error("Error updating insight:", error);
-      res.status(500).json({ message: "Failed to update insight" });
+      return res.status(500).json({ message: "Failed to update insight" });
     }
   });
 
@@ -13942,10 +14236,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       // Trigger AI analysis process
       console.log("AI insights generation initiated for organization:", userOrgId);
 
-      res.json({ message: "AI insights generation started successfully" });
+      return res.json({ message: "AI insights generation started successfully" });
     } catch (error) {
       console.error("Error generating insights:", error);
-      res.status(500).json({ message: "Failed to generate insights" });
+      return res.status(500).json({ message: "Failed to generate insights" });
     }
   });
 
@@ -13992,7 +14286,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
 
       let highRiskCount = 0;
       const riskData: Record<number, any> = {};
-      
+
       allConsultations.forEach((consult: any) => {
         const data = consult.formData as any;
         if (data.overall_risk_level) {
@@ -14006,7 +14300,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         }
       });
 
-      highRiskCount = Object.values(riskData).filter((r: any) => 
+      highRiskCount = Object.values(riskData).filter((r: any) =>
         r.risk?.toLowerCase().includes('high') || r.risk === 'High'
       ).length;
 
@@ -14049,7 +14343,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       // Active therapy sessions (estimate based on recent consultations)
       const activeTherapySessions = Math.floor(totalPatients * 0.6); // Estimate 60% in active therapy
 
-      res.json({
+      return res.json({
         totalPatients,
         highRiskPatients: highRiskCount,
         todayAppointments,
@@ -14059,7 +14353,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       });
     } catch (error) {
       console.error('Error fetching psychiatry stats:', error);
-      res.status(500).json({ error: 'Failed to fetch psychiatry stats' });
+      return res.status(500).json({ error: 'Failed to fetch psychiatry stats' });
     }
   });
 
@@ -14109,11 +14403,11 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       consultations.forEach((consult: any) => {
         const data = consult.formData as any;
         const patientId = consult.patientId;
-        
+
         if (!patientRiskData[patientId] || new Date(consult.createdAt) > new Date(patientRiskData[patientId].lastAssessment)) {
           const riskLevel = data.overall_risk_level?.toLowerCase() || 'low';
           let normalizedRisk: 'high' | 'medium' | 'low' = 'low';
-          
+
           if (riskLevel.includes('high') || riskLevel === 'high') {
             normalizedRisk = 'high';
           } else if (riskLevel.includes('medium') || riskLevel === 'moderate') {
@@ -14138,40 +14432,42 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
 
       // Get next appointments and medication counts
       const patientIds = Object.keys(patientRiskData).map(Number);
-      
+
       if (patientIds.length > 0) {
-        const [appointments, prescriptions] = await Promise.all([
+        const todayStr = new Date().toISOString().split('T')[0];
+        const [patientAppointments, patientPrescriptions] = await Promise.all([
           db.select({
             patientId: appointments.patientId,
+            appointmentDate: appointments.appointmentDate,
             appointmentTime: appointments.appointmentTime,
           })
-          .from(appointments)
-          .where(and(
-            inArray(appointments.patientId, patientIds),
-            gte(appointments.appointmentTime, new Date())
-          ))
-          .orderBy(asc(appointments.appointmentTime)),
+            .from(appointments)
+            .where(and(
+              inArray(appointments.patientId, patientIds),
+              gte(appointments.appointmentDate, todayStr)
+            ))
+            .orderBy(asc(appointments.appointmentDate), asc(appointments.appointmentTime)),
 
           db.select({
             patientId: prescriptions.patientId,
             count: sql<number>`count(*)`,
           })
-          .from(prescriptions)
-          .where(and(
-            inArray(prescriptions.patientId, patientIds),
-            eq(prescriptions.status, 'active')
-          ))
-          .groupBy(prescriptions.patientId)
+            .from(prescriptions)
+            .where(and(
+              inArray(prescriptions.patientId, patientIds),
+              eq(prescriptions.status, 'active')
+            ))
+            .groupBy(prescriptions.patientId)
         ]);
 
         // Add appointment and medication data
-        appointments.forEach(apt => {
+        patientAppointments.forEach(apt => {
           if (patientRiskData[apt.patientId]) {
-            patientRiskData[apt.patientId].nextAppointment = apt.appointmentTime;
+            patientRiskData[apt.patientId].nextAppointment = `${apt.appointmentDate} ${apt.appointmentTime}`;
           }
         });
 
-        prescriptions.forEach(px => {
+        patientPrescriptions.forEach(px => {
           if (patientRiskData[px.patientId]) {
             patientRiskData[px.patientId].currentMedications = px.count;
             // Estimate adherence (in real app, this would come from medication tracking)
@@ -14186,10 +14482,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         return riskOrder[b.riskLevel] - riskOrder[a.riskLevel];
       });
 
-      res.json(riskPatients);
+      return res.json(riskPatients);
     } catch (error) {
       console.error('Error fetching high-risk patients:', error);
-      res.status(500).json({ error: 'Failed to fetch high-risk patients' });
+      return res.status(500).json({ error: 'Failed to fetch high-risk patients', details: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -14223,10 +14519,14 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         .then(records => records.map(r => r.patientId))
         : [];
 
-      const appointments = await db
+      const todayStr = today.toISOString().split('T')[0];
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+      const todaysAppointments = await db
         .select({
           id: appointments.id,
           patientId: appointments.patientId,
+          appointmentDate: appointments.appointmentDate,
           appointmentTime: appointments.appointmentTime,
           type: appointments.type,
           firstName: patients.firstName,
@@ -14236,24 +14536,27 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         .leftJoin(patients, eq(appointments.patientId, patients.id))
         .where(and(
           eq(appointments.organizationId, userOrgId),
-          gte(appointments.appointmentTime, today),
-          lt(appointments.appointmentTime, tomorrow),
+          gte(appointments.appointmentDate, todayStr),
+          lt(appointments.appointmentDate, tomorrowStr),
           psychiatryPatientIds.length > 0 ? inArray(appointments.patientId, psychiatryPatientIds) : sql`1=0`
         ))
-        .orderBy(asc(appointments.appointmentTime));
+        .orderBy(asc(appointments.appointmentDate), asc(appointments.appointmentTime));
 
-      const formattedAppointments = appointments.map(apt => ({
+      const formattedAppointments = todaysAppointments.map(apt => ({
         id: apt.id,
         patientId: apt.patientId,
         patientName: `${apt.firstName || ''} ${apt.lastName || ''}`.trim() || `Patient #${apt.patientId}`,
-        time: new Date(apt.appointmentTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        time: apt.appointmentTime || '00:00',
         type: apt.type || 'Consultation',
       }));
 
-      res.json(formattedAppointments);
+      return res.json(formattedAppointments);
     } catch (error) {
       console.error('Error fetching today appointments:', error);
-      res.status(500).json({ error: 'Failed to fetch today appointments' });
+      return res.status(500).json({
+        error: 'Failed to fetch today appointments',
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
@@ -14306,10 +14609,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
           reason: 'No consultation in last 2 weeks',
         }));
 
-      res.json(followUpNeeded);
+      return res.json(followUpNeeded);
     } catch (error) {
       console.error('Error fetching follow-up needed:', error);
-      res.status(500).json({ error: 'Failed to fetch follow-up needed' });
+      return res.status(500).json({ error: 'Failed to fetch follow-up needed' });
     }
   });
 
@@ -14359,11 +14662,11 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       consultations.forEach((consult: any) => {
         const data = consult.formData as any;
         const patientId = consult.patientId;
-        
+
         if (!patientRiskData[patientId] || new Date(consult.createdAt) > new Date(patientRiskData[patientId].lastAssessment)) {
           const riskLevel = data.overall_risk_level?.toLowerCase() || 'low';
           let normalizedRisk: 'high' | 'medium' | 'low' = 'low';
-          
+
           if (riskLevel.includes('high') || riskLevel === 'high') {
             normalizedRisk = 'high';
           } else if (riskLevel.includes('medium') || riskLevel === 'moderate') {
@@ -14388,40 +14691,40 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
 
       // Get next appointments and medication counts
       const patientIds = Object.keys(patientRiskData).map(Number);
-      
+
       if (patientIds.length > 0) {
-        const [appointments, prescriptions] = await Promise.all([
+        const [upcomingAppts, activeRxData] = await Promise.all([
           db.select({
             patientId: appointments.patientId,
             appointmentTime: appointments.appointmentTime,
           })
-          .from(appointments)
-          .where(and(
-            inArray(appointments.patientId, patientIds),
-            gte(appointments.appointmentTime, new Date())
-          ))
-          .orderBy(asc(appointments.appointmentTime)),
+            .from(appointments)
+            .where(and(
+              inArray(appointments.patientId, patientIds),
+              gte(appointments.appointmentTime, new Date())
+            ))
+            .orderBy(asc(appointments.appointmentTime)),
 
           db.select({
             patientId: prescriptions.patientId,
             count: sql<number>`count(*)`,
           })
-          .from(prescriptions)
-          .where(and(
-            inArray(prescriptions.patientId, patientIds),
-            eq(prescriptions.status, 'active')
-          ))
-          .groupBy(prescriptions.patientId)
+            .from(prescriptions)
+            .where(and(
+              inArray(prescriptions.patientId, patientIds),
+              eq(prescriptions.status, 'active')
+            ))
+            .groupBy(prescriptions.patientId)
         ]);
 
         // Add appointment and medication data
-        appointments.forEach(apt => {
+        upcomingAppts.forEach(apt => {
           if (patientRiskData[apt.patientId]) {
             patientRiskData[apt.patientId].nextAppointment = apt.appointmentTime;
           }
         });
 
-        prescriptions.forEach(px => {
+        activeRxData.forEach(px => {
           if (patientRiskData[px.patientId]) {
             patientRiskData[px.patientId].currentMedications = px.count;
             patientRiskData[px.patientId].adherenceRate = 85; // Estimate
@@ -14435,10 +14738,10 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
         return riskOrder[b.riskLevel] - riskOrder[a.riskLevel];
       });
 
-      res.json(riskPatients);
+      return res.json(riskPatients);
     } catch (error) {
       console.error('Error fetching risk patients:', error);
-      res.status(500).json({ error: 'Failed to fetch risk patients' });
+      return res.status(500).json({ error: 'Failed to fetch risk patients' });
     }
   });
 
@@ -14453,7 +14756,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       const timeRange = req.query.timeRange as string || '90days';
       const now = new Date();
       let startDate = new Date();
-      
+
       switch (timeRange) {
         case '30days':
           startDate.setDate(now.getDate() - 30);
@@ -14568,7 +14871,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       let adherenceCount = 0;
 
       if (patientIds.length > 0) {
-        const prescriptions = await db
+        const activeRxs = await db
           .select({
             patientId: prescriptions.patientId,
             status: prescriptions.status,
@@ -14580,7 +14883,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
           ));
 
         // Estimate adherence (simplified - in real app, track actual adherence)
-        prescriptions.forEach(() => {
+        activeRxs.forEach(() => {
           adherenceSum += 85; // Estimated average
           adherenceCount++;
         });
@@ -14589,7 +14892,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       const averageAdherence = adherenceCount > 0 ? adherenceSum / adherenceCount : 0;
       const averageImprovement = totalPatients > 0 ? (totalImprovement / totalPatients) : 0;
 
-      res.json({
+      return res.json({
         totalPatients,
         improved,
         stable,
@@ -14601,7 +14904,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       });
     } catch (error) {
       console.error('Error fetching outcomes metrics:', error);
-      res.status(500).json({ error: 'Failed to fetch outcomes metrics' });
+      return res.status(500).json({ error: 'Failed to fetch outcomes metrics' });
     }
   });
 
@@ -14617,7 +14920,7 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       const statusFilter = req.query.statusFilter as string || 'all';
       const now = new Date();
       let startDate = new Date();
-      
+
       switch (timeRange) {
         case '30days':
           startDate.setDate(now.getDate() - 30);
@@ -14744,18 +15047,17 @@ PRIORITY LEVEL: ${priorityLevel.toUpperCase()}
       });
 
       // Filter by status
-      const filteredOutcomes = statusFilter === 'all' 
-        ? outcomes 
+      const filteredOutcomes = statusFilter === 'all'
+        ? outcomes
         : outcomes.filter(o => o.status === statusFilter);
 
-      res.json(filteredOutcomes);
+      return res.json(filteredOutcomes);
     } catch (error) {
       console.error('Error fetching patient outcomes:', error);
-      res.status(500).json({ error: 'Failed to fetch patient outcomes' });
+      return res.status(500).json({ error: 'Failed to fetch patient outcomes' });
     }
   });
 
-  return httpServer;
 }
 
 

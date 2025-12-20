@@ -205,7 +205,7 @@ export function EnhancedMedicationReview({ selectedPatientId, onReviewCompleted 
                     Current Medications for {selectedPatient.firstName} {selectedPatient.lastName}
                   </h3>
                   <div className="space-y-3">
-                    {prescriptions.map((prescription: any, index: number) => (
+                    {(Array.isArray(prescriptions) ? prescriptions : []).map((prescription: any, index: number) => (
                       <div key={prescription.id || index} className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -221,37 +221,37 @@ export function EnhancedMedicationReview({ selectedPatientId, onReviewCompleted 
                               )}
                             </div>
                             
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                              <div className="bg-gray-50 p-2 rounded">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 mb-1.5">
+                              <div className="bg-gray-50 p-1.5 rounded">
                                 <p className="text-xs text-gray-500 uppercase font-medium">Dosage</p>
-                                <p className="text-sm font-medium text-gray-800">
+                                <p className="text-xs font-medium text-gray-800">
                                   {prescription.dosage || 'Not specified'}
                                 </p>
                               </div>
-                              <div className="bg-gray-50 p-2 rounded">
+                              <div className="bg-gray-50 p-1.5 rounded">
                                 <p className="text-xs text-gray-500 uppercase font-medium">Frequency</p>
-                                <p className="text-sm font-medium text-gray-800">
+                                <p className="text-xs font-medium text-gray-800">
                                   {prescription.frequency || 'Not specified'}
                                 </p>
                               </div>
-                              <div className="bg-gray-50 p-2 rounded">
+                              <div className="bg-gray-50 p-1.5 rounded">
                                 <p className="text-xs text-gray-500 uppercase font-medium">Duration</p>
-                                <p className="text-sm font-medium text-gray-800">
+                                <p className="text-xs font-medium text-gray-800">
                                   {prescription.duration || 'Not specified'}
                                 </p>
                               </div>
-                              <div className="bg-gray-50 p-2 rounded">
+                              <div className="bg-gray-50 p-1.5 rounded">
                                 <p className="text-xs text-gray-500 uppercase font-medium">Prescribed</p>
-                                <p className="text-sm font-medium text-gray-800">
+                                <p className="text-xs font-medium text-gray-800">
                                   {prescription.createdAt ? format(new Date(prescription.createdAt), 'MMM dd, yyyy') : 'N/A'}
                                 </p>
                               </div>
                             </div>
                             
                             {prescription.instructions && (
-                              <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-400">
-                                <p className="text-xs text-blue-600 uppercase font-medium mb-1">Special Instructions</p>
-                                <p className="text-sm text-blue-800">{prescription.instructions}</p>
+                              <div className="bg-blue-50 p-1.5 rounded border-l-4 border-blue-400">
+                                <p className="text-xs text-blue-600 uppercase font-medium mb-0.5">Special Instructions</p>
+                                <p className="text-xs text-blue-800">{prescription.instructions}</p>
                               </div>
                             )}
                             
@@ -686,7 +686,7 @@ export function EnhancedMedicationReview({ selectedPatientId, onReviewCompleted 
                         <div className="bg-blue-50 p-4 rounded-lg">
                           <h4 className="font-semibold text-blue-800 mb-2">Current Prescriptions</h4>
                           <div className="space-y-1">
-                            {prescriptions.slice(0, 5).map((prescription: any) => (
+                            {(Array.isArray(prescriptions) ? prescriptions.slice(0, 5) : []).map((prescription: any) => (
                               <div key={prescription.id} className="text-sm text-blue-700">
                                 • {prescription.medicationName} - {prescription.dosage}
                               </div>
@@ -738,7 +738,7 @@ export function EnhancedMedicationReview({ selectedPatientId, onReviewCompleted 
                 <SelectValue placeholder="Choose a patient..." />
               </SelectTrigger>
               <SelectContent>
-                {patients.map((patient: any) => (
+                {(Array.isArray(patients) ? patients : []).map((patient: any) => (
                   <SelectItem key={patient.id} value={patient.id.toString()}>
                     {patient.firstName} {patient.lastName} (ID: {patient.id})
                   </SelectItem>
@@ -775,7 +775,7 @@ export function EnhancedMedicationReview({ selectedPatientId, onReviewCompleted 
               {activePatientId ? "No medication reviews found for this patient." : "Select a patient to view their medication reviews."}
             </div>
           ) : (
-            reviews.map((review: any) => (
+            (Array.isArray(reviews) ? reviews : []).map((review: any) => (
               <div key={review.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                    onClick={() => setSelectedReview(review)}>
                 <div className="flex items-start justify-between">

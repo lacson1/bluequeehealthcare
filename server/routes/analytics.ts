@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { authenticateToken, type AuthRequest } from "../middleware/auth";
-import { organizations, payments, invoices, invoiceItems, patients } from "@shared/schema";
+import { organizations, payments, invoices, invoiceItems, patients, visits, labOrders, prescriptions, appointments } from "@shared/schema";
 import { db } from "../db";
-import { eq, and, gte, lte, sql, desc } from "drizzle-orm";
+import { eq, and, gte, lte, lt, sql, desc, isNotNull } from "drizzle-orm";
 
 const router = Router();
 
@@ -12,6 +12,310 @@ const router = Router();
  */
 export function setupAnalyticsRoutes(): Router {
   
+  // Dashboard analytics - returns data for the analytics dashboard charts
+  router.get("/analytics/dashboard", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const orgId = req.user?.organizationId;
+      if (!orgId) {
+        return res.status(400).json({ message: "Organization context required" });
+      }
+
+      // Get data for the last 6 months
+      const now = new Date();
+      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+      
+      console.log(`[Analytics] Fetching dashboard data for org ${orgId}, period: ${sixMonthsAgo.toISOString()} to ${now.toISOString()}`);
+
+      // Patient trends - get total patient count up to each month (cumulative)
+      // First get total patients before the 6-month period
+      let baselineCount = 0;
+      try {
+        const baselinePatientsResult = await db.select({
+          count: sql<number>`COUNT(*)`.as('count')
+        })
+        .from(patients)
+        .where(and(
+          eq(patients.organizationId, orgId),
+          lt(patients.createdAt, sixMonthsAgo)
+        ));
+        baselineCount = Number(baselinePatientsResult[0]?.count || 0);
+      } catch (err) {
+        console.warn('[Analytics] Error getting baseline patients, defaulting to 0:', err);
+        baselineCount = 0;
+      }
+
+      // Then get new patients by month
+      let patientTrendsData: Array<{ month: string; count: number }> = [];
+      try {
+        patientTrendsData = await db.select({
+          month: sql<string>`TO_CHAR(${patients.createdAt}, 'YYYY-MM')`.as('month'),
+          count: sql<number>`COUNT(*)`.as('count')
+        })
+        .from(patients)
+        .where(and(
+          eq(patients.organizationId, orgId),
+          gte(patients.createdAt, sixMonthsAgo)
+        ))
+        .groupBy(sql`TO_CHAR(${patients.createdAt}, 'YYYY-MM')`)
+        .orderBy(sql`TO_CHAR(${patients.createdAt}, 'YYYY-MM')`);
+      } catch (err: any) {
+        console.error('[Analytics] Error fetching patient trends:', err?.message);
+        throw err;
+      }
+
+      // Calculate cumulative patient counts
+      let cumulativePatients = baselineCount;
+      const patientTrends = patientTrendsData.map((item) => {
+        cumulativePatients += Number(item.count);
+        return {
+          date: item.month,
+          value: cumulativePatients,
+          label: new Date(item.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        };
+      });
+
+      // Visit trends - visits by month
+      let visitTrendsData: Array<{ month: string; count: number }> = [];
+      try {
+        visitTrendsData = await db.select({
+          month: sql<string>`TO_CHAR(${visits.visitDate}, 'YYYY-MM')`.as('month'),
+          count: sql<number>`COUNT(*)`.as('count')
+        })
+        .from(visits)
+        .where(and(
+          eq(visits.organizationId, orgId),
+          gte(visits.visitDate, sixMonthsAgo)
+        ))
+        .groupBy(sql`TO_CHAR(${visits.visitDate}, 'YYYY-MM')`)
+        .orderBy(sql`TO_CHAR(${visits.visitDate}, 'YYYY-MM')`);
+      } catch (err: any) {
+        console.error('[Analytics] Error fetching visit trends:', err?.message);
+        // Continue with empty array
+      }
+
+      const visitTrends = visitTrendsData.map(item => ({
+        date: item.month,
+        value: Number(item.count),
+        label: new Date(item.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      }));
+
+      // Revenue trends - revenue by month
+      let revenueTrendsData: Array<{ month: string; total: number }> = [];
+      try {
+        revenueTrendsData = await db.select({
+          month: sql<string>`TO_CHAR(${payments.paymentDate}, 'YYYY-MM')`.as('month'),
+          total: sql<number>`COALESCE(SUM(CAST(${payments.amount} AS DECIMAL)), 0)`.as('total')
+        })
+        .from(payments)
+        .where(and(
+          eq(payments.organizationId, orgId),
+          gte(payments.paymentDate, sixMonthsAgo),
+          eq(payments.status, 'completed')
+        ))
+        .groupBy(sql`TO_CHAR(${payments.paymentDate}, 'YYYY-MM')`)
+        .orderBy(sql`TO_CHAR(${payments.paymentDate}, 'YYYY-MM')`);
+      } catch (err: any) {
+        console.error('[Analytics] Error fetching revenue trends:', err?.message);
+        // Continue with empty array
+      }
+
+      const revenueTrends = revenueTrendsData.map(item => ({
+        date: item.month,
+        value: Number(item.total),
+        label: new Date(item.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      }));
+
+      // Lab order trends - lab orders by month
+      let labOrderTrendsData: Array<{ month: string; count: number }> = [];
+      try {
+        labOrderTrendsData = await db.select({
+          month: sql<string>`TO_CHAR(${labOrders.createdAt}, 'YYYY-MM')`.as('month'),
+          count: sql<number>`COUNT(*)`.as('count')
+        })
+        .from(labOrders)
+        .where(and(
+          eq(labOrders.organizationId, orgId),
+          gte(labOrders.createdAt, sixMonthsAgo)
+        ))
+        .groupBy(sql`TO_CHAR(${labOrders.createdAt}, 'YYYY-MM')`)
+        .orderBy(sql`TO_CHAR(${labOrders.createdAt}, 'YYYY-MM')`);
+      } catch (err: any) {
+        console.error('[Analytics] Error fetching lab order trends:', err?.message);
+        // Continue with empty array
+      }
+
+      const labOrderTrends = labOrderTrendsData.map(item => ({
+        date: item.month,
+        value: Number(item.count),
+        label: new Date(item.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      }));
+
+      // Prescription trends - prescriptions by month
+      let prescriptionTrendsData: Array<{ month: string; count: number }> = [];
+      try {
+        prescriptionTrendsData = await db.select({
+          month: sql<string>`TO_CHAR(${prescriptions.createdAt}, 'YYYY-MM')`.as('month'),
+          count: sql<number>`COUNT(*)`.as('count')
+        })
+        .from(prescriptions)
+        .where(and(
+          eq(prescriptions.organizationId, orgId),
+          gte(prescriptions.createdAt, sixMonthsAgo)
+        ))
+        .groupBy(sql`TO_CHAR(${prescriptions.createdAt}, 'YYYY-MM')`)
+        .orderBy(sql`TO_CHAR(${prescriptions.createdAt}, 'YYYY-MM')`);
+      } catch (err: any) {
+        console.error('[Analytics] Error fetching prescription trends:', err?.message);
+        // Continue with empty array
+      }
+
+      const prescriptionTrends = prescriptionTrendsData.map(item => ({
+        date: item.month,
+        value: Number(item.count),
+        label: new Date(item.month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      }));
+
+      // Top diagnoses - from visits
+      let topDiagnosesData: Array<{ diagnosis: string | null; count: number }> = [];
+      try {
+        topDiagnosesData = await db.select({
+          diagnosis: visits.diagnosis,
+          count: sql<number>`COUNT(*)`.as('count')
+        })
+        .from(visits)
+        .where(and(
+          eq(visits.organizationId, orgId),
+          isNotNull(visits.diagnosis),
+          sql`${visits.diagnosis} != ''`
+        ))
+        .groupBy(visits.diagnosis)
+        .orderBy(desc(sql`COUNT(*)`))
+        .limit(10);
+      } catch (err: any) {
+        console.error('[Analytics] Error fetching top diagnoses:', err?.message);
+        // Continue with empty array
+      }
+
+      const totalDiagnoses = topDiagnosesData.reduce((sum, item) => sum + Number(item.count), 0);
+      const topDiagnoses = topDiagnosesData.map(item => ({
+        name: item.diagnosis || 'Unknown',
+        count: Number(item.count),
+        percentage: totalDiagnoses > 0 ? Math.round((Number(item.count) / totalDiagnoses) * 100) : 0
+      }));
+
+      // Top medications - from prescriptions
+      let topMedicationsData: Array<{ medicationName: string | null; count: number }> = [];
+      try {
+        topMedicationsData = await db.select({
+          medicationName: prescriptions.medicationName,
+          count: sql<number>`COUNT(*)`.as('count')
+        })
+        .from(prescriptions)
+        .where(and(
+          eq(prescriptions.organizationId, orgId),
+          isNotNull(prescriptions.medicationName)
+        ))
+        .groupBy(prescriptions.medicationName)
+        .orderBy(desc(sql`COUNT(*)`))
+        .limit(10);
+      } catch (err: any) {
+        console.error('[Analytics] Error fetching top medications:', err?.message);
+        // Continue with empty array
+      }
+
+      const topMedications = topMedicationsData.map(item => ({
+        name: item.medicationName || 'Unknown',
+        count: Number(item.count)
+      }));
+
+      // Department stats - using visit types as departments
+      let departmentStatsData: Array<{ visitType: string | null; patients: number; visits: number }> = [];
+      try {
+        departmentStatsData = await db.select({
+          visitType: visits.visitType,
+          patients: sql<number>`COUNT(DISTINCT ${visits.patientId})`.as('patients'),
+          visits: sql<number>`COUNT(*)`.as('visits')
+        })
+        .from(visits)
+        .where(and(
+          eq(visits.organizationId, orgId),
+          gte(visits.visitDate, sixMonthsAgo)
+        ))
+        .groupBy(visits.visitType)
+        .orderBy(desc(sql`COUNT(*)`));
+      } catch (err: any) {
+        console.error('[Analytics] Error fetching department stats:', err?.message);
+        // Continue with empty array
+      }
+
+      const departmentStats = departmentStatsData.map(item => ({
+        name: item.visitType || 'General',
+        patients: Number(item.patients),
+        visits: Number(item.visits)
+      }));
+
+      // Ensure all trend arrays have at least some data points
+      // Fill in missing months with zero values if needed
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push(date.toISOString().slice(0, 7));
+      }
+
+      const fillTrendData = (trendData: Array<{ date: string; value: number; label?: string }>, isCumulative: boolean = false) => {
+        const filled: Array<{ date: string; value: number; label?: string }> = [];
+        months.forEach(month => {
+          const existing = trendData.find(t => t.date === month);
+          if (existing) {
+            filled.push(existing);
+          } else {
+            // For cumulative trends (like patients), keep previous value; for counts, use 0
+            const prevValue = isCumulative && filled.length > 0 ? filled[filled.length - 1].value : (isCumulative ? baselineCount : 0);
+            filled.push({
+              date: month,
+              value: prevValue,
+              label: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            });
+          }
+        });
+        return filled;
+      };
+
+      const response = {
+        patientTrends: fillTrendData(patientTrends, true), // Cumulative
+        visitTrends: fillTrendData(visitTrends, false), // Count per month
+        revenueTrends: fillTrendData(revenueTrends, false), // Count per month
+        labOrderTrends: fillTrendData(labOrderTrends, false), // Count per month
+        prescriptionTrends: fillTrendData(prescriptionTrends, false), // Count per month
+        topDiagnoses: topDiagnoses.length > 0 ? topDiagnoses : [
+          { name: 'No diagnoses recorded', count: 0, percentage: 0 }
+        ],
+        topMedications: topMedications.length > 0 ? topMedications : [
+          { name: 'No medications recorded', count: 0 }
+        ],
+        departmentStats: departmentStats.length > 0 ? departmentStats : [
+          { name: 'General', patients: 0, visits: 0 }
+        ]
+      };
+      
+      console.log(`[Analytics] Successfully fetched dashboard data: ${response.patientTrends.length} patient trend points, ${response.visitTrends.length} visit trend points`);
+      res.json(response);
+    } catch (error: any) {
+      console.error('[Analytics] Error fetching dashboard analytics:', error);
+      console.error('[Analytics] Error stack:', error?.stack);
+      console.error('[Analytics] Error details:', {
+        message: error?.message,
+        name: error?.name,
+        code: error?.code
+      });
+      res.status(500).json({ 
+        error: 'Failed to fetch dashboard analytics',
+        message: error?.message || 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      });
+    }
+  });
+
   // Comprehensive analytics
   router.get("/analytics/comprehensive", authenticateToken, async (req: AuthRequest, res) => {
     try {

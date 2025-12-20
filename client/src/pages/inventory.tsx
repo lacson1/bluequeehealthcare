@@ -233,38 +233,52 @@ export default function InventoryPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="text-center">Loading inventory...</div>
+      <div className="h-full flex flex-col">
+        <header className="healthcare-header px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <h2 className="text-2xl font-bold text-white drop-shadow-sm">Inventory Management</h2>
+              <p className="text-white/90 font-medium">Real-time medication tracking and stock management</p>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 overflow-auto p-6">
+          <div className="text-center">Loading inventory...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Inventory Management</h1>
-          <p className="text-gray-600">Real-time medication tracking and stock management</p>
+    <div className="h-full flex flex-col">
+      {/* Enhanced Fixed Header */}
+      <header className="healthcare-header px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h2 className="text-2xl font-bold text-white drop-shadow-sm">Inventory Management</h2>
+            <p className="text-white/90 font-medium">Real-time medication tracking and stock management</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => setAddMedicineDialog(true)} 
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Add Medicine
+            </Button>
+            <Button 
+              onClick={() => refetch()} 
+              variant="outline"
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-sm"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => setAddMedicineDialog(true)} 
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-          >
-            <Plus className="h-4 w-4" />
-            Add Medicine
-          </Button>
-          <Button 
-            onClick={() => refetch()} 
-            variant="outline" 
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+      </header>
+
+      <div className="flex-1 overflow-auto p-6 space-y-6">
 
       {/* Stats Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -744,6 +758,7 @@ export default function InventoryPage() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

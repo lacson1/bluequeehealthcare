@@ -107,7 +107,9 @@ After deployment completes:
 
 ---
 
-## 🔧 Alternative: Deploy via CLI (if you have doctl)
+## 🔧 Alternative Deployment Options
+
+### Option A: Deploy via CLI (if you have doctl)
 
 If you have `doctl` installed and authenticated:
 
@@ -121,6 +123,100 @@ doctl apps list
 doctl apps get <app-id>
 doctl apps logs <app-id> --type run
 ```
+
+### Option B: Deploy to Droplet (More Control)
+
+If you prefer a Droplet with Docker for more control:
+
+#### Step 1: Create a Droplet
+
+1. Go to [DigitalOcean Droplets](https://cloud.digitalocean.com/droplets)
+2. Choose:
+   - **Image:** Ubuntu 22.04 LTS
+   - **Plan:** Basic $12/mo (2GB RAM, 1 vCPU) or $24/mo (4GB RAM, 2 vCPU)
+   - **Region:** Closest to users
+   - **Authentication:** SSH Key (recommended)
+
+#### Step 2: Initial Server Setup
+
+```bash
+# SSH into your droplet
+ssh root@your-droplet-ip
+
+# Update system
+apt update && apt upgrade -y
+
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+
+# Install Docker Compose
+apt install docker-compose-plugin -y
+
+# Create app directory
+mkdir -p /opt/clinicconnect
+cd /opt/clinicconnect
+```
+
+#### Step 3: Clone and Configure
+
+```bash
+# Clone your repository
+git clone https://github.com/lacson1/clinicconnect-2.git .
+
+# Create environment file
+cat > .env << 'EOF'
+NODE_ENV=production
+PORT=5001
+DATABASE_URL=postgresql://user:pass@host:5432/clinicconnect
+
+# REQUIRED: Generate with: openssl rand -base64 64
+JWT_SECRET=your-super-secure-jwt-secret
+SESSION_SECRET=your-super-secure-session-secret
+
+# Optional API Keys
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+SENDGRID_API_KEY=
+EOF
+
+# Set secure permissions
+chmod 600 .env
+```
+
+#### Step 4: Deploy with Docker Compose
+
+```bash
+# Build and start services
+docker compose -f docker-compose.optimized.yml up -d --build
+
+# Check status
+docker compose -f docker-compose.optimized.yml ps
+
+# View logs
+docker compose -f docker-compose.optimized.yml logs -f app
+```
+
+#### Step 5: Setup Domain & SSL (Optional but Recommended)
+
+```bash
+# Install Certbot for free SSL
+apt install certbot python3-certbot-nginx -y
+
+# Point your domain to droplet IP (A record)
+# Then run:
+certbot --nginx -d your-domain.com -d www.your-domain.com
+```
+
+### Option C: Managed Database + Droplet (Production Recommended)
+
+For production, use DigitalOcean Managed PostgreSQL:
+
+1. Go to **Databases** → **Create Database Cluster**
+2. Choose PostgreSQL 16, Basic plan ($15/mo)
+3. Get connection string from database dashboard
+4. Update `.env` with managed database URL
+5. Use `docker-compose.production.yml` (excludes local DB)
 
 ---
 
@@ -166,12 +262,20 @@ doctl apps logs <app-id> --type run
 
 ---
 
-## 💰 Cost
+## 💰 Cost Comparison
 
+### App Platform (Recommended)
 - **Basic Plan:** $5/month
 - **Dev Database:** Free
 - **Production Database:** $15/month (optional)
 - **Total:** $5-20/month
+
+### Droplet Deployment
+- **Droplet:** $12-24/month (2-4GB RAM)
+- **Managed Database:** $15/month
+- **Total:** $27-39/month
+
+**Recommendation:** Use App Platform for quick deployment, Droplet for more control.
 
 ---
 
@@ -216,6 +320,52 @@ Once deployed, your app will be available at:
 - **Database:** Migrations run automatically on startup
 - **Health Checks:** App Platform monitors `/api/health` endpoint
 - **Autodeploy:** Enabled - every push to `main` triggers deployment
+
+---
+
+## 📊 Monitoring & Maintenance (Droplet Only)
+
+### Setup Monitoring
+```bash
+# Install DigitalOcean monitoring agent
+curl -sSL https://repos.insights.digitalocean.com/install.sh | sudo bash
+```
+
+### Automatic Updates
+```bash
+# Create update script
+cat > /opt/clinicconnect/update.sh << 'EOF'
+#!/bin/bash
+cd /opt/clinicconnect
+git pull origin main
+docker compose -f docker-compose.optimized.yml up -d --build
+docker system prune -f
+EOF
+
+chmod +x /opt/clinicconnect/update.sh
+```
+
+### Database Backups
+```bash
+# Backup script for local PostgreSQL
+cat > /opt/clinicconnect/backup.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/opt/backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+mkdir -p $BACKUP_DIR
+
+docker exec clinicconnect-db pg_dump -U clinicuser clinicconnect > $BACKUP_DIR/backup_$DATE.sql
+gzip $BACKUP_DIR/backup_$DATE.sql
+
+# Keep only last 7 days
+find $BACKUP_DIR -name "*.gz" -mtime +7 -delete
+EOF
+
+chmod +x /opt/clinicconnect/backup.sh
+
+# Add to crontab (daily at 2 AM)
+(crontab -l 2>/dev/null; echo "0 2 * * * /opt/clinicconnect/backup.sh") | crontab -
+```
 
 ---
 

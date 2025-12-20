@@ -57,6 +57,14 @@ import {
   History,
   FileCheck,
   MessageSquare,
+  Heart,
+  Baby,
+  Brain,
+  Bone,
+  Scissors,
+  AlertCircle,
+  Stethoscope,
+  Sparkles,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -104,6 +112,26 @@ const iconMap: Record<string, any> = {
   MessageSquare,
   Settings2,
   Plus,
+  Heart,
+  Baby,
+  Brain,
+  Bone,
+  Scissors,
+  AlertCircle,
+  Stethoscope,
+  Sparkles,
+};
+
+// Specialty preset icons mapping
+const specialtyIconMap: Record<string, any> = {
+  'Cardiology': Heart,
+  'Pediatrics': Baby,
+  'Psychiatry': Brain,
+  'Orthopedics': Bone,
+  'Dermatology': Scissors,
+  'Oncology': Activity,
+  'Emergency Medicine': AlertCircle,
+  'General Practice': Stethoscope,
 };
 
 interface SortableTabItemProps {
@@ -532,10 +560,14 @@ export function TabManager({ open, onOpenChange }: TabManagerProps) {
       return;
     }
 
-    const key = newTabLabel.toLowerCase().replace(/\s+/g, '-');
+    // Generate a unique key by combining label with timestamp to ensure uniqueness
+    // This allows multiple tabs with similar names without conflicts
+    const baseKey = newTabLabel.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const uniqueKey = `${baseKey}-${Date.now()}`;
+    
     createMutation.mutate({
       scope: 'user',
-      key,
+      key: uniqueKey,
       label: newTabLabel,
       icon: newTabIcon,
       contentType: 'markdown',
@@ -651,34 +683,121 @@ export function TabManager({ open, onOpenChange }: TabManagerProps) {
 
       {/* Apply Preset Dialog */}
       <Dialog open={showPresetDialog} onOpenChange={setShowPresetDialog}>
-        <DialogContent data-testid="preset-dialog">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" data-testid="preset-dialog">
           <DialogHeader>
             <DialogTitle>Apply Preset Layout</DialogTitle>
-            <DialogDescription>Choose a preset tab layout to quickly configure your view.</DialogDescription>
+            <DialogDescription>Choose a preset tab layout to quickly configure your view. Specialty presets are optimized for specific medical fields.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-4">
-            {presets?.map((preset) => (
-              <div
-                key={preset.id}
-                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedPreset?.id === preset.id
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
-                }`}
-                onClick={() => setSelectedPreset(preset)}
-                data-testid={`preset-option-${preset.id}`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="font-medium text-gray-900 dark:text-gray-100">{preset.name}</div>
-                  {preset.isDefault && (
-                    <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
-                      Default
-                    </span>
-                  )}
+          <div className="space-y-4 py-4">
+            {/* Specialty Presets Section */}
+            {presets && presets.some(p => specialtyIconMap[p.name]) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-2 py-1">
+                  <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    Specialty Presets
+                  </h3>
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{preset.description}</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {presets
+                    .filter(preset => specialtyIconMap[preset.name])
+                    .map((preset) => {
+                      const IconComponent = specialtyIconMap[preset.name] || Settings2;
+                      return (
+                        <div
+                          key={preset.id}
+                          className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                            selectedPreset?.id === preset.id
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 shadow-md scale-[1.02]'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-sm'
+                          }`}
+                          onClick={() => setSelectedPreset(preset)}
+                          data-testid={`preset-option-${preset.id}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-lg ${
+                              selectedPreset?.id === preset.id
+                                ? 'bg-blue-100 dark:bg-blue-900'
+                                : 'bg-gray-100 dark:bg-gray-800'
+                            }`}>
+                              <IconComponent className={`h-5 w-5 ${
+                                selectedPreset?.id === preset.id
+                                  ? 'text-blue-600 dark:text-blue-400'
+                                  : 'text-gray-600 dark:text-gray-400'
+                              }`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="font-semibold text-gray-900 dark:text-gray-100">{preset.name}</div>
+                                {preset.isDefault && (
+                                  <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                                {preset.description}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* Other Presets Section */}
+            {presets && presets.some(p => !specialtyIconMap[p.name]) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-2 py-1">
+                  <LayoutGrid className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                    General Presets
+                  </h3>
+                </div>
+                <div className="space-y-2">
+                  {presets
+                    .filter(preset => !specialtyIconMap[preset.name])
+                    .map((preset) => {
+                      const IconComponent = iconMap[preset.icon] || Settings2;
+                      return (
+                        <div
+                          key={preset.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            selectedPreset?.id === preset.id
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                          }`}
+                          onClick={() => setSelectedPreset(preset)}
+                          data-testid={`preset-option-${preset.id}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <IconComponent className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className="font-medium text-gray-900 dark:text-gray-100">{preset.name}</div>
+                                {preset.isDefault && (
+                                  <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{preset.description}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            {(!presets || presets.length === 0) && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                No presets available
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {

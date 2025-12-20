@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Bot, User, Send, FileText, Sparkles, ArrowLeft } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { t } from "@/lib/i18n";
 import type { AiConsultation, ClinicalNote } from "@shared/schema";
 
 export default function AiConsultationPage() {
@@ -234,43 +235,61 @@ export default function AiConsultationPage() {
         {showNotes && clinicalNotes && (
           <div className="lg:col-span-1 flex flex-col border-l bg-card">
             <div className="p-4 border-b">
-              <h2 className="text-lg font-semibold">Clinical Notes</h2>
-              <p className="text-sm text-muted-foreground">SOAP Format</p>
+              <h2 className="text-lg font-semibold">{t('notes.clinicalNotes')}</h2>
+              <p className="text-sm text-muted-foreground">{t('notes.soapFormat')}</p>
             </div>
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-sm mb-1">Chief Complaint</h3>
-                  <p className="text-sm text-muted-foreground">{clinicalNotes.chiefComplaint}</p>
-                </div>
-                <Separator />
-                <div>
-                  <h3 className="font-semibold text-sm mb-1">Subjective</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {clinicalNotes.subjective}
-                  </p>
-                </div>
-                <Separator />
-                <div>
-                  <h3 className="font-semibold text-sm mb-1">Objective</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {clinicalNotes.objective}
-                  </p>
-                </div>
-                <Separator />
-                <div>
-                  <h3 className="font-semibold text-sm mb-1">Assessment</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {clinicalNotes.assessment}
-                  </p>
-                </div>
-                <Separator />
-                <div>
-                  <h3 className="font-semibold text-sm mb-1">Plan</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {clinicalNotes.plan}
-                  </p>
-                </div>
+                {clinicalNotes.chiefComplaint && (
+                  <>
+                    <div>
+                      <h3 className="font-semibold text-sm mb-1">{t('notes.chiefComplaint')}</h3>
+                      <p className="text-sm text-muted-foreground">{clinicalNotes.chiefComplaint}</p>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+                {clinicalNotes.subjective && (
+                  <>
+                    <div>
+                      <h3 className="font-semibold text-sm mb-1">{t('notes.subjective')}</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {clinicalNotes.subjective}
+                      </p>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+                {clinicalNotes.objective && (
+                  <>
+                    <div>
+                      <h3 className="font-semibold text-sm mb-1">{t('notes.objective')}</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {clinicalNotes.objective}
+                      </p>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+                {clinicalNotes.assessment && (
+                  <>
+                    <div>
+                      <h3 className="font-semibold text-sm mb-1">{t('notes.assessment')}</h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {clinicalNotes.assessment}
+                      </p>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+                {clinicalNotes.plan && (
+                  <div>
+                    <h3 className="font-semibold text-sm mb-1">{t('notes.plan')}</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {clinicalNotes.plan}
+                    </p>
+                  </div>
+                )}
                 {clinicalNotes.medications && clinicalNotes.medications.length > 0 && (
                   <>
                     <Separator />

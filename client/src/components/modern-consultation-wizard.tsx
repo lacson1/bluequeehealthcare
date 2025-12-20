@@ -1169,7 +1169,7 @@ export function ModernConsultationWizard({
                                   />
                                 ) : field.type === 'select' ? (
                                   <Select
-                                    value={specialtyFormData[activeSpecialtyForm.id]?.[field.id] || ''}
+                                    value={specialtyFormData[activeSpecialtyForm.id]?.[field.id] || undefined}
                                     onValueChange={(value) => {
                                       setSpecialtyFormData(prev => ({
                                         ...prev,
@@ -1184,11 +1184,17 @@ export function ModernConsultationWizard({
                                       <SelectValue placeholder={field.placeholder || "Select..."} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {field.options?.map((option: string) => (
-                                        <SelectItem key={option} value={option}>
-                                          {option}
+                                      {field.options && field.options.length > 0 ? (
+                                        field.options.map((option: string) => (
+                                          <SelectItem key={option} value={option}>
+                                            {option}
+                                          </SelectItem>
+                                        ))
+                                      ) : (
+                                        <SelectItem value="no-options" disabled>
+                                          No options available
                                         </SelectItem>
-                                      ))}
+                                      )}
                                     </SelectContent>
                                   </Select>
                                 ) : field.type === 'checkbox' ? (

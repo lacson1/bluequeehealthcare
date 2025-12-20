@@ -67,9 +67,28 @@ export function OrganizationRegistrationModal({ open, onOpenChange }: Organizati
 
   const createOrganizationMutation = useMutation({
     mutationFn: async (data: OrganizationData) => {
-      return apiRequest("/api/organizations", "POST", data);
+      try {
+        const response = await apiRequest("/api/organizations", "POST", data);
+        if (!response.ok) {
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
+          }
+          const errorMessage = errorData.message || errorData.error || errorData.details?.join(", ") || `HTTP ${response.status}: ${response.statusText}`;
+          throw new Error(errorMessage);
+        }
+        return response;
+      } catch (error) {
+        // Re-throw to let React Query handle it
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error("Failed to create organization");
+      }
     },
-    onSuccess: () => {
+    onSuccess: async (response) => {
       toast({
         title: "Success",
         description: "Organization created successfully"
@@ -79,9 +98,27 @@ export function OrganizationRegistrationModal({ open, onOpenChange }: Organizati
       onOpenChange(false);
     },
     onError: (error: any) => {
+      // Only log to console in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Organization creation error:", error);
+      }
+      
+      let errorMessage = "Failed to create organization. Please try again.";
+      
+      if (error?.message) {
+        errorMessage = error.message;
+        
+        // Try to extract detailed error information
+        if (error.message.includes("Validation failed") || error.message.includes("Invalid")) {
+          errorMessage = "Please check all required fields and try again.";
+        } else if (error.message.includes("already exists")) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error?.message || "Failed to create organization",
+        description: errorMessage,
         variant: "destructive"
       });
     }

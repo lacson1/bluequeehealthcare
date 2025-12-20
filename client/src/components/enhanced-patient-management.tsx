@@ -67,6 +67,16 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
     }
   });
 
+  // Fetch dashboard stats to get accurate total patients count (organization-filtered)
+  const { data: dashboardStats } = useQuery<{ totalPatients: number }>({
+    queryKey: ['/api/dashboard/stats'],
+    select: (data: any) => ({
+      totalPatients: data?.totalPatients || 0
+    }),
+    retry: false, // Don't retry if endpoint is not available
+    refetchOnWindowFocus: false
+  });
+
   // Enhanced filtering and sorting
   const filteredAndSortedPatients = useMemo(() => {
     let filtered = patients.filter((patient: PatientWithStats) => {
@@ -107,15 +117,15 @@ export default function EnhancedPatientManagement({ user, onPatientSelect }: Enh
     return filtered;
   }, [patients, searchQuery, filterBy, sortBy]);
 
-  // Statistics calculation
+  // Statistics calculation - use dashboard stats for total patients to ensure consistency
   const statistics = useMemo(() => {
     return {
-      totalPatients: patients.length,
+      totalPatients: dashboardStats?.totalPatients ?? patients.length, // Use dashboard count for accuracy
       priorityPatients: patients.filter(p => p.isPriority).length,
       highRiskPatients: patients.filter(p => p.riskLevel === 'high').length,
       recentPatients: patients.filter(p => p.lastVisit && new Date(p.lastVisit) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length
     };
-  }, [patients]);
+  }, [patients, dashboardStats]);
 
   // Bulk actions
   const handleBulkAction = async (action: string) => {

@@ -28,6 +28,7 @@ const availableRoutes = [
   { path: "/profile", name: "Profile", description: "User profile and settings" },
   { path: "/user-management", name: "User Management", description: "System user administration" },
   { path: "/audit-logs", name: "Audit Logs", description: "System activity and security logs" },
+  { path: "/error-monitoring", name: "Error Monitoring", description: "System error tracking and monitoring" },
   { path: "/organization-management", name: "Organization Management", description: "Multi-tenant organization settings" }
 ];
 

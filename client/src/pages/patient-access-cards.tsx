@@ -331,11 +331,18 @@ export default function PatientAccessCards() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Patient Portal Access Cards</h1>
-        <p className="text-gray-600">Generate professional access cards with QR codes and barcodes for easy patient portal setup</p>
-      </div>
+    <div className="h-full flex flex-col">
+      {/* Enhanced Fixed Header */}
+      <header className="healthcare-header px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h2 className="text-2xl font-bold text-white drop-shadow-sm">Patient Portal Access Cards</h2>
+            <p className="text-white/90 font-medium">Generate professional access cards with QR codes and barcodes for easy patient portal setup</p>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 overflow-auto p-6 space-y-6">
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -721,6 +728,7 @@ export default function PatientAccessCards() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

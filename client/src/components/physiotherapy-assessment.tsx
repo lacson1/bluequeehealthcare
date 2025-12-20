@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { formatPatientName } from '@/lib/patient-utils';
 import { Activity, Target, Zap, Clock, Download, ExternalLink, Printer, BookOpen, FileText, Heart } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,6 +22,12 @@ interface PhysiotherapyAssessmentProps {
 export default function PhysiotherapyAssessment({ patientId, visitId }: PhysiotherapyAssessmentProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch patient data to display name
+  const { data: patient } = useQuery({
+    queryKey: [`/api/patients/${patientId}`],
+    enabled: !!patientId,
+  });
 
   const [assessmentData, setAssessmentData] = useState({
     mobilityAssessment: '',
@@ -100,7 +107,7 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
           <Activity className="w-5 h-5" />
           Physiotherapy Assessment
           <Badge variant="outline" className="ml-auto bg-purple-100 text-purple-700">
-            Patient #{patientId}
+            {patient ? formatPatientName(patient) : `Patient #${patientId}`}
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -403,9 +410,31 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                           Preview Leaflet
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Exercise Prescription Leaflet</DialogTitle>
+                      <DialogContent className="max-w-[650px] w-full max-h-[95vh] overflow-y-auto p-4 sm:p-6">
+                        <DialogHeader className="pb-4 border-b mb-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <DialogTitle className="text-base sm:text-lg font-semibold flex-shrink-0">
+                              Exercise Prescription Leaflet
+                            </DialogTitle>
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button 
+                                variant="outline" 
+                                onClick={() => window.print()}
+                                size="sm"
+                                className="h-8 px-3 text-xs sm:text-sm"
+                              >
+                                <Printer className="w-3.5 h-3.5 mr-1.5" />
+                                Print
+                              </Button>
+                              <Button 
+                                size="sm"
+                                className="h-8 px-3 text-xs sm:text-sm"
+                              >
+                                <Download className="w-3.5 h-3.5 mr-1.5" />
+                                PDF
+                              </Button>
+                            </div>
+                          </div>
                         </DialogHeader>
                         <div className="space-y-4 p-4 bg-white">
                           <div className="text-center border-b pb-4">
@@ -453,16 +482,6 @@ export default function PhysiotherapyAssessment({ patientId, visitId }: Physioth
                               <li>• Contact clinic if concerns arise</li>
                             </ul>
                           </div>
-                        </div>
-                        <div className="flex justify-end gap-2 pt-4">
-                          <Button variant="outline" onClick={() => window.print()}>
-                            <Printer className="w-4 h-4 mr-2" />
-                            Print Leaflet
-                          </Button>
-                          <Button>
-                            <Download className="w-4 h-4 mr-2" />
-                            Download PDF
-                          </Button>
                         </div>
                       </DialogContent>
                     </Dialog>

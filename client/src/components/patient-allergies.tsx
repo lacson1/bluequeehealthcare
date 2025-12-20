@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { AlertTriangle, Plus, Trash, Edit, Calendar, Check, ChevronsUpDown, Pill, Apple, Wind } from 'lucide-react';
+import { AlertTriangle, Plus, Trash, Edit, Calendar, Check, ChevronsUpDown, Pill, Apple, Wind, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -179,6 +179,12 @@ export function PatientAllergies({ patientId }: PatientAllergiesProps) {
   const addAllergyMutation = useMutation({
     mutationFn: async (data: AllergyFormData) => {
       const response = await apiRequest(`/api/patients/${patientId}/allergies`, 'POST', data);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to add allergy' }));
+        throw new Error(errorData.message || `Server error: ${response.status} ${response.statusText}`);
+      }
+      
       return response.json();
     },
     onSuccess: () => {
@@ -186,9 +192,16 @@ export function PatientAllergies({ patientId }: PatientAllergiesProps) {
       toast({ title: "Success", description: "Allergy added successfully" });
       setIsAddDialogOpen(false);
       form.reset();
+      setAllergenSearch('');
+      setAllergenSearchOpen(false);
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to add allergy", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error('Error adding allergy:', error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to add allergy", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -275,25 +288,35 @@ export function PatientAllergies({ patientId }: PatientAllergiesProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-red-600" />
           <h3 className="text-lg font-semibold">Allergies & Adverse Reactions</h3>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingAllergy(null); form.reset(); }} title="Add Allergy">
+            <Button 
+              onClick={() => { 
+                setEditingAllergy(null); 
+                form.reset();
+                setAllergenSearch('');
+                setAllergenSearchOpen(false);
+              }} 
+              className="gap-2"
+              title="Add Allergy"
+            >
               <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Allergy</span>
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingAllergy ? 'Edit Allergy' : 'Add New Allergy'}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {/* Allergy Type - Select First to Filter Allergens */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="allergyType"
@@ -531,12 +554,34 @@ export function PatientAllergies({ patientId }: PatientAllergiesProps) {
                   )}
                 />
 
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsAddDialogOpen(false);
+                      setAllergenSearch('');
+                      setAllergenSearchOpen(false);
+                    }}
+                    className="w-full sm:w-auto"
+                  >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={addAllergyMutation.isPending || updateAllergyMutation.isPending}>
-                    {editingAllergy ? 'Update' : 'Add'} Allergy
+                  <Button 
+                    type="submit" 
+                    disabled={addAllergyMutation.isPending || updateAllergyMutation.isPending}
+                    className="w-full sm:w-auto"
+                  >
+                    {addAllergyMutation.isPending || updateAllergyMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {editingAllergy ? 'Updating...' : 'Adding...'}
+                      </>
+                    ) : (
+                      <>
+                        {editingAllergy ? 'Update' : 'Add'} Allergy
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>
@@ -554,14 +599,31 @@ export function PatientAllergies({ patientId }: PatientAllergiesProps) {
           <CardContent className="pt-6">
             <div className="text-center py-8 text-gray-500">
               <AlertTriangle className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-              <p className="text-sm">No allergies recorded</p>
-              <p className="text-xs text-gray-400 mt-2">Click "Add Allergy" to record patient allergies</p>
+              <p className="text-sm font-medium mb-2">No allergies recorded</p>
+              <p className="text-xs text-gray-400 mb-4">Click "Add Allergy" above to record patient allergies</p>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    onClick={() => { 
+                      setEditingAllergy(null); 
+                      form.reset();
+                      setAllergenSearch('');
+                      setAllergenSearchOpen(false);
+                    }} 
+                    className="gap-2"
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add First Allergy
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {allergies.map((allergy: any) => (
+          {(Array.isArray(allergies) ? allergies : []).map((allergy: any) => (
             <Card key={allergy.id} className="border-l-4 border-l-red-500">
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">

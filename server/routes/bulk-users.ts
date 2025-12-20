@@ -175,6 +175,13 @@ router.post('/bulk-import', authenticateToken, requireAnyRole(['admin', 'super_a
           continue;
         }
 
+        // Validate role is not empty or whitespace
+        if (typeof userData.role !== 'string' || userData.role.trim() === '') {
+          results.failed++;
+          results.errors.push(`Row ${index + 1}: Role cannot be empty or whitespace`);
+          continue;
+        }
+
         // Check if username already exists
         const [existingUser] = await db.select()
           .from(users)
@@ -189,11 +196,11 @@ router.post('/bulk-import', authenticateToken, requireAnyRole(['admin', 'super_a
         // Hash password
         const hashedPassword = await hashPassword(userData.password);
 
-        // Create user
+        // Create user with trimmed role
         await db.insert(users).values({
           username: userData.username,
           password: hashedPassword,
-          role: userData.role,
+          role: userData.role.trim(),
           email: userData.email || null,
           firstName: userData.firstName || null,
           lastName: userData.lastName || null,

@@ -192,8 +192,14 @@ export default function OrganizationManagement() {
       toast({ title: "Success", description: "Organization status updated!" });
       queryClient.invalidateQueries({ queryKey: ["/api/organizations"] });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+    onError: (error: any) => {
+      const errorMessage = error?.message || error?.response?.data?.message || "Failed to update organization status";
+      console.error("Failed to update organization status:", error);
+      toast({ 
+        title: "Error", 
+        description: errorMessage,
+        variant: "destructive" 
+      });
     }
   });
 

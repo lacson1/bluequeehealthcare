@@ -8,11 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Brain, 
-  Users, 
-  Calendar, 
-  FileText, 
+import {
+  Brain,
+  Users,
+  Calendar,
+  FileText,
   Search,
   Clock,
   Target,
@@ -40,17 +40,20 @@ export default function PsychologicalTherapyPage() {
   const [showAssessmentDialog, setShowAssessmentDialog] = useState(false);
 
   // Fetch patients
-  const { data: patients = [] } = useQuery({
+  const { data: patientsData } = useQuery<any[]>({
     queryKey: ['/api/patients'],
   });
 
+  const patients = patientsData || [];
+
   // Fetch psychological therapy sessions
-  const { data: sessions = [] } = useQuery({
+  const { data: sessionsData } = useQuery<any[]>({
     queryKey: ['/api/consultation-records'],
-    select: (data: any[]) => data.filter(record => 
-      record.formData?.type === 'psychological_therapy_session'
-    )
   });
+
+  const sessions = (sessionsData || []).filter((record: any) =>
+    record.formData?.type === 'psychological_therapy_session'
+  );
 
   // Filter patients based on search
   const filteredPatients = patients.filter((patient: any) =>
@@ -60,9 +63,8 @@ export default function PsychologicalTherapyPage() {
   );
 
   // Get recent sessions
-  const recentSessions = sessions
-    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+  const sortedSessions = [...(sessions || [])].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const recentSessions = sortedSessions.slice(0, 5);
 
   // Calculate statistics
   const todaySessions = sessions.filter((s: any) => {
@@ -181,8 +183,8 @@ export default function PsychologicalTherapyPage() {
                     </div>
                   ) : (
                     filteredPatients.map((patient: any) => (
-                      <div 
-                        key={patient.id} 
+                      <div
+                        key={patient.id}
                         className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                         onClick={() => handlePatientSelect(patient)}
                       >
@@ -196,7 +198,7 @@ export default function PsychologicalTherapyPage() {
                                 {patient.firstName} {patient.lastName}
                               </h3>
                               <p className="text-sm text-gray-600">
-                                {patient.phone} • {patient.gender} • Age: {patient.dateOfBirth ? 
+                                {patient.phone} • {patient.gender} • Age: {patient.dateOfBirth ?
                                   new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear() : 'N/A'}
                               </p>
                             </div>
@@ -233,9 +235,9 @@ export default function PsychologicalTherapyPage() {
                   </div>
                 ) : (
                   recentSessions.map((session: any) => {
-                    const patient = patients.find((p: any) => p.id === session.patientId);
+                    const patient = (patients as any[]).find((p: any) => p.id === session.patientId);
                     const formData = session.formData || {};
-                    
+
                     return (
                       <div key={session.id} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between">
@@ -248,14 +250,14 @@ export default function PsychologicalTherapyPage() {
                                 {formData.therapyType || 'Therapy Session'}
                               </Badge>
                             </div>
-                            
+
                             {formData.sessionFocus && (
                               <div className="mb-2">
                                 <span className="text-sm font-medium text-indigo-700">Session Focus:</span>
                                 <p className="text-sm text-gray-700">{formData.sessionFocus}</p>
                               </div>
                             )}
-                            
+
                             {formData.interventionsUsed && (
                               <div className="mb-2">
                                 <span className="text-sm font-medium text-indigo-700">Interventions:</span>
@@ -270,7 +272,7 @@ export default function PsychologicalTherapyPage() {
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="text-right text-sm text-gray-500">
                             <div className="flex items-center gap-1 mb-1">
                               <Clock className="w-3 h-3" />
@@ -316,21 +318,28 @@ export default function PsychologicalTherapyPage() {
 
       {/* Assessment Dialog */}
       <Dialog open={showAssessmentDialog} onOpenChange={setShowAssessmentDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Psychological Therapy Session</DialogTitle>
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b bg-indigo-50">
+            <DialogTitle className="flex items-center gap-2 text-indigo-800">
+              <Brain className="w-5 h-5" />
+              Psychological Therapy Session
+            </DialogTitle>
             {selectedPatient && (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 mt-1">
                 Patient: {selectedPatient.firstName} {selectedPatient.lastName} (ID: {selectedPatient.id})
               </p>
             )}
           </DialogHeader>
-          
-          {selectedPatient && (
-            <PsychologicalTherapyAssessment 
-              patientId={selectedPatient.id}
-            />
-          )}
+
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {selectedPatient && (
+              <PsychologicalTherapyAssessment
+                patientId={selectedPatient.id}
+                onSuccess={() => setShowAssessmentDialog(false)}
+                inModal={true}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

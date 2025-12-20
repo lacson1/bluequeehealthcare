@@ -455,15 +455,38 @@ export const printWithOrganizationHeader = (
   
   const printWindow = window.open('', '_blank');
   if (printWindow) {
+    printWindow.document.open();
     printWindow.document.write(fullHTML);
     printWindow.document.close();
     
-    // Wait for content to load before printing
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-      }, 250);
+    // Wait for the window to be ready before printing
+    const tryPrint = () => {
+      try {
+        if (printWindow && !printWindow.closed) {
+          printWindow.focus();
+          printWindow.print();
+        }
+      } catch (error) {
+        console.error('Print error:', error);
+      }
     };
+
+    // Method 1: Check if already loaded
+    if (printWindow.document.readyState === 'complete') {
+      setTimeout(tryPrint, 100);
+    } else {
+      // Wait for load event
+      printWindow.addEventListener('load', () => {
+        setTimeout(tryPrint, 250);
+      }, { once: true });
+    }
+
+    // Method 2: Fallback timeout
+    setTimeout(() => {
+      if (printWindow && !printWindow.closed) {
+        tryPrint();
+      }
+    }, 500);
   }
 };
 

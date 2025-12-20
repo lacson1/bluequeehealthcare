@@ -211,7 +211,7 @@ export function StaffRegistrationModal({ open, onOpenChange }: StaffRegistration
                             </SelectItem>
                           ))}
                           {availableOrganizations.length === 0 && (
-                            <SelectItem value="" disabled>
+                            <SelectItem value="no-orgs" disabled>
                               No organizations available
                             </SelectItem>
                           )}

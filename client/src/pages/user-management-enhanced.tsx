@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { StaffRegistrationModal } from "@/components/staff-registration-modal";
 import { OrganizationRegistrationModal } from "@/components/organization-registration-modal";
+import type { Role } from "@/types/role-permissions";
 
 const USER_ROLES = [
   {
@@ -80,6 +81,9 @@ export default function UserManagementEnhanced() {
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [managementTab, setManagementTab] = useState<"users" | "organizations">("users");
+  const [assignRoleDialogOpen, setAssignRoleDialogOpen] = useState(false);
+  const [selectedUserForRole, setSelectedUserForRole] = useState<User | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -88,6 +92,7 @@ export default function UserManagementEnhanced() {
     username: "",
     password: "",
     role: "",
+    roleId: "",
     title: "",
     firstName: "",
     lastName: "",
@@ -106,6 +111,45 @@ export default function UserManagementEnhanced() {
   const { data: organizations = [] } = useQuery({
     queryKey: ["/api/organizations"],
   });
+
+  // Fetch RBAC roles
+  const { data: rbacRoles = [], isLoading: rolesLoading } = useQuery<Role[]>({
+    queryKey: ["/api/access-control/roles"],
+  });
+
+  // Create a map of roleId to role for quick lookup
+  const roleMap = useMemo(() => {
+    const map = new Map<number, Role>();
+    rbacRoles.forEach(role => {
+      map.set(role.id, role);
+    });
+    return map;
+  }, [rbacRoles]);
+
+  // Get role name for a user (prefer RBAC role, fallback to legacy role)
+  const getUserRoleName = (user: User): string => {
+    if (user.roleId && roleMap.has(user.roleId)) {
+      return roleMap.get(user.roleId)!.name;
+    }
+    return user.role || "No Role";
+  };
+
+  // Get role display info for a user
+  const getUserRoleInfo = (user: User) => {
+    if (user.roleId && roleMap.has(user.roleId)) {
+      const role = roleMap.get(user.roleId)!;
+      // Try to match with legacy role config for icon/color
+      const legacyRole = USER_ROLES.find(r => r.value.toLowerCase() === role.name.toLowerCase());
+      return {
+        name: role.name,
+        description: role.description || legacyRole?.description || "",
+        icon: legacyRole?.icon || Shield,
+        color: legacyRole?.color || "bg-gray-100 text-gray-800",
+      };
+    }
+    // Fallback to legacy role
+    return getRoleConfig(user.role);
+  };
 
   // Create user mutation
   const createUserMutation = useMutation({
@@ -138,9 +182,20 @@ export default function UserManagementEnhanced() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, userData }: { id: number; userData: any }) => {
-      return apiRequest(`/api/users/${id}`, "PATCH", userData);
+      try {
+        console.log("Mutation: Sending update request for user", id, "with data:", userData);
+        const response = await apiRequest(`/api/users/${id}`, "PATCH", userData);
+        console.log("Mutation: Response received:", response.status, response.statusText);
+        const data = await response.json();
+        console.log("Mutation: Response data:", data);
+        return data;
+      } catch (error: any) {
+        console.error("Mutation: Error caught:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Mutation: Success callback triggered", data);
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setEditDialogOpen(false);
       resetForm();
@@ -150,9 +205,11 @@ export default function UserManagementEnhanced() {
       });
     },
     onError: (error: any) => {
+      console.error("Mutation: Error callback triggered", error);
+      const errorMessage = error?.message || error?.toString() || "Failed to update user";
       toast({
         title: "Error",
-        description: error.message || "Failed to update user",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -184,6 +241,7 @@ export default function UserManagementEnhanced() {
       username: "",
       password: "",
       role: "",
+      roleId: "",
       title: "",
       firstName: "",
       lastName: "",
@@ -195,46 +253,183 @@ export default function UserManagementEnhanced() {
   };
 
   const handleCreateUser = () => {
-    if (!formData.username || !formData.password || !formData.role || !formData.organizationId) {
+    if (!formData.username || !formData.password || !formData.organizationId) {
       toast({
         title: "Error",
-        description: "Username, password, role, and organization are required",
+        description: "Username, password, and organization are required",
         variant: "destructive"
       });
       return;
     }
 
-    const userData = {
-      ...formData,
-      organizationId: parseInt(formData.organizationId)
-    };
+    // Validate role is provided (either roleId or role)
+    if (!formData.roleId && !formData.role) {
+      toast({
+        title: "Error",
+        description: "Role is required. Please select a role for the user.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    createUserMutation.mutate(userData as any);
-  };
-
-  const handleUpdateUser = () => {
-    if (!selectedUser) return;
-
-    const updateData: any = {
+    // Use roleId if provided, otherwise fallback to role string
+    const userData: any = {
       username: formData.username,
-      role: formData.role,
+      password: formData.password,
+      organizationId: parseInt(formData.organizationId),
       title: formData.title,
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
       phone: formData.phone,
-      photoUrl: formData.photoUrl
+      photoUrl: formData.photoUrl,
     };
 
-    if (formData.organizationId) {
-      updateData.organizationId = parseInt(formData.organizationId);
+    // Prefer roleId (RBAC) over role (legacy)
+    if (formData.roleId && formData.roleId !== '') {
+      const roleIdNum = parseInt(formData.roleId);
+      if (!isNaN(roleIdNum)) {
+        userData.roleId = roleIdNum;
+        // Also set legacy role for backward compatibility
+        const selectedRole = rbacRoles.find(r => r.id === roleIdNum);
+        if (selectedRole) {
+          userData.role = selectedRole.name.toLowerCase();
+        } else {
+          toast({
+            title: "Error",
+            description: "Selected role not found. Please select a valid role.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+    } else if (formData.role && formData.role.trim() !== '') {
+      userData.role = formData.role.trim();
+    } else {
+      toast({
+        title: "Error",
+        description: "Role cannot be empty. Please select a valid role.",
+        variant: "destructive"
+      });
+      return;
     }
 
-    if (formData.password) {
-      updateData.password = formData.password;
+    createUserMutation.mutate(userData);
+  };
+
+  const handleUpdateUser = () => {
+    if (!selectedUser) {
+      toast({
+        title: "Error",
+        description: "No user selected",
+        variant: "destructive"
+      });
+      return;
     }
 
-    updateUserMutation.mutate({ id: selectedUser.id, userData: updateData });
+    try {
+      const updateData: any = {};
+
+      // Only include fields that have values
+      if (formData.username && formData.username.trim()) {
+        updateData.username = formData.username.trim();
+      }
+      if (formData.title !== undefined) {
+        updateData.title = formData.title === 'none' || formData.title === '' ? null : formData.title;
+      }
+      if (formData.firstName !== undefined) {
+        updateData.firstName = formData.firstName.trim() || null;
+      }
+      if (formData.lastName !== undefined) {
+        updateData.lastName = formData.lastName.trim() || null;
+      }
+      if (formData.email !== undefined) {
+        updateData.email = formData.email.trim() || null;
+      }
+      if (formData.phone !== undefined) {
+        updateData.phone = formData.phone.trim() || null;
+      }
+      if (formData.photoUrl !== undefined) {
+        updateData.photoUrl = formData.photoUrl.trim() || null;
+      }
+
+      if (formData.organizationId && formData.organizationId !== '') {
+        updateData.organizationId = parseInt(formData.organizationId);
+      }
+
+      if (formData.password && formData.password.trim()) {
+        updateData.password = formData.password;
+      }
+
+      // Prefer roleId (RBAC) over role (legacy)
+      // IMPORTANT: If role is being updated, validate it's not empty
+      if (formData.roleId && formData.roleId !== '') {
+        const roleIdNum = parseInt(formData.roleId);
+        if (!isNaN(roleIdNum)) {
+          updateData.roleId = roleIdNum;
+          // Also set legacy role for backward compatibility
+          const selectedRole = rbacRoles.find(r => r.id === roleIdNum);
+          if (selectedRole) {
+            updateData.role = selectedRole.name.toLowerCase();
+          } else {
+            toast({
+              title: "Error",
+              description: "Selected role not found. Please select a valid role.",
+              variant: "destructive"
+            });
+            return;
+          }
+        }
+      } else if (formData.role !== undefined && formData.role !== null) {
+        // If role field is explicitly set (even if empty), validate it
+        if (formData.role === '' || formData.role.trim() === '') {
+          toast({
+            title: "Error",
+            description: "Role cannot be empty. Users must have a role assigned.",
+            variant: "destructive"
+          });
+          return;
+        }
+        updateData.role = formData.role.trim();
+      }
+      // If neither roleId nor role is provided, we don't update the role (preserve existing)
+
+      // Remove undefined values
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
+        }
+      });
+
+      if (Object.keys(updateData).length === 0) {
+        toast({
+          title: "No changes",
+          description: "Please make at least one change before updating",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log("handleUpdateUser: Calling mutation with:", { id: selectedUser.id, userData: updateData });
+      updateUserMutation.mutate(
+        { id: selectedUser.id, userData: updateData },
+        {
+          onSuccess: (data) => {
+            console.log("handleUpdateUser: Mutation success", data);
+          },
+          onError: (error) => {
+            console.error("handleUpdateUser: Mutation error", error);
+          }
+        }
+      );
+    } catch (error: any) {
+      console.error("Error in handleUpdateUser:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to prepare update data",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditClick = (user: User) => {
@@ -242,7 +437,8 @@ export default function UserManagementEnhanced() {
     setFormData({
       username: user.username,
       password: "",
-      role: user.role,
+      role: user.role || "",
+      roleId: user.roleId?.toString() || "",
       title: user.title || "",
       firstName: user.firstName || "",
       lastName: user.lastName || "",
@@ -252,6 +448,45 @@ export default function UserManagementEnhanced() {
       organizationId: user.organizationId?.toString() || ""
     });
     setEditDialogOpen(true);
+  };
+
+  // Assign role mutation
+  const assignRoleMutation = useMutation({
+    mutationFn: async ({ userId, roleId }: { userId: number; roleId: number | null }) => {
+      return apiRequest(`/api/access-control/users/${userId}/role`, "PUT", { roleId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/access-control/roles"] });
+      setAssignRoleDialogOpen(false);
+      setSelectedUserForRole(null);
+      setSelectedRoleId("");
+      toast({
+        title: "Success",
+        description: "Role assigned successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign role",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAssignRoleClick = (user: User) => {
+    setSelectedUserForRole(user);
+    setSelectedRoleId(user.roleId?.toString() || "");
+    setAssignRoleDialogOpen(true);
+  };
+
+  const handleAssignRole = () => {
+    if (!selectedUserForRole) return;
+    assignRoleMutation.mutate({
+      userId: selectedUserForRole.id,
+      roleId: selectedRoleId ? parseInt(selectedRoleId) : null,
+    });
   };
 
   const handleDeleteUser = (id: number) => {
@@ -294,26 +529,36 @@ export default function UserManagementEnhanced() {
     let filtered = users;
 
     if (activeTab !== "all") {
-      filtered = filtered.filter(user => user.role === activeTab);
+      filtered = filtered.filter(user => {
+        const roleName = getUserRoleName(user).toLowerCase();
+        return roleName === activeTab || user.role === activeTab;
+      });
     }
 
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(user =>
-        user.username.toLowerCase().includes(searchLower) ||
-        (user.firstName && user.firstName.toLowerCase().includes(searchLower)) ||
-        (user.lastName && user.lastName.toLowerCase().includes(searchLower)) ||
-        (user.email && user.email.toLowerCase().includes(searchLower)) ||
-        user.role.toLowerCase().includes(searchLower)
-      );
+      filtered = filtered.filter(user => {
+        const roleName = getUserRoleName(user).toLowerCase();
+        return (
+          user.username.toLowerCase().includes(searchLower) ||
+          (user.firstName && user.firstName.toLowerCase().includes(searchLower)) ||
+          (user.lastName && user.lastName.toLowerCase().includes(searchLower)) ||
+          (user.email && user.email.toLowerCase().includes(searchLower)) ||
+          roleName.includes(searchLower) ||
+          (user.role && user.role.toLowerCase().includes(searchLower))
+        );
+      });
     }
 
     if (filterSpecialty && filterSpecialty !== "all") {
-      filtered = filtered.filter(user => user.role === filterSpecialty);
+      filtered = filtered.filter(user => {
+        const roleName = getUserRoleName(user).toLowerCase();
+        return roleName === filterSpecialty || user.role === filterSpecialty;
+      });
     }
 
     return filtered;
-  }, [users, activeTab, searchTerm, filterSpecialty]);
+  }, [users, activeTab, searchTerm, filterSpecialty, getUserRoleName]);
 
   // Helper functions
   const getUserInitials = (user: User) => {
@@ -328,9 +573,21 @@ export default function UserManagementEnhanced() {
 
   const getRoleCounts = () => {
     const counts: { [key: string]: number } = { all: users.length };
-    USER_ROLES.forEach(role => {
-      counts[role.value] = users.filter(u => u.role === role.value).length;
+
+    // Count RBAC roles
+    rbacRoles.forEach(role => {
+      counts[role.name.toLowerCase()] = users.filter(u =>
+        u.roleId === role.id || getUserRoleName(u).toLowerCase() === role.name.toLowerCase()
+      ).length;
     });
+
+    // Also count legacy roles for backward compatibility
+    USER_ROLES.forEach(role => {
+      if (!counts[role.value]) {
+        counts[role.value] = users.filter(u => u.role === role.value && !u.roleId).length;
+      }
+    });
+
     return counts;
   };
 
@@ -401,16 +658,41 @@ export default function UserManagementEnhanced() {
 
                     <div>
                       <Label htmlFor="role">Role *</Label>
-                      <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                      <Select
+                        value={formData.roleId || formData.role}
+                        onValueChange={(value) => {
+                          // Check if it's a roleId (numeric) or legacy role (string)
+                          const isRoleId = rbacRoles.some(r => r.id.toString() === value);
+                          if (isRoleId) {
+                            setFormData({ ...formData, roleId: value, role: "" });
+                          } else {
+                            setFormData({ ...formData, role: value, roleId: "" });
+                          }
+                        }}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          {USER_ROLES.map((role) => (
-                            <SelectItem key={role.value} value={role.value}>
-                              {role.label}
-                            </SelectItem>
-                          ))}
+                          {rolesLoading ? (
+                            <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                          ) : (
+                            <>
+                              {rbacRoles.length > 0 ? (
+                                rbacRoles.map((role) => (
+                                  <SelectItem key={role.id} value={role.id.toString()}>
+                                    {role.name} {role.description && `- ${role.description}`}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                USER_ROLES.map((role) => (
+                                  <SelectItem key={role.value} value={role.value}>
+                                    {role.label}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -565,8 +847,8 @@ export default function UserManagementEnhanced() {
             <button
               onClick={() => setActiveTab("all")}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === "all"
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
                 }`}
             >
               All ({roleCounts.all})
@@ -578,8 +860,8 @@ export default function UserManagementEnhanced() {
                   key={role.value}
                   onClick={() => setActiveTab(role.value)}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${activeTab === role.value
-                      ? "bg-white text-slate-900 shadow-sm"
-                      : "text-slate-600 hover:text-slate-900"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -602,8 +884,8 @@ export default function UserManagementEnhanced() {
             ) : (
               <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"}>
                 {filteredUsers.map((user) => {
-                  const roleConfig = getRoleConfig(user.role);
-                  const Icon = roleConfig.icon;
+                  const roleInfo = getUserRoleInfo(user);
+                  const Icon = roleInfo.icon;
 
                   if (viewMode === "grid") {
                     return (
@@ -635,8 +917,8 @@ export default function UserManagementEnhanced() {
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
-                              <Badge className={roleConfig.color}>
-                                {roleConfig.label}
+                              <Badge className={roleInfo.color}>
+                                {roleInfo.name}
                               </Badge>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -648,6 +930,10 @@ export default function UserManagementEnhanced() {
                                   <DropdownMenuItem onClick={() => handleEditClick(user)}>
                                     <Edit className="w-4 h-4 mr-2" />
                                     Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleAssignRoleClick(user)}>
+                                    <Shield className="w-4 h-4 mr-2" />
+                                    Assign Role
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
@@ -664,9 +950,8 @@ export default function UserManagementEnhanced() {
                         </TooltipTrigger>
                         <TooltipContent>
                           <div className="p-2">
-                            <p className="font-medium">{roleConfig.label}</p>
-                            <p className="text-xs text-slate-600">{roleConfig.description}</p>
-                            <p className="text-xs text-slate-500">Specialty: {roleConfig.specialty}</p>
+                            <p className="font-medium">{roleInfo.name}</p>
+                            <p className="text-xs text-slate-600">{roleInfo.description}</p>
                           </div>
                         </TooltipContent>
                       </Tooltip>
@@ -698,8 +983,8 @@ export default function UserManagementEnhanced() {
                               </h3>
                               <p className="text-sm text-slate-600">{user.email || user.username}</p>
                             </div>
-                            <Badge className={roleConfig.color}>
-                              {roleConfig.label}
+                            <Badge className={roleInfo.color}>
+                              {roleInfo.name}
                             </Badge>
                           </div>
                           <DropdownMenu>
@@ -712,6 +997,10 @@ export default function UserManagementEnhanced() {
                               <DropdownMenuItem onClick={() => handleEditClick(user)}>
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleAssignRoleClick(user)}>
+                                <Shield className="w-4 h-4 mr-2" />
+                                Assign Role
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -739,7 +1028,24 @@ export default function UserManagementEnhanced() {
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Form submit prevented, calling handleUpdateUser");
+                handleUpdateUser();
+                return false;
+              }}
+              onKeyDown={(e) => {
+                // Prevent form submission on Enter key in inputs
+                if (e.key === 'Enter' && e.target instanceof HTMLInputElement && e.target.type !== 'submit') {
+                  e.preventDefault();
+                  // Optionally trigger update on Enter
+                  // handleUpdateUser();
+                }
+              }}
+            >
               <div>
                 <Label htmlFor="edit-username">Username *</Label>
                 <Input
@@ -763,16 +1069,40 @@ export default function UserManagementEnhanced() {
 
               <div>
                 <Label htmlFor="edit-role">Role *</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                <Select
+                  value={formData.roleId || formData.role}
+                  onValueChange={(value) => {
+                    const isRoleId = rbacRoles.some(r => r.id.toString() === value);
+                    if (isRoleId) {
+                      setFormData({ ...formData, roleId: value, role: "" });
+                    } else {
+                      setFormData({ ...formData, role: value, roleId: "" });
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {USER_ROLES.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        {role.label}
-                      </SelectItem>
-                    ))}
+                    {rolesLoading ? (
+                      <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                    ) : (
+                      <>
+                        {rbacRoles.length > 0 ? (
+                          rbacRoles.map((role) => (
+                            <SelectItem key={role.id} value={role.id.toString()}>
+                              {role.name} {role.description && `- ${role.description}`}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          USER_ROLES.map((role) => (
+                            <SelectItem key={role.value} value={role.value}>
+                              {role.label}
+                            </SelectItem>
+                          ))
+                        )}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -845,14 +1175,96 @@ export default function UserManagementEnhanced() {
               </div>
 
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setEditDialogOpen(false);
+                  }}
+                >
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleUpdateUser}
-                  disabled={updateUserMutation.isPending}
+                  type="submit"
+                  onClick={(e) => {
+                    // Let form onSubmit handle it, but also prevent default just in case
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log("Submit button clicked");
+                    handleUpdateUser();
+                  }}
+                  disabled={updateUserMutation.isPending || !selectedUser}
                 >
                   {updateUserMutation.isPending ? "Updating..." : "Update User"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Assign Role Dialog */}
+        <Dialog open={assignRoleDialogOpen} onOpenChange={setAssignRoleDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Assign Role</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {selectedUserForRole && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Assign a role to <strong>{selectedUserForRole.firstName && selectedUserForRole.lastName
+                      ? `${selectedUserForRole.firstName} ${selectedUserForRole.lastName}`
+                      : selectedUserForRole.username}</strong>
+                  </p>
+                </div>
+              )}
+              <div>
+                <Label htmlFor="assign-role">Select Role</Label>
+                <Select
+                  value={selectedRoleId}
+                  onValueChange={(value) => {
+                    if (value === 'no-role') {
+                      setSelectedRoleId('');
+                    } else {
+                      setSelectedRoleId(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no-role">No Role</SelectItem>
+                    {rolesLoading ? (
+                      <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                    ) : (
+                      rbacRoles.map((role) => (
+                        <SelectItem key={role.id} value={role.id.toString()}>
+                          {role.name} {role.description && `- ${role.description}`}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setAssignRoleDialogOpen(false);
+                    setSelectedUserForRole(null);
+                    setSelectedRoleId("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAssignRole}
+                  disabled={assignRoleMutation.isPending}
+                >
+                  {assignRoleMutation.isPending ? "Assigning..." : "Assign Role"}
                 </Button>
               </div>
             </div>

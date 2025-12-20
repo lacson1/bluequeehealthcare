@@ -178,7 +178,7 @@ export const setupErrorRoutes = (app: any) => {
   });
   
   // Get error dashboard data
-  app.get('/api/errors/dashboard', async (req: AuthRequest, res: Response) => {
+  app.get('/api/errors/dashboard', authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const organizationId = req.user?.organizationId;
       const timeframe = req.query.timeframe as string || '24h';
@@ -234,7 +234,7 @@ export const setupErrorRoutes = (app: any) => {
         .limit(50);
       
       // Get performance metrics
-      const performanceMetrics = await db
+      const performanceMetricsRaw = await db
         .select({
           metric: systemHealth.metric,
           avgValue: avg(systemHealth.value),
@@ -247,6 +247,12 @@ export const setupErrorRoutes = (app: any) => {
             : gte(systemHealth.timestamp, timeFilter)
         )
         .groupBy(systemHealth.metric, systemHealth.unit);
+      
+      // Ensure avgValue is converted to a number
+      const performanceMetrics = performanceMetricsRaw.map(metric => ({
+        ...metric,
+        avgValue: Number(metric.avgValue) || 0
+      }));
       
       res.json({
         summary: {
@@ -266,7 +272,7 @@ export const setupErrorRoutes = (app: any) => {
   });
   
   // Mark error as resolved
-  app.patch('/api/errors/:errorId/resolve', async (req: AuthRequest, res: Response) => {
+  app.patch('/api/errors/:errorId/resolve', authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { errorId } = req.params;
       
@@ -286,7 +292,7 @@ export const setupErrorRoutes = (app: any) => {
   });
   
   // Get error details
-  app.get('/api/errors/:errorId', async (req: AuthRequest, res: Response) => {
+  app.get('/api/errors/:errorId', authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       const { errorId } = req.params;
       

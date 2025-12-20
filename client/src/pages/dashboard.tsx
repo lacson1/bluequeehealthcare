@@ -2,20 +2,14 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users, Calendar, Activity, Search, UserPlus, Plus,
+  Users, Calendar, Activity, Plus,
   Eye, Settings, BarChart3, Zap
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
-import PatientRegistrationModal from "@/components/patient-registration-modal";
+import { useLocation } from "wouter";
 import { useRole } from "@/components/role-guard";
 import { useGlobalShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { OrganizationSwitcher } from "@/components/organization-switcher";
-import { DashboardCharts } from "@/components/analytics/dashboard-charts";
-import { QuickActionsPanel } from "@/components/quick-actions-panel";
 
 interface DashboardStats {
   totalPatients: number;
@@ -25,8 +19,6 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const [showPatientModal, setShowPatientModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const { user } = useRole();
   const [, setLocation] = useLocation();
 
@@ -35,10 +27,9 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats'],
-  });
-
-  const { data: allPatients } = useQuery({
-    queryKey: ['/api/patients'],
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   if (statsLoading) {
@@ -90,22 +81,6 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <OrganizationSwitcher />
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
-                <Input
-                  placeholder="Search patients, orders..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-80 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/20"
-                />
-              </div>
-              <Button
-                onClick={() => setShowPatientModal(true)}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Patient
-              </Button>
             </div>
           </div>
         </div>
@@ -113,16 +88,10 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8 relative z-10">
-        {/* Tabs for different dashboard views */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="quick-actions">Quick Actions</TabsTrigger>
-          </TabsList>
+        {/* Main Dashboard Content */}
+        <div className="space-y-6">
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-8">
+          <div className="space-y-8">
             {/* Premium Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div
@@ -265,22 +234,9 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          {/* Quick Actions Tab */}
-          <TabsContent value="quick-actions" className="space-y-6">
-            <QuickActionsPanel userRole={user?.role || 'doctor'} />
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
-
-      {/* Patient Registration Modal */}
-      {showPatientModal && (
-        <PatientRegistrationModal
-          open={showPatientModal}
-          onOpenChange={setShowPatientModal}
-        />
-      )}
     </div>
   );
 }

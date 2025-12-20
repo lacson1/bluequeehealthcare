@@ -38,7 +38,6 @@ import {
   CreditCard as CardIcon,
   FileImage as Referral,
   Maximize,
-  UserCheck as Patient,
   Activity as Vitals,
   RefreshCw as Refresh,
   Edit,
@@ -70,6 +69,8 @@ import { GlobalMedicationSearch } from "@/components/global-medication-search";
 import { usePatientTabs } from "@/hooks/use-patient-tabs";
 import { TabManager } from "@/components/tab-manager";
 import { getTabIcon } from "@/lib/tab-icons";
+import { t } from "@/lib/i18n";
+import { formatDateMedium } from "@/lib/date-utils";
 
 // Comprehensive visit form schema
 const comprehensiveVisitSchema = z.object({
@@ -148,8 +149,15 @@ import { PatientImmunizations } from './patient-immunizations';
 import { PatientImaging } from './patient-imaging';
 import { PatientProcedures } from './patient-procedures';
 import PsychologicalTherapyAssessment from './psychological-therapy-assessment';
+import { CarePlansTab } from './patient-tabs/care-plans-tab';
+import { ReferralsTab } from './patient-tabs/referrals-tab';
+import { ClinicalNotesTab } from './patient-tabs/clinical-notes-tab';
+import { LongevityTab } from './patient-tabs/longevity-tab';
 import InsuranceManagement from './insurance-management';
 import ReferralManagement from './referral-management';
+import { Patient } from '@shared/schema';
+import { PatientMedicationsTab } from './patient/patient-medications-tab';
+import { PatientOverviewTab } from './patient/patient-overview-tab';
 // All icons now imported via MedicalIcons system
 
 // CompletedLabResult interface for reviewed results
@@ -200,7 +208,7 @@ function PatientReviewedResults({
   const handleViewResultDetails = (result: CompletedLabResult) => {
     // Create a detailed view modal or navigate to detailed page
     toast({
-      title: "View Details",
+      title: t('toast.viewDetails'),
       description: `Opening detailed view for ${result.testName}`,
     });
   };
@@ -234,7 +242,7 @@ function PatientReviewedResults({
               <p><strong>Normal Range:</strong> ${result.normalRange}</p>
               <p><strong>Category:</strong> ${result.category}</p>
               <p><strong>Status:</strong> <span class="status-badge ${result.status}">${result.status.toUpperCase()}</span></p>
-              <p><strong>Completed Date:</strong> ${new Date(result.completedDate).toLocaleDateString()}</p>
+              <p><strong>Completed Date:</strong> ${formatDateMedium(result.completedDate)}</p>
               ${result.remarks ? `<p><strong>Remarks:</strong> ${result.remarks}</p>` : ''}
               <p><strong>Reviewed by:</strong> ${result.reviewedBy}</p>
             </div>
@@ -250,7 +258,7 @@ function PatientReviewedResults({
   const handleExportResult = async (result: CompletedLabResult) => {
     try {
       // Create downloadable PDF content
-      const content = `Lab Result: ${result.testName}\nResult: ${result.result} ${result.units || ''}\nNormal Range: ${result.normalRange}\nStatus: ${result.status}\nCompleted: ${new Date(result.completedDate).toLocaleDateString()}\nReviewed by: ${result.reviewedBy}`;
+      const content = `Lab Result: ${result.testName}\nResult: ${result.result} ${result.units || ''}\nNormal Range: ${result.normalRange}\nStatus: ${result.status}\nCompleted: ${formatDateMedium(result.completedDate)}\nReviewed by: ${result.reviewedBy}`;
 
       const blob = new Blob([content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -263,12 +271,12 @@ function PatientReviewedResults({
       URL.revokeObjectURL(url);
 
       toast({
-        title: "Export Complete",
+        title: t('toast.exportComplete'),
         description: `${result.testName} result exported successfully`,
       });
     } catch (error) {
       toast({
-        title: "Export Failed",
+        title: t('toast.exportFailed'),
         description: "Unable to export the lab result",
         variant: "destructive",
       });
@@ -289,7 +297,7 @@ function PatientReviewedResults({
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(`Lab Result: ${result.testName}\nStatus: ${result.status}\nResult: ${result.result}`);
       toast({
-        title: "Link Copied",
+        title: t('toast.linkCopied'),
         description: "Lab result details copied to clipboard",
       });
     }
@@ -362,7 +370,7 @@ function PatientReviewedResults({
                     </div>
                     <div>
                       <span className="font-medium text-muted-foreground">Completed:</span>
-                      <p>{new Date(result.completedDate).toLocaleDateString()}</p>
+                      <p>{formatDateMedium(result.completedDate)}</p>
                     </div>
                   </div>
 
@@ -517,7 +525,7 @@ const DocumentsListSection = ({ patientId, onViewDocument }: DocumentsListSectio
 
             <div className="space-y-1 text-xs text-gray-500">
               <p>Size: {formatFileSize(doc.size)}</p>
-              <p>Uploaded: {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+              <p>Uploaded: {formatDateMedium(doc.uploadedAt)}</p>
               {doc.description && (
                 <p className="text-gray-600 line-clamp-2">{doc.description}</p>
               )}
@@ -528,22 +536,6 @@ const DocumentsListSection = ({ patientId, onViewDocument }: DocumentsListSectio
     </div>
   );
 };
-
-interface Patient {
-  id: number;
-  title: string | null;
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  gender: string;
-  phone: string;
-  email: string | null;
-  address: string | null;
-  allergies: string | null;
-  medicalHistory: string | null;
-  createdAt: Date;
-  organizationId: number | null;
-}
 
 interface Visit {
   id: number;
@@ -565,8 +557,6 @@ interface ModernPatientOverviewProps {
   activePrescriptions?: any[];
   onAddPrescription?: () => void;
   onRecordVisit?: () => void;
-  onEditPatient?: () => void;
-  onPrintRecord?: () => void;
 }
 
 export function ModernPatientOverview({
@@ -575,9 +565,7 @@ export function ModernPatientOverview({
   recentLabs = [],
   activePrescriptions = [],
   onAddPrescription,
-  onRecordVisit,
-  onEditPatient,
-  onPrintRecord
+  onRecordVisit
 }: ModernPatientOverviewProps) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -591,11 +579,8 @@ export function ModernPatientOverview({
   const [showPsychologicalTherapyDialog, setShowPsychologicalTherapyDialog] = useState(false);
 
   // Dynamic tab management
-  const { tabs, isLoading: tabsLoading, isError: tabsError, defaultTabKey } = usePatientTabs();
+  const { tabs, isLoading: tabsLoading, defaultTabKey } = usePatientTabs();
   const [showTabManager, setShowTabManager] = useState(false);
-
-  // Visit Recording Form State
-  const [isVisitFormVisible, setIsVisitFormVisible] = useState(false);
   const [additionalDiagnoses, setAdditionalDiagnoses] = useState<string[]>([]);
   const [medicationList, setMedicationList] = useState<string[]>([]);
 
@@ -667,7 +652,6 @@ export function ModernPatientOverview({
         visitForm.reset();
         setAdditionalDiagnoses([]);
         setMedicationList([]);
-        setIsVisitFormVisible(false);
 
         // Refresh patient data
         queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}`] });
@@ -715,7 +699,7 @@ export function ModernPatientOverview({
   };
 
   const handleCopyVisit = (visit: any) => {
-    const visitDetails = `Visit Date: ${new Date(visit.visitDate).toLocaleDateString()}
+    const visitDetails = `Visit Date: ${formatDateMedium(visit.visitDate)}
 Type: ${visit.visitType || 'Consultation'}
 Complaint: ${visit.complaint || 'N/A'}
 Diagnosis: ${visit.diagnosis || 'N/A'}
@@ -742,24 +726,6 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     }
   };
 
-  const handleDeleteVisitConfirm = (visitId: number) => {
-    if (true) { // Replaced confirm with modal logic
-      try {
-        // Implementation would go here
-        toast({
-          title: "Visit deleted",
-          description: "Visit record has been successfully deleted",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete visit record",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
   // Handler for printing lab history
   const handlePrintLabHistory = () => {
     const printWindow = window.open(`/api/patients/${patient.id}/lab-history/print`, '_blank');
@@ -769,7 +735,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
       });
     } else {
       toast({
-        title: "Print Error",
+        title: t('toast.printError'),
         description: "Unable to open print window. Please check your browser settings.",
         variant: "destructive"
       });
@@ -884,6 +850,10 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
   const [showPrescriptionPrint, setShowPrescriptionPrint] = useState(false);
   const [showLabOrderPrint, setShowLabOrderPrint] = useState(false);
 
+  // Medication selection for printing
+  const [selectedMedications, setSelectedMedications] = useState<Set<number>>(new Set());
+  const [selectedPrescriptionsForPrint, setSelectedPrescriptionsForPrint] = useState<any[]>([]);
+
 
 
   // Document upload mutation
@@ -905,7 +875,7 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     },
     onSuccess: () => {
       toast({
-        title: "Document Uploaded",
+        title: t('toast.uploadSuccess'),
         description: "Document has been successfully uploaded and attached to patient record.",
       });
       setShowUploadDialog(false);
@@ -914,9 +884,9 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
       setDocumentDescription('');
       queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}/documents`] });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
-        title: "Upload Failed",
+        title: t('toast.uploadFailed'),
         description: "Failed to upload document. Please try again.",
         variant: "destructive",
       });
@@ -1020,14 +990,94 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
     }));
   };
 
-  const handleEditPrescription = (prescription: any) => {
-    toast({
-      title: "Edit Prescription",
-      description: `Opening edit form for ${prescription.medicationName}`,
-    });
-    // Open prescription add modal which can be used for editing
-    if (onAddPrescription) {
-      onAddPrescription();
+  const handleEditPrescription = async (prescription: any) => {
+    try {
+      // Show edit options dialog
+      const editOptions = [
+        'Dosage',
+        'Frequency', 
+        'Duration',
+        'Instructions',
+        'Status'
+      ];
+      
+      const fieldToEdit = prompt(
+        `Edit ${prescription.medicationName}\n\nSelect field to edit:\n${editOptions.map((opt, i) => `${i + 1}. ${opt}`).join('\n')}\n\nEnter number (1-5) or field name:`,
+        '1'
+      );
+      
+      if (!fieldToEdit) {
+        return; // User cancelled
+      }
+      
+      const fieldMap: Record<string, string> = {
+        '1': 'dosage',
+        '2': 'frequency',
+        '3': 'duration',
+        '4': 'instructions',
+        '5': 'status',
+        'dosage': 'dosage',
+        'frequency': 'frequency',
+        'duration': 'duration',
+        'instructions': 'instructions',
+        'status': 'status'
+      };
+      
+      const field = fieldMap[fieldToEdit.toLowerCase()] || 'dosage';
+      const currentValue = prescription[field] || '';
+      const fieldLabel = editOptions[parseInt(fieldToEdit) - 1] || field;
+      
+      let newValue: string | null = null;
+      
+      if (field === 'status') {
+        const statusOptions = ['active', 'completed', 'discontinued', 'pending'];
+        const statusChoice = prompt(
+          `Edit Status for ${prescription.medicationName}\n\nCurrent: ${currentValue}\n\nOptions:\n${statusOptions.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\nEnter number or status name:`,
+          statusOptions.indexOf(currentValue) >= 0 ? String(statusOptions.indexOf(currentValue) + 1) : '1'
+        );
+        if (statusChoice) {
+          const statusMap: Record<string, string> = {
+            '1': 'active',
+            '2': 'completed',
+            '3': 'discontinued',
+            '4': 'pending'
+          };
+          newValue = statusMap[statusChoice] || statusOptions.find(s => s.toLowerCase() === statusChoice.toLowerCase()) || statusChoice;
+        }
+      } else {
+        newValue = prompt(
+          `Edit ${fieldLabel} for ${prescription.medicationName}\n\nCurrent: ${currentValue}\n\nEnter new value:`,
+          currentValue
+        );
+      }
+      
+      if (newValue && newValue !== currentValue) {
+        await apiRequest(`/api/prescriptions/${prescription.id}`, 'PATCH', {
+          [field]: newValue
+        });
+        
+        queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] });
+        
+        toast({
+          title: "Prescription Updated",
+          description: `${fieldLabel} for ${prescription.medicationName} has been updated.`,
+        });
+      } else if (newValue === null) {
+        // User cancelled
+        return;
+      } else {
+        toast({
+          title: "No Changes",
+          description: "No changes were made to the prescription.",
+        });
+      }
+    } catch (error) {
+      handleError(error);
+      toast({
+        title: "Error",
+        description: "Failed to update prescription. Please try again.",
+        variant: "destructive"
+      });
     }
   }
 
@@ -1194,40 +1244,73 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
   const handlePrintPrescription = async (prescription: any) => {
     try {
       // Use the custom prescription print component with active organization branding
+      // Set single prescription for printing
+      setSelectedPrescriptionsForPrint([prescription]);
       setShowPrescriptionPrint(true);
 
       toast({
-        title: "Opening Print Preview",
+        title: t('toast.printPreview'),
         description: "Prescription print preview is being prepared with organization branding.",
       });
     } catch (error) {
       console.error('Failed to open print preview:', error);
       toast({
-        title: "Print Failed",
+        title: t('toast.printFailed'),
         description: "Unable to open print preview. Please try again.",
         variant: "destructive",
       });
     }
   }
 
-  const handlePrintLabOrders = async () => {
+  const toggleMedicationSelection = (prescriptionId: number) => {
+    setSelectedMedications(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(prescriptionId)) {
+        newSet.delete(prescriptionId);
+      } else {
+        newSet.add(prescriptionId);
+      }
+      return newSet;
+    });
+  }
+
+  const handlePrintSelectedMedications = async () => {
+    if (selectedMedications.size === 0) {
+      toast({
+        title: "No Medications Selected",
+        description: "Please select at least one medication to print.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Use the custom lab order print component with active organization branding
-      setShowLabOrderPrint(true);
+      const selectedPrescriptions = activeMedications.filter((p: any) =>
+        selectedMedications.has(p.id)
+      );
+
+      // Store selected prescriptions for the print component
+      setSelectedPrescriptionsForPrint(selectedPrescriptions);
+      setShowPrescriptionPrint(true);
 
       toast({
-        title: "Opening Lab Orders Print",
-        description: "Lab order print preview is being prepared with organization branding.",
+        title: "Opening Print Preview",
+        description: `Print preview for ${selectedPrescriptions.length} medication(s) is being prepared.`,
       });
     } catch (error) {
-      console.error('Failed to open lab orders print:', error);
+      console.error('Failed to open print preview:', error);
       toast({
-        title: "Print Failed",
-        description: "Unable to open lab orders print preview. Please try again.",
+        title: t('toast.printFailed'),
+        description: "Unable to open print preview. Please try again.",
         variant: "destructive",
       });
     }
   }
+
+  const clearSelection = () => {
+    setSelectedMedications(new Set());
+  }
+
 
   const handleReorderMedication = async (prescription: any) => {
     try {
@@ -1280,234 +1363,85 @@ Heart Rate: ${visit.heartRate || 'N/A'}`;
 
   const handleGenerateQRCode = async (prescription: any) => {
     try {
-      // Create comprehensive prescription data for external pharmacy dispensing
-      const prescriptionData = {
-        prescriptionId: `RX-${prescription.id}`,
-        patient: {
-          name: formatPatientName(patient),
-          phone: patient.phone,
-          dateOfBirth: patient.dateOfBirth,
-          gender: patient.gender
-        },
-        medication: {
+      const { generateMedicationQRCode } = await import('@/utils/qr-code-generator');
+      
+      // Fetch organization data only if user has organizationId
+      let organizationData = null;
+      if (user?.organizationId) {
+        try {
+          const result = await queryClient.fetchQuery({
+            queryKey: ['/api/organizations', user.organizationId],
+            queryFn: async () => {
+              const res = await fetch(`/api/organizations/${user.organizationId}`, {
+                credentials: 'include',
+              });
+              if (!res.ok) {
+                throw new Error(`Failed to fetch organization: ${res.status}`);
+              }
+              const json = await res.json();
+              // Handle both wrapped (sendSuccess) and unwrapped response formats
+              const data = json.data || json;
+              // Ensure we have a valid organization object
+              if (data && typeof data === 'object' && data.id) {
+                return data;
+              }
+              throw new Error('Invalid organization data format');
+            },
+            retry: false,
+          });
+          // Ensure result is a valid organization object
+          if (result && typeof result === 'object' && result.id) {
+            organizationData = result;
+          }
+        } catch (orgError: any) {
+          console.warn('Failed to fetch organization data, generating QR code without letterhead:', orgError);
+          // Continue without organization data - QR code can still be generated
+        }
+      } else {
+        console.warn('User has no organizationId, generating QR code without organization letterhead');
+      }
+
+      await generateMedicationQRCode(
+        {
           name: prescription.medicationName,
           dosage: prescription.dosage,
           frequency: prescription.frequency,
           duration: prescription.duration,
           instructions: prescription.instructions || 'Take as directed',
-          quantity: prescription.quantity || 'As prescribed'
+          prescribedBy: prescription.prescribedBy,
+          startDate: prescription.startDate || prescription.createdAt,
+          endDate: prescription.endDate,
+          prescriptionId: prescription.id
         },
-        prescriber: {
-          name: `Dr. ${prescription.prescribedBy}`,
-          qualification: 'MBBS',
-          license: 'MDCN/001/2024'
+        {
+          firstName: patient.firstName,
+          lastName: patient.lastName,
+          phone: patient.phone,
+          dateOfBirth: patient.dateOfBirth,
+          id: patient.id,
+          title: patient.title
         },
-        clinic: {
-          name: 'Bluequee Healthcare Clinical Management',
-          address: 'Lagos Island, Lagos State, Nigeria',
-          phone: '+234-801-234-5678',
-          license: 'FMOH/CLI/LG/001/2024'
-        },
-        prescription: {
-          dateIssued: new Date(prescription.startDate || prescription.createdAt).toLocaleDateString('en-GB'),
-          expiryDate: prescription.endDate ? new Date(prescription.endDate).toLocaleDateString('en-GB') : 'No expiry',
-          status: prescription.status,
-          repeats: prescription.duration?.toLowerCase().includes('ongoing') ? 'Repeat allowed' : 'Single issue'
-        },
-        verification: {
-          rxNumber: `RX${prescription.id}${new Date().getFullYear()}`,
-          issueTime: new Date().toISOString(),
-          hash: btoa(`${prescription.id}-${patient.id}-${new Date().getDate()}`)
+        {
+          organizationId: user?.organizationId,
+          organization: organizationData,
+          autoPrint: false
         }
-      };
-
-      // Create structured text for QR code that pharmacies can easily parse
-      const prescriptionText = `PRESCRIPTION FOR DISPENSING
-
-RX NUMBER: ${prescriptionData.verification.rxNumber}
-PATIENT: ${prescriptionData.patient.name}
-DOB: ${prescriptionData.patient.dateOfBirth || 'Not specified'}
-PHONE: ${prescriptionData.patient.phone}
-
-MEDICATION: ${prescriptionData.medication.name}
-STRENGTH: ${prescriptionData.medication.dosage}
-FREQUENCY: ${prescriptionData.medication.frequency}
-DURATION: ${prescriptionData.medication.duration}
-INSTRUCTIONS: ${prescriptionData.medication.instructions}
-REPEATS: ${prescriptionData.prescription.repeats}
-
-PRESCRIBER: ${prescriptionData.prescriber.name}
-LICENSE: ${prescriptionData.prescriber.license}
-CLINIC: ${prescriptionData.clinic.name}
-CLINIC PHONE: ${prescriptionData.clinic.phone}
-
-DATE ISSUED: ${prescriptionData.prescription.dateIssued}
-EXPIRES: ${prescriptionData.prescription.expiryDate}
-VERIFICATION: ${prescriptionData.verification.hash}
-
-This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.`;
-
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(prescriptionText)}`;
-
-      // Open comprehensive prescription QR code in new window
-      const qrWindow = window.open('', '_blank', 'width=500,height=700');
-      if (!qrWindow) {
-        toast({
-          title: "QR Code Failed",
-          description: "Unable to open QR code window. Please check your popup blocker settings.",
-          variant: "destructive",
-        });
-        return;
-      }
-      qrWindow.document.write(`
-        <html>
-          <head>
-            <title>Prescription QR Code for External Pharmacy</title>
-            <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                padding: 20px;
-                background: #f8f9fa;
-                margin: 0;
-              }
-              .container {
-                background: white;
-                padding: 25px;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                max-width: 450px;
-                margin: 0 auto;
-              }
-              .header {
-                text-align: center;
-                border-bottom: 2px solid #22c55e;
-                padding-bottom: 15px;
-                margin-bottom: 20px;
-              }
-              h1 { 
-                color: #166534; 
-                margin: 0 0 5px 0; 
-                font-size: 18px;
-              }
-              .rx-number {
-                font-weight: bold;
-                color: #dc2626;
-                font-size: 16px;
-                margin: 10px 0;
-              }
-              .patient-info, .medication-info, .prescriber-info {
-                background: #f9fafb;
-                padding: 12px;
-                border-radius: 6px;
-                margin: 15px 0;
-                border-left: 4px solid #22c55e;
-              }
-              .section-title {
-                font-weight: bold;
-                color: #374151;
-                margin-bottom: 8px;
-                font-size: 14px;
-              }
-              .detail-line {
-                margin: 4px 0;
-                font-size: 13px;
-                color: #4b5563;
-              }
-              .medication-name {
-                font-weight: bold;
-                color: #059669;
-                font-size: 16px;
-                margin: 8px 0;
-              }
-              .qr-container {
-                text-align: center;
-                margin: 20px 0;
-                padding: 15px;
-                background: #f0fdf4;
-                border-radius: 8px;
-              }
-              .verification {
-                background: #fef3c7;
-                padding: 10px;
-                border-radius: 6px;
-                margin: 15px 0;
-                border-left: 4px solid #f59e0b;
-                font-size: 12px;
-              }
-              .footer {
-                text-align: center;
-                font-size: 11px;
-                color: #6b7280;
-                margin-top: 20px;
-                padding-top: 15px;
-                border-top: 1px solid #e5e7eb;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>VALID PRESCRIPTION FOR DISPENSING</h1>
-                <div class="rx-number">RX #: ${prescriptionData.verification.rxNumber}</div>
-              </div>
-
-              <div class="patient-info">
-                <div class="section-title">PATIENT INFORMATION</div>
-                <div class="detail-line"><strong>Name:</strong> ${prescriptionData.patient.name}</div>
-                <div class="detail-line"><strong>Phone:</strong> ${prescriptionData.patient.phone}</div>
-                <div class="detail-line"><strong>DOB:</strong> ${prescriptionData.patient.dateOfBirth || 'Not specified'}</div>
-              </div>
-
-              <div class="medication-info">
-                <div class="section-title">MEDICATION DETAILS</div>
-                <div class="medication-name">${prescriptionData.medication.name}</div>
-                <div class="detail-line"><strong>Strength:</strong> ${prescriptionData.medication.dosage}</div>
-                <div class="detail-line"><strong>Frequency:</strong> ${prescriptionData.medication.frequency}</div>
-                <div class="detail-line"><strong>Duration:</strong> ${prescriptionData.medication.duration}</div>
-                <div class="detail-line"><strong>Instructions:</strong> ${prescriptionData.medication.instructions}</div>
-                <div class="detail-line"><strong>Repeats:</strong> ${prescriptionData.prescription.repeats}</div>
-              </div>
-
-              <div class="prescriber-info">
-                <div class="section-title">PRESCRIBER & CLINIC</div>
-                <div class="detail-line"><strong>Doctor:</strong> ${prescriptionData.prescriber.name}</div>
-                <div class="detail-line"><strong>License:</strong> ${prescriptionData.prescriber.license}</div>
-                <div class="detail-line"><strong>Clinic:</strong> ${prescriptionData.clinic.name}</div>
-                <div class="detail-line"><strong>Phone:</strong> ${prescriptionData.clinic.phone}</div>
-              </div>
-
-              <div class="qr-container">
-                <img src="${qrCodeUrl}" alt="Prescription QR Code" style="border: 2px solid #22c55e; padding: 8px; background: white;" />
-                <div style="margin-top: 10px; font-size: 12px; color: #059669;">
-                  <strong>Scan this QR code for complete prescription data</strong>
-                </div>
-              </div>
-
-              <div class="verification">
-                <div class="section-title">PRESCRIPTION VERIFICATION</div>
-                <div class="detail-line"><strong>Date Issued:</strong> ${prescriptionData.prescription.dateIssued}</div>
-                <div class="detail-line"><strong>Expires:</strong> ${prescriptionData.prescription.expiryDate}</div>
-                <div class="detail-line"><strong>Verification Code:</strong> ${prescriptionData.verification.hash}</div>
-              </div>
-
-              <div class="footer">
-                <p><strong>This is a valid digital prescription for dispensing at any licensed pharmacy in Nigeria.</strong></p>
-                <p>Generated: ${new Date().toLocaleString()} | ${prescriptionData.clinic.name}</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
+      );
 
       toast({
         title: "QR Code Generated",
-        description: "QR code opened in new window for pharmacy scanning.",
+        description: organizationData 
+          ? "QR code opened in new window with organization letterhead for pharmacy scanning."
+          : "QR code opened in new window. Note: Organization letterhead not available.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to generate QR code:', error);
+      const errorMessage = error?.message || 'Unknown error occurred';
       toast({
-        title: "QR Code Failed",
-        description: "Unable to generate QR code. Please try again.",
+        title: "QR Code Generation Failed",
+        description: errorMessage.includes('organization') 
+          ? "Unable to generate QR code with organization letterhead. Please ensure your account is assigned to an organization."
+          : `Unable to generate QR code: ${errorMessage}`,
         variant: "destructive",
       });
     }
@@ -1532,7 +1466,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
 
 
   // Fetch activity trail using React Query with proper error handling
-  const { data: fetchedActivityTrail = [], error: activityTrailError } = useQuery({
+  const { data: fetchedActivityTrail = [] } = useQuery({
     queryKey: [`/api/patients/${patient.id}/activity-trail`],
     retry: false
   });
@@ -1540,71 +1474,92 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
   // Use fetched activity trail or fallback to empty array
   const activityTrail = Array.isArray(fetchedActivityTrail) ? fetchedActivityTrail : [];
 
-  // Filter activity trail based on selected filters - ensure activityTrail is an array
-  const filteredActivityTrail = Array.isArray(activityTrail) ? activityTrail.filter((event: any) => {
-    switch (event.type) {
-      case 'visit':
-        return timelineFilters.visits;
-      case 'lab':
-      case 'lab_result':
-        return timelineFilters.labResults;
-      case 'consultation':
-        return timelineFilters.consultations;
-      case 'prescription':
-        return timelineFilters.prescriptions;
-      default:
-        return true;
-    }
-  }) : [];
-
   return (
-    <div className="space-y-4 min-h-screen w-full">
+    <div className="space-y-2 w-full h-full min-w-0 max-w-full overflow-hidden">
       {/* Enhanced Tabbed Interface - Full Width with Dynamic Tabs */}
-      <Tabs defaultValue={defaultTabKey} className="w-full h-full">
-        <div className="relative mb-6">
-          {/* Single Line Tab Container */}
-          <div className="relative bg-white rounded-xl border border-slate-200/80 shadow-sm p-1.5">
-            {/* TabManager Settings Button */}
-            <Button
-              onClick={() => setShowTabManager(true)}
-              size="sm"
-              variant="ghost"
-              className="absolute top-1.5 right-1.5 z-10 h-6 w-6 p-0 bg-slate-50 hover:bg-teal-50 rounded-md border border-slate-200/60 transition-all duration-200 opacity-50 hover:opacity-100 hover:border-teal-300 group"
-              data-testid="button-open-tab-manager"
-              title="Customize Tabs"
-            >
-              <Settings className="h-3 w-3 text-slate-400 group-hover:text-teal-600 transition-all duration-200 group-hover:rotate-90" />
-            </Button>
+      <Tabs defaultValue={defaultTabKey} className="w-full h-full flex flex-col min-w-0 max-w-full overflow-hidden">
+        <div className="relative mb-2">
+          {/* Premium Tab Container - Glassmorphism Design with Cool Calm Colors */}
+          <div className="relative overflow-hidden">
+            {/* Animated Background Gradient - Cool Calm Theme */}
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/40 via-sky-50/30 to-teal-50/40 rounded-2xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-100/20 to-transparent rounded-2xl"></div>
 
-            <TabsList className="relative w-full h-auto bg-slate-50/50 rounded-lg p-1 flex flex-wrap gap-1 justify-start items-center">
-              {tabsLoading ? (
-                <div className="w-full flex items-center justify-center py-3 text-teal-600">
-                  <Clock className="w-4 h-4 animate-spin mr-2" />
-                  <span className="text-sm font-medium">Loading tabs...</span>
-                </div>
-              ) : (
-                tabs.map((tab) => {
-                  const IconComponent = getTabIcon(tab.icon);
-                  return (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.key}
-                      className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-slate-600 font-medium text-sm transition-all duration-200 hover:text-teal-700 hover:bg-white/80 data-[state=active]:text-teal-700 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:shadow-teal-100/50 data-[state=active]:border data-[state=active]:border-teal-200 group"
-                      data-testid={`tab-trigger-${tab.key}`}
-                    >
-                      <IconComponent className="w-4 h-4 transition-colors duration-200 group-data-[state=active]:text-teal-600" />
-                      <span>{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })
-              )}
-            </TabsList>
+            {/* Glassmorphism Container - Cool Calm Tint */}
+            <div className="relative bg-cyan-50/60 backdrop-blur-xl rounded-2xl border border-cyan-200/60 shadow-2xl shadow-cyan-200/30 p-2 ring-1 ring-cyan-100/40">
+              {/* Subtle Inner Glow - Cool Calm Accent */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-100/40 via-transparent to-teal-100/30 pointer-events-none"></div>
+
+              {/* TabManager Settings Button - Premium */}
+              <Button
+                onClick={() => setShowTabManager(true)}
+                size="sm"
+                variant="ghost"
+                className="absolute top-2.5 right-2.5 z-10 h-5 w-5 p-0 bg-white/80 hover:bg-white rounded-md border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-300 opacity-60 hover:opacity-100 hover:border-blue-300 hover:scale-110 group backdrop-blur-sm"
+                data-testid="button-open-tab-manager"
+                title="Customize Tabs"
+              >
+                <Settings className="h-3 w-3 text-slate-500 group-hover:text-blue-600 transition-all duration-300 group-hover:rotate-90" />
+              </Button>
+
+              <TabsList className="relative w-full h-auto bg-transparent rounded-xl p-1 flex flex-wrap gap-1.5 justify-start items-center">
+                {tabsLoading ? (
+                  <div className="w-full flex items-center justify-center py-4 text-blue-600">
+                    <Clock className="w-4 h-4 animate-spin mr-2" />
+                    <span className="text-sm font-semibold">{t('ui.loadingTabs')}</span>
+                  </div>
+                ) : (
+                  tabs.map((tab) => {
+                    const IconComponent = getTabIcon(tab.icon);
+                    return (
+                      <TabsTrigger
+                        key={tab.id}
+                        value={tab.key}
+                        className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-slate-600 font-semibold text-sm transition-all duration-300 hover:text-blue-700 hover:bg-white/90 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] data-[state=active]:text-blue-700 data-[state=active]:bg-white data-[state=active]:shadow-xl data-[state=active]:shadow-blue-100/60 data-[state=active]:border data-[state=active]:border-blue-200/80 data-[state=active]:ring-2 data-[state=active]:ring-blue-100/50 group before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-blue-50/50 before:via-white before:to-transparent before:opacity-0 data-[state=active]:before:opacity-100 before:transition-opacity before:duration-300"
+                        data-testid={`tab-trigger-${tab.key}`}
+                      >
+                        <IconComponent className="w-4 h-4 transition-all duration-300 group-data-[state=active]:text-blue-600 group-hover:text-blue-600 group-data-[state=active]:scale-110" />
+                        <span className="relative z-10">{tab.label}</span>
+                        {/* Active Indicator Glow */}
+                        <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/20 via-blue-300/10 to-transparent opacity-0 data-[state=active]:opacity-100 transition-opacity duration-300 pointer-events-none"></span>
+                      </TabsTrigger>
+                    );
+                  })
+                )}
+              </TabsList>
+            </div>
           </div>
         </div>
 
         {/* Medications Tab */}
-        <TabsContent value="medications" className="space-y-4">
-          <Card>
+        <TabsContent value="medications" className="space-y-3 mt-2 flex-1 overflow-y-auto min-w-0 max-w-full overflow-x-hidden">
+          <PatientMedicationsTab
+            activeMedications={activeMedications}
+            discontinuedMedications={discontinuedMedications}
+            repeatMedications={repeatMedications}
+            prescriptionsLoading={prescriptionsLoading}
+            prescriptionsError={prescriptionsError}
+            selectedMedications={selectedMedications}
+            onToggleMedicationSelection={toggleMedicationSelection}
+            onPrintSelectedMedications={handlePrintSelectedMedications}
+            onClearSelection={clearSelection}
+            onAddPrescription={onAddPrescription || (() => {})}
+            onEditPrescription={handleEditPrescription}
+            onPrintPrescription={handlePrintPrescription}
+            onGenerateQRCode={handleGenerateQRCode}
+            onSendToRepeatMedications={handleSendToRepeatMedications}
+            onSendToDispensary={handleSendToDispensary}
+            onUpdateMedicationStatus={handleUpdateMedicationStatus}
+            onRetryLoading={() => queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] })}
+            patientId={patient.id}
+            patient={patient as any}
+            onCreateReviewAssignment={() => setShowMedicationReviewAssignmentModal(true)}
+          />
+        </TabsContent>
+
+        {/* OLD MEDICATIONS TAB CODE - REMOVED - Now using PatientMedicationsTab component above */}
+        <TabsContent value="medications-old" className="hidden">
+          <Card className="shadow-md border-slate-200/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Medication className="h-5 w-5 text-purple-500" />
@@ -1614,6 +1569,25 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
             <CardContent>
               <Tabs defaultValue="current" className="w-full">
                 <div className="flex items-center justify-between mb-4">
+                  {selectedMedications.size > 0 && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <Button
+                        onClick={handlePrintSelectedMedications}
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Print className="w-4 h-4 mr-2" />
+                        Print Selected ({selectedMedications.size})
+                      </Button>
+                      <Button
+                        onClick={clearSelection}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
+                  )}
                   <TabsList className="grid w-full grid-cols-4 max-w-2xl">
                     <TabsTrigger
                       value="current"
@@ -1658,600 +1632,14 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   </Button>
                 </div>
 
-                {/* Current Medications Tab */}
-                <TabsContent value="current" className="space-y-4">
-                  {prescriptionsLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="text-slate-500">Loading prescriptions...</div>
-                    </div>
-                  ) : prescriptionsError ? (
-                    <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                      <div className="text-red-500">Failed to load prescriptions</div>
-                      <Button
-                        onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/patients', patient.id, 'prescriptions'] })}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Refresh className="w-4 h-4 mr-2" />
-                        Retry Loading
-                      </Button>
-                    </div>
-                  ) : activeMedications.length > 0 ? (
-                    <div className="grid gap-4">
-                      {activeMedications.map((prescription: any) => (
-                        <div key={prescription.id} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white space-y-4">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-4">
-                                <h4 className="font-semibold text-slate-800 text-lg">
-                                  {prescription.medicationName}
-                                </h4>
-                                {prescription.medicationId && (
-                                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                                    ✓ Verified
-                                  </Badge>
-                                )}
-                                <Badge className={
-                                  prescription.status === "active"
-                                    ? "bg-green-100 text-green-800 border-green-200"
-                                    : prescription.status === "completed"
-                                      ? "bg-blue-100 text-blue-800 border-blue-200"
-                                      : "bg-gray-100 text-gray-800 border-gray-200"
-                                }>
-                                  {prescription.status}
-                                </Badge>
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                                <div className="bg-slate-50 p-3 rounded-md space-y-1">
-                                  <span className="font-medium text-slate-700 block text-xs">Dosage</span>
-                                  <p className="text-slate-800">{prescription.dosage}</p>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-md space-y-1">
-                                  <span className="font-medium text-slate-700 block text-xs">Frequency</span>
-                                  <p className="text-slate-800">{prescription.frequency}</p>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-md space-y-1">
-                                  <span className="font-medium text-slate-700 block text-xs">Duration</span>
-                                  <p className="text-slate-800">{prescription.duration}</p>
-                                </div>
-                                <div className="bg-slate-50 p-3 rounded-md space-y-1">
-                                  <span className="font-medium text-slate-700 block text-xs">Prescribed by</span>
-                                  <p className="text-slate-800">{prescription.prescribedBy}</p>
-                                </div>
-                              </div>
-
-                              {prescription.instructions && (
-                                <div className="p-3 bg-blue-50 rounded-md border border-blue-100 space-y-2">
-                                  <span className="font-medium text-slate-700 flex items-center gap-2 text-sm">
-                                    <FileText className="w-4 h-4" />
-                                    Special Instructions
-                                  </span>
-                                  <p className="text-slate-800 text-sm">{prescription.instructions}</p>
-                                </div>
-                              )}
-
-                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
-                                <div className="flex items-center space-x-4 text-xs text-slate-500">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>Started: {prescription.startDate ? new Date(prescription.startDate).toLocaleDateString() : 'Not specified'}</span>
-                                  </div>
-                                  {prescription.endDate && (
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" />
-                                      <span>Ends: {new Date(prescription.endDate).toLocaleDateString()}</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="text-slate-600 hover:text-slate-800">
-                                        <Menu className="w-3 h-3" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-[180px]">
-                                      <DropdownMenuItem onClick={() => handleEditPrescription(prescription)}>
-                                        <Edit className="w-3 h-3 mr-2" />
-                                        Edit Details
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handlePrintPrescription(prescription)}>
-                                        <Print className="w-3 h-3 mr-2" />
-                                        Print
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleGenerateQRCode(prescription)}>
-                                        <QrCode className="w-3 h-3 mr-2" />
-                                        Generate QR Code
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleSendToRepeatMedications(prescription)}>
-                                        <Refresh className="w-3 h-3 mr-2 text-blue-600" />
-                                        Add to Repeat Medications
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleSendToDispensary(prescription)}>
-                                        <Plus className="w-3 h-3 mr-2 text-green-600" />
-                                        Send to Dispensary
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'completed')}>
-                                        <Success className="w-3 h-3 mr-2 text-blue-600" />
-                                        Mark Completed
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'discontinued')}>
-                                        <Close className="w-3 h-3 mr-2 text-orange-600" />
-                                        Discontinue
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'active')}>
-                                        <Refresh className="w-3 h-3 mr-2 text-green-600" />
-                                        Reactivate
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Medication className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-700 mb-2">No Active Prescriptions</h3>
-                      <p className="text-sm text-gray-500 mb-4">Start by adding the first prescription for this patient</p>
-                      <Button onClick={onAddPrescription} className="bg-purple-600 hover:bg-purple-700" title="Add First Prescription">
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                </TabsContent>
-
-                {/* Past Medications Tab */}
-                <TabsContent value="past" className="space-y-4">
-                  {discontinuedMedications.length > 0 ? (
-                    <div className="grid gap-3">
-                      {discontinuedMedications.map((prescription: any) => (
-                        <div key={prescription.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:shadow-sm transition-shadow">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h4 className="font-medium text-gray-700 text-base">
-                                  {prescription.medicationName}
-                                </h4>
-                                <Badge className={
-                                  prescription.status === "completed"
-                                    ? "bg-blue-100 text-blue-700 border-blue-200"
-                                    : prescription.status === "discontinued"
-                                      ? "bg-orange-100 text-orange-700 border-orange-200"
-                                      : "bg-gray-100 text-gray-700 border-gray-200"
-                                }>
-                                  {prescription.status}
-                                </Badge>
-                              </div>
-
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2 text-sm">
-                                <div className="bg-white p-2 rounded border">
-                                  <span className="font-medium text-gray-600 block text-xs">Dosage</span>
-                                  <p className="text-gray-800 mt-1">{prescription.dosage}</p>
-                                </div>
-                                <div className="bg-white p-2 rounded border">
-                                  <span className="font-medium text-gray-600 block text-xs">Duration</span>
-                                  <p className="text-gray-800 mt-1">{prescription.duration}</p>
-                                </div>
-                                <div className="bg-white p-2 rounded border">
-                                  <span className="font-medium text-gray-600 block text-xs">Prescribed by</span>
-                                  <p className="text-gray-800 mt-1">{prescription.prescribedBy}</p>
-                                </div>
-                                <div className="bg-white p-2 rounded border">
-                                  <span className="font-medium text-gray-600 block text-xs">End Date</span>
-                                  <p className="text-gray-800 mt-1">
-                                    {prescription.endDate ? new Date(prescription.endDate).toLocaleDateString() : 'Not specified'}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-500">
-                                  Started: {prescription.startDate ? new Date(prescription.startDate).toLocaleDateString() : 'Not specified'}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-blue-600 hover:text-blue-800 border-blue-200"
-                                    onClick={() => handleReorderMedication(prescription)}
-                                  >
-                                    <Refresh className="w-3 h-3 mr-1" />
-                                    Reorder
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-600 hover:text-gray-800"
-                                    onClick={() => handlePrintPrescription(prescription)}
-                                  >
-                                    <Print className="w-3 h-3 mr-1" />
-                                    Print
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Calendar className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-700 mb-2">No Past Medications</h3>
-                      <p className="text-sm text-gray-500">Historical medications will appear here when available</p>
-                    </div>
-                  )}
-                </TabsContent>
-
-                {/* Repeat Medications Tab */}
-                <TabsContent value="repeat" className="space-y-4">
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
-                    <h4 className="font-medium text-blue-800 mb-2">Repeat Prescriptions</h4>
-                    <p className="text-sm text-blue-700">
-                      Long-term medications that require regular review by medical staff. Reviews ensure safety and effectiveness.
-                    </p>
-                  </div>
-
-                  {/* Actual repeat medications based on patient's prescriptions */}
-                  {activeMedications.filter((prescription: any) =>
-                    prescription.isRepeat ||
-                    prescription.duration?.toLowerCase().includes('ongoing') ||
-                    prescription.duration?.toLowerCase().includes('long') ||
-                    prescription.duration?.toLowerCase().includes('term') ||
-                    prescription.duration === 'Ongoing as directed'
-                  ).length > 0 ? (
-                    <div className="space-y-4">
-                      {activeMedications
-                        .filter((prescription: any) =>
-                          prescription.isRepeat ||
-                          prescription.duration?.toLowerCase().includes('ongoing') ||
-                          prescription.duration?.toLowerCase().includes('long') ||
-                          prescription.duration?.toLowerCase().includes('term') ||
-                          prescription.duration === 'Ongoing as directed'
-                        )
-                        .map((prescription: any) => (
-                          <div key={prescription.id} className="border border-green-200 rounded-lg p-4 bg-green-50 space-y-4">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <div className="flex flex-wrap items-center gap-2 mb-4">
-                                  <h4 className="font-semibold text-green-800 text-lg">
-                                    {prescription.medicationName}
-                                  </h4>
-                                  <Badge className="bg-green-100 text-green-800 border-green-200">
-                                    Repeat Prescription
-                                  </Badge>
-                                  {prescription.reviewDate && (
-                                    <Badge variant="outline" className={`text-xs ${new Date(prescription.reviewDate) < new Date()
-                                      ? 'bg-red-50 text-red-700 border-red-200'
-                                      : 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                      }`}>
-                                      {new Date(prescription.reviewDate) < new Date()
-                                        ? 'Review Overdue'
-                                        : `Review Due: ${new Date(prescription.reviewDate).toLocaleDateString()}`
-                                      }
-                                    </Badge>
-                                  )}
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                                  <div className="bg-white p-3 rounded-md border space-y-1">
-                                    <span className="font-medium text-gray-700 block text-xs">Dosage</span>
-                                    <p className="text-gray-800">{prescription.dosage}</p>
-                                  </div>
-                                  <div className="bg-white p-3 rounded-md border space-y-1">
-                                    <span className="font-medium text-gray-700 block text-xs">Frequency</span>
-                                    <p className="text-gray-800">{prescription.frequency}</p>
-                                  </div>
-                                  <div className="bg-white p-3 rounded-md border space-y-1">
-                                    <span className="font-medium text-gray-700 block text-xs">Duration</span>
-                                    <p className="text-gray-800">{prescription.duration}</p>
-                                  </div>
-                                  <div className="bg-white p-3 rounded-md border space-y-1">
-                                    <span className="font-medium text-gray-700 block text-xs">Prescribed by</span>
-                                    <p className="text-gray-800">{prescription.prescribedBy}</p>
-                                  </div>
-                                </div>
-
-                                {prescription.instructions && (
-                                  <div className="p-3 bg-blue-50 rounded-md border border-blue-100 space-y-2">
-                                    <span className="font-medium text-gray-700 flex items-center gap-2 text-sm">
-                                      <MedicalRecord className="w-4 h-4" />
-                                      Instructions
-                                    </span>
-                                    <p className="text-gray-800 text-sm">{prescription.instructions}</p>
-                                  </div>
-                                )}
-
-                                <div className="flex items-center justify-between mt-4 pt-3 border-t border-green-200">
-                                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" />
-                                      <span>Started: {new Date(prescription.startDate).toLocaleDateString()}</span>
-                                    </div>
-                                    {prescription.lastReviewDate && (
-                                      <div className="flex items-center gap-1">
-                                        <Calendar className="w-3 h-3" />
-                                        <span>Last Review: {new Date(prescription.lastReviewDate).toLocaleDateString()}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-blue-600 hover:text-blue-800 border-blue-200"
-                                      onClick={() => handleScheduleReview(prescription.id, prescription.medicationName)}
-                                    >
-                                      <User className="w-3 h-3 mr-1" />
-                                      Schedule Review
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-green-600 hover:text-green-800 border-green-200"
-                                      onClick={() => handleIssueRepeat(prescription.id, prescription.medicationName)}
-                                    >
-                                      <Refresh className="w-3 h-3 mr-1" />
-                                      Issue Repeat
-                                    </Button>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-800">
-                                          <Menu className="w-3 h-3" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" className="w-[180px]">
-                                        <DropdownMenuItem onClick={() => handleEditPrescription(prescription)}>
-                                          <Edit className="w-3 h-3 mr-2" />
-                                          Edit Repeat
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handlePrintPrescription(prescription)}>
-                                          <Print className="w-3 h-3 mr-2" />
-                                          Print
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => handleUpdateMedicationStatus(prescription.id, 'discontinued')}>
-                                          <X className="w-3 h-3 mr-2 text-red-600" />
-                                          Stop Repeat
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      <Refresh className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-700 mb-2">No Repeat Prescriptions</h3>
-                      <p className="text-sm text-gray-500 mb-4">
-                        Repeat prescriptions are long-term medications that require regular review.
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        To create a repeat prescription, add a medication with duration set to "ongoing" or "long-term".
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Review Assignment Section */}
-                  <div className="bg-white p-4 rounded-lg border border-gray-200 mt-6">
-                    <h4 className="font-medium text-gray-800 mb-3">Assign Review</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label htmlFor="assign-reviewer" className="text-sm font-medium text-gray-700 block mb-2">Assign to:</label>
-                        <select id="assign-reviewer" className="w-full p-2 border border-gray-300 rounded-md text-sm" aria-label="Assign to reviewer">
-                          <option>Select reviewer...</option>
-                          <option>Dr. Johnson (Doctor)</option>
-                          <option>Dr. Smith (Doctor)</option>
-                          <option>Sarah Wilson (Pharmacist)</option>
-                          <option>Mike Brown (Nurse)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="review-type" className="text-sm font-medium text-gray-700 block mb-2">Review Type:</label>
-                        <select id="review-type" className="w-full p-2 border border-gray-300 rounded-md text-sm" aria-label="Review type">
-                          <option>Routine Review</option>
-                          <option>Urgent Review</option>
-                          <option>Medication Safety Review</option>
-                          <option>Dosage Adjustment</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="review-due-date" className="text-sm font-medium text-gray-700 block mb-2">Due Date:</label>
-                        <input
-                          id="review-due-date"
-                          type="date"
-                          className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                          defaultValue="2025-12-15"
-                          aria-label="Review due date"
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <label htmlFor="review-notes" className="text-sm font-medium text-gray-700 block mb-2">Review Notes:</label>
-                      <textarea
-                        id="review-notes"
-                        className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                        rows={3}
-                        placeholder="Add notes for the reviewer..."
-                        aria-label="Review notes"
-                      ></textarea>
-                    </div>
-                    {/* Action Status Tracking */}
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Recent Actions</h4>
-                      <div className="space-y-2">
-                        {(() => {
-                          const actions: React.ReactNode[] = [];
-
-                          // Check for scheduled reviews
-                          const reviewKeys = Object.keys(localStorage).filter(key => key.startsWith('review_'));
-                          reviewKeys.forEach(key => {
-                            const data = JSON.parse(localStorage.getItem(key) || '{}');
-                            if (data.scheduled) {
-                              actions.push(
-                                <div key={key} className="flex items-center justify-between text-sm">
-                                  <span className="text-green-700">✓ Review Scheduled</span>
-                                  <span className="text-gray-500">{new Date(data.date).toLocaleDateString()}</span>
-                                </div>
-                              );
-                            }
-                          });
-
-                          // Check for issued repeats
-                          const repeatKeys = Object.keys(localStorage).filter(key => key.startsWith('repeat_'));
-                          repeatKeys.forEach(key => {
-                            const data = JSON.parse(localStorage.getItem(key) || '{}');
-                            if (data.issued) {
-                              actions.push(
-                                <div key={key} className="flex items-center justify-between text-sm">
-                                  <span className="text-blue-700">✓ Repeat Issued</span>
-                                  <span className="text-gray-500">{new Date(data.date).toLocaleDateString()}</span>
-                                </div>
-                              );
-                            }
-                          });
-
-                          return actions.length > 0 ? actions : (
-                            <div className="text-sm text-gray-500">No recent actions</div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => setShowMedicationReviewAssignmentModal(true)}
-                      >
-                        <User className="w-4 h-4 mr-2" />
-                        Assign Review
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          toast({
-                            title: "Follow-up Scheduled",
-                            description: "Follow-up appointment has been scheduled",
-                          });
-                        }}
-                      >
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Schedule Follow-up
-                      </Button>
-                    </div>
-
-                    {/* Medication Review Assignments Section */}
-                    <div className="mt-6">
-                      <MedicationReviewAssignmentsList
-                        patientId={patient.id}
-                        patient={patient as any}
-                        onCreateAssignment={() => setShowMedicationReviewAssignmentModal(true)}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-
-                {/* Summary Tab */}
-                <TabsContent value="summary" className="space-y-4">
-                  <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
-                    <h4 className="font-semibold text-purple-800 mb-4 text-lg">Medication Overview</h4>
-                    <div className="grid grid-cols-3 gap-6">
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-purple-700 mb-1">{activeMedications.length}</div>
-                        <div className="text-purple-600 font-medium">Active Medications</div>
-                        <div className="text-xs text-purple-500 mt-1">Currently prescribed</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-blue-700 mb-1">{discontinuedMedications.length}</div>
-                        <div className="text-blue-600 font-medium">Past Medications</div>
-                        <div className="text-xs text-blue-500 mt-1">Completed or discontinued</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-gray-700 mb-1">{displayPrescriptions.length}</div>
-                        <div className="text-gray-600 font-medium">Total Prescriptions</div>
-                        <div className="text-xs text-gray-500 mt-1">All time</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {displayPrescriptions.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-lg border border-gray-200">
-                        <h5 className="font-medium text-gray-800 mb-3">Recent Activity</h5>
-                        <div className="space-y-2">
-                          {displayPrescriptions.slice(0, 3).map((prescription: any) => (
-                            <div key={prescription.id} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-700">{prescription.medicationName}</span>
-                              <Badge className={
-                                prescription.status === "active"
-                                  ? "bg-green-100 text-green-800"
-                                  : prescription.status === "completed"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-gray-100 text-gray-800"
-                              }>
-                                {prescription.status}
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="bg-white p-4 rounded-lg border border-gray-200">
-                        <h5 className="font-medium text-gray-800 mb-3">Quick Actions</h5>
-                        <div className="space-y-2">
-                          <Button
-                            onClick={onAddPrescription}
-                            size="sm"
-                            className="w-full bg-purple-600 hover:bg-purple-700"
-                            title="Add New Medication"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            onClick={() => setShowPsychologicalTherapyDialog(true)}
-                            size="sm"
-                            className="w-full bg-indigo-600 hover:bg-indigo-700"
-                            title="Record Psychological Therapy Session"
-                          >
-                            <Brain className="w-4 h-4 mr-2" />
-                            Therapy Session
-                          </Button>
-                          {activeMedications.length > 0 && (
-                            <Button
-                              onClick={() => handlePrintPrescription(activeMedications[0])}
-                              variant="outline"
-                              size="sm"
-                              className="w-full"
-                            >
-                              <Print className="w-4 h-4 mr-2" />
-                              Print Recent Prescription
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
+                {/* OLD MEDICATIONS TAB CODE REMOVED - Now using PatientMedicationsTab component */}
               </Tabs>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Safety Alerts Tab */}
-        <TabsContent value="safety" className="space-y-4">
+        <TabsContent value="safety" className="space-y-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -2269,53 +1657,66 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Overview Tab - Reorganized Layout */}
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="overview" className="space-y-3 mt-2 flex-1 overflow-y-auto min-w-0 max-w-full overflow-x-hidden">
+          <PatientOverviewTab
+            patient={patient}
+            visits={visits}
+            recentLabs={recentLabs}
+            activePrescriptions={activePrescriptions}
+            displayPrescriptions={displayPrescriptions}
+            onAddPrescription={onAddPrescription}
+            onRecordVisit={onRecordVisit}
+            onShowPsychologicalTherapyDialog={() => setShowPsychologicalTherapyDialog(true)}
+          />
+        </TabsContent>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* OLD OVERVIEW TAB CODE - REMOVED - Now using PatientOverviewTab component above */}
+        <TabsContent value="overview-old" className="hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
             {/* Quick Stats - Enhanced */}
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className="shadow-md border-slate-200/60 hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2.5">
                 <CardTitle className="text-sm font-medium">Medical Summary</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
+              <CardContent className="space-y-2.5">
+                <div className="flex items-center justify-between py-1">
                   <div className="flex items-center space-x-2">
-                    <Vitals className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm">Total Visits</span>
+                    <Vitals className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <span className="text-sm text-slate-700">Total Visits</span>
                   </div>
-                  <Badge variant="secondary">{visits.length}</Badge>
+                  <Badge variant="secondary" className="font-semibold">{visits.length}</Badge>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between py-1">
                   <div className="flex items-center space-x-2">
-                    <BloodTest className="w-4 h-4 text-green-500" />
-                    <span className="text-sm">Lab Results</span>
+                    <BloodTest className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <span className="text-sm text-slate-700">Lab Results</span>
                   </div>
-                  <Badge variant="secondary">{recentLabs.length}</Badge>
+                  <Badge variant="secondary" className="font-semibold">{recentLabs.length}</Badge>
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between py-1">
                   <div className="flex items-center space-x-2">
-                    <Medication className="w-4 h-4 text-purple-500" />
-                    <span className="text-sm">Active Meds</span>
+                    <Medication className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                    <span className="text-sm text-slate-700">Active Meds</span>
                   </div>
-                  <Badge variant="secondary">{displayPrescriptions.length}</Badge>
+                  <Badge variant="secondary" className="font-semibold">{displayPrescriptions.length}</Badge>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Patient Summary - Industry Standard Format */}
-            <Card>
+            {/* Patient Summary - Industry Standard Format - Spans 2 columns on large screens */}
+            <Card className="shadow-md border-slate-200/60 hover:shadow-lg transition-shadow md:col-span-2 lg:col-span-1">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-gray-900 flex items-center">
-                  <User className="h-3 w-3 mr-1" style={{ color: '#0051CC' }} />
+                  <User className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" style={{ color: '#0051CC' }} />
                   Summary
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 px-3 pb-3">
-                <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                   {/* DOB - Critical for patient identification */}
-                  <div className="flex justify-between items-center bg-blue-50/50 rounded px-2 py-1">
+                  <div className="col-span-2 flex justify-between items-center bg-blue-50/50 rounded px-2 py-1.5">
                     <span className="text-xs font-medium text-blue-700">DOB</span>
                     <span className="text-xs font-bold text-blue-900">
                       {patient?.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString('en-US', {
@@ -2326,48 +1727,71 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Age/Sex</span>
-                    <span className="text-xs font-medium text-gray-800">
+                  <div className="flex justify-between items-center min-w-0">
+                    <span className="text-xs text-gray-600 truncate">Age/Sex</span>
+                    <span className="text-xs font-medium text-gray-800 whitespace-nowrap ml-2">
                       {patient?.dateOfBirth ? calculatePatientAge(patient.dateOfBirth) : 'N/A'}y {patient?.gender?.charAt(0).toUpperCase() || ''}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Blood Type</span>
-                    <Badge variant="outline" className="text-xs text-red-600 border-red-300/60 h-5 bg-red-50/80">
+                  <div className="flex justify-between items-center min-w-0">
+                    <span className="text-xs text-gray-600 truncate">Blood Type</span>
+                    <Badge variant="outline" className="text-xs text-red-600 border-red-300/60 h-5 bg-red-50/80 flex-shrink-0 ml-2">
                       {(patient as any)?.bloodType || 'Unknown'}
                     </Badge>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Phone</span>
-                    <span className="text-xs font-medium text-gray-800 truncate max-w-20">
-                      {patient?.phone || 'N/A'}
-                    </span>
+                  <div className="col-span-2 flex justify-between items-center min-w-0">
+                    <span className="text-xs text-gray-600 flex-shrink-0">Phone</span>
+                    {patient?.phone ? (
+                      <a
+                        href={`tel:${patient.phone.replace(/\s+/g, '')}`}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline truncate ml-2 transition-colors cursor-pointer min-w-0 flex-1 text-right"
+                        title={`Call ${patient.phone}`}
+                      >
+                        {patient.phone}
+                      </a>
+                    ) : (
+                      <span className="text-xs font-medium text-gray-800 ml-2">N/A</span>
+                    )}
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Language</span>
-                    <span className="text-xs font-medium text-gray-800">
+                  <div className="col-span-2 flex justify-between items-center min-w-0">
+                    <span className="text-xs text-gray-600 flex-shrink-0">Email</span>
+                    {patient?.email ? (
+                      <a
+                        href={`mailto:${patient.email}`}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline truncate ml-2 transition-colors cursor-pointer min-w-0 flex-1 text-right"
+                        title={`Send email to ${patient.email}`}
+                      >
+                        {patient.email}
+                      </a>
+                    ) : (
+                      <span className="text-xs font-medium text-gray-800 ml-2">N/A</span>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center min-w-0">
+                    <span className="text-xs text-gray-600 truncate">Language</span>
+                    <span className="text-xs font-medium text-gray-800 truncate ml-2 text-right">
                       {(patient as any)?.preferredLanguage || 'English'}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">Insurance</span>
-                    <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-300/60 h-5 bg-emerald-50/80">
+                  <div className="flex justify-between items-center min-w-0">
+                    <span className="text-xs text-gray-600 truncate">Insurance</span>
+                    <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-300/60 h-5 bg-emerald-50/80 flex-shrink-0 ml-2">
                       Active
                     </Badge>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-gray-200/60">
-                  <h4 className="text-xs font-medium text-gray-900 mb-1">Allergies</h4>
+                <div className="pt-2 mt-2 border-t border-gray-200/60">
+                  <h4 className="text-xs font-medium text-gray-900 mb-1.5">Allergies</h4>
                   <div className="flex flex-wrap gap-1">
                     {patient?.allergies ? (
                       <Badge variant="secondary" className="text-xs bg-red-50/90 text-red-700 border border-red-200/60 h-5">
-                        {patient.allergies.length > 12 ? patient.allergies.substring(0, 12) + '...' : patient.allergies}
+                        {patient.allergies.length > 20 ? patient.allergies.substring(0, 20) + '...' : patient.allergies}
                       </Badge>
                     ) : (
                       <span className="text-xs text-gray-500">None reported</span>
@@ -2378,10 +1802,10 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
             </Card>
 
             {/* Patient Safety Indicator */}
-            <Card>
-              <CardHeader className="pb-3">
+            <Card className="shadow-md border-slate-200/60 hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-2.5">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Vitals className="w-4 h-4 text-red-500" />
+                  <Vitals className="w-4 h-4 text-red-500 flex-shrink-0" />
                   Safety Status
                 </CardTitle>
               </CardHeader>
@@ -2392,7 +1816,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
           </div>
 
           {/* Quick Actions Card */}
-          <Card className="border-l-4 border-l-indigo-500">
+          <Card className="border-l-4 border-l-indigo-500 shadow-md border-slate-200/60 hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                 <Stethoscope className="h-4 w-4 text-indigo-600" />
@@ -2400,46 +1824,37 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                 {onRecordVisit && (
                   <Button
                     onClick={onRecordVisit}
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start gap-2 min-w-0"
                     size="sm"
                   >
-                    <Stethoscope className="w-4 h-4 mr-2" />
-                    Record Visit
+                    <Stethoscope className="w-4 h-4 shrink-0" />
+                    <span className="truncate min-w-0">Record Visit</span>
                   </Button>
                 )}
                 {onAddPrescription && (
                   <Button
                     onClick={onAddPrescription}
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start gap-2 min-w-0"
                     size="sm"
                   >
-                    <Medication className="w-4 h-4 mr-2" />
-                    Prescription
+                    <Medication className="w-4 h-4 shrink-0" />
+                    <span className="truncate min-w-0">Prescription</span>
                   </Button>
                 )}
                 <Button
                   onClick={() => navigate(`/patients/${patient.id}/lab-orders/new`)}
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-start gap-2 min-w-0"
                   size="sm"
                 >
-                  <BloodTest className="w-4 h-4 mr-2" />
-                  Lab Order
-                </Button>
-                <Button
-                  onClick={() => navigate(`/mental-health?patientId=${patient.id}`)}
-                  variant="outline"
-                  className="w-full justify-start"
-                  size="sm"
-                >
-                  <Heart className="w-4 h-4 mr-2" />
-                  Mental Health
+                  <BloodTest className="w-4 h-4 shrink-0" />
+                  <span className="truncate min-w-0">Lab Order</span>
                 </Button>
               </div>
             </CardContent>
@@ -2679,9 +2094,10 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
             criticalMedications={activePrescriptions}
           />
         </TabsContent>
+        {/* END OLD OVERVIEW TAB CODE */}
 
         {/* Dedicated Timeline Tab */}
-        <TabsContent value="timeline" className="space-y-4">
+        <TabsContent value="timeline" className="space-y-2 min-w-0 max-w-full overflow-x-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             {/* Timeline Filters/Controls */}
             <Card>
@@ -2806,12 +2222,12 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
 
 
         {/* Vital Signs Tab */}
-        <TabsContent value="vitals" className="space-y-6">
+        <TabsContent value="vitals" className="space-y-3">
           <PatientVitalSignsTracker patientId={patient.id} />
         </TabsContent>
 
         {/* Record Visit Tab */}
-        <TabsContent value="record-visit" className="space-y-6">
+        <TabsContent value="record-visit" className="space-y-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -2824,59 +2240,59 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   PATIENT SAFETY BANNER - Industry Standard Requirement
                   Shows critical information during visit entry
               ═══════════════════════════════════════════════════════════════════ */}
-              <div className="mb-6 space-y-3">
-                {/* Allergy Alert Banner */}
+              <div className="mb-4 space-y-2">
+                {/* Allergy Alert Banner - Subtle */}
                 {patient?.allergies && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-                    <div className="flex items-start gap-3">
+                  <div className="bg-red-50/50 border-l-2 border-red-300/60 p-2 rounded-r-md">
+                    <div className="flex items-center gap-1.5">
                       <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                        <svg className="h-3 w-3 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-bold text-red-800">⚠️ ALLERGY ALERT</h4>
-                        <p className="text-sm text-red-700 mt-1">{patient.allergies}</p>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-medium text-red-600/80">Allergy:</span>
+                        <span className="text-[10px] text-red-700/70 ml-1">{patient.allergies}</span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Medical History Alert */}
+                {/* Medical History Alert - Subtle */}
                 {patient?.medicalHistory && (
-                  <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                    <div className="flex items-start gap-3">
+                  <div className="bg-amber-50/50 border-l-2 border-amber-300/60 p-2 rounded-r-md">
+                    <div className="flex items-center gap-1.5">
                       <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                        <svg className="h-3 w-3 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-bold text-amber-800">📋 MEDICAL HISTORY</h4>
-                        <p className="text-sm text-amber-700 mt-1">{patient.medicalHistory}</p>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-medium text-amber-600/80">History:</span>
+                        <span className="text-[10px] text-amber-700/70 ml-1">{patient.medicalHistory}</span>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Current Medications Summary */}
+                {/* Current Medications Summary - Subtle */}
                 {activePrescriptions && activePrescriptions.length > 0 && (
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0">
-                        <Medication className="h-5 w-5 text-blue-500" />
+                  <div className="bg-blue-50/50 border-l-2 border-blue-300/60 p-2 rounded-r-md">
+                    <div className="flex items-start gap-1.5">
+                      <div className="flex-shrink-0 pt-0.5">
+                        <Medication className="h-3 w-3 text-blue-400" />
                       </div>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-bold text-blue-800">💊 CURRENT MEDICATIONS ({activePrescriptions.length})</h4>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {activePrescriptions.slice(0, 5).map((rx: any, idx: number) => (
-                            <Badge key={idx} variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-                              {rx.medicationName} - {rx.dosage}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-medium text-blue-600/80">Medications ({activePrescriptions.length}):</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {activePrescriptions.slice(0, 3).map((rx: any, idx: number) => (
+                            <Badge key={idx} variant="outline" className="text-[9px] px-1 py-0.5 bg-blue-100/60 text-blue-700/80 border-blue-200/60 h-auto">
+                              {rx.medicationName} {rx.dosage && `- ${rx.dosage}`}
                             </Badge>
                           ))}
-                          {activePrescriptions.length > 5 && (
-                            <Badge variant="outline" className="bg-blue-200 text-blue-800">
-                              +{activePrescriptions.length - 5} more
+                          {activePrescriptions.length > 3 && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0.5 bg-blue-200/60 text-blue-700/80 border-blue-300/60 h-auto">
+                              +{activePrescriptions.length - 3}
                             </Badge>
                           )}
                         </div>
@@ -2884,30 +2300,6 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                     </div>
                   </div>
                 )}
-
-                {/* Patient Quick Info Bar */}
-                <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg flex flex-wrap items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-slate-600">DOB:</span>
-                    <span className="font-semibold">{patient?.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-slate-600">Age:</span>
-                    <span className="font-semibold">{patient?.dateOfBirth ? calculatePatientAge(patient.dateOfBirth) : 'N/A'}y</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-slate-600">Sex:</span>
-                    <span className="font-semibold">{patient?.gender?.charAt(0).toUpperCase() || 'N/A'}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-slate-600">Blood Type:</span>
-                    <span className="font-semibold text-red-600">{(patient as any)?.bloodType || 'Unknown'}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="font-medium text-slate-600">Weight:</span>
-                    <span className="font-semibold">{visits[0]?.weight ? `${visits[0].weight} kg` : 'N/A'}</span>
-                  </div>
-                </div>
               </div>
 
               <Form {...visitForm}>
@@ -3746,8 +3138,8 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                               <div
                                 key={index}
                                 className={`flex items-center justify-between p-2 rounded border ${isPotentialContraindication
-                                    ? 'bg-red-100 border-red-300'
-                                    : 'bg-white border-blue-200'
+                                  ? 'bg-red-100 border-red-300'
+                                  : 'bg-white border-blue-200'
                                   }`}
                               >
                                 <div className="flex items-center gap-2">
@@ -3961,7 +3353,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Documents Tab */}
-        <TabsContent value="documents" className="space-y-6">
+        <TabsContent value="documents" className="space-y-3 min-w-0 max-w-full overflow-x-hidden">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -4014,7 +3406,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="medical-records" className="space-y-4">
+                <TabsContent value="medical-records" className="space-y-2">
                   {/* Document Fetch and Display */}
                   <DocumentsListSection
                     patientId={patient.id}
@@ -4118,7 +3510,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   </div>
                 </TabsContent>
 
-                <TabsContent value="consent-forms" className="space-y-4">
+                <TabsContent value="consent-forms" className="space-y-2">
                   <div className="text-center py-12 text-gray-500">
                     <Document className="mx-auto h-16 w-16 text-gray-300 mb-4" />
                     <h3 className="text-lg font-medium text-gray-700 mb-2">Consent Forms</h3>
@@ -4141,7 +3533,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   </div>
                 </TabsContent>
 
-                <TabsContent value="discharge-letters" className="space-y-4">
+                <TabsContent value="discharge-letters" className="space-y-2">
                   <PatientDischargeLetterTab
                     patientId={patient.id}
                     patientName={formatPatientName(patient)}
@@ -4150,11 +3542,11 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   />
                 </TabsContent>
 
-                <TabsContent value="insurance" className="space-y-4">
+                <TabsContent value="insurance" className="space-y-2">
                   <InsuranceManagement patientId={patient.id} />
                 </TabsContent>
 
-                <TabsContent value="referrals" className="space-y-4">
+                <TabsContent value="referrals" className="space-y-2">
                   <ReferralManagement patientId={patient.id} />
                 </TabsContent>
               </Tabs>
@@ -4163,7 +3555,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Labs Tab */}
-        <TabsContent value="labs" className="space-y-6">
+        <TabsContent value="labs" className="space-y-3 min-w-0 max-w-full overflow-x-hidden">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -4174,34 +3566,56 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
             <CardContent>
               <Tabs defaultValue="orders" className="w-full">
                 <TabsList className="grid w-full grid-cols-5 max-w-3xl mb-6">
+                  {/* Workflow Step 1: Create new lab orders */}
                   <TabsTrigger value="orders" className="flex items-center gap-2">
                     <BloodTest className="w-4 h-4" />
                     Lab Orders
                   </TabsTrigger>
-                  <TabsTrigger value="results" className="flex items-center gap-2">
-                    <BloodTest className="w-4 h-4" />
-                    Results
-                  </TabsTrigger>
-                  <TabsTrigger value="reviewed" className="flex items-center gap-2">
-                    <Success className="w-4 h-4" />
-                    Reviewed
-                  </TabsTrigger>
+                  {/* Workflow Step 2: Orders awaiting results entry */}
                   <TabsTrigger value="pending" className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     Pending
                   </TabsTrigger>
+                  {/* Workflow Step 3: Completed results awaiting review */}
+                  <TabsTrigger value="results" className="flex items-center gap-2">
+                    <BloodTest className="w-4 h-4" />
+                    Results
+                  </TabsTrigger>
+                  {/* Workflow Step 4: Results reviewed by doctor */}
+                  <TabsTrigger value="reviewed" className="flex items-center gap-2">
+                    <Success className="w-4 h-4" />
+                    Reviewed
+                  </TabsTrigger>
+                  {/* Workflow Step 5: Complete historical view */}
                   <TabsTrigger value="history" className="flex items-center gap-2">
                     <History className="w-4 h-4" />
                     History
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="orders" className="space-y-4">
+                <TabsContent value="orders" className="space-y-2">
                   <LabOrderForm patientId={patient.id} />
                 </TabsContent>
 
-                <TabsContent value="results" className="space-y-4">
-                  <LabOrdersList patientId={patient.id} />
+                {/* Results Tab: Shows completed results awaiting doctor review */}
+                <TabsContent value="results" className="space-y-2">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">Completed Results</h3>
+                        <p className="text-sm text-gray-600">Results awaiting doctor review</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/patients/${patient.id}/lab-orders`] })}
+                      >
+                        <Refresh className="w-4 h-4 mr-2" />
+                        Refresh
+                      </Button>
+                    </div>
+                    <LabOrdersList patientId={patient.id} showCompletedOnly={true} />
+                  </div>
 
                   {/* AI-Powered Lab Result Integration */}
                   <LabResultPersonalityIntegration
@@ -4223,7 +3637,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   />
                 </TabsContent>
 
-                <TabsContent value="reviewed" className="space-y-4">
+                <TabsContent value="reviewed" className="space-y-2">
                   <PatientReviewedResults
                     patientId={patient.id}
                     showDeleteVisitConfirm={showDeleteVisitConfirm}
@@ -4232,7 +3646,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   />
                 </TabsContent>
 
-                <TabsContent value="pending" className="space-y-4">
+                <TabsContent value="pending" className="space-y-2">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">Pending Lab Tests</h3>
@@ -4249,7 +3663,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
                   </div>
                 </TabsContent>
 
-                <TabsContent value="history" className="space-y-4">
+                <TabsContent value="history" className="space-y-2">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">Complete Lab History</h3>
@@ -4281,12 +3695,12 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Consultation Forms Tab */}
-        <TabsContent value="consultation" className="space-y-6">
+        <TabsContent value="consultation" className="space-y-3">
           <ConsultationFormSelector patientId={patient.id} />
         </TabsContent>
 
         {/* Medication Review Assignments Tab */}
-        <TabsContent value="med-reviews" className="space-y-6">
+        <TabsContent value="med-reviews" className="space-y-3">
           <MedicationReviewAssignmentsList
             patientId={patient.id}
             patient={patient as any}
@@ -4295,8 +3709,8 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Vaccination Tab */}
-        <TabsContent value="vaccinations" className="space-y-6">
-          <Card>
+        <TabsContent value="vaccinations" className="space-y-3 mt-2">
+          <Card className="shadow-md border-slate-200/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Vitals className="h-5 w-5 text-green-500" />
@@ -4313,15 +3727,15 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Communication Tab */}
-        <TabsContent value="communication" className="space-y-6">
+        <TabsContent value="communication" className="space-y-3 mt-2">
           <PatientCommunicationHub
             patientId={patient.id}
           />
         </TabsContent>
 
         {/* Appointments Tab - Detailed Implementation */}
-        <TabsContent value="appointments" className="space-y-4">
-          <Card>
+        <TabsContent value="appointments" className="space-y-3 mt-2">
+          <Card className="shadow-md border-slate-200/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-blue-500" />
@@ -4335,8 +3749,8 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Billing Tab */}
-        <TabsContent value="billing" className="space-y-4">
-          <Card>
+        <TabsContent value="billing" className="space-y-3 mt-2">
+          <Card className="shadow-md border-slate-200/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CardIcon className="h-5 w-5 text-green-500" />
@@ -4350,7 +3764,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Insurance Tab */}
-        <TabsContent value="insurance" className="space-y-4">
+        <TabsContent value="insurance" className="space-y-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -4365,7 +3779,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Medical History Tab */}
-        <TabsContent value="history" className="space-y-4">
+        <TabsContent value="history" className="space-y-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -4380,28 +3794,48 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
         </TabsContent>
 
         {/* Imaging Tab */}
-        <TabsContent value="imaging" className="space-y-4">
+        <TabsContent value="imaging" className="space-y-2">
           <PatientImaging patientId={patient.id} />
         </TabsContent>
 
         {/* Allergies Tab */}
-        <TabsContent value="allergies" className="space-y-4">
+        <TabsContent value="allergies" className="space-y-2">
           <PatientAllergies patientId={patient.id} />
         </TabsContent>
 
         {/* Immunizations Tab */}
-        <TabsContent value="immunizations" className="space-y-4">
+        <TabsContent value="immunizations" className="space-y-2">
           <PatientImmunizations patientId={patient.id} />
         </TabsContent>
 
         {/* Procedures Tab */}
-        <TabsContent value="procedures" className="space-y-4">
+        <TabsContent value="procedures" className="space-y-2">
           <PatientProcedures patientId={patient.id} />
         </TabsContent>
 
+        {/* Referrals Tab */}
+        <TabsContent value="referrals" className="space-y-2">
+          <ReferralsTab patient={patient} />
+        </TabsContent>
+
         {/* Psychological Therapy Tab */}
-        <TabsContent value="psychological-therapy" className="space-y-4">
+        <TabsContent value="psychological-therapy" className="space-y-2">
           <PsychologicalTherapyAssessment patientId={patient.id} />
+        </TabsContent>
+
+        {/* Care Plans Tab */}
+        <TabsContent value="care-plans" className="space-y-3 mt-2">
+          <CarePlansTab patient={patient} />
+        </TabsContent>
+
+        {/* Clinical Notes Tab */}
+        <TabsContent value="notes" className="space-y-3 mt-2">
+          <ClinicalNotesTab patient={patient} />
+        </TabsContent>
+
+        {/* Longevity Tab - Evidence-based health assessment */}
+        <TabsContent value="longevity" className="space-y-3 mt-2">
+          <LongevityTab patient={patient} />
         </TabsContent>
       </Tabs>
 
@@ -4417,7 +3851,7 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
               Patient: {formatPatientName(patient)}
             </p>
           </DialogHeader>
-          <PsychologicalTherapyAssessment 
+          <PsychologicalTherapyAssessment
             patientId={patient.id}
             visitId={undefined}
             onSuccess={() => setShowPsychologicalTherapyDialog(false)}
@@ -4448,9 +3882,13 @@ This is a valid prescription for dispensing at any licensed pharmacy in Nigeria.
       {/* Custom Prescription Print Dialog */}
       {showPrescriptionPrint && (
         <CustomPrescriptionPrint
-          prescriptions={displayPrescriptions}
+          prescriptions={selectedPrescriptionsForPrint.length > 0 ? selectedPrescriptionsForPrint : displayPrescriptions}
           patient={patient as any}
-          onClose={() => setShowPrescriptionPrint(false)}
+          onClose={() => {
+            setShowPrescriptionPrint(false);
+            setSelectedPrescriptionsForPrint([]);
+            setSelectedMedications(new Set());
+          }}
         />
       )}
 

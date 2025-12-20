@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,9 +32,6 @@ import {
   Zap
 } from "lucide-react";
 import PhysiotherapyAssessment from "@/components/physiotherapy-assessment";
-import EnhancedPhysiotherapyDashboard from "@/components/enhanced-physiotherapy-dashboard";
-import PhysiotherapyCareCoordination from "@/components/physiotherapy-care-coordination";
-import PhysiotherapyTreatmentIntegration from "@/components/physiotherapy-treatment-integration";
 import { format } from "date-fns";
 
 export default function PhysiotherapyPage() {
@@ -42,18 +39,42 @@ export default function PhysiotherapyPage() {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [showAssessmentDialog, setShowAssessmentDialog] = useState(false);
 
+  useEffect(() => {
+    // #region agent log
+    console.log('[DEBUG] PhysiotherapyPage component mounted');
+    try {
+      fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'physiotherapy.tsx:40',message:'PhysiotherapyPage component render started',data:{timestamp:Date.now(),pathname:typeof window !== 'undefined' ? window.location.pathname : 'unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch((e) => console.error('Debug log failed:', e));
+      fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'physiotherapy.tsx:45',message:'PhysiotherapyPage component mounted',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch((e) => console.error('Debug log failed:', e));
+    } catch (e) {
+      console.error('Debug log error:', e);
+    }
+    // #endregion
+  }, []);
+
   // Fetch patients
-  const { data: patients = [] } = useQuery({
+  const { data: patients = [], error: patientsError, isLoading: patientsLoading } = useQuery({
     queryKey: ['/api/patients'],
   });
 
   // Fetch physiotherapy assessments
-  const { data: assessments = [] } = useQuery({
+  const { data: assessments = [], error: assessmentsError, isLoading: assessmentsLoading } = useQuery({
     queryKey: ['/api/consultation-records'],
     select: (data: any[]) => data.filter(record => 
       record.formData?.type === 'physiotherapy_assessment'
     )
   });
+
+  // Log query results in useEffect to avoid issues during render
+  useEffect(() => {
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'physiotherapy.tsx:48',message:'Patients query result',data:{patientsCount:patients?.length||0,hasError:!!patientsError,isLoading:patientsLoading,error:patientsError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch((e) => console.error('Debug log failed:', e));
+      fetch('http://127.0.0.1:7242/ingest/f9e91c9b-bc3f-4337-aa80-61276f82feec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'physiotherapy.tsx:56',message:'Assessments query result',data:{assessmentsCount:assessments?.length||0,hasError:!!assessmentsError,isLoading:assessmentsLoading,error:assessmentsError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch((e) => console.error('Debug log failed:', e));
+    } catch (e) {
+      console.error('Debug log error:', e);
+    }
+    // #endregion
+  }, [patients, assessments, patientsError, assessmentsError, patientsLoading, assessmentsLoading]);
 
   // Filter patients based on search
   const filteredPatients = patients.filter((patient: any) =>
@@ -71,7 +92,6 @@ export default function PhysiotherapyPage() {
     setSelectedPatient(patient);
     setShowAssessmentDialog(true);
   };
-
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="flex items-center justify-between">

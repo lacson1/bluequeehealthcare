@@ -9,6 +9,7 @@ interface User {
   id: number;
   username: string;
   role: string;
+  roleId?: number; // RBAC role ID
   title?: string;
   firstName?: string;
   lastName?: string;
@@ -31,14 +32,58 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+interface AuthProviderProps {
+  children: ReactNode;
+  initialUser?: User | null; // Optional prop for testing
+}
+
+export function AuthProvider({ children, initialUser }: AuthProviderProps) {
+  const [user, setUser] = useState<User | null>(initialUser ?? null);
+  const [isLoading, setIsLoading] = useState(initialUser === undefined); // If initialUser is provided, we're not loading
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Check for existing session on mount
+  // Define refreshUser before it's used in useEffect
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await fetch('/api/profile', {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        // Handle both wrapped (sendSuccess) and unwrapped response formats
+        const userData = responseData.data || responseData;
+        // Only update user state if data actually changed to prevent unnecessary re-renders
+        setUser(prevUser => {
+          // Compare user IDs to avoid unnecessary updates
+          if (prevUser?.id === userData.id && 
+              prevUser?.organizationId === userData.organizationId) {
+            // Data hasn't changed, return previous state to prevent re-render
+            return prevUser;
+          }
+          logger.debug('User data refreshed');
+          return userData;
+        });
+      } else if (response.status === 401 || response.status === 404) {
+        // Session is invalid or user not found, clear user state
+        logger.debug('Session expired or invalid');
+        setUser(null);
+      }
+    } catch (error) {
+      logger.warn('Failed to refresh user data:', error);
+      // Don't clear user on network errors, only on auth failures
+    }
+  }, []);
+
+  // Check for existing session on mount (skip if initialUser is provided for testing)
   useEffect(() => {
+    // If initialUser is provided, skip the session check (for testing)
+    if (initialUser !== undefined) {
+      setIsLoading(false);
+      return;
+    }
+
     const checkSession = async () => {
       try {
         logger.debug('Checking existing session...');
@@ -47,7 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (response.ok) {
-          const userData = await response.json();
+          const responseData = await response.json();
+          // Handle both wrapped (sendSuccess) and unwrapped response formats
+          const userData = responseData.data || responseData;
           setUser(userData);
           logger.debug('Session restored for user:', userData.username || userData.firstName || 'unknown');
         } else {
@@ -64,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkSession();
-  }, []);
+  }, [initialUser]);
 
   // Periodic session refresh to keep session alive
   useEffect(() => {
@@ -75,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 5 * 60 * 1000); // Refresh every 5 minutes
     
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, refreshUser]);
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
@@ -201,29 +248,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLocation('/login');
   }, [setLocation, toast]);
 
-  const refreshUser = useCallback(async () => {
-    try {
-      const response = await fetch('/api/profile', {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        logger.debug('User data refreshed');
-      } else if (response.status === 401 || response.status === 404) {
-        // Session is invalid or user not found, clear user state
-        logger.debug('Session expired or invalid');
-        setUser(null);
-      }
-    } catch (error) {
-      logger.warn('Failed to refresh user data:', error);
-      // Don't clear user on network errors, only on auth failures
-    }
-  }, []);
+  // Ensure we always provide a valid context value
+  const contextValue: AuthContextType = {
+    user,
+    login,
+    logout,
+    refreshUser,
+    isLoading,
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
@@ -232,7 +267,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // Provide a helpful error message with component stack info
+    const error = new Error(
+      'useAuth must be used within an AuthProvider. ' +
+      'Make sure your component is rendered inside the <AuthProvider> component. ' +
+      'Check the component tree to ensure AuthProvider wraps all components that use useAuth.'
+    );
+    
+    // Log helpful debugging info
+    if (process.env.NODE_ENV === 'development') {
+      console.error('useAuth hook called outside AuthProvider context');
+      console.error('Stack trace:', new Error().stack);
+      console.error('Make sure the component using useAuth is wrapped in <AuthProvider>');
+      console.error('The AuthProvider should be at the root of your app, wrapping the Router component');
+    }
+    
+    throw error;
   }
   return context;
 }

@@ -1,23 +1,21 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Pill, Plus, Package, AlertTriangle, Search, Filter, X, SortAsc, SortDesc, Calendar, TrendingUp, BarChart3, Grid3X3, List, RefreshCw, Download, Upload, Activity, FileText } from "lucide-react";
+import { Pill, Plus, Package, AlertTriangle, Search, Filter, X, TrendingUp, Activity, FileText, LayoutGrid, Table2, Columns3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useRole } from "@/components/role-guard";
+import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertMedicineSchema, type Medicine, type InsertMedicine } from "@shared/schema";
+import { insertMedicineSchema, type Medicine } from "@shared/schema";
 import { PharmacyActivityLog } from "@/components/pharmacy-activity-log";
 import { EnhancedMedicationReview } from "@/components/enhanced-medication-review";
 
@@ -28,17 +26,16 @@ const addMedicineFormSchema = insertMedicineSchema.extend({
   expiryDate: z.string().optional(),
 });
 
-type AddMedicineForm = z.infer<typeof addMedicineFormSchema>;
+type AddMedicineForm = z.infer<typeof insertMedicineSchema> & { expiryDate?: string };
 
 export default function EnhancedPharmacyPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useRole();
-  
+
   // State for dialogs and UI
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [editingQuantity, setEditingQuantity] = useState<Record<number, string>>({});
   const [selectedCurrency, setSelectedCurrency] = useState<'NGN' | 'USD' | 'GBP'>('NGN');
 
@@ -51,7 +48,7 @@ export default function EnhancedPharmacyPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   // Fetch medicines
-  const { data: medicines = [], isLoading, error } = useQuery({
+  const { data: medicines = [], isLoading } = useQuery<Medicine[]>({
     queryKey: ['/api/medicines'],
   });
 
@@ -60,13 +57,14 @@ export default function EnhancedPharmacyPage() {
     resolver: zodResolver(addMedicineFormSchema),
     defaultValues: {
       name: "",
-      quantity: 0,
+      description: "",
+      quantity: undefined,
       unit: "",
-      costPrice: 0,
-      sellingPrice: 0,
+      cost: undefined,
       supplier: "",
-      lowStockThreshold: 10,
-    },
+      lowStockThreshold: undefined,
+      expiryDate: "",
+    } as Partial<AddMedicineForm>,
   });
 
   // Add medicine mutation
@@ -116,8 +114,8 @@ export default function EnhancedPharmacyPage() {
 
   // Handle quantity update
   const handleQuantityUpdate = (medicineId: number, newQuantity: string) => {
-    const quantity = parseInt(newQuantity);
-    if (isNaN(quantity) || quantity < 0) {
+    const quantity = Number.parseInt(newQuantity, 10);
+    if (Number.isNaN(quantity) || quantity < 0) {
       toast({
         title: "Error",
         description: "Please enter a valid quantity",
@@ -125,7 +123,7 @@ export default function EnhancedPharmacyPage() {
       });
       return;
     }
-    
+
     updateQuantityMutation.mutate({ id: medicineId, quantity });
   };
 
@@ -142,7 +140,7 @@ export default function EnhancedPharmacyPage() {
   const filteredMedicines = useMemo(() => {
     let filtered = medicines.filter((medicine: Medicine) => {
       const matchesSearch = medicine.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStock = stockFilter === "all" || 
+      const matchesStock = stockFilter === "all" ||
         (stockFilter === "low" && medicine.quantity <= medicine.lowStockThreshold) ||
         (stockFilter === "out" && medicine.quantity === 0) ||
         (stockFilter === "available" && medicine.quantity > 0);
@@ -155,15 +153,15 @@ export default function EnhancedPharmacyPage() {
     // Sort medicines
     filtered.sort((a: Medicine, b: Medicine) => {
       let aValue: any, bValue: any;
-      
+
       switch (sortBy) {
         case "quantity":
           aValue = a.quantity;
           bValue = b.quantity;
           break;
-        case "sellingPrice":
-          aValue = a.sellingPrice;
-          bValue = b.sellingPrice;
+        case "cost":
+          aValue = Number.parseFloat(a.cost || '0');
+          bValue = Number.parseFloat(b.cost || '0');
           break;
         case "unit":
           aValue = a.unit.toLowerCase();
@@ -211,7 +209,7 @@ export default function EnhancedPharmacyPage() {
   const formatCurrency = (amount: number, currency: 'NGN' | 'USD' | 'GBP' = selectedCurrency) => {
     const convertedAmount = amount * currencyRates[currency];
     const symbols = { NGN: '₦', USD: '$', GBP: '£' };
-    
+
     return `${symbols[currency]}${convertedAmount.toLocaleString('en-US', {
       minimumFractionDigits: currency === 'NGN' ? 0 : 2,
       maximumFractionDigits: currency === 'NGN' ? 0 : 2
@@ -223,7 +221,7 @@ export default function EnhancedPharmacyPage() {
     const total = medicines.length;
     const lowStock = medicines.filter((m: Medicine) => m.quantity <= m.lowStockThreshold).length;
     const outOfStock = medicines.filter((m: Medicine) => m.quantity === 0).length;
-    const totalValue = medicines.reduce((sum: number, m: Medicine) => sum + (m.quantity * (parseFloat(m.cost || '0'))), 0);
+    const totalValue = medicines.reduce((sum: number, m: Medicine) => sum + (m.quantity * (Number.parseFloat(m.cost || '0'))), 0);
 
     return { total, lowStock, outOfStock, totalValue };
   }, [medicines]);
@@ -237,7 +235,7 @@ export default function EnhancedPharmacyPage() {
             <h2 className="text-2xl font-bold text-slate-800">Enhanced Pharmacy</h2>
             <p className="text-sm text-slate-500">Comprehensive pharmacy operations and patient care</p>
           </div>
-          
+
           {/* Controls */}
           <div className="flex items-center gap-4">
             {/* Currency Selector */}
@@ -255,26 +253,69 @@ export default function EnhancedPharmacyPage() {
               </Select>
             </div>
 
-            {/* View Toggle (only visible in inventory tab) */}
+            {/* Enhanced View Selector */}
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-slate-600">View:</span>
-              <div className="flex border rounded-lg">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-r-none"
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-l-none"
-                >
-                  <List className="w-4 h-4" />
-                </Button>
+              <span className="text-xs font-medium text-slate-500 hidden sm:inline">View:</span>
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('grid')}
+                      className={cn(
+                        "h-8 px-3 rounded-md transition-all",
+                        viewMode === 'grid'
+                          ? "bg-white dark:bg-slate-700 shadow-sm"
+                          : "hover:bg-slate-200 dark:hover:bg-slate-700"
+                      )}
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                      <span className="ml-1.5 text-xs hidden lg:inline">Grid</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Grid View - Card layout</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('list')}
+                      className={cn(
+                        "h-8 px-3 rounded-md transition-all",
+                        viewMode === 'list'
+                          ? "bg-white dark:bg-slate-700 shadow-sm"
+                          : "hover:bg-slate-200 dark:hover:bg-slate-700"
+                      )}
+                    >
+                      <Table2 className="w-4 h-4" />
+                      <span className="ml-1.5 text-xs hidden lg:inline">List</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>List View - Detailed table</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === 'compact' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setViewMode('compact')}
+                      className={cn(
+                        "h-8 px-3 rounded-md transition-all",
+                        viewMode === 'compact'
+                          ? "bg-white dark:bg-slate-700 shadow-sm"
+                          : "hover:bg-slate-200 dark:hover:bg-slate-700"
+                      )}
+                    >
+                      <Columns3 className="w-4 h-4" />
+                      <span className="ml-1.5 text-xs hidden lg:inline">Compact</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Compact View - Dense layout</TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </div>
@@ -318,7 +359,7 @@ export default function EnhancedPharmacyPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -380,7 +421,7 @@ export default function EnhancedPharmacyPage() {
                       {showFilters && <X className="w-4 h-4" />}
                     </Button>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                       <DialogTrigger asChild>
@@ -398,7 +439,7 @@ export default function EnhancedPharmacyPage() {
                             <div className="grid grid-cols-2 gap-4">
                               <FormField
                                 control={form.control}
-                                name="name"
+                                name={"name" as keyof AddMedicineForm}
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Medicine Name *</FormLabel>
@@ -409,10 +450,10 @@ export default function EnhancedPharmacyPage() {
                                   </FormItem>
                                 )}
                               />
-                              
+
                               <FormField
                                 control={form.control}
-                                name="unit"
+                                name={"unit" as keyof AddMedicineForm}
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Unit *</FormLabel>
@@ -440,17 +481,17 @@ export default function EnhancedPharmacyPage() {
 
                               <FormField
                                 control={form.control}
-                                name="quantity"
+                                name={"quantity" as keyof AddMedicineForm}
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Initial Quantity *</FormLabel>
                                     <FormControl>
-                                      <Input 
-                                        type="number" 
+                                      <Input
+                                        type="number"
                                         placeholder="0"
                                         {...field}
                                         value={field.value ?? ''}
-                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number.parseInt(e.target.value, 10))}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -460,17 +501,17 @@ export default function EnhancedPharmacyPage() {
 
                               <FormField
                                 control={form.control}
-                                name="lowStockThreshold"
+                                name={"lowStockThreshold" as keyof AddMedicineForm}
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Low Stock Alert *</FormLabel>
                                     <FormControl>
-                                      <Input 
-                                        type="number" 
+                                      <Input
+                                        type="number"
                                         placeholder="10"
                                         {...field}
                                         value={field.value ?? ''}
-                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number.parseInt(e.target.value, 10))}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -480,39 +521,18 @@ export default function EnhancedPharmacyPage() {
 
                               <FormField
                                 control={form.control}
-                                name="costPrice"
+                                name={"cost" as keyof AddMedicineForm}
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Cost Price (₦)</FormLabel>
                                     <FormControl>
-                                      <Input 
-                                        type="number" 
+                                      <Input
+                                        type="number"
                                         step="0.01"
                                         placeholder="0.00"
                                         {...field}
                                         value={field.value ?? ''}
-                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="sellingPrice"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Selling Price (₦) *</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        type="number" 
-                                        step="0.01"
-                                        placeholder="0.00"
-                                        {...field}
-                                        value={field.value ?? ''}
-                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : e.target.value)}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -524,7 +544,7 @@ export default function EnhancedPharmacyPage() {
                             <div className="grid grid-cols-2 gap-4">
                               <FormField
                                 control={form.control}
-                                name="supplier"
+                                name={"supplier" as keyof AddMedicineForm}
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Supplier</FormLabel>
@@ -613,7 +633,7 @@ export default function EnhancedPharmacyPage() {
                         <SelectContent>
                           <SelectItem value="name">Name</SelectItem>
                           <SelectItem value="quantity">Quantity</SelectItem>
-                          <SelectItem value="sellingPrice">Price</SelectItem>
+                          <SelectItem value="cost">Price</SelectItem>
                           <SelectItem value="unit">Unit</SelectItem>
                           <SelectItem value="supplier">Supplier</SelectItem>
                         </SelectContent>
@@ -649,82 +669,82 @@ export default function EnhancedPharmacyPage() {
                               <div className="text-right">
                                 <Badge variant={
                                   medicine.quantity === 0 ? "destructive" :
-                                  medicine.quantity <= medicine.lowStockThreshold ? "secondary" :
-                                  "default"
-                              }>
-                                {medicine.quantity === 0 ? "Out of Stock" :
-                                 medicine.quantity <= medicine.lowStockThreshold ? "Low Stock" :
-                                 "In Stock"}
-                              </Badge>
+                                    medicine.quantity <= medicine.lowStockThreshold ? "secondary" :
+                                      "default"
+                                }>
+                                  {medicine.quantity === 0 ? "Out of Stock" :
+                                    medicine.quantity <= medicine.lowStockThreshold ? "Low Stock" :
+                                      "In Stock"}
+                                </Badge>
+                              </div>
                             </div>
-                          </div>
 
-                          <div className="space-y-2 mb-4">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">Quantity:</span>
-                              <span className="font-medium">{medicine.quantity}</span>
+                            <div className="space-y-2 mb-4">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-600">Quantity:</span>
+                                <span className="font-medium">{medicine.quantity}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-600">Price:</span>
+                                <span className="font-medium">{formatCurrency(Number.parseFloat(medicine.cost || '0'))}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-600">Low Stock Alert:</span>
+                                <span className="font-medium">{medicine.lowStockThreshold}</span>
+                              </div>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">Price:</span>
-                              <span className="font-medium">{formatCurrency(parseFloat(medicine.cost || '0'))}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">Low Stock Alert:</span>
-                              <span className="font-medium">{medicine.lowStockThreshold}</span>
-                            </div>
-                          </div>
 
-                          <div className="flex items-center gap-2">
-                            {editingQuantity[medicine.id] !== undefined ? (
-                              <>
-                                <Input
-                                  type="number"
-                                  value={editingQuantity[medicine.id]}
-                                  onChange={(e) => setEditingQuantity(prev => ({
-                                    ...prev,
-                                    [medicine.id]: e.target.value
-                                  }))}
-                                  className="flex-1"
-                                  placeholder="New quantity"
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleQuantityUpdate(medicine.id, editingQuantity[medicine.id])}
-                                  disabled={updateQuantityMutation.isPending}
-                                >
-                                  Save
-                                </Button>
+                            <div className="flex items-center gap-2">
+                              {editingQuantity[medicine.id] !== undefined ? (
+                                <>
+                                  <Input
+                                    type="number"
+                                    value={editingQuantity[medicine.id]}
+                                    onChange={(e) => setEditingQuantity(prev => ({
+                                      ...prev,
+                                      [medicine.id]: e.target.value
+                                    }))}
+                                    className="flex-1"
+                                    placeholder="New quantity"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleQuantityUpdate(medicine.id, editingQuantity[medicine.id])}
+                                    disabled={updateQuantityMutation.isPending}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setEditingQuantity(prev => {
+                                      const newState = { ...prev };
+                                      delete newState[medicine.id];
+                                      return newState;
+                                    })}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => setEditingQuantity(prev => {
-                                    const newState = { ...prev };
-                                    delete newState[medicine.id];
-                                    return newState;
-                                  })}
+                                  onClick={() => setEditingQuantity(prev => ({
+                                    ...prev,
+                                    [medicine.id]: medicine.quantity.toString()
+                                  }))}
+                                  className="flex-1"
                                 >
-                                  Cancel
+                                  Update Stock
                                 </Button>
-                              </>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setEditingQuantity(prev => ({
-                                  ...prev,
-                                  [medicine.id]: medicine.quantity.toString()
-                                }))}
-                                className="flex-1"
-                              >
-                                Update Stock
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : viewMode === 'list' ? (
                     // List View
                     <div className="space-y-4">
                       {filteredMedicines.map((medicine: Medicine) => (
@@ -743,17 +763,17 @@ export default function EnhancedPharmacyPage() {
                                   </div>
                                   <div className="text-center">
                                     <p className="text-sm text-slate-600">Price</p>
-                                    <p className="text-lg font-semibold">{formatCurrency(parseFloat(medicine.cost || '0'))}</p>
+                                    <p className="text-lg font-semibold">{formatCurrency(Number.parseFloat(medicine.cost || '0'))}</p>
                                   </div>
                                   <div className="text-center">
                                     <Badge variant={
                                       medicine.quantity === 0 ? "destructive" :
-                                      medicine.quantity <= medicine.lowStockThreshold ? "secondary" :
-                                      "default"
+                                        medicine.quantity <= medicine.lowStockThreshold ? "secondary" :
+                                          "default"
                                     }>
                                       {medicine.quantity === 0 ? "Out of Stock" :
-                                       medicine.quantity <= medicine.lowStockThreshold ? "Low Stock" :
-                                       "In Stock"}
+                                        medicine.quantity <= medicine.lowStockThreshold ? "Low Stock" :
+                                          "In Stock"}
                                     </Badge>
                                   </div>
                                 </div>
@@ -807,6 +827,108 @@ export default function EnhancedPharmacyPage() {
                           </CardContent>
                         </Card>
                       ))}
+                    </div>
+                  ) : (
+                    // Compact View - Dense table layout
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Medicine</th>
+                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Unit</th>
+                            <th className="text-center py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Quantity</th>
+                            <th className="text-right py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Price</th>
+                            <th className="text-center py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Status</th>
+                            <th className="text-right py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredMedicines.map((medicine: Medicine) => (
+                            <tr
+                              key={medicine.id}
+                              className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                            >
+                              <td className="py-2.5 px-3">
+                                <div className="font-medium text-sm text-slate-900 dark:text-slate-100">{medicine.name}</div>
+                                {medicine.supplier && (
+                                  <div className="text-xs text-slate-500 dark:text-slate-400">{medicine.supplier}</div>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-sm text-slate-600 dark:text-slate-400">{medicine.unit}</td>
+                              <td className="py-2.5 px-3 text-center">
+                                {editingQuantity[medicine.id] !== undefined ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Input
+                                      type="number"
+                                      value={editingQuantity[medicine.id]}
+                                      onChange={(e) => setEditingQuantity(prev => ({
+                                        ...prev,
+                                        [medicine.id]: e.target.value
+                                      }))}
+                                      className="w-20 h-7 text-xs"
+                                      placeholder="Qty"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleQuantityUpdate(medicine.id, editingQuantity[medicine.id])}
+                                      disabled={updateQuantityMutation.isPending}
+                                      className="h-7 px-2 text-xs"
+                                    >
+                                      ✓
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => setEditingQuantity(prev => {
+                                        const newState = { ...prev };
+                                        delete newState[medicine.id];
+                                        return newState;
+                                      })}
+                                      className="h-7 px-2 text-xs"
+                                    >
+                                      ✕
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span className="font-medium text-sm">{medicine.quantity}</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-right text-sm font-medium text-slate-900 dark:text-slate-100">
+                                {formatCurrency(Number.parseFloat(medicine.cost || '0'))}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                <Badge
+                                  variant={
+                                    medicine.quantity === 0 ? "destructive" :
+                                      medicine.quantity <= medicine.lowStockThreshold ? "secondary" :
+                                        "default"
+                                  }
+                                  className="text-xs"
+                                >
+                                  {medicine.quantity === 0 ? "Out" :
+                                    medicine.quantity <= medicine.lowStockThreshold ? "Low" :
+                                      "OK"}
+                                </Badge>
+                              </td>
+                              <td className="py-2.5 px-3 text-right">
+                                {editingQuantity[medicine.id] === undefined && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setEditingQuantity(prev => ({
+                                      ...prev,
+                                      [medicine.id]: medicine.quantity.toString()
+                                    }))}
+                                    className="h-7 px-2 text-xs"
+                                  >
+                                    Edit
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )
                 ) : (

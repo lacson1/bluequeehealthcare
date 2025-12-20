@@ -147,50 +147,50 @@ export default function EnhancedMedicationManager({ prescriptions, className = '
 
     return (
       <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedMedication(medication)}>
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex items-start justify-between mb-3 sm:mb-4">
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              <div className={`p-2 sm:p-3 rounded-lg ${category.bgColor} flex-shrink-0`}>
-                <IconComponent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: category.color }} />
+        <CardContent className="p-2.5">
+          <div className="flex items-start justify-between mb-1.5">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <div className={`p-1.5 rounded-lg ${category.bgColor} flex-shrink-0`}>
+                <IconComponent className="h-3.5 w-3.5" style={{ color: category.color }} />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-base sm:text-lg text-gray-900 truncate">{medication.medicationName}</h3>
-                <p className="text-xs sm:text-sm text-gray-600">{category.title}</p>
+                <h3 className="font-semibold text-sm text-gray-900 truncate">{medication.medicationName}</h3>
+                <p className="text-xs text-gray-600">{category.title}</p>
               </div>
             </div>
-            <Badge className={`${status.color} border flex items-center gap-1 text-xs flex-shrink-0 ml-2`}>
+            <Badge className={`${status.color} border flex items-center gap-1 text-xs px-1.5 py-0 flex-shrink-0 ml-2`}>
               <StatusIcon className="h-3 w-3" />
               <span className="hidden sm:inline">{status.label}</span>
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-1.5">
+            <div className="space-y-1">
               <div>
-                <span className="text-xs sm:text-sm font-medium text-gray-600">Dosage:</span>
-                <p className="text-sm font-semibold">{medication.dosage}</p>
+                <span className="text-xs font-medium text-gray-600">Dosage:</span>
+                <p className="text-xs font-semibold">{medication.dosage}</p>
               </div>
               <div>
-                <span className="text-xs sm:text-sm font-medium text-gray-600">Frequency:</span>
-                <p className="text-sm font-semibold">{medication.frequency}</p>
+                <span className="text-xs font-medium text-gray-600">Frequency:</span>
+                <p className="text-xs font-semibold">{medication.frequency}</p>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <div>
-                <span className="text-xs sm:text-sm font-medium text-gray-600">Prescribed By:</span>
-                <p className="text-sm font-semibold truncate">{medication.prescribedBy || 'Dr. Johnson'}</p>
+                <span className="text-xs font-medium text-gray-600">Prescribed By:</span>
+                <p className="text-xs font-semibold truncate">{medication.prescribedBy || 'Dr. Johnson'}</p>
               </div>
               <div>
-                <span className="text-xs sm:text-sm font-medium text-gray-600">Pharmacy:</span>
-                <p className="text-sm font-semibold truncate">{medication.pharmacyName}</p>
+                <span className="text-xs font-medium text-gray-600">Pharmacy:</span>
+                <p className="text-xs font-semibold truncate">{medication.pharmacyName}</p>
               </div>
             </div>
           </div>
 
           {medication.instructions && (
-            <div className="mb-3 sm:mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-1 text-sm">Instructions</h4>
-              <p className="text-xs sm:text-sm text-blue-800">{medication.instructions}</p>
+            <div className="mb-1.5 p-1.5 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-0.5 text-xs">Instructions</h4>
+              <p className="text-xs text-blue-800">{medication.instructions}</p>
             </div>
           )}
 

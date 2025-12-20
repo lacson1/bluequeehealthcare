@@ -51,19 +51,242 @@ export function setupSuperAdminRoutes(app: Express) {
     logSuperAdminAction('CREATE_ORGANIZATION'),
     async (req: AuthRequest, res) => {
       try {
-        const organizationData = req.body;
+        console.log('=== SUPER ADMIN ORGANIZATION CREATION REQUEST ===');
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
         
-        const [newOrg] = await db.insert(organizations).values({
-          ...organizationData,
+        const { name, type, email, phone, address, website, logoUrl, themeColor } = req.body;
+        
+        // Validate required fields
+        if (!name || name.trim() === '') {
+          return res.status(400).json({ message: 'Organization name is required' });
+        }
+        
+        // Prepare data for insertion with proper defaults
+        const insertData = {
+          name: name.trim(),
+          type: type || 'clinic',
+          email: email && email.trim() !== '' ? email.trim() : null,
+          phone: phone && phone.trim() !== '' ? phone.trim() : null,
+          address: address && address.trim() !== '' ? address.trim() : null,
+          website: website && website.trim() !== '' ? website.trim() : null,
+          logoUrl: logoUrl && logoUrl.trim() !== '' ? logoUrl.trim() : null,
+          themeColor: themeColor || '#3B82F6',
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }).returning();
+        };
         
-        res.json(newOrg);
+        console.log('Insert data:', JSON.stringify(insertData, null, 2));
+        
+        // Check if organization with same name already exists
+        const existingOrg = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.name, insertData.name))
+          .limit(1);
+        
+        if (existingOrg.length > 0) {
+          return res.status(400).json({ 
+            message: 'An organization with this name already exists' 
+          });
+        }
+        
+        // Check if organization with same email already exists (if email provided)
+        if (insertData.email) {
+          const existingOrgByEmail = await db
+            .select()
+            .from(organizations)
+            .where(eq(organizations.email, insertData.email))
+            .limit(1);
+          
+          if (existingOrgByEmail.length > 0) {
+            return res.status(400).json({ 
+              message: 'An organization with this email already exists' 
+            });
+          }
+        }
+        
+        const [newOrg] = await db.insert(organizations).values(insertData).returning();
+        
+        console.log('Organization created successfully:', newOrg.id);
+        
+        res.status(201).json(newOrg);
       } catch (error) {
         console.error('Super admin create organization error:', error);
-        res.status(500).json({ error: 'Failed to create organization' });
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        
+        // Provide more detailed error message
+        if (error instanceof Error) {
+          if (error.message.includes('duplicate key') || error.message.includes('UNIQUE constraint')) {
+            return res.status(400).json({ 
+              message: 'An organization with this name or email already exists' 
+            });
+          }
+          if (error.message.includes('foreign key') || error.message.includes('constraint')) {
+            return res.status(400).json({ 
+              message: error.message 
+            });
+          }
+        }
+        
+        res.status(500).json({ 
+          message: 'Failed to create organization',
+          error: error instanceof Error ? error.message : 'An unexpected error occurred'
+        });
+      }
+    }
+  );
+
+  // Update organization details
+  app.patch('/api/superadmin/organizations/:id',
+    authenticateToken,
+    requireSuperAdmin,
+    logSuperAdminAction('UPDATE_ORGANIZATION'),
+    async (req: AuthRequest, res) => {
+      try {
+        const orgId = parseInt(req.params.id);
+        const updateData = req.body;
+        
+        console.log('=== SUPER ADMIN ORGANIZATION UPDATE REQUEST ===');
+        console.log('Organization ID:', orgId);
+        console.log('Update data:', JSON.stringify(updateData, null, 2));
+        
+        // Remove any fields that shouldn't be updated directly
+        delete updateData.id;
+        delete updateData.createdAt;
+        delete updateData.updatedAt;
+        
+        // Process the data to handle empty strings properly
+        const processedData: any = {};
+        for (const [key, value] of Object.entries(updateData)) {
+          if (value !== undefined) {
+            // Convert empty strings to null for nullable fields
+            if (value === '' && ['email', 'phone', 'address', 'website', 'logoUrl'].includes(key)) {
+              processedData[key] = null;
+            } else {
+              processedData[key] = value;
+            }
+          }
+        }
+        
+        // Check if organization exists
+        const [existingOrg] = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.id, orgId))
+          .limit(1);
+        
+        if (!existingOrg) {
+          return res.status(404).json({ message: 'Organization not found' });
+        }
+        
+        // Check for duplicate name (if name is being changed)
+        if (processedData.name && processedData.name !== existingOrg.name) {
+          const duplicateOrg = await db
+            .select()
+            .from(organizations)
+            .where(eq(organizations.name, processedData.name))
+            .limit(1);
+          
+          if (duplicateOrg.length > 0) {
+            return res.status(400).json({ 
+              message: 'An organization with this name already exists' 
+            });
+          }
+        }
+        
+        // Check for duplicate email (if email is being changed and not null)
+        if (processedData.email && processedData.email !== existingOrg.email) {
+          const duplicateOrgByEmail = await db
+            .select()
+            .from(organizations)
+            .where(eq(organizations.email, processedData.email))
+            .limit(1);
+          
+          if (duplicateOrgByEmail.length > 0) {
+            return res.status(400).json({ 
+              message: 'An organization with this email already exists' 
+            });
+          }
+        }
+        
+        // Update the organization
+        const [updatedOrg] = await db
+          .update(organizations)
+          .set({
+            ...processedData,
+            updatedAt: new Date()
+          })
+          .where(eq(organizations.id, orgId))
+          .returning();
+        
+        console.log('Organization updated successfully:', updatedOrg.id);
+        
+        res.json(updatedOrg);
+      } catch (error) {
+        console.error('Super admin update organization error:', error);
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        
+        res.status(500).json({ 
+          message: 'Failed to update organization',
+          error: error instanceof Error ? error.message : 'An unexpected error occurred'
+        });
+      }
+    }
+  );
+
+  // Update organization status (activate/deactivate)
+  app.patch('/api/superadmin/organizations/:id/status',
+    authenticateToken,
+    requireSuperAdmin,
+    logSuperAdminAction('UPDATE_ORGANIZATION_STATUS'),
+    async (req: AuthRequest, res) => {
+      try {
+        const orgId = parseInt(req.params.id);
+        const { isActive } = req.body;
+        
+        console.log('=== SUPER ADMIN ORGANIZATION STATUS UPDATE ===');
+        console.log('Organization ID:', orgId);
+        console.log('New status (isActive):', isActive);
+        
+        if (typeof isActive !== 'boolean') {
+          return res.status(400).json({ 
+            message: 'isActive must be a boolean value' 
+          });
+        }
+        
+        // Check if organization exists
+        const [existingOrg] = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.id, orgId))
+          .limit(1);
+        
+        if (!existingOrg) {
+          return res.status(404).json({ message: 'Organization not found' });
+        }
+        
+        const [updatedOrg] = await db
+          .update(organizations)
+          .set({ 
+            isActive: isActive,
+            updatedAt: new Date()
+          })
+          .where(eq(organizations.id, orgId))
+          .returning();
+        
+        console.log(`Organization ${orgId} status updated to ${isActive ? 'active' : 'inactive'}`);
+        
+        res.json({
+          message: isActive ? 'Organization activated' : 'Organization deactivated',
+          organization: updatedOrg
+        });
+      } catch (error) {
+        console.error('Super admin update organization status error:', error);
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        
+        res.status(500).json({ 
+          message: 'Failed to update organization status',
+          error: error instanceof Error ? error.message : 'An unexpected error occurred'
+        });
       }
     }
   );

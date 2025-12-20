@@ -38,6 +38,8 @@ import {
   RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
+import LabBatchResultsEntry from "@/components/lab-batch-results-entry";
+import LabReportsDashboard from "@/components/lab-reports-dashboard";
 
 // Form schemas
 const labOrderSchema = z.object({
@@ -139,24 +141,32 @@ export default function LaboratoryEnhanced() {
   // Queries
   const { data: labOrders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
     queryKey: ["/api/lab-orders/enhanced", filterStatus, filterPriority],
-    refetchInterval: 3 * 60 * 1000, // Reduced from 30s to 3 minutes
-    staleTime: 90 * 1000, // Cache for 90 seconds
+    refetchInterval: 5 * 60 * 1000, // 5 minutes - reduced frequency
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: labTests = [], isLoading: testsLoading } = useQuery({
     queryKey: ["/api/lab-tests"],
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes (static data)
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: patients = [] } = useQuery({
     queryKey: ["/api/patients"],
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes - static data
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: analytics } = useQuery({
     queryKey: ["/api/lab-analytics"],
     refetchInterval: false, // Disabled auto-refresh
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Mutations
@@ -859,20 +869,12 @@ export default function LaboratoryEnhanced() {
 
         {/* Results Entry Tab */}
         <TabsContent value="results" className="space-y-4">
-          <div className="text-center py-8">
-            <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Results Entry</h3>
-            <p className="text-gray-500">Batch results entry functionality coming soon</p>
-          </div>
+          <LabBatchResultsEntry />
         </TabsContent>
 
         {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-4">
-          <div className="text-center py-8">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Lab Reports</h3>
-            <p className="text-gray-500">Advanced reporting and analytics coming soon</p>
-          </div>
+          <LabReportsDashboard />
         </TabsContent>
       </Tabs>
     </div>

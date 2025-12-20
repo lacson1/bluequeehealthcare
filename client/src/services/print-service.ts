@@ -31,10 +31,22 @@ export interface PrintableDocument {
 
 export class PrintService {
   static generatePrintHTML(document: PrintableDocument): string {
-    const { organizationInfo, patientInfo, staffInfo, data, type, createdAt, recordId } = document;
-    
-    const currentDate = new Date().toLocaleDateString();
-    const currentTime = new Date().toLocaleTimeString();
+    try {
+      const { organizationInfo, patientInfo, staffInfo, data, type, createdAt, recordId } = document;
+      
+      // Validate required fields
+      if (!organizationInfo || !organizationInfo.name) {
+        throw new Error('Organization information is required');
+      }
+      if (!patientInfo || !patientInfo.fullName) {
+        throw new Error('Patient information is required');
+      }
+      if (!staffInfo || !staffInfo.fullName) {
+        throw new Error('Staff information is required');
+      }
+      
+      const currentDate = new Date().toLocaleDateString();
+      const currentTime = new Date().toLocaleTimeString();
     
     return `
 <!DOCTYPE html>
@@ -378,6 +390,11 @@ export class PrintService {
 </body>
 </html>
     `;
+    } catch (error) {
+      console.error('Error generating print HTML:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to generate print document: ${errorMessage}`);
+    }
   }
 
   private static getDocumentTitle(type: string): string {
@@ -837,53 +854,82 @@ export class PrintService {
   }
 
   private static generateConsultationContent(consultation: any): string {
+    if (!consultation) {
+      return '<div class="content-section"><div class="content-title">CONSULTATION DETAILS</div><div>No consultation data available.</div></div>';
+    }
+    
     let content = `
     <div class="content-section">
         <div class="content-title">CONSULTATION DETAILS</div>
     `;
 
     if (consultation.formName) {
+      const formName = String(consultation.formName || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       content += `
       <div class="consultation-field">
           <div class="field-label">CONSULTATION TYPE:</div>
-          <div class="field-value">${consultation.formName}</div>
+          <div class="field-value">${formName}</div>
       </div>
       `;
     }
 
     if (consultation.formData && typeof consultation.formData === 'object') {
-      Object.entries(consultation.formData).forEach(([key, value]: [string, any]) => {
-        if (value && value.toString().trim()) {
-          const fieldName = key.includes('field_') ? 'Clinical Notes' : 
-                           key.replace(/([A-Z])/g, ' $1')
-                              .replace(/[_-]/g, ' ')
-                              .replace(/^./, str => str.toUpperCase())
-                              .trim();
-          
-          content += `
-          <div class="consultation-field">
-              <div class="field-label">${fieldName.toUpperCase()}:</div>
-              <div class="field-value">${Array.isArray(value) ? value.join(', ') : value}</div>
-          </div>
-          `;
-        }
-      });
+      try {
+        Object.entries(consultation.formData).forEach(([key, value]: [string, any]) => {
+          if (value !== null && value !== undefined) {
+            let valueStr = '';
+            try {
+              if (Array.isArray(value)) {
+                valueStr = value.map(v => String(v || '')).join(', ');
+              } else if (typeof value === 'object') {
+                valueStr = JSON.stringify(value);
+              } else {
+                valueStr = String(value);
+              }
+              
+              if (valueStr.trim()) {
+                // Escape HTML to prevent XSS
+                valueStr = valueStr.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                
+                const fieldName = key.includes('field_') ? 'Clinical Notes' : 
+                                 key.replace(/([A-Z])/g, ' $1')
+                                    .replace(/[_-]/g, ' ')
+                                    .replace(/^./, str => str.toUpperCase())
+                                    .trim();
+                
+                content += `
+                <div class="consultation-field">
+                    <div class="field-label">${fieldName.toUpperCase().replace(/</g, '&lt;').replace(/>/g, '&gt;')}:</div>
+                    <div class="field-value">${valueStr}</div>
+                </div>
+                `;
+              }
+            } catch (err) {
+              console.warn(`Error formatting field ${key}:`, err);
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('Error processing formData:', err);
+      }
     }
 
     if (consultation.diagnosis) {
+      const diagnosis = String(consultation.diagnosis).replace(/</g, '&lt;').replace(/>/g, '&gt;');
       content += `
       <div class="consultation-field">
           <div class="field-label">DIAGNOSIS:</div>
-          <div class="field-value">${consultation.diagnosis}</div>
+          <div class="field-value">${diagnosis}</div>
       </div>
       `;
     }
 
     if (consultation.treatment) {
+      const treatment = String(consultation.treatment).replace(/</g, '&lt;').replace(/>/g, '&gt;');
       content += `
       <div class="consultation-field">
           <div class="field-label">TREATMENT PLAN:</div>
-          <div class="field-value">${consultation.treatment}</div>
+          <div class="field-value">${treatment}</div>
       </div>
       `;
     }
@@ -893,10 +939,50 @@ export class PrintService {
   }
 
   static async printDocument(document: PrintableDocument): Promise<void> {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(this.generatePrintHTML(document));
+    try {
+      console.log('PrintService.printDocument called with:', {
+        type: document.type,
+        recordId: document.recordId,
+        hasData: !!document.data,
+        hasPatientInfo: !!document.patientInfo,
+        hasOrganizationInfo: !!document.organizationInfo,
+        hasStaffInfo: !!document.staffInfo
+      });
+      
+      // Validate required fields
+      if (!document.organizationInfo || !document.organizationInfo.name) {
+        throw new Error('Organization information is missing');
+      }
+      
+      if (!document.patientInfo || !document.patientInfo.fullName) {
+        throw new Error('Patient information is missing');
+      }
+      
+      if (!document.staffInfo || !document.staffInfo.fullName) {
+        throw new Error('Staff information is missing');
+      }
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error('Print window was blocked. Please allow popups for this site and try again.');
+      }
+      
+      console.log('Generating print HTML...');
+      const html = this.generatePrintHTML(document);
+      console.log('Print HTML generated, length:', html.length);
+      
+      printWindow.document.write(html);
       printWindow.document.close();
+      
+      console.log('Print window opened successfully');
+      
+      // Wait a bit for the window to load before triggering print
+      setTimeout(() => {
+        printWindow.focus();
+      }, 100);
+    } catch (error) {
+      console.error('Error in printDocument:', error);
+      throw error instanceof Error ? error : new Error('Failed to open print window');
     }
   }
 

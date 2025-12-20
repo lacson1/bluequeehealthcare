@@ -34,14 +34,24 @@ declare module 'express-session' {
   }
 }
 
-// SECURITY: JWT secret from environment variable or generate secure default
+// SECURITY: JWT secret from environment variable - REQUIRED in production
 let JWT_SECRET = process.env.JWT_SECRET;
+const isProduction = process.env.NODE_ENV === 'production';
+
 if (!JWT_SECRET) {
-  // Generate a secure random secret if not provided
-  JWT_SECRET = crypto.randomBytes(64).toString('base64');
-  console.warn('⚠️  WARNING: JWT_SECRET not set. Generated temporary secret.');
-  console.warn('   JWT tokens will be invalidated on server restart.');
-  console.warn('   Set JWT_SECRET environment variable for production.');
+  if (isProduction) {
+    // Fail fast in production - JWT_SECRET is required
+    throw new Error(
+      'JWT_SECRET environment variable is required in production. ' +
+      'Set JWT_SECRET to a secure random string (use: openssl rand -base64 64)'
+    );
+  } else {
+    // Generate a secure random secret for development only
+    JWT_SECRET = crypto.randomBytes(64).toString('base64');
+    console.warn('⚠️  WARNING: JWT_SECRET not set. Generated temporary secret for development.');
+    console.warn('   JWT tokens will be invalidated on server restart.');
+    console.warn('   Set JWT_SECRET environment variable for production.');
+  }
 }
 
 // Export JWT_SECRET for use in other modules (read-only)

@@ -3,6 +3,7 @@ import { db } from "./db";
 import { auditLogs, users, type InsertAuditLog } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import type { AuthRequest } from "./middleware/auth";
+import { compressAuditData } from "./utils/audit-compress";
 
 export interface AuditContext {
   userId: number;
@@ -78,27 +79,53 @@ export const EntityTypes = {
  */
 export async function createAuditLog(context: AuditContext): Promise<void> {
   try {
+    // SECURITY: Skip audit logging for fallback superadmin (ID: 999) that doesn't exist in database
+    // This prevents audit logs from being attributed to a non-existent user
+    if (context.userId === 999) {
+      console.warn(`⚠️ AUDIT WARNING: Skipping audit log for fallback superadmin (ID: 999). Action: ${context.action}`);
+      return;
+    }
+
     // Verify the user exists before creating audit log
-    const userExists = await db.select().from(users).where(eq(users.id, context.userId)).limit(1);
+    const [userRecord] = await db.select().from(users).where(eq(users.id, context.userId)).limit(1);
     
-    if (userExists.length === 0) {
+    if (!userRecord) {
       console.warn(`⚠️ AUDIT WARNING: Attempted to log action for non-existent user ${context.userId}. Skipping audit log.`);
       return;
     }
 
-    const auditData: InsertAuditLog = {
+    // SECURITY: Verify user has a valid role before logging
+    // Users without roles should not be able to perform actions that create audit logs
+    if (!userRecord.role || userRecord.role.trim() === '') {
+      console.warn(`⚠️ AUDIT WARNING: User ${context.userId} (${userRecord.username}) has no role assigned. Skipping audit log for action: ${context.action}`);
+      console.warn(`   This indicates a data integrity issue. User should have a role assigned.`);
+      return;
+    }
+
+    // Compress audit data to reduce storage size
+    const compressedData = compressAuditData({
       userId: context.userId,
       action: context.action,
       entityType: context.entityType,
       entityId: context.entityId || null,
-      details: context.details ? JSON.stringify(context.details) : null,
+      details: context.details || null,
       ipAddress: getClientIP(context.request),
       userAgent: context.request?.get('User-Agent') || null
+    });
+
+    const auditData: InsertAuditLog = {
+      userId: compressedData.userId,
+      action: compressedData.action,
+      entityType: compressedData.entityType,
+      entityId: compressedData.entityId,
+      details: compressedData.details,
+      ipAddress: compressedData.ipAddress,
+      userAgent: compressedData.userAgent
     };
 
     await db.insert(auditLogs).values(auditData);
     
-    console.log(`🔍 AUDIT: ${context.action} by user ${context.userId} on ${context.entityType}${context.entityId ? ` #${context.entityId}` : ''}`);
+    console.log(`🔍 AUDIT: ${context.action} by user ${context.userId} (${userRecord.username}, role: ${userRecord.role}) on ${context.entityType}${context.entityId ? ` #${context.entityId}` : ''}`);
   } catch (error) {
     console.error('Failed to create audit log:', error);
     // Don't throw error to avoid disrupting main operations
@@ -113,6 +140,26 @@ export class AuditLogger {
 
   private get userId(): number {
     return this.req.user!.id;
+  }
+
+  /**
+   * Check if the current user is valid for audit logging
+   * Returns true if user exists in database and has a role
+   */
+  private async isValidUser(): Promise<boolean> {
+    const userId = this.userId;
+    
+    // Skip fallback superadmin
+    if (userId === 999) {
+      return false;
+    }
+
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      return !!user && !!user.role && user.role.trim() !== '';
+    } catch {
+      return false;
+    }
   }
 
   async logPatientAction(action: string, patientId?: number, details?: Record<string, any>) {

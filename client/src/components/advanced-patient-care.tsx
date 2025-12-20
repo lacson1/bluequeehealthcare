@@ -57,7 +57,7 @@ export function AdvancedPatientCare({ patientId }: AdvancedPatientCareProps) {
     }
   });
 
-  const { data: vitalTrends = [] } = useQuery<VitalTrend[]>({
+  const { data: _vitalTrends = [] } = useQuery<VitalTrend[]>({
     queryKey: ['/api/patients', patientId, 'vital-trends', selectedTimeframe],
     queryFn: async () => {
       const response = await fetch(`/api/patients/${patientId}/vital-trends?timeframe=${selectedTimeframe}`);

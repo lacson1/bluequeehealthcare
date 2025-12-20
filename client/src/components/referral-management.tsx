@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Send, Edit, Trash2, Calendar, Clock, MapPin, User, Stethoscope, AlertCircle } from 'lucide-react';
+import { MEDICAL_SPECIALTIES, HEALTHCARE_FACILITIES } from '@/lib/medical-specialties';
 
 const referralSchema = z.object({
   referredToDoctor: z.string().optional(),
@@ -58,47 +59,6 @@ interface PatientReferral {
     role: string;
   };
 }
-
-// Common specialties in Nigerian healthcare
-const MEDICAL_SPECIALTIES = [
-  'Cardiology',
-  'Dermatology',
-  'Endocrinology',
-  'Gastroenterology',
-  'General Surgery',
-  'Gynecology',
-  'Neurology',
-  'Obstetrics',
-  'Oncology',
-  'Ophthalmology',
-  'Orthopedics',
-  'Otolaryngology (ENT)',
-  'Pediatrics',
-  'Psychiatry',
-  'Pulmonology',
-  'Radiology',
-  'Rheumatology',
-  'Urology'
-];
-
-// Common healthcare facilities in Southwest Nigeria
-const HEALTHCARE_FACILITIES = [
-  'Lagos University Teaching Hospital (LUTH)',
-  'University College Hospital (UCH), Ibadan',
-  'Obafemi Awolowo University Teaching Hospital, Ile-Ife',
-  'Lagos State University Teaching Hospital (LASUTH)',
-  'Federal Medical Centre, Abeokuta',
-  'Federal Medical Centre, Owo',
-  'Olabisi Onabanjo University Teaching Hospital',
-  'Irrua Specialist Teaching Hospital',
-  'National Hospital, Abuja',
-  'Lagos Island Maternity Hospital',
-  'St. Nicholas Hospital, Lagos',
-  'Reddington Hospital',
-  'The Bridge Clinic',
-  'Vedic Lifecare Hospital',
-  'EKO Hospital'
-];
 
 export default function ReferralManagement({ patientId }: ReferralManagementProps) {
   const [isOpen, setIsOpen] = useState(false);

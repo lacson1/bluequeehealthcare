@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown, Pill, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 interface PrescriptionModalProps {
   open: boolean;
@@ -129,8 +130,8 @@ export default function PrescriptionModal({
         }
         
         toast({
-          title: "Success",
-          description: "Prescription created and sent to pharmacy!",
+          title: t('prescription.success'),
+          description: t('prescription.successMessage'),
         });
         form.reset();
         setSelectedPatientId(undefined);
@@ -144,8 +145,8 @@ export default function PrescriptionModal({
     onError: (error: Error) => {
       console.error('Prescription creation error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create prescription. Please try again.",
+        title: t('prescription.error'),
+        description: error.message || t('prescription.errorMessage'),
         variant: "destructive",
       });
     },
@@ -215,8 +216,8 @@ export default function PrescriptionModal({
     }
 
     toast({
-      title: "Smart Auto-Fill Complete ✨",
-      description: `Dosage and instructions automatically filled for ${medication.name}`,
+      title: t('prescription.autoFillComplete'),
+      description: t('prescription.autoFillMessage').replace('{medication}', medication.name),
     });
   };
 
@@ -224,16 +225,16 @@ export default function PrescriptionModal({
     setManualMedicationName(medicationName);
     setSelectedMedicine(null); // Clear any selected medicine
     toast({
-      title: "Manual medication added",
-      description: `"${medicationName}" has been added. Please fill in dosage and instructions manually.`,
+      title: t('prescription.manualAdded'),
+      description: t('prescription.manualAddedMessage').replace('{medication}', medicationName),
     });
   };
 
   const onSubmit = (data: Omit<InsertPrescription, "patientId" | "medicineId">) => {
     if (!selectedPatientId) {
       toast({
-        title: "Error",
-        description: "Please select a patient.",
+        title: t('prescription.error'),
+        description: t('prescription.errorSelectPatient'),
         variant: "destructive",
       });
       return;
@@ -241,8 +242,8 @@ export default function PrescriptionModal({
 
     if (!selectedMedicine && !manualMedicationName) {
       toast({
-        title: "Error",
-        description: "Please select a medicine or enter a medication name manually.",
+        title: t('prescription.error'),
+        description: t('prescription.errorSelectMedication'),
         variant: "destructive",
       });
       return;
@@ -268,10 +269,10 @@ export default function PrescriptionModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pill className="h-5 w-5 text-green-600" />
-            Create New Prescription
+            {t('prescription.title')}
           </DialogTitle>
           <DialogDescription>
-            Add a new prescription for the patient. Smart auto-fill will help speed up the process!
+            {t('prescription.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -280,7 +281,7 @@ export default function PrescriptionModal({
             {/* Patient Selection */}
             {!patientId && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Patient</label>
+                <label className="text-sm font-medium">{t('prescription.patient')}</label>
                 <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -291,14 +292,14 @@ export default function PrescriptionModal({
                     >
                       {selectedPatient 
                         ? `${selectedPatient.firstName} ${selectedPatient.lastName}` 
-                        : "Select patient..."}
+                        : t('prescription.selectPatient')}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
-                      <CommandInput placeholder="Search patients..." />
-                      <CommandEmpty>No patient found.</CommandEmpty>
+                      <CommandInput placeholder={t('prescription.searchPatients')} />
+                      <CommandEmpty>{t('prescription.noPatientFound')}</CommandEmpty>
                       <CommandList>
                         <CommandGroup>
                           {patients?.map((patient) => (
@@ -330,7 +331,7 @@ export default function PrescriptionModal({
             <FormItem>
               <FormLabel className="flex items-center gap-2">
                 <Pill className="h-4 w-4 text-blue-500" />
-                Medication Selection
+                {t('prescription.medicationSelection')}
               </FormLabel>
               
               {/* Toggle between search and manual input */}
@@ -346,7 +347,7 @@ export default function PrescriptionModal({
                   className="flex items-center gap-1"
                 >
                   <Sparkles className="h-3 w-3" />
-                  Search Database
+                  {t('prescription.searchDatabase')}
                 </Button>
                 <Button
                   type="button"
@@ -359,7 +360,7 @@ export default function PrescriptionModal({
                   className="flex items-center gap-1"
                 >
                   <Pill className="h-3 w-3" />
-                  Manual Entry
+                  {t('prescription.manualEntry')}
                 </Button>
               </div>
 
@@ -379,12 +380,12 @@ export default function PrescriptionModal({
                         setSelectedMedicine(null);
                       }
                     }}
-                    placeholder="Search medications by name, category, or description..."
+                    placeholder={t('prescription.searchPlaceholder')}
                     showDetails={false}
                     className="w-full"
                   />
                   <p className="text-xs text-slate-500 mt-1">
-                    Search from comprehensive medication database with instant results and smart auto-fill.
+                    {t('prescription.searchDescription')}
                   </p>
                 </div>
               )}
@@ -399,7 +400,7 @@ export default function PrescriptionModal({
                       <FormItem>
                         <FormControl>
                           <Input 
-                            placeholder="Enter medication name manually..."
+                            placeholder={t('prescription.manualPlaceholder')}
                             className="focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 
                                      border-orange-300 hover:border-orange-400"
                             {...field}
@@ -417,10 +418,10 @@ export default function PrescriptionModal({
                   <div className="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm">
                     <div className="flex items-center mb-1">
                       <Pill className="h-4 w-4 text-orange-600 mr-2" />
-                      <span className="font-medium text-orange-800">Manual medication entry</span>
+                      <span className="font-medium text-orange-800">{t('prescription.manualTitle')}</span>
                     </div>
                     <p className="text-orange-700 text-xs">
-                      Please fill in all dosage, frequency, and instruction details manually below.
+                      {t('prescription.manualDescription')}
                     </p>
                   </div>
                 </div>
@@ -431,17 +432,17 @@ export default function PrescriptionModal({
                 <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
                   <div className="flex items-center mb-2">
                     <Sparkles className="h-4 w-4 text-blue-600 mr-2" />
-                    <span className="font-medium text-blue-800">Auto-filled information for {selectedMedicine.name}:</span>
+                    <span className="font-medium text-blue-800">{t('prescription.autoFillTitle').replace('{medication}', selectedMedicine.name)}</span>
                   </div>
                   <div className="space-y-1 text-blue-700">
                     {selectedMedicine.dosageAdult && (
-                      <div><strong>Dosage:</strong> {selectedMedicine.dosageAdult}</div>
+                      <div><strong>{t('prescription.autoFillDosage')}</strong> {selectedMedicine.dosageAdult}</div>
                     )}
                     {selectedMedicine.frequency && (
-                      <div><strong>Frequency:</strong> {selectedMedicine.frequency}</div>
+                      <div><strong>{t('prescription.autoFillFrequency')}</strong> {selectedMedicine.frequency}</div>
                     )}
                     {selectedMedicine.category && (
-                      <div><strong>Duration:</strong> {
+                      <div><strong>{t('prescription.autoFillDuration')}</strong> {
                         selectedMedicine.category === "Antibiotic" ? "7 days" :
                         selectedMedicine.category === "Antimalarial" ? "3 days" :
                         selectedMedicine.category === "Analgesic" || selectedMedicine.category === "NSAID" ? "As needed" :
@@ -450,10 +451,10 @@ export default function PrescriptionModal({
                       }</div>
                     )}
                     {selectedMedicine.routeOfAdministration && (
-                      <div><strong>Route:</strong> {selectedMedicine.routeOfAdministration}</div>
+                      <div><strong>{t('prescription.autoFillRoute')}</strong> {selectedMedicine.routeOfAdministration}</div>
                     )}
                     {selectedMedicine.contraindications && (
-                      <div className="text-red-600"><strong>⚠️ Contraindications:</strong> {selectedMedicine.contraindications}</div>
+                      <div className="text-red-600"><strong>{t('prescription.contraindications')}</strong> {selectedMedicine.contraindications}</div>
                     )}
                   </div>
                 </div>
@@ -467,10 +468,10 @@ export default function PrescriptionModal({
                 name="dosage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Dosage</FormLabel>
+                    <FormLabel>{t('prescription.dosage')}</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Enter dosage amount (e.g., 500mg, 2 tablets, 5ml)" 
+                        placeholder={t('prescription.dosagePlaceholder')} 
                         className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 
                                  border-slate-300 hover:border-slate-400
                                  data-[invalid]:border-red-500 data-[invalid]:focus:ring-red-500"
@@ -478,7 +479,7 @@ export default function PrescriptionModal({
                       />
                     </FormControl>
                     <p className="text-xs text-slate-500 mt-1">
-                      Specify the exact amount per dose. Auto-filled from pharmacy database when available.
+                      {t('prescription.dosageDescription')}
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -491,10 +492,10 @@ export default function PrescriptionModal({
                 name="frequency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Frequency</FormLabel>
+                    <FormLabel>{t('prescription.frequency')}</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="How often to take (e.g., Twice daily, Every 8 hours, Once at bedtime)" 
+                        placeholder={t('prescription.frequencyPlaceholder')} 
                         className="focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 
                                  border-slate-300 hover:border-slate-400
                                  data-[invalid]:border-red-500 data-[invalid]:focus:ring-red-500"
@@ -502,7 +503,7 @@ export default function PrescriptionModal({
                       />
                     </FormControl>
                     <p className="text-xs text-slate-500 mt-1">
-                      Specify timing intervals. Common: Once daily, Twice daily, Every 6-8 hours.
+                      {t('prescription.frequencyDescription')}
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -515,10 +516,10 @@ export default function PrescriptionModal({
                 name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Treatment Duration</FormLabel>
+                    <FormLabel>{t('prescription.duration')}</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Total treatment period (e.g., 7 days, 2 weeks, 1 month)" 
+                        placeholder={t('prescription.durationPlaceholder')} 
                         className="focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 
                                  border-slate-300 hover:border-slate-400
                                  data-[invalid]:border-red-500 data-[invalid]:focus:ring-red-500"
@@ -526,7 +527,7 @@ export default function PrescriptionModal({
                       />
                     </FormControl>
                     <p className="text-xs text-slate-500 mt-1">
-                      How long the patient should continue taking this medication.
+                      {t('prescription.durationDescription')}
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -539,17 +540,17 @@ export default function PrescriptionModal({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel>{t('prescription.status')}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
+                          <SelectValue placeholder={t('prescription.selectStatus')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="discontinued">Discontinued</SelectItem>
+                        <SelectItem value="active">{t('prescription.status.active')}</SelectItem>
+                        <SelectItem value="completed">{t('prescription.status.completed')}</SelectItem>
+                        <SelectItem value="discontinued">{t('prescription.status.discontinued')}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -563,15 +564,15 @@ export default function PrescriptionModal({
                 name="pharmacyId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Preferred Pharmacy</FormLabel>
+                    <FormLabel>{t('prescription.pharmacy')}</FormLabel>
                     <Select onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))} defaultValue={field.value?.toString()}>
                       <FormControl>
                         <SelectTrigger className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200">
-                          <SelectValue placeholder="Select pharmacy for dispensing" />
+                          <SelectValue placeholder={t('prescription.selectPharmacy')} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">No specific pharmacy</SelectItem>
+                        <SelectItem value="none">{t('prescription.noPharmacy')}</SelectItem>
                         {pharmacies?.map((pharmacy) => (
                           <SelectItem key={pharmacy.id} value={pharmacy.id.toString()}>
                             <div className="flex flex-col">
@@ -580,7 +581,7 @@ export default function PrescriptionModal({
                                 {pharmacy.address} • {pharmacy.phone}
                               </span>
                               {pharmacy.deliveryAvailable && (
-                                <span className="text-xs text-green-600">🚚 Delivery available</span>
+                                <span className="text-xs text-green-600">{t('prescription.deliveryAvailable')}</span>
                               )}
                             </div>
                           </SelectItem>
@@ -588,7 +589,7 @@ export default function PrescriptionModal({
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-slate-500 mt-1">
-                      Choose a preferred pharmacy for prescription dispensing. This helps with medication tracking and patient convenience.
+                      {t('prescription.pharmacyDescription')}
                     </p>
                     <FormMessage />
                   </FormItem>
@@ -602,17 +603,17 @@ export default function PrescriptionModal({
               name="instructions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Patient Instructions</FormLabel>
+                  <FormLabel>{t('prescription.instructions')}</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Detailed instructions for the patient (e.g., Take with food, Avoid alcohol, Do not drive while taking this medication, Complete the full course)"
+                      placeholder={t('prescription.instructionsPlaceholder')}
                       rows={4}
                       {...field}
                       value={field.value || ''}
                     />
                   </FormControl>
                   <p className="text-xs text-slate-500 mt-1">
-                    Include important safety information, timing, food restrictions, and warnings. Auto-filled from pharmacy guidelines when available.
+                    {t('prescription.instructionsDescription')}
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -625,33 +626,31 @@ export default function PrescriptionModal({
                             animate-in slide-in-from-top-2 duration-300 ease-out">
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
-                  <span className="font-medium text-blue-800">Smart Auto-Fill Applied</span>
+                  <span className="font-medium text-blue-800">{t('prescription.autoFillApplied')}</span>
                   <div className="ml-auto">
                     <div className="h-2 w-2 rounded-full bg-green-500 animate-ping"></div>
                   </div>
                 </div>
                 <div className="text-sm text-blue-700">
-                  Form fields have been automatically populated with pharmacy database defaults for{" "}
-                  <span className="font-semibold">{selectedMedicine.name}</span>. 
-                  You can modify any values as needed.
+                  {t('prescription.autoFillDescription').replace('{medication}', selectedMedicine.name)}
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
                   {selectedMedicine.dosageAdult && (
                     <Badge variant="outline" className="text-blue-700 border-blue-300 bg-white/50 
                                                       animate-in fade-in duration-500 delay-100">
-                      Dosage: {selectedMedicine.dosageAdult}
+                      {t('prescription.autoFillDosage')} {selectedMedicine.dosageAdult}
                     </Badge>
                   )}
                   {selectedMedicine.frequency && (
                     <Badge variant="outline" className="text-blue-700 border-blue-300 bg-white/50
                                                       animate-in fade-in duration-500 delay-200">
-                      Frequency: {selectedMedicine.frequency}
+                      {t('prescription.autoFillFrequency')} {selectedMedicine.frequency}
                     </Badge>
                   )}
                   {selectedMedicine.dosageChild && (
                     <Badge variant="outline" className="text-blue-700 border-blue-300 bg-white/50
                                                       animate-in fade-in duration-500 delay-300">
-                      Duration: {selectedMedicine.dosageChild || 'As prescribed'}
+                      {t('prescription.autoFillDuration')} {selectedMedicine.dosageChild || 'As prescribed'}
                     </Badge>
                   )}
                 </div>
@@ -664,14 +663,14 @@ export default function PrescriptionModal({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {t('prescription.cancel')}
               </Button>
               <Button 
                 type="submit" 
                 disabled={createPrescriptionMutation.isPending}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {createPrescriptionMutation.isPending ? "Creating..." : "Create Prescription"}
+                {createPrescriptionMutation.isPending ? t('prescription.creating') : t('prescription.create')}
               </Button>
             </div>
           </form>

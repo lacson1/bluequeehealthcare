@@ -29,7 +29,7 @@ app.use((req, res, next) => {
 
 // CORS configuration with secure origin whitelist
 // Define allowed origins - customize based on your deployment
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+const ALLOWED_ORIGINS: (string | RegExp)[] = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : [
       'http://localhost:5001',
@@ -37,6 +37,12 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
       'http://127.0.0.1:5001',
       'http://127.0.0.1:5173',
     ];
+
+// Cloud Run: Allow the service's own URL (detected from K_SERVICE env var)
+if (process.env.K_SERVICE) {
+  // Cloud Run URLs follow pattern: https://SERVICE_NAME-HASH-REGION.a.run.app
+  ALLOWED_ORIGINS.push(/^https:\/\/.*\.run\.app$/);
+}
 
 
 app.use((req, res, next) => {
@@ -117,9 +123,9 @@ app.use(isProduction ? prodLogger : devLogger);
     // Setup remaining routes from old routes.ts (auth, profile, dashboard, etc.)
     await registerRoutes(app);
 
-    // Use port 5001 (port 5000 is often taken by macOS AirPlay)
-    // this serves both the API and the client.
-    const port = process.env.PORT ? parseInt(process.env.PORT) : 5001;
+    // Use PORT environment variable (Cloud Run sets this automatically)
+    // Default to 5001 for local development (port 5000 is often taken by macOS AirPlay)
+    const port = parseInt(process.env.PORT || '5001', 10);
     
     // Create HTTP server first so we can pass it to Vite for HMR
     const { createServer } = await import('http');

@@ -67,111 +67,128 @@ export default function Referrals() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Loading referrals...</div>
+      <div className="h-full flex flex-col">
+        <header className="healthcare-header px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <h2 className="text-2xl font-bold text-white drop-shadow-sm">Referrals</h2>
+              <p className="text-white/90 font-medium">Manage patient referrals between departments</p>
+            </div>
+          </div>
+        </header>
+        <div className="flex-1 overflow-auto p-6">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-lg">Loading referrals...</div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Referrals</h1>
-          <p className="text-muted-foreground">
-            Manage patient referrals between departments
-          </p>
-        </div>
-        {canCreateReferrals && (
-          <Button onClick={() => setIsReferralModalOpen(true)} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create Referral
-          </Button>
-        )}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Referral List</CardTitle>
-          <CardDescription>
-            {user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse' 
-              ? 'All referrals in the system' 
-              : `Referrals assigned to ${user?.role}s`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredReferrals.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No referrals found
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To Role</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  {canUpdateReferrals && <TableHead>Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReferrals.map((referral: any) => (
-                  <TableRow key={referral.id}>
-                    <TableCell className="font-medium whitespace-nowrap">
-                      {referral.patient?.firstName} {referral.patient?.lastName}
-                    </TableCell>
-                    <TableCell>
-                      {referral.fromUser?.username || 'Unknown'}
-                    </TableCell>
-                    <TableCell className="capitalize">{referral.toRole}</TableCell>
-                    <TableCell className="max-w-xs truncate">{referral.reason}</TableCell>
-                    <TableCell>
-                      {new Date(referral.date).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(referral.status)}</TableCell>
-                    {canUpdateReferrals && (
-                      <TableCell>
-                        {referral.status === 'pending' && (referral.toRole === user?.role || user?.role === 'admin') && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 border-green-600 hover:bg-green-50"
-                              onClick={() => updateStatusMutation.mutate({ id: referral.id, status: 'accepted' })}
-                              disabled={updateStatusMutation.isPending}
-                            >
-                              Accept
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 border-red-600 hover:bg-red-50"
-                              onClick={() => updateStatusMutation.mutate({ id: referral.id, status: 'rejected' })}
-                              disabled={updateStatusMutation.isPending}
-                            >
-                              Reject
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+    <div className="h-full flex flex-col">
+      {/* Enhanced Fixed Header */}
+      <header className="healthcare-header px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h2 className="text-2xl font-bold text-white drop-shadow-sm">Referrals</h2>
+            <p className="text-white/90 font-medium">Manage patient referrals between departments</p>
+          </div>
+          {canCreateReferrals && (
+            <Button 
+              onClick={() => setIsReferralModalOpen(true)} 
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Create Referral
+            </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </header>
 
-      <ReferralModal
-        open={isReferralModalOpen}
-        onOpenChange={setIsReferralModalOpen}
-      />
+      <div className="flex-1 overflow-auto p-6 space-y-6">
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Referral List</CardTitle>
+            <CardDescription>
+              {user?.role === 'admin' || user?.role === 'doctor' || user?.role === 'nurse' 
+                ? 'All referrals in the system' 
+                : `Referrals assigned to ${user?.role}s`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {filteredReferrals.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No referrals found
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Patient</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>To Role</TableHead>
+                    <TableHead>Reason</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    {canUpdateReferrals && <TableHead>Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredReferrals.map((referral: any) => (
+                    <TableRow key={referral.id}>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {referral.patient?.firstName} {referral.patient?.lastName}
+                      </TableCell>
+                      <TableCell>
+                        {referral.fromUser?.username || 'Unknown'}
+                      </TableCell>
+                      <TableCell className="capitalize">{referral.toRole}</TableCell>
+                      <TableCell className="max-w-xs truncate">{referral.reason}</TableCell>
+                      <TableCell>
+                        {new Date(referral.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(referral.status)}</TableCell>
+                      {canUpdateReferrals && (
+                        <TableCell>
+                          {referral.status === 'pending' && (referral.toRole === user?.role || user?.role === 'admin') && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 border-green-600 hover:bg-green-50"
+                                onClick={() => updateStatusMutation.mutate({ id: referral.id, status: 'accepted' })}
+                                disabled={updateStatusMutation.isPending}
+                              >
+                                Accept
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 border-red-600 hover:bg-red-50"
+                                onClick={() => updateStatusMutation.mutate({ id: referral.id, status: 'rejected' })}
+                                disabled={updateStatusMutation.isPending}
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <ReferralModal
+          open={isReferralModalOpen}
+          onOpenChange={setIsReferralModalOpen}
+        />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AutocompleteOption } from "@/components/ui/autocomplete";
+import { MEDICAL_SPECIALTIES } from "@/lib/medical-specialties";
 
 interface UseAutocompleteOptions {
   endpoint: string;
@@ -120,17 +121,9 @@ export function useDoctorAutocomplete() {
 }
 
 export function useSpecialtyAutocomplete() {
-  const specialties = [
-    "General Medicine", "Cardiology", "Dermatology", "Endocrinology",
-    "Gastroenterology", "Hematology", "Neurology", "Oncology",
-    "Orthopedics", "Pediatrics", "Psychiatry", "Radiology",
-    "Surgery", "Urology", "Gynecology", "Ophthalmology",
-    "ENT", "Anesthesiology", "Emergency Medicine", "Family Medicine"
-  ];
-
   return {
-    options: specialties.map(specialty => ({
-      value: specialty.toLowerCase().replace(/\s+/g, '-'),
+    options: MEDICAL_SPECIALTIES.map(specialty => ({
+      value: specialty.toLowerCase().replace(/\s+/g, '-').replace(/[()]/g, ''),
       label: specialty,
       description: `Medical specialty`,
       category: "Specialties"

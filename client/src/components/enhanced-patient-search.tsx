@@ -57,8 +57,11 @@ export function EnhancedPatientSearch({
   const [searchMode, setSearchMode] = useState<'name' | 'phone' | 'id' | 'national_id'>('name');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch all patients for client-side fuzzy matching and recent/frequent display
+  // Client-side filtering provides better UX with fuzzy matching and scoring
   const { data: patients = [] } = useQuery<Patient[]>({
-    queryKey: ['/api/patients']
+    queryKey: ['/api/patients'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Get recent patients from localStorage

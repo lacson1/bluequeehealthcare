@@ -430,9 +430,9 @@ export function PatientExportPrint({
             Export
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Export Patient Record</DialogTitle>
+        <DialogContent className="max-w-md p-4 sm:p-6">
+          <DialogHeader className="pb-4 border-b mb-4">
+            <DialogTitle className="text-base sm:text-lg font-semibold">Export Patient Record</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
