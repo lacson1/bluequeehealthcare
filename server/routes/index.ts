@@ -28,6 +28,7 @@ import { setupSystemRoutes } from "./system";
 import { setupUsersRoutes } from "./users";
 import { setupPerformanceRoutes } from "./performance";
 import { setupIntegrationsRoutes } from "./integrations";
+import { setupLongevityRoutes } from "./longevity";
 import { setupPatientPortalRoutes } from "./patient-portal";
 import { setupTelemedicineRoutes } from "./telemedicine";
 import { setupDashboardRoutes } from "./dashboard";
@@ -141,6 +142,11 @@ export function setupRoutes(app: Express): void {
   console.log("Setting up healthcare integrations routes...");
   const integrationsRouter = setupIntegrationsRoutes();
   app.use('/api', integrationsRouter);
+  
+  // Longevity Assessment routes (lifestyle, body composition, mental health, biomarkers)
+  console.log("Setting up longevity assessment routes...");
+  const longevityRouter = setupLongevityRoutes();
+  app.use('/api', longevityRouter);
   
   // Public REST API routes
   console.log("Setting up public API routes...");

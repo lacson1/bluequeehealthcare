@@ -10,11 +10,13 @@ import {
   Heart, Activity, Brain, Flame, Shield, TrendingUp, TrendingDown,
   Info, AlertTriangle, CheckCircle2, Clock, Calendar, Target,
   Zap, Dumbbell, Moon, Apple, Wind, Thermometer, Scale, Ruler,
-  HeartPulse, Droplets, Gauge, Sparkles, BarChart3, CircleDot
+  HeartPulse, Droplets, Gauge, Sparkles, BarChart3, CircleDot,
+  Plus, Users, Cigarette, Wine
 } from "lucide-react";
 import { Patient } from "@shared/schema";
 import { EmptyState } from "@/components/ui/empty-state";
 import { format, differenceInYears } from "date-fns";
+import { LifestyleAssessmentForm, MentalHealthScreeningForm, BodyCompositionForm } from "@/components/longevity";
 import {
   ResponsiveContainer,
   RadarChart,
@@ -47,6 +49,118 @@ interface VitalSign {
   height?: string;
   recordedAt: string;
   recordedBy: string;
+}
+
+// New comprehensive longevity data interfaces
+interface LifestyleAssessment {
+  id: number;
+  exerciseFrequency?: string;
+  exerciseType?: string;
+  exerciseDurationMinutes?: number;
+  dailySteps?: number;
+  vo2MaxEstimate?: string;
+  sleepDurationHours?: string;
+  sleepQuality?: string;
+  smokingStatus?: string;
+  cigarettesPerDay?: number;
+  packYears?: string;
+  alcoholStatus?: string;
+  drinksPerWeek?: number;
+  dietType?: string;
+  vegetableServingsPerDay?: number;
+  fruitServingsPerDay?: number;
+  processedFoodFrequency?: string;
+  intermittentFasting?: boolean;
+  assessmentDate: string;
+}
+
+interface BodyCompositionData {
+  id: number;
+  weight?: string;
+  height?: string;
+  bmi?: string;
+  bodyFatPercentage?: string;
+  visceralFatLevel?: number;
+  muscleMassKg?: string;
+  waistCircumferenceCm?: string;
+  waistToHipRatio?: string;
+  metabolicAge?: number;
+  basalMetabolicRate?: number;
+  gripStrengthKg?: string;
+  measuredAt: string;
+}
+
+interface MentalHealthScreening {
+  id: number;
+  phq9Score?: number;
+  phq9Severity?: string;
+  gad7Score?: number;
+  gad7Severity?: string;
+  pssScore?: number;
+  pssCategory?: string;
+  wellbeingScore?: number;
+  lifeSatisfactionScore?: number;
+  purposeScore?: number;
+  resilienceScore?: number;
+  cognitiveScore?: number;
+  cognitiveMaxScore?: number;
+  screeningDate: string;
+}
+
+interface SocialDeterminant {
+  id: number;
+  maritalStatus?: string;
+  livingArrangement?: string;
+  closeRelationshipsCount?: number;
+  socialInteractionFrequency?: string;
+  lonelinessScore?: number;
+  educationLevel?: string;
+  employmentStatus?: string;
+  financialStress?: string;
+  senseOfPurpose?: number;
+  assessmentDate: string;
+}
+
+interface AdvancedBiomarker {
+  id: number;
+  tshMiuL?: string;
+  testosteroneNgDl?: string;
+  dheaSUgDl?: string;
+  cortisolUgDl?: string;
+  igf1NgMl?: string;
+  insulinMiuL?: string;
+  homaIr?: string;
+  apoBMgDl?: string;
+  lpANmolL?: string;
+  homocysteineMmolL?: string;
+  hscrpMgL?: string;
+  vitaminDNgMl?: string;
+  vitaminB12PgMl?: string;
+  omega3Index?: string;
+  telomereLength?: string;
+  phenoAge?: string;
+  grimAge?: string;
+  testDate: string;
+}
+
+interface HRVData {
+  id: number;
+  sdnnMs?: string;
+  rmssdMs?: string;
+  hrvScore?: number;
+  readinessScore?: number;
+  recoveryStatus?: string;
+  lfHfRatio?: string;
+  measuredAt: string;
+}
+
+interface LongevityData {
+  lifestyle: LifestyleAssessment | null;
+  bodyComposition: BodyCompositionData | null;
+  mentalHealth: MentalHealthScreening | null;
+  socialDeterminants: SocialDeterminant | null;
+  advancedBiomarkers: AdvancedBiomarker | null;
+  hrv: HRVData | null;
 }
 
 interface LabResult {
@@ -229,28 +343,151 @@ function estimateBiologicalAge(
   };
 }
 
-// Longevity score calculation (0-100)
+// Comprehensive Longevity score calculation (0-100) using evidence-based factors
 function calculateLongevityScore(
   biologicalAgeDelta: number,
   cvRisk: number,
   hasOptimalVitals: boolean,
-  hasOptimalLabs: boolean
+  hasOptimalLabs: boolean,
+  longevityData?: LongevityData | null
 ): number {
-  let score = 70; // Base score
+  let score = 50; // Base score (start neutral)
   
-  // Biological age impact (-15 to +15)
-  score -= biologicalAgeDelta * 2;
+  // ===== BIOLOGICAL MARKERS (30 points max) =====
+  // Biological age impact (-10 to +10)
+  score -= biologicalAgeDelta * 1.5;
   
-  // CV risk impact (-20 to +10)
+  // CV risk impact (-10 to +10)
   if (cvRisk < 5) score += 10;
   else if (cvRisk < 10) score += 5;
-  else if (cvRisk > 20) score -= 15;
-  else if (cvRisk > 15) score -= 10;
-  else if (cvRisk > 10) score -= 5;
+  else if (cvRisk > 20) score -= 10;
+  else if (cvRisk > 15) score -= 7;
+  else if (cvRisk > 10) score -= 3;
   
   // Optimal markers bonus
   if (hasOptimalVitals) score += 5;
   if (hasOptimalLabs) score += 5;
+  
+  // ===== LIFESTYLE FACTORS (25 points max) =====
+  if (longevityData?.lifestyle) {
+    const lifestyle = longevityData.lifestyle;
+    
+    // Exercise (10 points)
+    if (lifestyle.exerciseFrequency === '5+/week') score += 10;
+    else if (lifestyle.exerciseFrequency === '3-4x/week') score += 7;
+    else if (lifestyle.exerciseFrequency === '1-2x/week') score += 3;
+    else if (lifestyle.exerciseFrequency === 'none') score -= 5;
+    
+    // Sleep (5 points)
+    const sleepHours = parseFloat(lifestyle.sleepDurationHours || '0');
+    if (sleepHours >= 7 && sleepHours <= 9) score += 5;
+    else if (sleepHours >= 6 && sleepHours <= 10) score += 2;
+    else score -= 3;
+    
+    // Smoking (-15 to +5)
+    if (lifestyle.smokingStatus === 'never') score += 5;
+    else if (lifestyle.smokingStatus === 'former') score += 2;
+    else if (lifestyle.smokingStatus === 'current') {
+      const packYears = parseFloat(lifestyle.packYears || '0');
+      score -= Math.min(15, 5 + packYears / 2);
+    }
+    
+    // Alcohol (5 points)
+    if (lifestyle.alcoholStatus === 'none' || lifestyle.alcoholStatus === 'occasional') score += 3;
+    else if (lifestyle.alcoholStatus === 'heavy') score -= 5;
+    
+    // Diet (5 points)
+    const vegServings = lifestyle.vegetableServingsPerDay || 0;
+    const fruitServings = lifestyle.fruitServingsPerDay || 0;
+    if (vegServings >= 5 && fruitServings >= 2) score += 5;
+    else if (vegServings >= 3) score += 2;
+  }
+  
+  // ===== BODY COMPOSITION (10 points max) =====
+  if (longevityData?.bodyComposition) {
+    const body = longevityData.bodyComposition;
+    
+    // BMI (5 points)
+    const bmi = parseFloat(body.bmi || '0');
+    if (bmi >= 18.5 && bmi <= 24.9) score += 5;
+    else if (bmi >= 25 && bmi <= 29.9) score += 1;
+    else if (bmi < 18.5 || bmi >= 30) score -= 3;
+    
+    // Waist circumference / visceral fat (5 points)
+    if (body.visceralFatLevel && body.visceralFatLevel <= 9) score += 5;
+    else if (body.visceralFatLevel && body.visceralFatLevel <= 14) score += 2;
+    else if (body.visceralFatLevel && body.visceralFatLevel > 14) score -= 3;
+  }
+  
+  // ===== MENTAL HEALTH (10 points max) =====
+  if (longevityData?.mentalHealth) {
+    const mental = longevityData.mentalHealth;
+    
+    // Depression screening (5 points)
+    if (mental.phq9Score !== undefined) {
+      if (mental.phq9Score <= 4) score += 5;
+      else if (mental.phq9Score <= 9) score += 2;
+      else if (mental.phq9Score >= 15) score -= 5;
+    }
+    
+    // Life satisfaction & purpose (5 points)
+    const purposeScore = mental.purposeScore || 0;
+    const lifeSat = mental.lifeSatisfactionScore || 0;
+    if (purposeScore >= 8 && lifeSat >= 8) score += 5;
+    else if (purposeScore >= 6 && lifeSat >= 6) score += 3;
+  }
+  
+  // ===== SOCIAL CONNECTIONS (10 points max) =====
+  if (longevityData?.socialDeterminants) {
+    const social = longevityData.socialDeterminants;
+    
+    // Social connections (5 points)
+    if (social.closeRelationshipsCount && social.closeRelationshipsCount >= 5) score += 5;
+    else if (social.closeRelationshipsCount && social.closeRelationshipsCount >= 2) score += 3;
+    
+    // Purpose & engagement (5 points)
+    if (social.senseOfPurpose && social.senseOfPurpose >= 8) score += 5;
+    else if (social.senseOfPurpose && social.senseOfPurpose >= 5) score += 2;
+  }
+  
+  // ===== ADVANCED BIOMARKERS (15 points max) =====
+  if (longevityData?.advancedBiomarkers) {
+    const bio = longevityData.advancedBiomarkers;
+    
+    // Vitamin D (3 points)
+    const vitD = parseFloat(bio.vitaminDNgMl || '0');
+    if (vitD >= 40 && vitD <= 60) score += 3;
+    else if (vitD >= 30) score += 1;
+    else if (vitD < 20) score -= 2;
+    
+    // Inflammation (hsCRP) (3 points)
+    const crp = parseFloat(bio.hscrpMgL || '0');
+    if (crp < 1) score += 3;
+    else if (crp < 3) score += 1;
+    else if (crp >= 3) score -= 2;
+    
+    // Metabolic health (HOMA-IR) (3 points)
+    const homaIr = parseFloat(bio.homaIr || '0');
+    if (homaIr > 0 && homaIr < 1.5) score += 3;
+    else if (homaIr < 2.5) score += 1;
+    else if (homaIr >= 2.5) score -= 2;
+    
+    // Epigenetic age markers (6 points)
+    if (bio.phenoAge) {
+      const phenoAgeDelta = parseFloat(bio.phenoAge);
+      if (phenoAgeDelta < 0) score += 6;
+      else if (phenoAgeDelta <= 2) score += 3;
+      else if (phenoAgeDelta > 5) score -= 3;
+    }
+  }
+  
+  // ===== HRV (5 points max) =====
+  if (longevityData?.hrv) {
+    const hrv = longevityData.hrv;
+    if (hrv.hrvScore && hrv.hrvScore >= 70) score += 5;
+    else if (hrv.hrvScore && hrv.hrvScore >= 50) score += 3;
+    else if (hrv.hrvScore && hrv.hrvScore < 30) score -= 2;
+  }
   
   return Math.min(100, Math.max(0, Math.round(score)));
 }
@@ -279,6 +516,11 @@ function getScoreLabel(score: number): string {
 export function LongevityTab({ patient }: LongevityTabProps) {
   const [activeTab, setActiveTab] = useState("overview");
   
+  // Form modal states
+  const [showLifestyleForm, setShowLifestyleForm] = useState(false);
+  const [showMentalHealthForm, setShowMentalHealthForm] = useState(false);
+  const [showBodyCompositionForm, setShowBodyCompositionForm] = useState(false);
+  
   // Fetch vital signs
   const { data: vitals, isLoading: vitalsLoading } = useQuery<VitalSign[]>({
     queryKey: [`/api/patients/${patient.id}/vitals`],
@@ -291,7 +533,13 @@ export function LongevityTab({ patient }: LongevityTabProps) {
     enabled: !!patient.id,
   });
   
-  const isLoading = vitalsLoading || labsLoading;
+  // Fetch comprehensive longevity data (lifestyle, body composition, mental health, etc.)
+  const { data: longevityData, isLoading: longevityLoading } = useQuery<LongevityData>({
+    queryKey: [`/api/patients/${patient.id}/longevity-data`],
+    enabled: !!patient.id,
+  });
+  
+  const isLoading = vitalsLoading || labsLoading || longevityLoading;
   
   // Calculate patient age
   const patientAge = useMemo(() => {
@@ -342,7 +590,8 @@ export function LongevityTab({ patient }: LongevityTabProps) {
       biologicalAgeData.delta,
       cvRisk,
       hasOptimalVitals,
-      hasOptimalLabs
+      hasOptimalLabs,
+      longevityData
     );
     
     return {
@@ -351,8 +600,15 @@ export function LongevityTab({ patient }: LongevityTabProps) {
       longevityScore,
       hasOptimalVitals,
       hasOptimalLabs,
+      // Include comprehensive data availability
+      hasLifestyleData: !!longevityData?.lifestyle,
+      hasBodyCompositionData: !!longevityData?.bodyComposition,
+      hasMentalHealthData: !!longevityData?.mentalHealth,
+      hasSocialData: !!longevityData?.socialDeterminants,
+      hasAdvancedBiomarkers: !!longevityData?.advancedBiomarkers,
+      hasHRVData: !!longevityData?.hrv,
     };
-  }, [patientAge, latestVitals, labResults, patient.gender]);
+  }, [patientAge, latestVitals, labResults, patient.gender, longevityData]);
   
   // Radar chart data for health domains
   const radarData = useMemo(() => {
@@ -580,6 +836,144 @@ export function LongevityTab({ patient }: LongevityTabProps) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Data Collection Section - Quick Actions */}
+        <Card className="border-dashed border-2">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Longevity Data Collection</CardTitle>
+                <CardDescription>
+                  Complete assessments for a more accurate longevity score
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {[
+                  longevityData?.lifestyle,
+                  longevityData?.bodyComposition,
+                  longevityData?.mentalHealth,
+                  longevityData?.socialDeterminants
+                ].filter(Boolean).length}/4 Complete
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* Lifestyle Assessment */}
+              <Button
+                variant={longevityData?.lifestyle ? "secondary" : "outline"}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+                onClick={() => setShowLifestyleForm(true)}
+              >
+                <div className={`p-2 rounded-full ${longevityData?.lifestyle ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                  <Dumbbell className="h-5 w-5" />
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-sm">Lifestyle</div>
+                  <div className="text-xs text-muted-foreground">
+                    {longevityData?.lifestyle ? 'Update' : 'Add Assessment'}
+                  </div>
+                </div>
+                {longevityData?.lifestyle && (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 absolute top-2 right-2" />
+                )}
+              </Button>
+
+              {/* Body Composition */}
+              <Button
+                variant={longevityData?.bodyComposition ? "secondary" : "outline"}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+                onClick={() => setShowBodyCompositionForm(true)}
+              >
+                <div className={`p-2 rounded-full ${longevityData?.bodyComposition ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                  <Scale className="h-5 w-5" />
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-sm">Body Composition</div>
+                  <div className="text-xs text-muted-foreground">
+                    {longevityData?.bodyComposition ? 'Update' : 'Add Measurements'}
+                  </div>
+                </div>
+                {longevityData?.bodyComposition && (
+                  <CheckCircle2 className="h-4 w-4 text-blue-500 absolute top-2 right-2" />
+                )}
+              </Button>
+
+              {/* Mental Health */}
+              <Button
+                variant={longevityData?.mentalHealth ? "secondary" : "outline"}
+                className="h-auto py-4 flex flex-col items-center gap-2"
+                onClick={() => setShowMentalHealthForm(true)}
+              >
+                <div className={`p-2 rounded-full ${longevityData?.mentalHealth ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                  <Brain className="h-5 w-5" />
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-sm">Mental Health</div>
+                  <div className="text-xs text-muted-foreground">
+                    {longevityData?.mentalHealth ? 'Update' : 'PHQ-9 / GAD-7'}
+                  </div>
+                </div>
+                {longevityData?.mentalHealth && (
+                  <CheckCircle2 className="h-4 w-4 text-purple-500 absolute top-2 right-2" />
+                )}
+              </Button>
+
+              {/* Social Factors */}
+              <Button
+                variant={longevityData?.socialDeterminants ? "secondary" : "outline"}
+                className="h-auto py-4 flex flex-col items-center gap-2 relative"
+                onClick={() => {/* TODO: Add social determinants form */}}
+              >
+                <div className={`p-2 rounded-full ${longevityData?.socialDeterminants ? 'bg-pink-100 text-pink-600' : 'bg-gray-100 text-gray-500'}`}>
+                  <Users className="h-5 w-5" />
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-sm">Social Factors</div>
+                  <div className="text-xs text-muted-foreground">
+                    {longevityData?.socialDeterminants ? 'Update' : 'Add Assessment'}
+                  </div>
+                </div>
+                {longevityData?.socialDeterminants && (
+                  <CheckCircle2 className="h-4 w-4 text-pink-500 absolute top-2 right-2" />
+                )}
+              </Button>
+            </div>
+
+            {/* Show lifestyle summary if available */}
+            {longevityData?.lifestyle && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                  <div className="text-center">
+                    <Dumbbell className="h-4 w-4 mx-auto mb-1 text-emerald-600" />
+                    <div className="font-medium">{longevityData.lifestyle.exerciseFrequency || 'N/A'}</div>
+                    <div className="text-xs text-muted-foreground">Exercise</div>
+                  </div>
+                  <div className="text-center">
+                    <Moon className="h-4 w-4 mx-auto mb-1 text-indigo-600" />
+                    <div className="font-medium">{longevityData.lifestyle.sleepDurationHours || 'N/A'}h</div>
+                    <div className="text-xs text-muted-foreground">Sleep</div>
+                  </div>
+                  <div className="text-center">
+                    <Cigarette className="h-4 w-4 mx-auto mb-1 text-gray-600" />
+                    <div className="font-medium capitalize">{longevityData.lifestyle.smokingStatus || 'N/A'}</div>
+                    <div className="text-xs text-muted-foreground">Smoking</div>
+                  </div>
+                  <div className="text-center">
+                    <Wine className="h-4 w-4 mx-auto mb-1 text-amber-600" />
+                    <div className="font-medium capitalize">{longevityData.lifestyle.alcoholStatus || 'N/A'}</div>
+                    <div className="text-xs text-muted-foreground">Alcohol</div>
+                  </div>
+                  <div className="text-center">
+                    <Apple className="h-4 w-4 mx-auto mb-1 text-green-600" />
+                    <div className="font-medium">{longevityData.lifestyle.vegetableServingsPerDay || 0}+ veg</div>
+                    <div className="text-xs text-muted-foreground">Diet</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

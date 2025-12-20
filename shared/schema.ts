@@ -696,6 +696,298 @@ export const systemHealth = pgTable('system_health', {
   timestamp: timestamp('timestamp').defaultNow().notNull()
 });
 
+// =====================
+// LONGEVITY ASSESSMENT TABLES
+// Evidence-based data points for comprehensive health & longevity tracking
+// =====================
+
+// Lifestyle Assessment - Exercise, Sleep, Smoking, Alcohol, Diet
+export const lifestyleAssessments = pgTable('lifestyle_assessments', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id').notNull().references(() => patients.id),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  
+  // Exercise & Physical Activity
+  exerciseFrequency: varchar('exercise_frequency', { length: 50 }), // none, 1-2x/week, 3-4x/week, 5+/week
+  exerciseType: varchar('exercise_type', { length: 100 }), // cardio, strength, mixed, flexibility
+  exerciseDurationMinutes: integer('exercise_duration_minutes'), // average per session
+  dailySteps: integer('daily_steps'), // average daily steps
+  vo2MaxEstimate: decimal('vo2_max_estimate', { precision: 5, scale: 2 }), // ml/kg/min
+  
+  // Sleep Quality
+  sleepDurationHours: decimal('sleep_duration_hours', { precision: 3, scale: 1 }), // average hours
+  sleepQuality: varchar('sleep_quality', { length: 50 }), // poor, fair, good, excellent
+  sleepLatencyMinutes: integer('sleep_latency_minutes'), // time to fall asleep
+  sleepDisturbances: integer('sleep_disturbances'), // times waking per night
+  usingSleepAids: boolean('using_sleep_aids').default(false),
+  
+  // Smoking Status
+  smokingStatus: varchar('smoking_status', { length: 50 }), // never, former, current
+  cigarettesPerDay: integer('cigarettes_per_day'),
+  yearsSmoked: integer('years_smoked'),
+  yearsSinceQuit: integer('years_since_quit'),
+  packYears: decimal('pack_years', { precision: 5, scale: 2 }), // calculated: (cigs/day * years) / 20
+  
+  // Alcohol Consumption
+  alcoholStatus: varchar('alcohol_status', { length: 50 }), // none, occasional, moderate, heavy
+  drinksPerWeek: integer('drinks_per_week'),
+  bingeEpisodesPerMonth: integer('binge_episodes_per_month'),
+  
+  // Diet & Nutrition
+  dietType: varchar('diet_type', { length: 100 }), // omnivore, vegetarian, vegan, mediterranean, keto, etc.
+  vegetableServingsPerDay: integer('vegetable_servings_per_day'),
+  fruitServingsPerDay: integer('fruit_servings_per_day'),
+  processedFoodFrequency: varchar('processed_food_frequency', { length: 50 }), // rarely, sometimes, often, daily
+  sugarIntake: varchar('sugar_intake', { length: 50 }), // low, moderate, high
+  waterIntakeLiters: decimal('water_intake_liters', { precision: 3, scale: 1 }),
+  caffeineIntakeMg: integer('caffeine_intake_mg'),
+  
+  // Fasting & Meal Patterns
+  intermittentFasting: boolean('intermittent_fasting').default(false),
+  fastingWindowHours: integer('fasting_window_hours'),
+  mealsPerDay: integer('meals_per_day'),
+  
+  // Supplements
+  takingSupplements: boolean('taking_supplements').default(false),
+  supplementsList: text('supplements_list'), // JSON array of supplements
+  
+  // Assessment metadata
+  assessmentDate: timestamp('assessment_date').defaultNow().notNull(),
+  assessedBy: varchar('assessed_by', { length: 100 }),
+  notes: text('notes')
+});
+
+// Body Composition - Detailed body measurements beyond basic vitals
+export const bodyComposition = pgTable('body_composition', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id').notNull().references(() => patients.id),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  
+  // Core Measurements
+  weight: decimal('weight', { precision: 5, scale: 2 }), // kg
+  height: decimal('height', { precision: 5, scale: 2 }), // cm
+  bmi: decimal('bmi', { precision: 4, scale: 1 }), // calculated
+  
+  // Body Composition
+  bodyFatPercentage: decimal('body_fat_percentage', { precision: 4, scale: 1 }),
+  visceralFatLevel: integer('visceral_fat_level'), // 1-59 scale
+  muscleMassKg: decimal('muscle_mass_kg', { precision: 5, scale: 2 }),
+  boneMassKg: decimal('bone_mass_kg', { precision: 4, scale: 2 }),
+  waterPercentage: decimal('water_percentage', { precision: 4, scale: 1 }),
+  metabolicAge: integer('metabolic_age'),
+  basalMetabolicRate: integer('basal_metabolic_rate'), // calories/day
+  
+  // Circumference Measurements
+  waistCircumferenceCm: decimal('waist_circumference_cm', { precision: 5, scale: 1 }),
+  hipCircumferenceCm: decimal('hip_circumference_cm', { precision: 5, scale: 1 }),
+  waistToHipRatio: decimal('waist_to_hip_ratio', { precision: 3, scale: 2 }),
+  neckCircumferenceCm: decimal('neck_circumference_cm', { precision: 4, scale: 1 }),
+  
+  // Fitness Metrics
+  gripStrengthKg: decimal('grip_strength_kg', { precision: 4, scale: 1 }), // dominant hand
+  sitToStandSeconds: decimal('sit_to_stand_seconds', { precision: 4, scale: 1 }), // 5 reps
+  balanceTestSeconds: integer('balance_test_seconds'), // single leg stand
+  flexibilityReachCm: decimal('flexibility_reach_cm', { precision: 4, scale: 1 }), // sit-and-reach
+  
+  // Measurement metadata
+  measurementMethod: varchar('measurement_method', { length: 100 }), // DEXA, BIA, skinfold, etc.
+  measuredAt: timestamp('measured_at').defaultNow().notNull(),
+  measuredBy: varchar('measured_by', { length: 100 }),
+  notes: text('notes')
+});
+
+// Mental Health Screening - Depression, Anxiety, Stress, Cognition
+export const mentalHealthScreenings = pgTable('mental_health_screenings', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id').notNull().references(() => patients.id),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  
+  // Depression Screening (PHQ-9)
+  phq9Score: integer('phq9_score'), // 0-27
+  phq9Severity: varchar('phq9_severity', { length: 50 }), // minimal, mild, moderate, moderately_severe, severe
+  phq9Responses: text('phq9_responses'), // JSON array of 9 responses (0-3 each)
+  
+  // Anxiety Screening (GAD-7)
+  gad7Score: integer('gad7_score'), // 0-21
+  gad7Severity: varchar('gad7_severity', { length: 50 }), // minimal, mild, moderate, severe
+  gad7Responses: text('gad7_responses'), // JSON array of 7 responses (0-3 each)
+  
+  // Perceived Stress Scale (PSS-10)
+  pssScore: integer('pss_score'), // 0-40
+  pssCategory: varchar('pss_category', { length: 50 }), // low, moderate, high
+  
+  // Sleep & Fatigue
+  insomniaScore: integer('insomnia_score'), // ISI 0-28
+  fatigueScore: integer('fatigue_score'), // FSS 9-63
+  
+  // Cognitive Assessment
+  cognitiveScreenType: varchar('cognitive_screen_type', { length: 50 }), // MMSE, MoCA, Mini-Cog
+  cognitiveScore: integer('cognitive_score'),
+  cognitiveMaxScore: integer('cognitive_max_score'),
+  memoryComplaint: boolean('memory_complaint').default(false),
+  
+  // Wellbeing & Life Satisfaction
+  wellbeingScore: integer('wellbeing_score'), // WHO-5 0-25
+  lifeSatisfactionScore: integer('life_satisfaction_score'), // 1-10
+  purposeScore: integer('purpose_score'), // 1-10
+  
+  // Resilience & Coping
+  resilienceScore: integer('resilience_score'), // Brief Resilience Scale
+  copingStyle: varchar('coping_style', { length: 100 }), // adaptive, maladaptive, mixed
+  
+  // Risk Factors
+  suicidalIdeation: boolean('suicidal_ideation').default(false),
+  substanceUseRisk: varchar('substance_use_risk', { length: 50 }), // none, low, moderate, high
+  socialIsolationRisk: varchar('social_isolation_risk', { length: 50 }), // none, low, moderate, high
+  
+  // Screening metadata
+  screeningDate: timestamp('screening_date').defaultNow().notNull(),
+  screenedBy: varchar('screened_by', { length: 100 }),
+  referralMade: boolean('referral_made').default(false),
+  notes: text('notes')
+});
+
+// Social Determinants of Health - Social factors affecting longevity
+export const socialDeterminants = pgTable('social_determinants', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id').notNull().references(() => patients.id),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  
+  // Social Connections
+  maritalStatus: varchar('marital_status', { length: 50 }), // single, married, divorced, widowed, partnered
+  livingArrangement: varchar('living_arrangement', { length: 100 }), // alone, spouse, family, assisted
+  closeRelationshipsCount: integer('close_relationships_count'), // close friends/family
+  socialInteractionFrequency: varchar('social_interaction_frequency', { length: 50 }), // daily, weekly, monthly, rarely
+  belongsToGroups: boolean('belongs_to_groups').default(false), // clubs, religious, community
+  lonelinessScore: integer('loneliness_score'), // UCLA Loneliness Scale 3-9
+  
+  // Education & Cognitive Engagement
+  educationLevel: varchar('education_level', { length: 100 }), // primary, secondary, bachelors, masters, doctorate
+  yearsOfEducation: integer('years_of_education'),
+  currentlyLearning: boolean('currently_learning').default(false), // taking courses, reading, puzzles
+  cognitiveActivities: text('cognitive_activities'), // JSON array
+  
+  // Employment & Financial
+  employmentStatus: varchar('employment_status', { length: 50 }), // employed, unemployed, retired, disabled
+  occupationType: varchar('occupation_type', { length: 100 }), // sedentary, active, manual
+  financialStress: varchar('financial_stress', { length: 50 }), // none, low, moderate, high
+  hasHealthInsurance: boolean('has_health_insurance').default(false),
+  
+  // Living Environment
+  housingType: varchar('housing_type', { length: 100 }), // house, apartment, nursing_home
+  housingStability: varchar('housing_stability', { length: 50 }), // stable, at_risk, unstable
+  accessToHealthcare: varchar('access_to_healthcare', { length: 50 }), // easy, moderate, difficult
+  accessToHealthyFood: varchar('access_to_healthy_food', { length: 50 }), // easy, moderate, difficult
+  neighborhoodSafety: varchar('neighborhood_safety', { length: 50 }), // safe, somewhat_safe, unsafe
+  
+  // Purpose & Meaning
+  senseOfPurpose: integer('sense_of_purpose'), // 1-10 scale
+  lifeGoals: text('life_goals'), // free text or JSON
+  volunteerWork: boolean('volunteer_work').default(false),
+  religiousOrSpiritual: boolean('religious_or_spiritual').default(false),
+  
+  // Adverse Experiences
+  childhoodAdverseExperiences: integer('childhood_adverse_experiences'), // ACE score 0-10
+  recentMajorLifeEvents: integer('recent_major_life_events'), // count in past year
+  chronicStressors: text('chronic_stressors'), // JSON array
+  
+  // Assessment metadata
+  assessmentDate: timestamp('assessment_date').defaultNow().notNull(),
+  assessedBy: varchar('assessed_by', { length: 100 }),
+  notes: text('notes')
+});
+
+// Advanced Biomarkers - Specialized longevity markers
+export const advancedBiomarkers = pgTable('advanced_biomarkers', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id').notNull().references(() => patients.id),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  
+  // Hormonal Panel
+  tshMiuL: decimal('tsh_miu_l', { precision: 6, scale: 3 }), // Thyroid
+  freeT3PgMl: decimal('free_t3_pg_ml', { precision: 5, scale: 2 }),
+  freeT4NgDl: decimal('free_t4_ng_dl', { precision: 4, scale: 2 }),
+  testosteroneNgDl: decimal('testosterone_ng_dl', { precision: 6, scale: 1 }), // Total testosterone
+  freeTestosteronePgMl: decimal('free_testosterone_pg_ml', { precision: 5, scale: 2 }),
+  estradiolPgMl: decimal('estradiol_pg_ml', { precision: 6, scale: 1 }),
+  dheaSUgDl: decimal('dhea_s_ug_dl', { precision: 6, scale: 1 }), // DHEA-Sulfate
+  cortisolUgDl: decimal('cortisol_ug_dl', { precision: 5, scale: 2 }), // AM cortisol
+  igf1NgMl: decimal('igf1_ng_ml', { precision: 6, scale: 1 }), // Insulin-like Growth Factor
+  insulinMiuL: decimal('insulin_miu_l', { precision: 6, scale: 2 }), // Fasting insulin
+  homaIr: decimal('homa_ir', { precision: 5, scale: 2 }), // Insulin resistance
+  
+  // Cardiovascular Risk Markers
+  apoBMgDl: decimal('apo_b_mg_dl', { precision: 5, scale: 1 }), // Apolipoprotein B
+  lpANmolL: decimal('lp_a_nmol_l', { precision: 6, scale: 1 }), // Lipoprotein(a)
+  homocysteineMmolL: decimal('homocysteine_mmol_l', { precision: 5, scale: 2 }),
+  fibrinogenMgDl: decimal('fibrinogen_mg_dl', { precision: 6, scale: 1 }),
+  dDimerNgMl: decimal('d_dimer_ng_ml', { precision: 6, scale: 1 }),
+  bnpPgMl: decimal('bnp_pg_ml', { precision: 6, scale: 1 }), // Brain Natriuretic Peptide
+  coronaryCalciumScore: integer('coronary_calcium_score'), // Agatston score
+  
+  // Inflammatory Markers
+  hscrpMgL: decimal('hscrp_mg_l', { precision: 5, scale: 2 }), // High-sensitivity CRP
+  il6PgMl: decimal('il6_pg_ml', { precision: 5, scale: 2 }), // Interleukin-6
+  tnfAlphaPgMl: decimal('tnf_alpha_pg_ml', { precision: 5, scale: 2 }), // TNF-alpha
+  ferritinNgMl: decimal('ferritin_ng_ml', { precision: 6, scale: 1 }),
+  
+  // Kidney Function
+  cystatinCMgL: decimal('cystatin_c_mg_l', { precision: 4, scale: 2 }),
+  uricAcidMgDl: decimal('uric_acid_mg_dl', { precision: 4, scale: 1 }),
+  microalbuminMgL: decimal('microalbumin_mg_l', { precision: 5, scale: 1 }),
+  
+  // Liver Function Extended
+  ggtUL: integer('ggt_u_l'), // Gamma-glutamyl transferase
+  albuminGDl: decimal('albumin_g_dl', { precision: 3, scale: 1 }),
+  
+  // Nutritional Markers
+  vitaminDNgMl: decimal('vitamin_d_ng_ml', { precision: 5, scale: 1 }), // 25-OH Vitamin D
+  vitaminB12PgMl: decimal('vitamin_b12_pg_ml', { precision: 6, scale: 1 }),
+  folatengMl: decimal('folate_ng_ml', { precision: 5, scale: 1 }),
+  magnesiumMgDl: decimal('magnesium_mg_dl', { precision: 3, scale: 1 }),
+  zincUgDl: decimal('zinc_ug_dl', { precision: 5, scale: 1 }),
+  omega3Index: decimal('omega3_index', { precision: 4, scale: 1 }), // % of fatty acids
+  
+  // Epigenetic / Advanced Aging Markers
+  telomereLength: decimal('telomere_length', { precision: 6, scale: 2 }), // T/S ratio or kb
+  dnaMethodAge: decimal('dna_meth_age', { precision: 5, scale: 1 }), // Horvath clock
+  phenoAge: decimal('pheno_age', { precision: 5, scale: 1 }), // Levine PhenoAge
+  grimAge: decimal('grim_age', { precision: 5, scale: 1 }), // GrimAge clock
+  
+  // Test metadata
+  testDate: timestamp('test_date').defaultNow().notNull(),
+  labName: varchar('lab_name', { length: 200 }),
+  notes: text('notes')
+});
+
+// Heart Rate Variability - Important longevity & autonomic health marker
+export const heartRateVariability = pgTable('heart_rate_variability', {
+  id: serial('id').primaryKey(),
+  patientId: integer('patient_id').notNull().references(() => patients.id),
+  organizationId: integer('organization_id').references(() => organizations.id),
+  
+  // Time Domain Measures
+  sdnnMs: decimal('sdnn_ms', { precision: 6, scale: 2 }), // Standard deviation of NN intervals
+  rmssdMs: decimal('rmssd_ms', { precision: 6, scale: 2 }), // Root mean square of successive differences
+  pnn50Percent: decimal('pnn50_percent', { precision: 5, scale: 2 }), // % successive intervals > 50ms
+  
+  // Frequency Domain Measures
+  lfPowerMs2: decimal('lf_power_ms2', { precision: 8, scale: 2 }), // Low frequency power
+  hfPowerMs2: decimal('hf_power_ms2', { precision: 8, scale: 2 }), // High frequency power
+  lfHfRatio: decimal('lf_hf_ratio', { precision: 5, scale: 2 }), // LF/HF ratio
+  
+  // Recovery & Readiness
+  hrvScore: integer('hrv_score'), // 1-100 composite score
+  readinessScore: integer('readiness_score'), // 1-100
+  recoveryStatus: varchar('recovery_status', { length: 50 }), // optimal, adequate, compromised
+  
+  // Context
+  measurementContext: varchar('measurement_context', { length: 100 }), // morning, post_exercise, sleep
+  deviceUsed: varchar('device_used', { length: 100 }),
+  measuredAt: timestamp('measured_at').defaultNow().notNull(),
+  notes: text('notes')
+});
+
 // Type definitions for new tables
 export type Pharmacy = typeof pharmacies.$inferSelect;
 export type InsertPharmacy = typeof pharmacies.$inferInsert;
@@ -710,12 +1002,35 @@ export type InsertSystemHealth = typeof systemHealth.$inferInsert;
 export type PinnedConsultationForm = typeof pinnedConsultationForms.$inferSelect;
 export type InsertPinnedConsultationForm = typeof pinnedConsultationForms.$inferInsert;
 
+// Longevity Assessment Types
+export type LifestyleAssessment = typeof lifestyleAssessments.$inferSelect;
+export type InsertLifestyleAssessment = typeof lifestyleAssessments.$inferInsert;
+export type BodyComposition = typeof bodyComposition.$inferSelect;
+export type InsertBodyComposition = typeof bodyComposition.$inferInsert;
+export type MentalHealthScreening = typeof mentalHealthScreenings.$inferSelect;
+export type InsertMentalHealthScreening = typeof mentalHealthScreenings.$inferInsert;
+export type SocialDeterminant = typeof socialDeterminants.$inferSelect;
+export type InsertSocialDeterminant = typeof socialDeterminants.$inferInsert;
+export type AdvancedBiomarker = typeof advancedBiomarkers.$inferSelect;
+export type InsertAdvancedBiomarker = typeof advancedBiomarkers.$inferInsert;
+export type HeartRateVariability = typeof heartRateVariability.$inferSelect;
+export type InsertHeartRateVariability = typeof heartRateVariability.$inferInsert;
+
 // Insert schemas for forms
 export const insertPharmacySchema = createInsertSchema(pharmacies);
 export const insertPharmacyActivitySchema = createInsertSchema(pharmacyActivities);
 export const insertMedicationReviewSchema = createInsertSchema(medicationReviews);
 export const insertErrorLogSchema = createInsertSchema(errorLogs);
 export const insertSystemHealthSchema = createInsertSchema(systemHealth);
+
+// Longevity Assessment Insert Schemas
+export const insertLifestyleAssessmentSchema = createInsertSchema(lifestyleAssessments);
+export const insertBodyCompositionSchema = createInsertSchema(bodyComposition);
+export const insertMentalHealthScreeningSchema = createInsertSchema(mentalHealthScreenings);
+export const insertSocialDeterminantSchema = createInsertSchema(socialDeterminants);
+export const insertAdvancedBiomarkerSchema = createInsertSchema(advancedBiomarkers);
+export const insertHeartRateVariabilitySchema = createInsertSchema(heartRateVariability);
+
 export const insertPinnedConsultationFormSchema = createInsertSchema(pinnedConsultationForms).omit({
   id: true,
   createdAt: true
