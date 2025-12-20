@@ -17,7 +17,7 @@
 substitutions:
   _REGION: us-central1
   _SERVICE_NAME: clinicconnect
-  _CLOUD_SQL_CONNECTION: ""
+  _CLOUD_SQL_CONNECTION: gen-lang-client-0373573464:us-central1:clinicconnect-db
   _MIN_INSTANCES: "0"
   _MAX_INSTANCES: "10"
   _MEMORY: 1Gi
