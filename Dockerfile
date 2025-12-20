@@ -86,6 +86,9 @@ COPY --from=builder /app/drizzle.config.ts ./
 # Copy runtime files
 COPY shared ./shared
 
+# Create server directory and copy migrations (optional - may not exist)
+RUN mkdir -p ./server/migrations
+
 # Copy migrations from builder (they exist there from the COPY server step)
 COPY --from=builder /app/server/migrations ./server/migrations
 
